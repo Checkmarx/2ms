@@ -4,22 +4,71 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 	"io"
 	"net/http"
+	"strings"
 )
 
-func (p *Plugin) RunPlugin() ([]Content, error) {
-	contents := []Content{}
+const argConfluence = "confluence"
+const argConfluenceSpaces = "confluence-spaces"
+const argConfluenceUsername = "confluence-username"
+const argConfluenceToken = "confluence-token"
 
+type ConfluencePlugin struct {
+	Plugin
+	URL      string
+	Token    string
+	Username string
+	Spaces   []string
+}
+
+func (p *ConfluencePlugin) IsEnabled() bool {
+	return p.Enabled
+}
+
+func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
+	flags := cmd.Flags()
+	flags.StringP(argConfluence, "", "", "scan confluence url")
+	flags.StringP(argConfluenceSpaces, "", "", "confluence spaces")
+	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
+	flags.StringP(argConfluenceToken, "", "", "confluence token")
+	return nil
+}
+
+func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
+	flags := cmd.Flags()
+	confluenceUrl, _ := flags.GetString(argConfluence)
+	if confluenceUrl == "" {
+		return nil
+	}
+
+	if !strings.HasPrefix("https://", confluenceUrl) && !strings.HasPrefix("http://", confluenceUrl) {
+		confluenceUrl = fmt.Sprintf("https://%v", confluenceUrl)
+	}
+	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
+
+	confluenceSpaces, _ := flags.GetString(argConfluenceSpaces)
+	confluenceUsername, _ := flags.GetString(argConfluenceUsername)
+	confluenceToken, _ := flags.GetString(argConfluenceToken)
+
+	p.Token = confluenceToken
+	p.Username = confluenceUsername
+	p.URL = confluenceUrl
+	p.Spaces = strings.Split(confluenceSpaces, ",")
+	p.Enabled = true
+	return nil
+}
+
+func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
+	items := make([]Item, 0)
 	spaces, err := p.getTotalSpaces()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, space := range spaces {
-
 		spacePages, err := p.getTotalPages(space)
-
 		if err != nil {
 			return nil, err
 		}
@@ -30,15 +79,15 @@ func (p *Plugin) RunPlugin() ([]Content, error) {
 				return nil, err
 			}
 
-			contents = append(contents, *pageContent)
+			items = append(items, *pageContent)
 		}
 	}
 
-	log.Info().Msg("Confluence plugin completed successfully")
-	return contents, nil
+	log.Debug().Msg("Confluence plugin completed successfully")
+	return &items, nil
 }
 
-func (p *Plugin) getTotalSpaces() ([]SpaceResult, error) {
+func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 	totalSpaces, err := p.getSpaces(0)
 	if err != nil {
 		return nil, err
@@ -62,14 +111,14 @@ func (p *Plugin) getTotalSpaces() ([]SpaceResult, error) {
 	return totalSpaces.Results, nil
 }
 
-func (p *Plugin) getSpaces(start int) (*SpaceResponse, error) {
+func (p *ConfluencePlugin) getSpaces(start int) (*ConfluenceSpaceResponse, error) {
 	url := fmt.Sprintf("%s/rest/api/space?start=%d", p.URL, start)
 	body, err := p.httpRequest(http.MethodGet, url)
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	response := &SpaceResponse{}
+	response := &ConfluenceSpaceResponse{}
 	jsonErr := json.Unmarshal(body, response)
 	if jsonErr != nil {
 		return nil, fmt.Errorf("could not unmarshal response %w", err)
@@ -78,7 +127,7 @@ func (p *Plugin) getSpaces(start int) (*SpaceResponse, error) {
 	return response, nil
 }
 
-func (p *Plugin) getTotalPages(space SpaceResult) (*PageResult, error) {
+func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (*ConfluencePageResult, error) {
 	totalPages, err := p.getPages(space, 0)
 
 	if err != nil {
@@ -103,7 +152,7 @@ func (p *Plugin) getTotalPages(space SpaceResult) (*PageResult, error) {
 	return totalPages, nil
 }
 
-func (p *Plugin) getPages(space SpaceResult, start int) (*PageResult, error) {
+func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error) {
 	url := fmt.Sprintf("%s/rest/api/space/%s/content?start=%d", p.URL, space.Key, start)
 	body, err := p.httpRequest(http.MethodGet, url)
 
@@ -120,7 +169,7 @@ func (p *Plugin) getPages(space SpaceResult, start int) (*PageResult, error) {
 	return &response.Results, nil
 }
 
-func (p *Plugin) getContent(page Page, space SpaceResult) (*Content, error) {
+func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpaceResult) (*Item, error) {
 	url := p.URL + "/rest/api/content/" + page.ID + "?expand=body.storage,body.view.value,version,history.previousVersion"
 	originalUrl := p.URL + "/spaces/" + space.Key + "/pages/" + page.ID
 	request, err := p.httpRequest(http.MethodGet, url)
@@ -129,15 +178,15 @@ func (p *Plugin) getContent(page Page, space SpaceResult) (*Content, error) {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	content := &Content{
-		Content:     string(request),
-		Source:      url,
-		OriginalUrl: originalUrl,
+	content := &Item{
+		Content: string(request),
+		Source:  url,
+		ID:      originalUrl,
 	}
 	return content, nil
 }
 
-func (p *Plugin) httpRequest(method string, url string) ([]byte, error) {
+func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error) {
 	var err error
 
 	request, err := http.NewRequest(method, url, nil)
@@ -151,8 +200,8 @@ func (p *Plugin) httpRequest(method string, url string) ([]byte, error) {
 		return nil, fmt.Errorf("unable to send http request %w", err)
 	}
 
-	if p.Email == "" && p.Token == "" {
-		request.SetBasicAuth(p.Email, p.Token)
+	if p.Username == "" && p.Token == "" {
+		request.SetBasicAuth(p.Username, p.Token)
 	}
 
 	if err != nil {
@@ -173,28 +222,28 @@ func (p *Plugin) httpRequest(method string, url string) ([]byte, error) {
 	return body, nil
 }
 
-type SpaceResult struct {
+type ConfluenceSpaceResult struct {
 	ID    int               `json:"id"`
 	Key   string            `json:"key"`
 	Name  string            `json:"Name"`
 	Links map[string]string `json:"_links"`
 }
 
-type SpaceResponse struct {
-	Results []SpaceResult `json:"results"`
-	Size    int           `json:"size"`
+type ConfluenceSpaceResponse struct {
+	Results []ConfluenceSpaceResult `json:"results"`
+	Size    int                     `json:"size"`
 }
 
-type Page struct {
+type ConfluencePage struct {
 	ID    string `json:"id"`
 	Type  string `json:"type"`
 	Title string `json:"title"`
 }
 
-type PageResult struct {
-	Pages []Page `json:"results"`
+type ConfluencePageResult struct {
+	Pages []ConfluencePage `json:"results"`
 }
 
 type PageResponse struct {
-	Results PageResult `json:"page"`
+	Results ConfluencePageResult `json:"page"`
 }
