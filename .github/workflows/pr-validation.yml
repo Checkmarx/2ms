@@ -3,7 +3,7 @@ name: PR Validation
 on:
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   lint:
