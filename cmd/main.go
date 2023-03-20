@@ -48,7 +48,7 @@ func initLog() {
 func Execute() {
 	cobra.OnInitialize(initLog)
 	rootCmd.Flags().BoolP("all", "", true, "scan all plugins")
-	rootCmd.Flags().BoolP("all-rules", "", true, "all rules")
+	rootCmd.Flags().StringSlice("rules", []string{"all"}, "select rules to be applied")
 
 	for _, plugin := range allPlugins {
 		err := plugin.DefineCommandLineArgs(rootCmd)
@@ -64,10 +64,23 @@ func Execute() {
 	}
 }
 
+func isValidFilter(rulesFilter []string) bool {
+	for _, filter := range rulesFilter {
+		if !(strings.EqualFold(filter, "all") || strings.EqualFold(filter, "token") || strings.EqualFold(filter, "key") || strings.EqualFold(filter, "id")) {
+			return false
+		}
+	}
+	return true
+}
+
 func execute(cmd *cobra.Command, args []string) {
-	allRules, err := cmd.Flags().GetBool("all-rules")
+	rulesFilter, err := cmd.Flags().GetStringSlice("rules")
 	if err != nil {
 		log.Fatal().Msg(err.Error())
+	}
+
+	if !isValidFilter(rulesFilter) {
+		log.Fatal().Msg(`rules filter allowed: "all", "token", "id", "key"`) //missing input from Bryant
 	}
 
 	// -------------------------------------
@@ -99,15 +112,13 @@ func execute(cmd *cobra.Command, args []string) {
 	// -------------------------------------
 	// Detect Secrets
 
-	if allRules {
-		wrap := wrapper.NewWrapper()
+	wrap := wrapper.NewWrapper(rulesFilter)
 
-		for _, item := range items {
-			secrets := wrap.Detect(item.Content)
-			report.Results[item.ID] = append(report.Results[item.ID], secrets...)
-		}
-		report.TotalItemsScanned = len(items)
+	for _, item := range items {
+		secrets := wrap.Detect(item.Content)
+		report.Results[item.ID] = append(report.Results[item.ID], secrets...)
 	}
+	report.TotalItemsScanned = len(items)
 
 	// -------------------------------------
 	// Show Report
