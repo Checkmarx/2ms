@@ -62,6 +62,7 @@ func getRulesToBeApplied(allRules []*config.Rule, rulesFilter []string) map[stri
 		}
 	} else {
 		var filteredRules []config.Rule
+
 		for _, rule := range allRules {
 			rule.Keywords = []string{}
 			for _, filter := range rulesFilter {
