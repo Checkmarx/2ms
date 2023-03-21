@@ -15,6 +15,9 @@ func TestConfluencePlugin_GetItems(t *testing.T) {
 	}
 
 	items, err := confluencePlugin.GetItems()
+	if err != nil {
+		t.Error(err)
+	}
 
 	require.Equal(t, len(*items), 1870)
 	require.NoError(t, err)
