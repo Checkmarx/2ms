@@ -31,7 +31,7 @@ func (p *ConfluencePlugin) IsEnabled() bool {
 
 func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	flags.StringP(argConfluence, "", "", "scan confluence url")
+	flags.StringP(argConfluence, "-c", "", "scan confluence url")
 	flags.StringP(argConfluenceSpaces, "", "", "confluence spaces")
 	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
 	flags.StringP(argConfluenceToken, "", "", "confluence token")
@@ -165,7 +165,7 @@ func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (Confluenc
 	}
 
 	if len(totalPages.Pages) == 25 {
-		for threadCount := 0; threadCount < 20; threadCount++ {
+		for threadCount := 0; threadCount < 4; threadCount++ {
 			wg.Add(1)
 			go p.threadGetPages(space, &count, &totalPages, &mutex, &wg)
 		}
