@@ -61,13 +61,10 @@ func getRulesToBeApplied(allRules []*config.Rule, rulesFilter []string) map[stri
 			rulesToBeApplied[rule.RuleID] = *rule
 		}
 	} else {
-		var filteredRules []config.Rule
-
 		for _, rule := range allRules {
 			rule.Keywords = []string{}
 			for _, filter := range rulesFilter {
 				if strings.Contains(strings.ToLower(rule.Description), filter) {
-					filteredRules = append(filteredRules, *rule)
 					rulesToBeApplied[rule.RuleID] = *rule
 				}
 			}
