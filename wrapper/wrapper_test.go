@@ -11,7 +11,7 @@ import (
 
 func TestWrapper_RunScans(t *testing.T) {
 	// Load items
-	csvFile, err := os.Create("testdata.csv")
+	csvFile, err := os.Open("../testdata/items.csv")
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,7 +48,7 @@ func ItemFromCSV(row []string) plugins.Item {
 
 func BenchmarkWrapper_RunScans(b *testing.B) {
 	// Load items
-	csvFile, err := os.Create("testdata.csv")
+	csvFile, err := os.Open("../testdata/items.csv")
 	if err != nil {
 		b.Error(err)
 	}
