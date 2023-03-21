@@ -5,6 +5,7 @@ import (
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/wrapper"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -70,6 +71,8 @@ func execute(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg(err.Error())
 	}
 
+	start := time.Now()
+
 	// -------------------------------------
 	// Get content from plugins
 
@@ -102,10 +105,12 @@ func execute(cmd *cobra.Command, args []string) {
 	if allRules {
 		wrap := wrapper.NewWrapper()
 
-		for _, item := range items {
+		report.Results = wrap.RunScans(items)
+
+		/*for _, item := range items {
 			secrets := wrap.Detect(item.Content)
 			report.Results[item.ID] = append(report.Results[item.ID], secrets...)
-		}
+		}*/
 		report.TotalItemsScanned = len(items)
 	}
 
@@ -113,4 +118,7 @@ func execute(cmd *cobra.Command, args []string) {
 	// Show Report
 
 	reporting.ShowReport(report)
+
+	dur := time.Since(start)
+	log.Info().Msgf("Total time of %dh%d", int(dur.Hours()), int(dur.Minutes())) //, dur.Seconds())
 }

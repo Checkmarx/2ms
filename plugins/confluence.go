@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 )
 
 const argConfluence = "confluence"
@@ -43,9 +45,6 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 		return nil
 	}
 
-	if !strings.HasPrefix("https://", confluenceUrl) && !strings.HasPrefix("http://", confluenceUrl) {
-		confluenceUrl = fmt.Sprintf("https://%v", confluenceUrl)
-	}
 	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
 
 	confluenceSpaces, _ := flags.GetString(argConfluenceSpaces)
@@ -61,6 +60,8 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 }
 
 func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
+	var wg sync.WaitGroup
+
 	items := make([]Item, 0)
 	spaces, err := p.getTotalSpaces()
 	if err != nil {
@@ -68,18 +69,30 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 	}
 
 	for _, space := range spaces {
+		limit := make(chan interface{}, 5)
+
 		spacePages, err := p.getTotalPages(space)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, page := range spacePages.Pages {
-			pageContent, err := p.getContent(page, space)
-			if err != nil {
-				return nil, err
-			}
+			limit <- struct{}{}
+			wg.Add(1)
+			go func() {
+				pageContent, err := p.getContent(page, space)
+				if err != nil {
+					limit <- err
+				}
 
-			items = append(items, *pageContent)
+				items = append(items, *pageContent)
+
+				<-limit
+				wg.Done()
+
+			}()
+			wg.Wait()
+
 		}
 	}
 
@@ -88,85 +101,113 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 }
 
 func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
+	var count int32 = 1
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
+
 	totalSpaces, err := p.getSpaces(0)
 	if err != nil {
 		return nil, err
 	}
 
-	actualSize := totalSpaces.Size
-
-	for actualSize != 0 {
-		moreSpaces, err := p.getSpaces(totalSpaces.Size)
-		if err != nil {
-			return nil, err
+	if totalSpaces.Size == 25 {
+		for threadCount := 0; threadCount < 4; threadCount++ {
+			wg.Add(1)
+			go p.threadGetSpaces(&count, &totalSpaces, &mutex, &wg)
 		}
-
-		totalSpaces.Results = append(totalSpaces.Results, moreSpaces.Results...)
-		totalSpaces.Size += moreSpaces.Size
-		actualSize = moreSpaces.Size
 	}
-
+	wg.Wait()
 	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
 
 	return totalSpaces.Results, nil
 }
 
-func (p *ConfluencePlugin) getSpaces(start int) (*ConfluenceSpaceResponse, error) {
+func (p *ConfluencePlugin) threadGetSpaces(count *int32, totalSpaces *ConfluenceSpaceResponse, mutex *sync.Mutex, wg *sync.WaitGroup) {
+	var moreSpaces []ConfluenceSpaceResult
+	for {
+		atomic.AddInt32(count, 1)
+		lastSpaces, _ := p.getSpaces(int(*count-1) * 25)
+		moreSpaces = append(moreSpaces, lastSpaces.Results...)
+
+		if lastSpaces.Size == 0 {
+			mutex.Lock()
+			totalSpaces.Results = append(totalSpaces.Results, moreSpaces...)
+			mutex.Unlock()
+			wg.Done()
+			break
+		}
+	}
+}
+
+func (p *ConfluencePlugin) getSpaces(start int) (ConfluenceSpaceResponse, error) {
 	url := fmt.Sprintf("%s/rest/api/space?start=%d", p.URL, start)
 	body, err := p.httpRequest(http.MethodGet, url)
 	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+		return ConfluenceSpaceResponse{}, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	response := &ConfluenceSpaceResponse{}
-	jsonErr := json.Unmarshal(body, response)
+	response := ConfluenceSpaceResponse{}
+	jsonErr := json.Unmarshal(body, &response)
 	if jsonErr != nil {
-		return nil, fmt.Errorf("could not unmarshal response %w", err)
+		return ConfluenceSpaceResponse{}, fmt.Errorf("could not unmarshal response %w", err)
 	}
 
 	return response, nil
 }
 
-func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (*ConfluencePageResult, error) {
+func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (ConfluencePageResult, error) {
+	var count int32 = 1
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
 	totalPages, err := p.getPages(space, 0)
-
 	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+		return ConfluencePageResult{}, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	actualSize := len(totalPages.Pages)
-
-	for actualSize != 0 {
-		morePages, err := p.getPages(space, len(totalPages.Pages))
-
-		if err != nil {
-			return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+	if len(totalPages.Pages) == 25 {
+		for threadCount := 0; threadCount < 20; threadCount++ {
+			wg.Add(1)
+			go p.threadGetPages(space, &count, &totalPages, &mutex, &wg)
 		}
-
-		totalPages.Pages = append(totalPages.Pages, morePages.Pages...)
-		actualSize = len(morePages.Pages)
 	}
-
+	wg.Wait()
 	log.Info().Msgf(" Space - %s have %d pages", space.Name, len(totalPages.Pages))
 
 	return totalPages, nil
 }
 
-func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error) {
+func (p *ConfluencePlugin) threadGetPages(space ConfluenceSpaceResult, count *int32, totalPages *ConfluencePageResult, mutex *sync.Mutex, wg *sync.WaitGroup) {
+	var morePages ConfluencePageResult
+	for {
+		atomic.AddInt32(count, 1)
+		lastPages, _ := p.getPages(space, int(*count-1)*25)
+		morePages.Pages = append(morePages.Pages, lastPages.Pages...)
+
+		if len(lastPages.Pages) == 0 {
+			mutex.Lock()
+			totalPages.Pages = append(totalPages.Pages, morePages.Pages...)
+			mutex.Unlock()
+			wg.Done()
+			break
+		}
+	}
+}
+
+func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (ConfluencePageResult, error) {
 	url := fmt.Sprintf("%s/rest/api/space/%s/content?start=%d", p.URL, space.Key, start)
 	body, err := p.httpRequest(http.MethodGet, url)
 
 	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+		return ConfluencePageResult{}, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
 	response := PageResponse{}
 	jsonErr := json.Unmarshal(body, &response)
 	if jsonErr != nil {
-		return nil, fmt.Errorf("could not unmarshal response %w", err)
+		return ConfluencePageResult{}, fmt.Errorf("could not unmarshal response %w", err)
 	}
 
-	return &response.Results, nil
+	return response.Results, nil
 }
 
 func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpaceResult) (*Item, error) {
@@ -194,14 +235,14 @@ func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
+	if p.Username != "" && p.Token != "" {
+		request.SetBasicAuth(p.Username, p.Token)
+	}
+
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("unable to send http request %w", err)
-	}
-
-	if p.Username == "" && p.Token == "" {
-		request.SetBasicAuth(p.Username, p.Token)
 	}
 
 	if err != nil {

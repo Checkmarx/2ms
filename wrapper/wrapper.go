@@ -1,11 +1,13 @@
 package wrapper
 
 import (
+	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/rs/zerolog/log"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
+	"sync"
 )
 
 type Wrapper struct {
@@ -28,6 +30,28 @@ func NewWrapper() *Wrapper {
 		rules:    rulesList,
 		detector: *detector,
 	}
+}
+
+func (w *Wrapper) RunScans(contents []plugins.Item) map[string][]reporting.Secret {
+	results := make(map[string][]reporting.Secret)
+	var wg sync.WaitGroup
+	limit := make(chan struct{}, 5)
+	for _, c := range contents {
+		limit <- struct{}{}
+		wg.Add(1)
+		go func() {
+			secrets := w.Detect(c.Content)
+			for _, secret := range secrets {
+				results[c.Source] = append(results[c.Source], secret)
+			}
+			<-limit
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	return results
 }
 
 func (w *Wrapper) Detect(content string) []reporting.Secret {
