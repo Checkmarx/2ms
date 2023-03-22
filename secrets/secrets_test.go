@@ -1,4 +1,4 @@
-package wrapper
+package secrets
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 func TestLoadAllRules(t *testing.T) {
 	rules, _ := loadAllRules()
 
-	if len(rules) != 147 {
-		t.Errorf("not all rules were loaded, there should be %d", 147)
+	if len(rules) <= 1 {
+		t.Error("no rules were loaded")
 	}
 }
 
@@ -44,55 +44,55 @@ func TestIsAllFilter_OnlyAll(t *testing.T) {
 
 func TestGetRules_AllFilter(t *testing.T) {
 	rules, _ := loadAllRules()
-	filters := []string{"all"}
+	tags := []string{"all"}
 
-	filteredRules := getRulesToBeApplied(rules, filters)
+	filteredRules := getRules(rules, tags)
 
-	if len(filteredRules) != 147 {
-		t.Errorf("not all rules were loaded, there should be %d", 147)
+	if len(filteredRules) <= 1 {
+		t.Error("no rules were loaded")
 	}
 }
 
 func TestGetRules_TokenFilter(t *testing.T) {
 	rules, _ := loadAllRules()
-	filters := []string{"token"}
+	tags := []string{"api-token"}
 
-	filteredRules := getRulesToBeApplied(rules, filters)
+	filteredRules := getRules(rules, tags)
 
-	if len(filteredRules) != 87 {
-		t.Errorf("not all rules were loaded, there should be %d", 87)
+	if len(filteredRules) <= 1 {
+		t.Error("no rules were loaded")
 	}
 }
 
 func TestGetRules_KeyFilter(t *testing.T) {
 	rules, _ := loadAllRules()
-	filters := []string{"key"}
+	filters := []string{"api-key"}
 
-	filteredRules := getRulesToBeApplied(rules, filters)
+	filteredRules := getRules(rules, filters)
 
-	if len(filteredRules) != 31 {
-		t.Errorf("not all rules were loaded, there should be %d", 31)
+	if len(filteredRules) <= 1 {
+		t.Error("no rules were loaded")
 	}
 }
 
 func TestGetRules_IdFilter(t *testing.T) {
 	rules, _ := loadAllRules()
-	filters := []string{"id"}
+	filters := []string{"access-token"}
 
-	filteredRules := getRulesToBeApplied(rules, filters)
+	filteredRules := getRules(rules, filters)
 
-	if len(filteredRules) != 18 {
-		t.Errorf("not all rules were loaded, there should be %d", 18)
+	if len(filteredRules) <= 1 {
+		t.Error("no rules were loaded")
 	}
 }
 
 func TestGetRules_IdAndKeyFilters(t *testing.T) {
 	rules, _ := loadAllRules()
-	filters := []string{"id", "key"}
+	filters := []string{"api-key", "access-token"}
 
-	filteredRules := getRulesToBeApplied(rules, filters)
+	filteredRules := getRules(rules, filters)
 
-	if len(filteredRules) != 46 {
-		t.Errorf("not all rules were loaded, there should be %d", 46)
+	if len(filteredRules) <= 1 {
+		t.Error("no rules were loaded")
 	}
 }

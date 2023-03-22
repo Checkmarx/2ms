@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
-	"github.com/checkmarx/2ms/wrapper"
+	"github.com/checkmarx/2ms/secrets"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -48,7 +48,7 @@ func initLog() {
 func Execute() {
 	cobra.OnInitialize(initLog)
 	rootCmd.Flags().BoolP("all", "", true, "scan all plugins")
-	rootCmd.Flags().StringSlice("rules", []string{"all"}, "select rules to be applied")
+	rootCmd.Flags().StringSlice("tags", []string{"all"}, "select rules to be applied")
 
 	for _, plugin := range allPlugins {
 		err := plugin.DefineCommandLineArgs(rootCmd)
@@ -64,24 +64,27 @@ func Execute() {
 	}
 }
 
-func isValidFilter(rulesFilter []string) bool {
-	for _, filter := range rulesFilter {
-		if !(strings.EqualFold(filter, "all") || strings.EqualFold(filter, "token") || strings.EqualFold(filter, "key") || strings.EqualFold(filter, "id")) {
-			return false
+func validateTags(tags []string) {
+	for _, tag := range tags {
+		if !(strings.EqualFold(tag, "all") || strings.EqualFold(tag, secrets.TagApiKey) || strings.EqualFold(tag, secrets.TagClientId) ||
+			strings.EqualFold(tag, secrets.TagClientSecret) || strings.EqualFold(tag, secrets.TagSecretKey) || strings.EqualFold(tag, secrets.TagAccessKey) ||
+			strings.EqualFold(tag, secrets.TagAccessId) || strings.EqualFold(tag, secrets.TagApiToken) || strings.EqualFold(tag, secrets.TagAccessToken) ||
+			strings.EqualFold(tag, secrets.TagRefreshToken) || strings.EqualFold(tag, secrets.TagPrivateKey) || strings.EqualFold(tag, secrets.TagPublicKey) ||
+			strings.EqualFold(tag, secrets.TagEncryptionKey) || strings.EqualFold(tag, secrets.TagTriggerToken) || strings.EqualFold(tag, secrets.TagRegistrationToken) ||
+			strings.EqualFold(tag, secrets.TagPassword) || strings.EqualFold(tag, secrets.TagUploadToken) || strings.EqualFold(tag, secrets.TagPublicSecret) ||
+			strings.EqualFold(tag, secrets.TagSensitiveUrl) || strings.EqualFold(tag, secrets.TagWebhook)) {
+			log.Fatal().Msgf(`invalid filter: %s`, tag)
 		}
 	}
-	return true
 }
 
 func execute(cmd *cobra.Command, args []string) {
-	rulesFilter, err := cmd.Flags().GetStringSlice("rules")
+	tags, err := cmd.Flags().GetStringSlice("tags")
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
 
-	if !isValidFilter(rulesFilter) {
-		log.Fatal().Msg(`rules filter allowed: "all", "token", "id", "key"`) //missing input from Bryant
-	}
+	validateTags(tags)
 
 	// -------------------------------------
 	// Get content from plugins
@@ -112,10 +115,10 @@ func execute(cmd *cobra.Command, args []string) {
 	// -------------------------------------
 	// Detect Secrets
 
-	wrap := wrapper.NewWrapper(rulesFilter)
+	secrets := secrets.Init(tags)
 
 	for _, item := range items {
-		secrets := wrap.Detect(item.Content)
+		secrets := secrets.Detect(item.Content)
 		report.Results[item.ID] = append(report.Results[item.ID], secrets...)
 	}
 	report.TotalItemsScanned = len(items)
