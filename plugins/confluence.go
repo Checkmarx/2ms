@@ -31,7 +31,7 @@ func (p *ConfluencePlugin) IsEnabled() bool {
 
 func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	flags.StringP(argConfluence, "-c", "", "scan confluence url")
+	flags.StringP(argConfluence, "c", "", "scan confluence url")
 	flags.StringP(argConfluenceSpaces, "", "", "confluence spaces")
 	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
 	flags.StringP(argConfluenceToken, "", "", "confluence token")
