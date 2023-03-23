@@ -98,7 +98,6 @@ func execute(cmd *cobra.Command, args []string) {
 
 	report := reporting.Report{}
 	report.Results = make(map[string][]reporting.Secret)
-
 	// -------------------------------------
 	// Detect Secrets
 
@@ -107,18 +106,13 @@ func execute(cmd *cobra.Command, args []string) {
 
 		report.Results = wrap.RunScans(items)
 
-		/*for _, item := range items {
-			secrets := wrap.Detect(item.Content)
-			report.Results[item.ID] = append(report.Results[item.ID], secrets...)
-		}*/
 		report.TotalItemsScanned = len(items)
 	}
-
 	// -------------------------------------
 	// Show Report
 
 	reporting.ShowReport(report)
 
 	dur := time.Since(start)
-	log.Info().Msgf("Total time of %dh%d", int(dur.Hours()), int(dur.Minutes())) //, dur.Seconds())
+	log.Info().Msgf("Total time of %dh%d e %d", int(dur.Hours()), int(dur.Minutes()), int(dur.Seconds()))
 }

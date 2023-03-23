@@ -61,18 +61,19 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 
 func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 	var wg sync.WaitGroup
-
 	items := make([]Item, 0)
+
 	spaces, err := p.getTotalSpaces()
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return nil, err
 	}
-
 	for _, space := range spaces {
 		limit := make(chan interface{}, 5)
 
 		spacePages, err := p.getTotalPages(space)
 		if err != nil {
+			log.Error().Msgf(err.Error())
 			return nil, err
 		}
 
@@ -82,6 +83,7 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 			go func() {
 				pageContent, err := p.getContent(page, space)
 				if err != nil {
+					log.Error().Msgf(err.Error())
 					limit <- err
 				}
 
@@ -91,12 +93,11 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 				wg.Done()
 
 			}()
-			wg.Wait()
-
 		}
+		wg.Wait()
 	}
 
-	log.Debug().Msg("Confluence plugin completed successfully")
+	log.Debug().Msgf("Confluence plugin completed successfully. Total of %d detected", len(spaces))
 	return &items, nil
 }
 
@@ -107,6 +108,7 @@ func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 
 	totalSpaces, err := p.getSpaces(0)
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return nil, err
 	}
 
@@ -143,6 +145,7 @@ func (p *ConfluencePlugin) getSpaces(start int) (ConfluenceSpaceResponse, error)
 	url := fmt.Sprintf("%s/rest/api/space?start=%d", p.URL, start)
 	body, err := p.httpRequest(http.MethodGet, url)
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return ConfluenceSpaceResponse{}, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
@@ -161,6 +164,7 @@ func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (Confluenc
 	var wg sync.WaitGroup
 	totalPages, err := p.getPages(space, 0)
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return ConfluencePageResult{}, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
@@ -171,7 +175,7 @@ func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (Confluenc
 		}
 	}
 	wg.Wait()
-	log.Info().Msgf(" Space - %s have %d pages", space.Name, len(totalPages.Pages))
+	log.Debug().Msgf(" Space - %s have %d pages", space.Name, len(totalPages.Pages))
 
 	return totalPages, nil
 }
@@ -198,6 +202,7 @@ func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (Con
 	body, err := p.httpRequest(http.MethodGet, url)
 
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return ConfluencePageResult{}, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
@@ -216,6 +221,7 @@ func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpace
 	request, err := p.httpRequest(http.MethodGet, url)
 
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
@@ -232,6 +238,7 @@ func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error
 
 	request, err := http.NewRequest(method, url, nil)
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
@@ -242,10 +249,12 @@ func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return nil, fmt.Errorf("unable to send http request %w", err)
 	}
 
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
@@ -257,6 +266,7 @@ func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
+		log.Error().Msgf(err.Error())
 		return nil, fmt.Errorf("unexpected error reading http response body %w", err)
 	}
 

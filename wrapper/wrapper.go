@@ -67,7 +67,7 @@ func (w *Wrapper) Detect(content string) []reporting.Secret {
 		secrets = append(secrets, secret)
 	}
 
-	log.Info().Msgf("Total of %d secrets detected", len(secrets))
+	log.Debug().Msgf("Total of %d secrets detected", len(secrets))
 
 	return secrets
 }
