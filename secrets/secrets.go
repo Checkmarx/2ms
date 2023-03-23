@@ -1,14 +1,15 @@
 package secrets
 
 import (
+	"strings"
+	"sync"
+
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/rs/zerolog/log"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
-	"strings"
-	"sync"
 )
 
 type Secrets struct {
@@ -63,13 +64,13 @@ func (s *Secrets) RunScans(contents []plugins.Item) map[string][]reporting.Secre
 	var wg sync.WaitGroup
 	limit := make(chan struct{}, 5)
 	for _, c := range contents {
+		content := c
 		limit <- struct{}{}
 		wg.Add(1)
 		go func() {
-			secrets := s.Detect(c.Content)
-			for _, secret := range secrets {
-				results[c.Source] = append(results[c.Source], secret)
-			}
+			secrets := s.Detect(content.Content)
+			results[content.Source] = append(results[content.Source], secrets...)
+
 			<-limit
 			wg.Done()
 		}()

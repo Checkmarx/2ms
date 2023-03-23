@@ -3,13 +3,14 @@ package plugins
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 const argConfluence = "confluence"
@@ -77,28 +78,30 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 			return nil, err
 		}
 
-		for _, page := range spacePages.Pages {
-			limit <- struct{}{}
-			wg.Add(1)
-			go func() {
-				pageContent, err := p.getContent(page, space)
-				if err != nil {
-					log.Error().Msgf(err.Error())
-					limit <- err
-				}
-
-				items = append(items, *pageContent)
-
-				<-limit
-				wg.Done()
-
-			}()
+		page := ConfluencePage{}
+		for _, page = range spacePages.Pages {
+			go p.threadGetContent(&page, &space, limit, &wg, &items)
 		}
 		wg.Wait()
 	}
 
 	log.Debug().Msgf("Confluence plugin completed successfully. Total of %d detected", len(spaces))
 	return &items, nil
+}
+
+func (p *ConfluencePlugin) threadGetContent(page *ConfluencePage, space *ConfluenceSpaceResult, limit chan interface{}, wg *sync.WaitGroup, items *[]Item) {
+	limit <- struct{}{}
+	wg.Add(1)
+	go func() {
+		pageContent, err := p.getContent(*page, *space)
+		if err != nil {
+			log.Error().Msgf(err.Error())
+			limit <- err
+		}
+		*items = append(*items, *pageContent)
+		<-limit
+		wg.Done()
+	}()
 }
 
 func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
