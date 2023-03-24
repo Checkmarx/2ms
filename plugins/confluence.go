@@ -80,7 +80,7 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 
 		page := ConfluencePage{}
 		for _, page = range spacePages.Pages {
-			go p.threadGetContent(&page, &space, limit, &wg, &items)
+			go p.threadGetContent(page, space, limit, &wg, &items)
 		}
 		wg.Wait()
 	}
@@ -89,11 +89,11 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 	return &items, nil
 }
 
-func (p *ConfluencePlugin) threadGetContent(page *ConfluencePage, space *ConfluenceSpaceResult, limit chan interface{}, wg *sync.WaitGroup, items *[]Item) {
+func (p *ConfluencePlugin) threadGetContent(page ConfluencePage, space ConfluenceSpaceResult, limit chan interface{}, wg *sync.WaitGroup, items *[]Item) {
 	limit <- struct{}{}
 	wg.Add(1)
 	go func() {
-		pageContent, err := p.getContent(*page, *space)
+		pageContent, err := p.getContent(page, space)
 		if err != nil {
 			log.Error().Msgf(err.Error())
 			limit <- err
@@ -238,7 +238,7 @@ func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpace
 
 func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error) {
 	var err error
-
+	log.Log().Msg(url)
 	request, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		log.Error().Msgf(err.Error())
