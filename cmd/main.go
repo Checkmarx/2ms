@@ -119,12 +119,18 @@ func execute(cmd *cobra.Command, args []string) {
 
 	for _, item := range items {
 		secrets := secrets.Detect(item.Content)
-		report.Results[item.ID] = append(report.Results[item.ID], secrets...)
+		if len(secrets) > 0 {
+			report.TotalSecretsFound = report.TotalSecretsFound + len(secrets)
+			report.Results[item.ID] = append(report.Results[item.ID], secrets...)
+		}
 	}
 	report.TotalItemsScanned = len(items)
 
 	// -------------------------------------
 	// Show Report
-
-	reporting.ShowReport(report)
+	if len(items) > 0 {
+		reporting.ShowReport(report)
+	} else {
+		log.Info().Msg("no plugin was loaded")
+	}
 }

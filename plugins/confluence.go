@@ -40,6 +40,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	confluenceUrl, _ := flags.GetString(argConfluence)
 	if confluenceUrl == "" {
+		log.Info().Msg("no confluence url was given")
 		return nil
 	}
 
