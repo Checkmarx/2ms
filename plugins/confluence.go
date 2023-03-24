@@ -219,7 +219,7 @@ func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (Con
 }
 
 func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpaceResult) (*Item, error) {
-	url := p.URL + "/rest/api/content/" + page.ID + "?expand=body.storage,body.view.value,version,history.previousVersion"
+	url := p.URL + "/rest/api/content/" + page.ID + "?expand=body.storage,version,history.previousVersion"
 	originalUrl := p.URL + "/spaces/" + space.Key + "/pages/" + page.ID
 	request, err := p.httpRequest(http.MethodGet, url)
 
