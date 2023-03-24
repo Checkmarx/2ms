@@ -59,17 +59,17 @@ func Init(tags []string) *Secrets {
 	}
 }
 
-func (s *Secrets) RunScans(contents []plugins.Item) map[string][]reporting.Secret {
+func (s *Secrets) RunScans(items []plugins.Item) map[string][]reporting.Secret {
 	results := make(map[string][]reporting.Secret)
 	var wg sync.WaitGroup
 	limit := make(chan struct{}, 5)
-	for _, c := range contents {
-		content := c
+	for _, i := range items {
+		item := i
 		limit <- struct{}{}
 		wg.Add(1)
 		go func() {
-			secrets := s.Detect(content.Content)
-			results[content.Source] = append(results[content.Source], secrets...)
+			secrets := s.Detect(item.Content)
+			results[item.ID] = append(results[item.ID], secrets...)
 
 			<-limit
 			wg.Done()
