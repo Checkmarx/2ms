@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -17,6 +18,7 @@ const argConfluence = "confluence"
 const argConfluenceSpaces = "confluence-spaces"
 const argConfluenceUsername = "confluence-username"
 const argConfluenceToken = "confluence-token"
+const argConfluenceHistory = "history"
 
 type ConfluencePlugin struct {
 	Plugin
@@ -24,6 +26,7 @@ type ConfluencePlugin struct {
 	Token    string
 	Username string
 	Spaces   []string
+	History  bool
 }
 
 func (p *ConfluencePlugin) IsEnabled() bool {
@@ -36,6 +39,7 @@ func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
 	flags.StringP(argConfluenceSpaces, "", "", "confluence spaces")
 	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
 	flags.StringP(argConfluenceToken, "", "", "confluence token")
+	flags.BoolP(argConfluenceHistory, "", false, "scan pages history")
 	return nil
 }
 
@@ -51,12 +55,14 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	confluenceSpaces, _ := flags.GetString(argConfluenceSpaces)
 	confluenceUsername, _ := flags.GetString(argConfluenceUsername)
 	confluenceToken, _ := flags.GetString(argConfluenceToken)
+	runHistory, _ := flags.GetBool(argConfluenceHistory)
 
 	p.Token = confluenceToken
 	p.Username = confluenceUsername
 	p.URL = confluenceUrl
 	p.Spaces = strings.Split(confluenceSpaces, ",")
 	p.Enabled = true
+	p.History = runHistory
 	return nil
 }
 
@@ -85,7 +91,7 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 		wg.Wait()
 	}
 
-	log.Debug().Msgf("Confluence plugin completed successfully. Total of %d detected", len(spaces))
+	log.Debug().Msgf("Confluence plugin completed successfully. Total of %d spaces detected", len(spaces))
 	return &items, nil
 }
 
@@ -93,12 +99,12 @@ func (p *ConfluencePlugin) threadGetContent(page ConfluencePage, space Confluenc
 	limit <- struct{}{}
 	wg.Add(1)
 	go func() {
-		pageContent, err := p.getContent(page, space)
+		pageContent, err := p.getContents(page, space)
 		if err != nil {
 			log.Error().Msgf(err.Error())
 			limit <- err
 		}
-		*items = append(*items, *pageContent)
+		*items = append(*items, *pageContent...)
 		<-limit
 		wg.Done()
 	}()
@@ -218,27 +224,79 @@ func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (Con
 	return response.Results, nil
 }
 
-func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpaceResult) (*Item, error) {
-	url := p.URL + "/rest/api/content/" + page.ID + "?expand=body.storage,version,history.previousVersion"
-	originalUrl := p.URL + "/spaces/" + space.Key + "/pages/" + page.ID
-	request, err := p.httpRequest(http.MethodGet, url)
+func (p *ConfluencePlugin) getContents(page ConfluencePage, space ConfluenceSpaceResult) (*[]Item, error) {
+	items := make([]Item, 0)
+	actualPage, actualVersion, err := p.getContent(page, space)
+	if err != nil {
+		return nil, err
+	}
 
+	items = append(items, *actualPage)
+
+	// If older versions exist & run history is true
+	if actualVersion > 1 && p.History {
+		for actualVersion > 1 {
+			actualVersion--
+			pageVersion, err := p.getContentbyVersion(page, space, actualVersion)
+			if err != nil {
+				return nil, err
+			}
+
+			items = append(items, *pageVersion)
+		}
+	}
+	return &items, nil
+}
+
+func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpaceResult) (*Item, int, error) {
+	url := p.URL + "/rest/api/content/" + page.ID + "?expand=body.storage,version"
+	originalUrl := p.URL + "/spaces/" + space.Key + "/pages/" + page.ID
+
+	request, err := p.httpRequest(http.MethodGet, url)
+	if err != nil {
+		log.Error().Msgf(err.Error())
+		return nil, 1, fmt.Errorf("unexpected error creating an http request %w", err)
+	}
+
+	latest := ConfluencePageLatestVersion{}
+	jsonErr := json.Unmarshal(request, &latest)
+	if jsonErr != nil {
+		log.Error().Msg("Error on getting latest version on Confluence Page")
+	}
+
+	content := &Item{
+		Content: latest.Body.Storage.Value,
+		Source:  url,
+		ID:      originalUrl,
+	}
+	return content, latest.Version.Number, nil
+}
+
+func (p *ConfluencePlugin) getContentbyVersion(page ConfluencePage, space ConfluenceSpaceResult, version int) (*Item, error) {
+	url := p.URL + "/rest/api/content/" + page.ID + "?status=historical&version=" + strconv.Itoa(version) + "&expand=body.storage"
+
+	request, err := p.httpRequest(http.MethodGet, url)
 	if err != nil {
 		log.Error().Msgf(err.Error())
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
+	pageVersion := ConfluencePageOldVersion{}
+	jsonErr := json.Unmarshal(request, &pageVersion)
+	if jsonErr != nil {
+		log.Error().Msg("Error on getting latest version on Confluence Page")
+	}
 
 	content := &Item{
-		Content: string(request),
+		Content: pageVersion.Body.Storage.Value,
 		Source:  url,
-		ID:      originalUrl,
+		ID:      url,
 	}
 	return content, nil
 }
 
 func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error) {
 	var err error
-	log.Log().Msg(url)
+	//log.Log().Msg(url)
 	request, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		log.Error().Msgf(err.Error())
@@ -286,6 +344,27 @@ type ConfluenceSpaceResult struct {
 type ConfluenceSpaceResponse struct {
 	Results []ConfluenceSpaceResult `json:"results"`
 	Size    int                     `json:"size"`
+}
+
+type ConfluencePageLatestVersion struct {
+	Body    ConfluencePageBody    `json:"body"`
+	Version ConfluencePageVersion `json:"version"`
+}
+
+type ConfluencePageOldVersion struct {
+	Body ConfluencePageBody `json:"body"`
+}
+
+type ConfluencePageBody struct {
+	Storage ConfluencePageBodyStorage `json:"storage"`
+}
+
+type ConfluencePageBodyStorage struct {
+	Value string `json:"value"`
+}
+
+type ConfluencePageVersion struct {
+	Number int `json:"number"`
 }
 
 type ConfluencePage struct {
