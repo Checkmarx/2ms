@@ -40,13 +40,10 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	confluenceUrl, _ := flags.GetString(argConfluence)
 	if confluenceUrl == "" {
-		log.Info().Msg("no confluence url was given")
+		log.Debug().Msg("confluence URL arg is missing. plugin initialization failed")
 		return nil
 	}
 
-	if !strings.HasPrefix("https://", confluenceUrl) && !strings.HasPrefix("http://", confluenceUrl) {
-		confluenceUrl = fmt.Sprintf("https://%v", confluenceUrl)
-	}
 	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
 
 	confluenceSpaces, _ := flags.GetString(argConfluenceSpaces)

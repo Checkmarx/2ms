@@ -4,6 +4,7 @@ import (
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
+	"os"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -131,6 +132,7 @@ func execute(cmd *cobra.Command, args []string) {
 	if len(items) > 0 {
 		reporting.ShowReport(report)
 	} else {
-		log.Info().Msg("no plugin was loaded")
+		log.Error().Msg("failed to initialize plugins")
 	}
+	os.Exit(1)
 }
