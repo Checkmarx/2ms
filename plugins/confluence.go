@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -40,8 +41,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	confluenceUrl, _ := flags.GetString(argConfluence)
 	if confluenceUrl == "" {
-		log.Debug().Msg("confluence URL arg is missing. plugin initialization failed")
-		return nil
+		return errors.New("confluence URL arg is missing. Plugin initialization failed")
 	}
 
 	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
@@ -49,6 +49,16 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	confluenceSpaces, _ := flags.GetString(argConfluenceSpaces)
 	confluenceUsername, _ := flags.GetString(argConfluenceUsername)
 	confluenceToken, _ := flags.GetString(argConfluenceToken)
+
+	if confluenceUsername == "" || confluenceToken == "" {
+		if confluenceUsername == "" && confluenceToken == "" {
+			log.Warn().Msg("confluence username and token arguments are missing, scan will be made on the public pages")
+		} else if confluenceUsername == "" && len(confluenceToken) > 0 {
+			log.Warn().Msg("confluence username argument is missing, scan will be made on the public pages")
+		} else if confluenceToken == "" && len(confluenceUsername) > 0 {
+			log.Warn().Msg("confluence token argument is missing, scan will be made on the public pages")
+		}
+	}
 
 	p.Token = confluenceToken
 	p.Username = confluenceUsername
