@@ -90,18 +90,18 @@ func execute(cmd *cobra.Command, args []string) {
 	// -------------------------------------
 	// Get content from plugins
 
-	noPluginsInitialized := true
+	pluginsInitialized := 0
 	for _, plugin := range allPlugins {
 		err := plugin.Initialize(cmd)
 		if err != nil {
 			log.Error().Msg(err.Error())
-		} else {
-			noPluginsInitialized = false
+			continue
 		}
+		pluginsInitialized += 1
 	}
 
-	if noPluginsInitialized {
-		log.Fatal().Msg("failed to initialize all plugins")
+	if pluginsInitialized == 0 {
+		log.Fatal().Msg("no scan plugin initialized. At least one plugin must be initialized to proceed. Stopping")
 		os.Exit(1)
 	}
 
@@ -137,12 +137,18 @@ func execute(cmd *cobra.Command, args []string) {
 
 	// -------------------------------------
 	// Show Report
+
 	if len(items) > 0 {
 		reporting.ShowReport(report)
-		os.Exit(0)
 	} else {
-		log.Error().Msg("no content found to scan")
+		log.Error().Msg("Scan completed with empty content")
 		os.Exit(1)
+	}
+
+	if report.TotalSecretsFound > 0 {
+		os.Exit(1)
+	} else {
+		os.Exit(0)
 	}
 
 }
