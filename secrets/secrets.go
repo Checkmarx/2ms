@@ -70,7 +70,6 @@ func (s *Secrets) RunScans(items []plugins.Item) map[string][]reporting.Secret {
 		go func() {
 			secrets := s.Detect(item.Content)
 			results[item.ID] = append(results[item.ID], secrets...)
-
 			<-limit
 			wg.Done()
 		}()
@@ -94,7 +93,7 @@ func (s *Secrets) Detect(content string) []reporting.Secret {
 		secrets = append(secrets, secret)
 	}
 
-	log.Info().Msgf("Total of %d secrets detected", len(secrets))
+	log.Debug().Msgf("Total of %d secrets detected", len(secrets))
 
 	return secrets
 }

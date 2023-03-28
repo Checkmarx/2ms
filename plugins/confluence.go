@@ -11,12 +11,14 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 const argConfluence = "confluence"
 const argConfluenceSpaces = "confluence-spaces"
 const argConfluenceUsername = "confluence-username"
 const argConfluenceToken = "confluence-token"
+const defaultPageSize = 25
 
 type ConfluencePlugin struct {
 	Plugin
@@ -71,6 +73,8 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 	}
 	for _, space := range spaces {
 		limit := make(chan interface{}, 5)
+		errs := make(chan error)
+		errGroup := errgroup.Group{}
 
 		spacePages, err := p.getTotalPages(space)
 		if err != nil {
@@ -80,23 +84,31 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 
 		page := ConfluencePage{}
 		for _, page = range spacePages.Pages {
-			go p.threadGetContent(page, space, limit, &wg, &items)
+			errGroup.Go(func() error {
+				p.threadGetContent(page, space, limit, errs, &wg, &items)
+				return nil
+			})
 		}
+		errGroup.Wait()
 		wg.Wait()
+		close(limit)
+
+		if len(errs) > 0 {
+			return nil, fmt.Errorf(err.Error())
+		}
 	}
 
 	log.Debug().Msgf("Confluence plugin completed successfully. Total of %d detected", len(spaces))
 	return &items, nil
 }
 
-func (p *ConfluencePlugin) threadGetContent(page ConfluencePage, space ConfluenceSpaceResult, limit chan interface{}, wg *sync.WaitGroup, items *[]Item) {
+func (p *ConfluencePlugin) threadGetContent(page ConfluencePage, space ConfluenceSpaceResult, limit chan interface{}, errs chan error, wg *sync.WaitGroup, items *[]Item) {
 	limit <- struct{}{}
 	wg.Add(1)
 	go func() {
 		pageContent, err := p.getContent(page, space)
 		if err != nil {
-			log.Error().Msgf(err.Error())
-			limit <- err
+			errs <- fmt.Errorf(err.Error())
 		}
 		*items = append(*items, *pageContent)
 		<-limit
@@ -115,7 +127,7 @@ func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 		return nil, err
 	}
 
-	if totalSpaces.Size == 25 {
+	if totalSpaces.Size == defaultPageSize {
 		for threadCount := 0; threadCount < 4; threadCount++ {
 			wg.Add(1)
 			go p.threadGetSpaces(&count, &totalSpaces, &mutex, &wg)
@@ -131,7 +143,7 @@ func (p *ConfluencePlugin) threadGetSpaces(count *int32, totalSpaces *Confluence
 	var moreSpaces []ConfluenceSpaceResult
 	for {
 		atomic.AddInt32(count, 1)
-		lastSpaces, _ := p.getSpaces(int(*count-1) * 25)
+		lastSpaces, _ := p.getSpaces(int(*count-1) * defaultPageSize)
 		moreSpaces = append(moreSpaces, lastSpaces.Results...)
 
 		if lastSpaces.Size == 0 {
@@ -171,7 +183,7 @@ func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (Confluenc
 		return ConfluencePageResult{}, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	if len(totalPages.Pages) == 25 {
+	if len(totalPages.Pages) == defaultPageSize {
 		for threadCount := 0; threadCount < 4; threadCount++ {
 			wg.Add(1)
 			go p.threadGetPages(space, &count, &totalPages, &mutex, &wg)
@@ -187,7 +199,7 @@ func (p *ConfluencePlugin) threadGetPages(space ConfluenceSpaceResult, count *in
 	var morePages ConfluencePageResult
 	for {
 		atomic.AddInt32(count, 1)
-		lastPages, _ := p.getPages(space, int(*count-1)*25)
+		lastPages, _ := p.getPages(space, int(*count-1)*defaultPageSize)
 		morePages.Pages = append(morePages.Pages, lastPages.Pages...)
 
 		if len(lastPages.Pages) == 0 {
