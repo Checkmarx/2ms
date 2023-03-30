@@ -142,7 +142,7 @@ func execute(cmd *cobra.Command, args []string) {
 		reporting.ShowReport(report)
 	} else {
 		log.Error().Msg("Scan completed with empty content")
-		os.Exit(1)
+		os.Exit(0)
 	}
 
 	if report.TotalSecretsFound > 0 {
