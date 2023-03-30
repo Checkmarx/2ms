@@ -4,6 +4,7 @@ import (
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
+	"os"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -89,11 +90,19 @@ func execute(cmd *cobra.Command, args []string) {
 	// -------------------------------------
 	// Get content from plugins
 
+	pluginsInitialized := 0
 	for _, plugin := range allPlugins {
 		err := plugin.Initialize(cmd)
 		if err != nil {
-			log.Fatal().Msg(err.Error())
+			log.Error().Msg(err.Error())
+			continue
 		}
+		pluginsInitialized += 1
+	}
+
+	if pluginsInitialized == 0 {
+		log.Fatal().Msg("no scan plugin initialized. At least one plugin must be initialized to proceed. Stopping")
+		os.Exit(1)
 	}
 
 	items := make([]plugins.Item, 0)
@@ -119,12 +128,27 @@ func execute(cmd *cobra.Command, args []string) {
 
 	for _, item := range items {
 		secrets := secrets.Detect(item.Content)
-		report.Results[item.ID] = append(report.Results[item.ID], secrets...)
+		if len(secrets) > 0 {
+			report.TotalSecretsFound = report.TotalSecretsFound + len(secrets)
+			report.Results[item.ID] = append(report.Results[item.ID], secrets...)
+		}
 	}
 	report.TotalItemsScanned = len(items)
 
 	// -------------------------------------
 	// Show Report
 
-	reporting.ShowReport(report)
+	if len(items) > 0 {
+		reporting.ShowReport(report)
+	} else {
+		log.Error().Msg("Scan completed with empty content")
+		os.Exit(0)
+	}
+
+	if report.TotalSecretsFound > 0 {
+		os.Exit(1)
+	} else {
+		os.Exit(0)
+	}
+
 }

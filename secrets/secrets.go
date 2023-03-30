@@ -2,7 +2,6 @@ package secrets
 
 import (
 	"github.com/checkmarx/2ms/reporting"
-	"github.com/rs/zerolog/log"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
@@ -68,8 +67,6 @@ func (s *Secrets) Detect(content string) []reporting.Secret {
 		secret := reporting.Secret{Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
 		secrets = append(secrets, secret)
 	}
-
-	log.Info().Msgf("Total of %d secrets detected", len(secrets))
 
 	return secrets
 }

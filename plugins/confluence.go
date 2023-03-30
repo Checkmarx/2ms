@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -40,17 +41,18 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	confluenceUrl, _ := flags.GetString(argConfluence)
 	if confluenceUrl == "" {
-		return nil
+		return errors.New("confluence URL arg is missing. Plugin initialization failed")
 	}
 
-	if !strings.HasPrefix("https://", confluenceUrl) && !strings.HasPrefix("http://", confluenceUrl) {
-		confluenceUrl = fmt.Sprintf("https://%v", confluenceUrl)
-	}
 	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
 
 	confluenceSpaces, _ := flags.GetString(argConfluenceSpaces)
 	confluenceUsername, _ := flags.GetString(argConfluenceUsername)
 	confluenceToken, _ := flags.GetString(argConfluenceToken)
+
+	if confluenceUsername == "" || confluenceToken == "" {
+		log.Warn().Msg("confluence credentials were not provided. The scan will be made anonymously only for the public pages")
+	}
 
 	p.Token = confluenceToken
 	p.Username = confluenceUsername
