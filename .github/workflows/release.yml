@@ -45,7 +45,7 @@ jobs:
 
       - name: Go Build
         #if: ${{ steps.semantic_release_info.outputs.git_tag }}
-        run: go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=1.1.1" -a -installsuffix cgo -o bin/2ms main.go
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=1.1.1" -a -installsuffix cgo -o bin/2ms main.go
 
       - name: Step 3 - Use the Upload Artifact GitHub Action
         uses: actions/upload-artifact@v2
