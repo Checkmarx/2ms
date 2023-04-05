@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [ vArgumentToPrintCompiledVersion ]
+    branches: [ master ]
 
 jobs:
   build:
@@ -55,5 +55,5 @@ jobs:
           asset_name: 2ms
           tag: ${{ steps.semantic_release_info.outputs.git_tag }}
           overwrite: true
-          body: "Release version: ${{ steps.semantic_release_info.outputs.git_tag }}"
+          body: "Version Generated"
 
