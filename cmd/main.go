@@ -19,7 +19,7 @@ var rootCmd = &cobra.Command{
 	Version: Version,
 }
 
-var Version = "dev"
+var Version = ""
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
