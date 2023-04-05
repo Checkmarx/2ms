@@ -13,10 +13,13 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "2ms",
-	Short: "2ms Secrets Detection",
-	Run:   execute,
+	Use:     "2ms",
+	Short:   "2ms Secrets Detection",
+	Run:     execute,
+	Version: Version,
 }
+
+var Version = "dev"
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
