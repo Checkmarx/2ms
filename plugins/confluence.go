@@ -205,11 +205,11 @@ func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpace
 	// If no version given get the latest, else get the specified version
 	if version == 0 {
 		url = fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage.value,version,history.previousVersion", p.URL, page.ID)
-		originalUrl = p.URL + "/spaces/" + space.Key + "/pages/" + page.ID
+		originalUrl = fmt.Sprintf("%s/spaces/%s/pages/%s", p.URL, space.Key, page.ID)
 
 	} else {
 		url = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage.value,version,history.previousVersion", p.URL, page.ID, version)
-		originalUrl = url
+		originalUrl = fmt.Sprintf("%s/pages/viewpage.action?pageid=%spageVersion=%d", p.URL, page.ID, version)
 	}
 
 	request, err := p.httpRequest(http.MethodGet, url)
@@ -219,7 +219,7 @@ func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpace
 	pageContent := ConfluencePageContent{}
 	jsonErr := json.Unmarshal(request, &pageContent)
 	if jsonErr != nil {
-		log.Error().Msg("Error on getting latest version on Confluence Page")
+		return nil, 0, jsonErr
 	}
 
 	content := &Item{
