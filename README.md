@@ -26,7 +26,7 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 
 - `--confluence` The URL of the Confluence instance to scan.
 - `--confluence-spaces` A comma-separated list of Confluence spaces to scan.
-- `--confluence-user` confluence username or email
+- `--confluence-username` confluence username or email
 - `--confluence-token` confluence token
 
 ---
