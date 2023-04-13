@@ -38,7 +38,10 @@ jobs:
         if: ${{ steps.semantic_release_info.outputs.git_tag }}
         env:
           VERSION: ${{ steps.semantic_release_info.outputs.version }}
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o bin/2ms main.go
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o bin/2ms main.go
 
       - name: Creating Release
         if: ${{ steps.semantic_release_info.outputs.git_tag }}
