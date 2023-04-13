@@ -30,6 +30,16 @@ jobs:
         if: ${{ steps.semantic_release_info.outputs.git_tag }}
         run: go test ./...
 
+      - name: Go Mod Tidy
+        if: ${{ steps.semantic_release_info.outputs.git_tag }}
+        run: go mod tidy
+
+      - name: Go Build
+        if: ${{ steps.semantic_release_info.outputs.git_tag }}
+        env:
+          VERSION: ${{ steps.semantic_release_info.outputs.version }}
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o bin/2ms main.go
+
       - name: Creating Release
         if: ${{ steps.semantic_release_info.outputs.git_tag }}
         uses: softprops/action-gh-release@v0.1.15
@@ -38,23 +48,7 @@ jobs:
           name: ${{ steps.semantic_release_info.outputs.git_tag }}
           body: ${{ steps.semantic_release_info.outputs.notes }}
           target_commitish: ${{ steps.commit_and_push.outputs.latest_commit_hash }}
+          files: bin/2ms
 
-      - name: Go Mod Tidy
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
-        run: go mod tidy
 
-      - name: Go Build
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=${{ steps.semantic_release_info.outputs.git_tag }}" -a -installsuffix cgo -o bin/2ms main.go
-
-      - name: Upload binaries to release
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: bin/2ms
-          asset_name: 2ms
-          tag: ${{ steps.semantic_release_info.outputs.git_tag }}
-          overwrite: true
-          body: "Version Generated"
 
