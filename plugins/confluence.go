@@ -33,7 +33,7 @@ func (p *ConfluencePlugin) IsEnabled() bool {
 func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	flags.StringP(argConfluence, "", "", "scan confluence url")
-	flags.StringP(argConfluenceSpaces, "", "", "confluence spaces")
+	flags.StringArray(argConfluenceSpaces, []string{}, "confluence spaces (spaceKey)")
 	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
 	flags.StringP(argConfluenceToken, "", "", "confluence token")
 	flags.BoolP(argConfluenceHistory, "", false, "scan pages history")
@@ -49,7 +49,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 
 	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
 
-	confluenceSpaces, _ := flags.GetString(argConfluenceSpaces)
+	confluenceSpaces, _ := flags.GetStringArray(argConfluenceSpaces)
 	confluenceUsername, _ := flags.GetString(argConfluenceUsername)
 	confluenceToken, _ := flags.GetString(argConfluenceToken)
 	runHistory, _ := flags.GetBool(argConfluenceHistory)
@@ -61,7 +61,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	p.Token = confluenceToken
 	p.Username = confluenceUsername
 	p.URL = confluenceUrl
-	p.Spaces = strings.Split(confluenceSpaces, ",")
+	p.Spaces = confluenceSpaces
 	p.Enabled = true
 	p.History = runHistory
 	return nil
@@ -95,6 +95,11 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 }
 
 func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
+	if len(p.Spaces) > 0 {
+		spaces, err := p.getSpecificSpaces()
+		return spaces.Results, err
+	}
+
 	totalSpaces, err := p.getSpaces(0)
 	if err != nil {
 		return nil, err
@@ -116,6 +121,26 @@ func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
 
 	return totalSpaces.Results, nil
+}
+
+func (p *ConfluencePlugin) getSpecificSpaces() (*ConfluenceSpaceResponse, error) {
+	url := fmt.Sprintf("%s/rest/api/space?", p.URL)
+	for _, space := range p.Spaces {
+		url += fmt.Sprintf("spaceKey=%s&", space)
+	}
+
+	body, err := p.httpRequest(http.MethodGet, url)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+	}
+
+	response := &ConfluenceSpaceResponse{}
+	jsonErr := json.Unmarshal(body, response)
+	if jsonErr != nil {
+		return nil, fmt.Errorf("could not unmarshal response %w", err)
+	}
+
+	return response, nil
 }
 
 func (p *ConfluencePlugin) getSpaces(start int) (*ConfluenceSpaceResponse, error) {
@@ -238,7 +263,7 @@ func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	if p.Username == "" && p.Token == "" {
+	if p.Username != "" && p.Token != "" {
 		request.SetBasicAuth(p.Username, p.Token)
 	}
 
