@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 const argConfluence = "confluence"
@@ -113,9 +114,24 @@ func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 		actualSize = moreSpaces.Size
 	}
 
-	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
+	if len(p.Spaces) == 0 {
+		log.Info().Msgf(" Total of all %d Spaces detected", len(totalSpaces.Results))
+		return totalSpaces.Results, nil
+	}
 
-	return totalSpaces.Results, nil
+	filteredSpaces := make([]ConfluenceSpaceResult, 0)
+	if len(p.Spaces) > 0 {
+		for _, space := range totalSpaces.Results {
+			for _, spaceToScan := range p.Spaces {
+				if space.Key == spaceToScan || space.Name == spaceToScan || fmt.Sprintf("%d", space.ID) == spaceToScan {
+					filteredSpaces = append(filteredSpaces, space)
+				}
+			}
+		}
+	}
+
+	log.Info().Msgf(" Total of filtered %d Spaces detected", len(filteredSpaces))
+	return filteredSpaces, nil
 }
 
 func (p *ConfluencePlugin) getSpaces(start int) (*ConfluenceSpaceResponse, error) {
