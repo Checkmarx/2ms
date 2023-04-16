@@ -254,7 +254,7 @@ func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	if p.Username == "" && p.Token == "" {
+	if p.Username != "" && p.Token != "" {
 		request.SetBasicAuth(p.Username, p.Token)
 	}
 
@@ -262,10 +262,6 @@ func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("unable to send http request %w", err)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
 	defer response.Body.Close()
