@@ -10,7 +10,7 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM alpine
+FROM alpine:3.17.3
 COPY --from=builder /app/2ms /2ms
 ENTRYPOINT ["/2ms"]
 
