@@ -55,3 +55,25 @@ jobs:
             echo "Docker did not run as expected";
             exit 1;
           fi
+
+  kics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: mkdir -p kics-results
+      
+      - name: Run KICS scan
+        uses: checkmarx/kics-github-action@master
+        with:
+          path: Dockerfile
+          output_path: kics-results
+          output_formats: json,sarif
+          enable_comments: ${{ github.event_name == 'pull_request'}}
+          fail_on: high,medium
+      - name: Show KICS results
+        if: failure()
+        run: cat kics-results/results.json
+      # - name: Upload SARIF file
+      #   uses: github/codeql-action/upload-sarif@v2
+      #   with:
+      #     sarif_file: kics-results/results.sarif
