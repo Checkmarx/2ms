@@ -38,7 +38,7 @@ func (p *ConfluencePlugin) GetCredentials() (string, string) {
 func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	flags.StringP(argConfluence, "", "", "scan confluence url")
-	flags.StringP(argConfluenceSpaces, "", "", "confluence spaces")
+	flags.StringArray(argConfluenceSpaces, []string{}, "confluence spaces")
 	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
 	flags.StringP(argConfluenceToken, "", "", "confluence token")
 	flags.BoolP(argConfluenceHistory, "", false, "scan pages history")
@@ -54,7 +54,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 
 	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
 
-	confluenceSpaces, _ := flags.GetString(argConfluenceSpaces)
+	confluenceSpaces, _ := flags.GetStringArray(argConfluenceSpaces)
 	confluenceUsername, _ := flags.GetString(argConfluenceUsername)
 	confluenceToken, _ := flags.GetString(argConfluenceToken)
 	runHistory, _ := flags.GetBool(argConfluenceHistory)
@@ -66,7 +66,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	p.Token = confluenceToken
 	p.Username = confluenceUsername
 	p.URL = confluenceUrl
-	p.Spaces = strings.Split(confluenceSpaces, ",")
+	p.Spaces = confluenceSpaces
 	p.Enabled = true
 	p.History = runHistory
 	return nil
