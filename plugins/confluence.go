@@ -95,11 +95,27 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 }
 
 func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
+	// If confluence spaces were selected
 	if len(p.Spaces) > 0 {
-		spaces, err := p.getSpecificSpaces()
-		return spaces.Results, err
+		url := fmt.Sprintf("%s/rest/api/space?", p.URL)
+		for _, space := range p.Spaces {
+			url += fmt.Sprintf("spaceKey=%s&", space)
+		}
+
+		body, err := p.httpRequest(http.MethodGet, url)
+		if err != nil {
+			return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+		}
+
+		response := &ConfluenceSpaceResponse{}
+		jsonErr := json.Unmarshal(body, response)
+		if jsonErr != nil {
+			return nil, fmt.Errorf("could not unmarshal response %w", err)
+		}
+		return response.Results, err
 	}
 
+	// If not just get all the spaces
 	totalSpaces, err := p.getSpaces(0)
 	if err != nil {
 		return nil, err
@@ -121,26 +137,6 @@ func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
 
 	return totalSpaces.Results, nil
-}
-
-func (p *ConfluencePlugin) getSpecificSpaces() (*ConfluenceSpaceResponse, error) {
-	url := fmt.Sprintf("%s/rest/api/space?", p.URL)
-	for _, space := range p.Spaces {
-		url += fmt.Sprintf("spaceKey=%s&", space)
-	}
-
-	body, err := p.httpRequest(http.MethodGet, url)
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
-	}
-
-	response := &ConfluenceSpaceResponse{}
-	jsonErr := json.Unmarshal(body, response)
-	if jsonErr != nil {
-		return nil, fmt.Errorf("could not unmarshal response %w", err)
-	}
-
-	return response, nil
 }
 
 func (p *ConfluencePlugin) getSpaces(start int) (*ConfluenceSpaceResponse, error) {
