@@ -62,15 +62,15 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
+func (p *ConfluencePlugin) GetItems(itemsChan chan Item) {
 	var wg sync.WaitGroup
-	items := make([]Item, 0)
 
 	spaces, err := p.getTotalSpaces()
 	if err != nil {
 		log.Error().Msgf(err.Error())
-		return nil, err
+		//return nil, err
 	}
+
 	for _, space := range spaces {
 		limit := make(chan interface{}, 5)
 		errs := make(chan error)
@@ -79,13 +79,13 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 		spacePages, err := p.getTotalPages(space)
 		if err != nil {
 			log.Error().Msgf(err.Error())
-			return nil, err
+			//return nil, err
 		}
 
 		page := ConfluencePage{}
 		for _, page = range spacePages.Pages {
 			errGroup.Go(func() error {
-				p.threadGetContent(page, space, limit, errs, &wg, &items)
+				p.threadGetContent(page, space, limit, errs, &wg, itemsChan)
 				return nil
 			})
 		}
@@ -94,15 +94,15 @@ func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
 		close(limit)
 
 		if len(errs) > 0 {
-			return nil, fmt.Errorf(err.Error())
+			//return nil, fmt.Errorf(err.Error())
 		}
 	}
-
+	close(itemsChan)
 	log.Debug().Msgf("Confluence plugin completed successfully. Total of %d detected", len(spaces))
-	return &items, nil
+	//return &items, nil
 }
 
-func (p *ConfluencePlugin) threadGetContent(page ConfluencePage, space ConfluenceSpaceResult, limit chan interface{}, errs chan error, wg *sync.WaitGroup, items *[]Item) {
+func (p *ConfluencePlugin) threadGetContent(page ConfluencePage, space ConfluenceSpaceResult, limit chan interface{}, errs chan error, wg *sync.WaitGroup, itemsChan chan Item) {
 	limit <- struct{}{}
 	wg.Add(1)
 	go func() {
@@ -110,7 +110,8 @@ func (p *ConfluencePlugin) threadGetContent(page ConfluencePage, space Confluenc
 		if err != nil {
 			errs <- fmt.Errorf(err.Error())
 		}
-		*items = append(*items, *pageContent)
+		itemsChan <- *pageContent
+		//*items = append(*items, *pageContent)
 		<-limit
 		wg.Done()
 	}()
@@ -133,6 +134,7 @@ func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 			go p.threadGetSpaces(&count, &totalSpaces, &mutex, &wg)
 		}
 	}
+
 	wg.Wait()
 	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
 
@@ -146,7 +148,8 @@ func (p *ConfluencePlugin) threadGetSpaces(count *int32, totalSpaces *Confluence
 		lastSpaces, _ := p.getSpaces(int(*count-1) * defaultPageSize)
 		moreSpaces = append(moreSpaces, lastSpaces.Results...)
 
-		if lastSpaces.Size == 0 {
+		// if it's the last request
+		if lastSpaces.Size != defaultPageSize {
 			mutex.Lock()
 			totalSpaces.Results = append(totalSpaces.Results, moreSpaces...)
 			mutex.Unlock()
@@ -250,7 +253,7 @@ func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpace
 
 func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error) {
 	var err error
-	log.Log().Msg(url)
+
 	request, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		log.Error().Msgf(err.Error())

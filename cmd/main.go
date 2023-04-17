@@ -1,13 +1,15 @@
 package cmd
 
 import (
+	"strings"
+	"time"
+
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 var rootCmd = &cobra.Command{
@@ -84,6 +86,10 @@ func execute(cmd *cobra.Command, args []string) {
 	}
 
 	validateTags(tags)
+	secrets := secrets.Init(tags)
+	var totalItemsScanned int
+	itemsChan := make(chan plugins.Item)
+	start := time.Now()
 
 	// -------------------------------------
 	// Get content from plugins
@@ -95,17 +101,17 @@ func execute(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	items := make([]plugins.Item, 0)
+	//items := make([]plugins.Item, 0)
 	for _, plugin := range allPlugins {
 		if !plugin.IsEnabled() {
 			continue
 		}
-
-		pluginItems, err := plugin.GetItems()
+		plugin.GetItems(itemsChan)
+		/*pluginItems, err := plugin.GetItems()
 		if err != nil {
 			log.Fatal().Msg(err.Error())
 		}
-		items = append(items, *pluginItems...)
+		items = append(items, *pluginItems...)*/
 	}
 
 	report := reporting.Report{}
@@ -114,13 +120,25 @@ func execute(cmd *cobra.Command, args []string) {
 	// -------------------------------------
 	// Detect Secrets
 
-	secrets := secrets.Init(tags)
+	//secrets := secrets.Init(tags)
+	for item := range itemsChan {
+		log.Debug().Msg("Item received")
+		totalItemsScanned++
+		secrets := secrets.Detect(item.Content)
+		if len(secrets) > 0 {
+			log.Debug().Msg("Secret found")
+			//report.TotalSecretsFound = report.TotalSecretsFound + len(secrets)
+			report.Results[item.ID] = append(report.Results[item.ID], secrets...)
+		}
+	}
+	report.TotalItemsScanned = totalItemsScanned
 
-	report.Results = secrets.RunScans(items)
-	report.TotalItemsScanned = len(items)
+	//report.Results = secrets.RunScans(items)
+	//report.TotalItemsScanned = len(items)
 
 	// -------------------------------------
 	// Show Report
 
 	reporting.ShowReport(report)
+	log.Debug().Msgf("Total time - %d", int(time.Since(start).Milliseconds()))
 }

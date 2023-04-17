@@ -16,6 +16,6 @@ type Plugin struct {
 type IPlugin interface {
 	DefineCommandLineArgs(cmd *cobra.Command) error
 	Initialize(cmd *cobra.Command) error
-	GetItems() (*[]Item, error)
+	GetItems(chan Item)
 	IsEnabled() bool
 }
