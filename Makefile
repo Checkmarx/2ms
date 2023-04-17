@@ -5,4 +5,4 @@ build:
 	docker build -t $(image_name) .
 
 run:
-	docker run -it --rm $(image_name) $(ARGS)
+	docker run -it $(image_name) $(ARGS)

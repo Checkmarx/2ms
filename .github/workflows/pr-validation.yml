@@ -37,3 +37,21 @@ jobs:
 
       - name: Go Linter
         run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.52.0 golangci-lint run -v -E gofmt --timeout=5m
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - run: make build
+      - name: Run docker and check its output
+        run: if docker run -t checkmarx/2ms:latest | grep "no scan plugin initialized"; then
+            echo "Docker ran as expected";
+          else
+            echo "Docker did not run as expected";
+            exit 1;
+          fi
