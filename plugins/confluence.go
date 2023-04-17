@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
-	"io"
 	"net/http"
 	"strings"
+
+	"github.com/checkmarx/2ms/lib"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 const argConfluence = "confluence"
@@ -28,6 +29,10 @@ type ConfluencePlugin struct {
 
 func (p *ConfluencePlugin) IsEnabled() bool {
 	return p.Enabled
+}
+
+func (p *ConfluencePlugin) GetCredentials() (string, string) {
+	return p.Username, p.Token
 }
 
 func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
@@ -134,14 +139,29 @@ func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 		actualSize = moreSpaces.Size
 	}
 
-	log.Info().Msgf(" Total of %d Spaces detected", len(totalSpaces.Results))
+	if len(p.Spaces) == 0 {
+		log.Info().Msgf(" Total of all %d Spaces detected", len(totalSpaces.Results))
+		return totalSpaces.Results, nil
+	}
 
-	return totalSpaces.Results, nil
+	filteredSpaces := make([]ConfluenceSpaceResult, 0)
+	if len(p.Spaces) > 0 {
+		for _, space := range totalSpaces.Results {
+			for _, spaceToScan := range p.Spaces {
+				if space.Key == spaceToScan || space.Name == spaceToScan || fmt.Sprintf("%d", space.ID) == spaceToScan {
+					filteredSpaces = append(filteredSpaces, space)
+				}
+			}
+		}
+	}
+
+	log.Info().Msgf(" Total of filtered %d Spaces detected", len(filteredSpaces))
+	return filteredSpaces, nil
 }
 
 func (p *ConfluencePlugin) getSpaces(start int) (*ConfluenceSpaceResponse, error) {
 	url := fmt.Sprintf("%s/rest/api/space?start=%d", p.URL, start)
-	body, err := p.httpRequest(http.MethodGet, url)
+	body, err := lib.HttpRequest(http.MethodGet, url, p)
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
@@ -182,7 +202,7 @@ func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (*Confluen
 
 func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error) {
 	url := fmt.Sprintf("%s/rest/api/space/%s/content?start=%d", p.URL, space.Key, start)
-	body, err := p.httpRequest(http.MethodGet, url)
+	body, err := lib.HttpRequest(http.MethodGet, url, p)
 
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
@@ -233,7 +253,7 @@ func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpace
 		originalUrl = fmt.Sprintf("%s/pages/viewpage.action?pageid=%spageVersion=%d", p.URL, page.ID, version)
 	}
 
-	request, err := p.httpRequest(http.MethodGet, url)
+	request, err := lib.HttpRequest(http.MethodGet, url, p)
 	if err != nil {
 		return nil, 0, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
@@ -249,42 +269,6 @@ func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpace
 		ID:      originalUrl,
 	}
 	return content, pageContent.History.PreviousVersion.Number, nil
-}
-
-func (p *ConfluencePlugin) httpRequest(method string, url string) ([]byte, error) {
-	var err error
-
-	request, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
-	}
-
-	if p.Username != "" && p.Token != "" {
-		request.SetBasicAuth(p.Username, p.Token)
-	}
-
-	client := &http.Client{}
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("unable to send http request %w", err)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
-	}
-
-	defer response.Body.Close()
-
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("error calling http url \"%v\". status code: %v", url, response.StatusCode)
-	}
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error reading http response body %w", err)
-	}
-
-	return body, nil
 }
 
 type ConfluenceSpaceResult struct {
