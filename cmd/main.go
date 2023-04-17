@@ -84,6 +84,7 @@ func validateTags(tags []string) {
 
 func execute(cmd *cobra.Command, args []string) {
 	tags, err := cmd.Flags().GetStringSlice("tags")
+
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}

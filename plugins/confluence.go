@@ -37,6 +37,7 @@ func (p *ConfluencePlugin) GetCredentials() (string, string) {
 
 func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
 	flags := cmd.Flags()
+
 	flags.StringP(argConfluence, "", "", "scan confluence url")
 	flags.StringArray(argConfluenceSpaces, []string{}, "confluence spaces")
 	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
