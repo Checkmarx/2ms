@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog"
@@ -9,35 +10,89 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// const userID = "679192513541570570"
-const serverName = "2ms testing"
-const channelName = "general"
-const token = ""
+const (
+	discordTokenFlag         = "discord-token"
+	discordServersFlag       = "discord-servers"
+	discordChannelsFlag      = "discord-channels"
+	discordFromDateFlag      = "discord-from-date"
+	discordMessagesCountFlag = "discord-messages-count"
+)
 
-type DiscordPlugin struct{}
+const defaultDateFrom = time.Hour * 24 * 14
+
+type DiscordPlugin struct {
+	Enabled          bool
+	Token            string
+	Guilds           []string
+	Channels         []string
+	Count            int
+	BackwardDuration time.Duration
+	Session          *discordgo.Session
+}
 
 func (p *DiscordPlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
-	// TODO: get server, channel, from date, messages count
+	flags := cmd.Flags()
+	flags.String(discordTokenFlag, "", "discord token")
+	flags.StringArray(discordServersFlag, []string{}, "discord servers")
+	flags.StringArray(discordChannelsFlag, []string{}, "discord channels")
+	flags.Duration(discordFromDateFlag, defaultDateFrom, "discord from date")
+	flags.Int(discordMessagesCountFlag, 0, "discord messages count")
+
 	return nil
 }
 
 func (p *DiscordPlugin) Initialize(cmd *cobra.Command) error {
+	flags := cmd.Flags()
+	token, _ := flags.GetString(discordTokenFlag)
+	if token == "" {
+		return fmt.Errorf("discord token arg is missing. Plugin initialization failed")
+	}
+
+	guilds, _ := flags.GetStringArray(discordServersFlag)
+	if len(guilds) == 0 {
+		return fmt.Errorf("discord servers arg is missing. Plugin initialization failed")
+	}
+
+	channels, _ := flags.GetStringArray(discordChannelsFlag)
+	if len(channels) == 0 {
+		log.Warn().Msg("discord channels not provided. Will scan all channels")
+	}
+
+	fromDate, _ := flags.GetDuration(discordFromDateFlag)
+	count, _ := flags.GetInt(discordMessagesCountFlag)
+	if count == 0 && fromDate == 0 {
+		return fmt.Errorf("discord messages count or from date arg is missing. Plugin initialization failed")
+	}
+
+	p.Token = token
+	p.Guilds = guilds
+	p.Channels = channels
+	p.Count = count
+	p.BackwardDuration = fromDate
+	p.Enabled = true
+
 	return nil
+}
+
+func (p *DiscordPlugin) IsEnabled() bool {
+	return p.Enabled
 }
 
 func (p *DiscordPlugin) GetItems() (*[]Item, error) {
 
 	items := []Item{}
 
-	discord, err := getDiscordReady(token)
+	err := p.getDiscordReady()
 	if err != nil {
 		return nil, err
 	}
 
-	guilds := getGuildsByNameOrIDs(discord, []string{serverName})
+	guilds := p.getGuildsByNameOrIDs()
+	log.Info().Msgf("Found %d guilds", len(guilds))
+
 	for _, guild := range guilds {
 		// TODO use go routines
-		messages, err := readGuildMessages(discord, guild, []string{ /*channelName*/ })
+		messages, err := p.readGuildMessages(guild)
 		if err != nil {
 			return nil, err
 		}
@@ -47,33 +102,33 @@ func (p *DiscordPlugin) GetItems() (*[]Item, error) {
 	return &items, nil
 }
 
-func getDiscordReady(token string) (*discordgo.Session, error) {
-	discord, err := discordgo.New(token)
+func (p *DiscordPlugin) getDiscordReady() (err error) {
+	p.Session, err = discordgo.New(p.Token)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	discord.StateEnabled = true
+	p.Session.StateEnabled = true
 	ready := make(chan int)
-	discord.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+	p.Session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		ready <- 1
 	})
-	err = discord.Open()
+	err = p.Session.Open()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	<-ready
-	return discord, nil
+	return nil
 }
 
-func getGuildsByNameOrIDs(discord *discordgo.Session, guilds []string) []*discordgo.Guild {
+func (p *DiscordPlugin) getGuildsByNameOrIDs() []*discordgo.Guild {
 	var result []*discordgo.Guild
-	if len(guilds) == 0 {
-		return discord.State.Guilds
+	if len(p.Guilds) == 0 {
+		return p.Session.State.Guilds
 	}
 
-	for _, guild := range guilds {
-		for _, g := range discord.State.Guilds {
+	for _, guild := range p.Guilds {
+		for _, g := range p.Session.State.Guilds {
 			if g.Name == guild || g.ID == guild {
 				result = append(result, g)
 			}
@@ -83,33 +138,17 @@ func getGuildsByNameOrIDs(discord *discordgo.Session, guilds []string) []*discor
 	return result
 }
 
-func getChannelsByNameOrIDs(discord *discordgo.Session, guild *discordgo.Guild, channels []string) []*discordgo.Channel {
-	var result []*discordgo.Channel
-	if len(channels) == 0 {
-		return guild.Channels
-	}
-
-	for _, channel := range channels {
-		for _, c := range guild.Channels {
-			if c.Name == channel || c.ID == channel {
-				result = append(result, c)
-			}
-		}
-	}
-
-	return result
-}
-
-func readGuildMessages(discord *discordgo.Session, guild *discordgo.Guild, channels []string) (*[]Item, error) {
+func (p *DiscordPlugin) readGuildMessages(guild *discordgo.Guild) (*[]Item, error) {
 	guildLogger := log.With().Str("guild", guild.Name).Logger()
 	guildLogger.Debug().Send()
 
-	selectedChannels := getChannelsByNameOrIDs(discord, guild, channels)
+	selectedChannels := p.getChannelsByNameOrIDs(guild)
+	guildLogger.Info().Msgf("Found %d channels", len(selectedChannels))
 
 	items := []Item{}
 
 	for _, channel := range selectedChannels {
-		messages, err := readChannelMessages(guildLogger, discord, channel)
+		messages, err := p.readChannelMessages(guildLogger, channel)
 		if err != nil {
 			return nil, err
 		}
@@ -121,23 +160,28 @@ func readGuildMessages(discord *discordgo.Session, guild *discordgo.Guild, chann
 	return &items, nil
 }
 
-func convertMessagesToItems(guildId string, messages *[]*discordgo.Message) *[]Item {
-	items := []Item{}
-	for _, message := range *messages {
-		items = append(items, Item{
-			Content: message.Content,
-			Source:  fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guildId, message.ChannelID, message.ID),
-			ID:      message.ID,
-		})
+func (p *DiscordPlugin) getChannelsByNameOrIDs(guild *discordgo.Guild) []*discordgo.Channel {
+	var result []*discordgo.Channel
+	if len(p.Channels) == 0 {
+		return guild.Channels
 	}
-	return &items
+
+	for _, channel := range p.Channels {
+		for _, c := range guild.Channels {
+			if c.Name == channel || c.ID == channel {
+				result = append(result, c)
+			}
+		}
+	}
+
+	return result
 }
 
-func readChannelMessages(logger zerolog.Logger, discord *discordgo.Session, channel *discordgo.Channel) (*[]Item, error) {
+func (p *DiscordPlugin) readChannelMessages(logger zerolog.Logger, channel *discordgo.Channel) (*[]Item, error) {
 	channelLogger := logger.With().Str("channel", channel.Name).Logger()
 	channelLogger.Debug().Send()
 
-	permission, err := discord.UserChannelPermissions(discord.State.User.ID, channel.ID)
+	permission, err := p.Session.UserChannelPermissions(p.Session.State.User.ID, channel.ID)
 	if err != nil {
 		if err, ok := err.(*discordgo.RESTError); ok {
 			if err.Message.Code == 50001 {
@@ -157,8 +201,8 @@ func readChannelMessages(logger zerolog.Logger, discord *discordgo.Session, chan
 		channelLogger.Debug().Msg("Not a text channel")
 		return nil, nil
 	}
-	// TODO read all messages
-	messages, err := discord.ChannelMessages(channel.ID, 100, "", "", "")
+
+	messages, err := p.getMessages(channel.ID)
 	if err != nil {
 		channelLogger.Error().Err(err).Msg("Failed to get messages")
 		return nil, err
@@ -167,27 +211,48 @@ func readChannelMessages(logger zerolog.Logger, discord *discordgo.Session, chan
 		channelLogger.Debug().Msg("No messages")
 		return nil, nil
 	}
-	channelLogger.Debug().Msgf("Got last message: %s", messages[0].Content)
+	channelLogger.Info().Msgf("Found %d messages", len(messages))
 	return convertMessagesToItems(channel.GuildID, &messages), nil
 }
 
-func (p *DiscordPlugin) IsEnabled() bool {
-	return true
-}
-
-func getMessages(s *discordgo.Session, channelID string) ([]*discordgo.Message, error) {
+func (p *DiscordPlugin) getMessages(channelID string) ([]*discordgo.Message, error) {
 	var messages []*discordgo.Message
+
 	var beforeID string
 	for {
-		msgs, err := s.ChannelMessages(channelID, 100, beforeID, "", "")
+		m, err := p.Session.ChannelMessages(channelID, 100, beforeID, "", "")
 		if err != nil {
 			return nil, err
 		}
-		if len(msgs) == 0 {
+		if len(m) == 0 {
 			break
 		}
-		messages = append(messages, msgs...)
-		beforeID = msgs[len(msgs)-1].ID
+		messages = append(messages, m...)
+		if p.Count > 0 && len(messages) >= p.Count {
+			messages = messages[:p.Count]
+			log.Debug().Msgf("Reached message count (%d)", p.Count)
+			break
+		}
+
+		timeSince := time.Since(messages[len(messages)-1].Timestamp)
+		if p.BackwardDuration > 0 && timeSince > p.BackwardDuration {
+			log.Debug().Msgf("Reached time limit (%s). Last message is %s old", p.BackwardDuration.String(), timeSince.Round(time.Hour).String())
+			break
+		}
+		beforeID = messages[len(messages)-1].ID
 	}
+
 	return messages, nil
+}
+
+func convertMessagesToItems(guildId string, messages *[]*discordgo.Message) *[]Item {
+	items := []Item{}
+	for _, message := range *messages {
+		items = append(items, Item{
+			Content: message.Content,
+			Source:  fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guildId, message.ChannelID, message.ID),
+			ID:      message.ID,
+		})
+	}
+	return &items
 }

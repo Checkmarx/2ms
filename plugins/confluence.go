@@ -12,11 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const argConfluence = "confluence"
-const argConfluenceSpaces = "confluence-spaces"
-const argConfluenceUsername = "confluence-username"
-const argConfluenceToken = "confluence-token"
-const argConfluenceHistory = "history"
+const (
+	argConfluence         = "confluence"
+	argConfluenceSpaces   = "confluence-spaces"
+	argConfluenceUsername = "confluence-username"
+	argConfluenceToken    = "confluence-token"
+	argConfluenceHistory  = "history"
+)
 
 type ConfluencePlugin struct {
 	Plugin
