@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"os"
+	"strings"
+
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
-	"os"
-	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -23,6 +24,7 @@ var Version = ""
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
+	&plugins.DiscordPlugin{},
 }
 
 func initLog() {
