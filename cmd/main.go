@@ -100,7 +100,7 @@ func execute(cmd *cobra.Command, args []string) {
 	var errorsChannel = make(chan error)
 
 	var wg sync.WaitGroup
-	var ctx, _ = context.WithCancel(context.Background())
+	var ctx = context.Background()
 
 	// -------------------------------------
 	// Get content from plugins
