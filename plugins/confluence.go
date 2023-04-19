@@ -1,11 +1,13 @@
 package plugins
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/checkmarx/2ms/lib"
 	"github.com/rs/zerolog/log"
@@ -17,6 +19,7 @@ const argConfluenceSpaces = "confluence-spaces"
 const argConfluenceUsername = "confluence-username"
 const argConfluenceToken = "confluence-token"
 const argConfluenceHistory = "history"
+const confluenceDefaultWindow = 25
 
 type ConfluencePlugin struct {
 	Plugin
@@ -72,43 +75,52 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) GetItems() (*[]Item, error) {
-	items := make([]Item, 0)
-	spaces, err := p.getTotalSpaces()
+func (p *ConfluencePlugin) GetItems(items chan Item, errs chan error, ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	go p.getSpacesItems(items, errs, ctx, wg)
+	wg.Add(1)
+}
+
+func (p *ConfluencePlugin) getSpacesItems(items chan Item, errs chan error, ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	spaces, err := p.getSpaces()
 	if err != nil {
-		return nil, err
+		errs <- err
 	}
 
 	for _, space := range spaces {
-		spacePages, err := p.getTotalPages(space)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, page := range spacePages.Pages {
-			pageContents, err := p.getContents(page, space)
-			if err != nil {
-				return nil, err
-			}
-
-			items = append(items, *pageContents...)
-		}
+		go p.getSpaceItems(items, errs, ctx, wg, space)
+		wg.Add(1)
 	}
-
-	log.Debug().Msg("Confluence plugin completed successfully")
-	return &items, nil
 }
 
-func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
-	totalSpaces, err := p.getSpaces(0)
+func (p *ConfluencePlugin) getSpaceItems(items chan Item, errs chan error, ctx context.Context, wg *sync.WaitGroup, space ConfluenceSpaceResult) {
+	defer wg.Done()
+
+	pages, err := p.getPages(space)
+	if err != nil {
+		errs <- err
+		return
+	}
+
+	for _, page := range pages.Pages {
+		go p.getPageItems(items, errs, ctx, wg, page, space)
+		wg.Add(1)
+	}
+}
+
+func (p *ConfluencePlugin) getSpaces() ([]ConfluenceSpaceResult, error) {
+	totalSpaces, err := p.getSpacesRequest(0)
 	if err != nil {
 		return nil, err
 	}
 
 	actualSize := totalSpaces.Size
 
-	for actualSize != 0 {
-		moreSpaces, err := p.getSpaces(totalSpaces.Size)
+	for actualSize == confluenceDefaultWindow {
+		moreSpaces, err := p.getSpacesRequest(totalSpaces.Size)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +150,7 @@ func (p *ConfluencePlugin) getTotalSpaces() ([]ConfluenceSpaceResult, error) {
 	return filteredSpaces, nil
 }
 
-func (p *ConfluencePlugin) getSpaces(start int) (*ConfluenceSpaceResponse, error) {
+func (p *ConfluencePlugin) getSpacesRequest(start int) (*ConfluenceSpaceResponse, error) {
 	url := fmt.Sprintf("%s/rest/api/space?start=%d", p.URL, start)
 	body, err := lib.HttpRequest(http.MethodGet, url, p)
 	if err != nil {
@@ -154,8 +166,8 @@ func (p *ConfluencePlugin) getSpaces(start int) (*ConfluenceSpaceResponse, error
 	return response, nil
 }
 
-func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (*ConfluencePageResult, error) {
-	totalPages, err := p.getPages(space, 0)
+func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult) (*ConfluencePageResult, error) {
+	totalPages, err := p.getPagesRequest(space, 0)
 
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
@@ -163,8 +175,8 @@ func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (*Confluen
 
 	actualSize := len(totalPages.Pages)
 
-	for actualSize != 0 {
-		morePages, err := p.getPages(space, len(totalPages.Pages))
+	for actualSize == confluenceDefaultWindow {
+		morePages, err := p.getPagesRequest(space, len(totalPages.Pages))
 
 		if err != nil {
 			return nil, fmt.Errorf("unexpected error creating an http request %w", err)
@@ -179,7 +191,7 @@ func (p *ConfluencePlugin) getTotalPages(space ConfluenceSpaceResult) (*Confluen
 	return totalPages, nil
 }
 
-func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error) {
+func (p *ConfluencePlugin) getPagesRequest(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error) {
 	url := fmt.Sprintf("%s/rest/api/space/%s/content?start=%d", p.URL, space.Key, start)
 	body, err := lib.HttpRequest(http.MethodGet, url, p)
 
@@ -196,29 +208,28 @@ func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult, start int) (*Co
 	return &response.Results, nil
 }
 
-func (p *ConfluencePlugin) getContents(page ConfluencePage, space ConfluenceSpaceResult) (*[]Item, error) {
-	items := make([]Item, 0)
+func (p *ConfluencePlugin) getPageItems(items chan Item, errs chan error, ctx context.Context, wg *sync.WaitGroup, page ConfluencePage, space ConfluenceSpaceResult) {
+	defer wg.Done()
 
-	actualPage, previousVersion, err := p.getContent(page, space, 0)
+	actualPage, previousVersion, err := p.getItem(page, space, 0)
 	if err != nil {
-		return nil, err
+		errs <- err
+		return
 	}
-
-	items = append(items, *actualPage)
+	items <- *actualPage
 
 	// If older versions exist & run history is true
 	for previousVersion > 0 && p.History {
-		actualPage, previousVersion, err = p.getContent(page, space, previousVersion)
+		actualPage, previousVersion, err = p.getItem(page, space, previousVersion)
 		if err != nil {
-			return nil, err
+			errs <- err
+			return
 		}
-		items = append(items, *actualPage)
+		items <- *actualPage
 	}
-
-	return &items, nil
 }
 
-func (p *ConfluencePlugin) getContent(page ConfluencePage, space ConfluenceSpaceResult, version int) (*Item, int, error) {
+func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceResult, version int) (*Item, int, error) {
 	var url string
 	var originalUrl string
 

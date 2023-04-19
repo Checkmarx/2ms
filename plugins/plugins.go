@@ -1,6 +1,10 @@
 package plugins
 
-import "github.com/spf13/cobra"
+import (
+	"context"
+	"github.com/spf13/cobra"
+	"sync"
+)
 
 type Item struct {
 	Content string
@@ -16,6 +20,6 @@ type Plugin struct {
 type IPlugin interface {
 	DefineCommandLineArgs(cmd *cobra.Command) error
 	Initialize(cmd *cobra.Command) error
-	GetItems() (*[]Item, error)
+	GetItems(chan Item, chan error, context.Context, *sync.WaitGroup)
 	IsEnabled() bool
 }
