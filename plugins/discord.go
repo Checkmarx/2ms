@@ -145,7 +145,6 @@ func (p *DiscordPlugin) readGuildMessages(guild *discordgo.Guild) (*[]Item, erro
 }
 
 func (p *DiscordPlugin) getChannelsByNameOrIDs(guild *discordgo.Guild) []*discordgo.Channel {
-	// TODO: is it includes threads?
 	var result []*discordgo.Channel
 	if len(p.Channels) == 0 {
 		return guild.Channels
@@ -198,6 +197,7 @@ func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) (*[]Item
 
 func (p *DiscordPlugin) getMessages(channelID string) ([]*discordgo.Message, error) {
 	var messages []*discordgo.Message
+	threadMessages := []*discordgo.Message{}
 
 	var beforeID string
 	for {
@@ -208,22 +208,38 @@ func (p *DiscordPlugin) getMessages(channelID string) ([]*discordgo.Message, err
 		if len(m) == 0 {
 			break
 		}
-		messages = append(messages, m...)
-		if p.Count > 0 && len(messages) >= p.Count {
-			messages = messages[:p.Count]
-			log.Debug().Msgf("Reached message count (%d)", p.Count)
-			break
-		}
+		stop := true
+		for _, message := range m {
 
-		timeSince := time.Since(messages[len(messages)-1].Timestamp)
-		if p.BackwardDuration > 0 && timeSince > p.BackwardDuration {
-			log.Debug().Msgf("Reached time limit (%s). Last message is %s old", p.BackwardDuration.String(), timeSince.Round(time.Hour).String())
+			timeSince := time.Since(message.Timestamp)
+			if p.BackwardDuration > 0 && timeSince > p.BackwardDuration {
+				log.Debug().Msgf("Reached time limit (%s). Last message is %s old", p.BackwardDuration.String(), timeSince.Round(time.Hour).String())
+				break
+			}
+
+			if p.Count > 0 && len(messages) == p.Count {
+				log.Debug().Msgf("Reached message count (%d)", p.Count)
+				break
+			}
+
+			if message.Thread != nil {
+				tMgs, err := p.getMessages(message.Thread.ID)
+				if err != nil {
+					return nil, err
+				}
+				threadMessages = append(threadMessages, tMgs...)
+			}
+
+			stop = false
+			messages = append(messages, message)
+			beforeID = message.ID
+		}
+		if stop {
 			break
 		}
-		beforeID = messages[len(messages)-1].ID
 	}
 
-	return messages, nil
+	return append(messages, threadMessages...), nil
 }
 
 func convertMessagesToItems(guildId string, messages *[]*discordgo.Message) *[]Item {
