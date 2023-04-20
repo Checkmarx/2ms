@@ -6,6 +6,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/checkmarx/2ms/lib"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -183,7 +184,7 @@ func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) (*[]Item
 		return nil, nil
 	}
 
-	messages, err := p.getMessages(channel.ID)
+	messages, err := p.getMessages(channel.ID, channelLogger)
 	if err != nil {
 		channelLogger.Error().Err(err).Msg("Failed to get messages")
 		return nil, err
@@ -192,7 +193,7 @@ func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) (*[]Item
 	return convertMessagesToItems(channel.GuildID, &messages), nil
 }
 
-func (p *DiscordPlugin) getMessages(channelID string) ([]*discordgo.Message, error) {
+func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]*discordgo.Message, error) {
 	var messages []*discordgo.Message
 	threadMessages := []*discordgo.Message{}
 
@@ -210,17 +211,18 @@ func (p *DiscordPlugin) getMessages(channelID string) ([]*discordgo.Message, err
 
 			timeSince := time.Since(message.Timestamp)
 			if p.BackwardDuration > 0 && timeSince > p.BackwardDuration {
-				log.Debug().Msgf("Reached time limit (%s). Last message is %s old", p.BackwardDuration.String(), timeSince.Round(time.Hour).String())
+				logger.Debug().Msgf("Reached time limit (%s). Last message is %s old", p.BackwardDuration.String(), timeSince.Round(time.Hour).String())
 				break
 			}
 
 			if p.Count > 0 && len(messages) == p.Count {
-				log.Debug().Msgf("Reached message count (%d)", p.Count)
+				logger.Debug().Msgf("Reached message count (%d)", p.Count)
 				break
 			}
 
 			if message.Thread != nil {
-				tMgs, err := p.getMessages(message.Thread.ID)
+				logger.Info().Msgf("Found thread %s", message.Thread.Name)
+				tMgs, err := p.getMessages(message.Thread.ID, logger.With().Str("thread", message.Thread.Name).Logger())
 				if err != nil {
 					return nil, err
 				}
