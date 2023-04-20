@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -77,14 +76,14 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) GetItems(items chan Item, errs chan error, ctx context.Context, wg *sync.WaitGroup) {
+func (p *ConfluencePlugin) GetItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	go p.getSpacesItems(items, errs, ctx, wg)
+	go p.getSpacesItems(items, errs, wg)
 	wg.Add(1)
 }
 
-func (p *ConfluencePlugin) getSpacesItems(items chan Item, errs chan error, ctx context.Context, wg *sync.WaitGroup) {
+func (p *ConfluencePlugin) getSpacesItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	spaces, err := p.getSpaces()
@@ -93,12 +92,12 @@ func (p *ConfluencePlugin) getSpacesItems(items chan Item, errs chan error, ctx 
 	}
 
 	for _, space := range spaces {
-		go p.getSpaceItems(items, errs, ctx, wg, space)
+		go p.getSpaceItems(items, errs, wg, space)
 		wg.Add(1)
 	}
 }
 
-func (p *ConfluencePlugin) getSpaceItems(items chan Item, errs chan error, ctx context.Context, wg *sync.WaitGroup, space ConfluenceSpaceResult) {
+func (p *ConfluencePlugin) getSpaceItems(items chan Item, errs chan error, wg *sync.WaitGroup, space ConfluenceSpaceResult) {
 	defer wg.Done()
 
 	pages, err := p.getPages(space)
@@ -111,7 +110,7 @@ func (p *ConfluencePlugin) getSpaceItems(items chan Item, errs chan error, ctx c
 		wg.Add(1)
 		p.limit <- struct{}{}
 		go func(page ConfluencePage) {
-			p.getPageItems(items, errs, ctx, wg, page, space)
+			p.getPageItems(items, errs, wg, page, space)
 			<-p.limit
 		}(page)
 	}
@@ -214,7 +213,7 @@ func (p *ConfluencePlugin) getPagesRequest(space ConfluenceSpaceResult, start in
 	return &response.Results, nil
 }
 
-func (p *ConfluencePlugin) getPageItems(items chan Item, errs chan error, ctx context.Context, wg *sync.WaitGroup, page ConfluencePage, space ConfluenceSpaceResult) {
+func (p *ConfluencePlugin) getPageItems(items chan Item, errs chan error, wg *sync.WaitGroup, page ConfluencePage, space ConfluenceSpaceResult) {
 	defer wg.Done()
 
 	actualPage, previousVersion, err := p.getItem(page, space, 0)

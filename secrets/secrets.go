@@ -1,7 +1,6 @@
 package secrets
 
 import (
-	"context"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
@@ -58,11 +57,11 @@ func Init(tags []string) *Secrets {
 	}
 }
 
-func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, ctx context.Context, wg *sync.WaitGroup) {
+func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
-		Raw: string(item.Content),
+		Raw: item.Content,
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		secretsChannel <- reporting.Secret{ID: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}

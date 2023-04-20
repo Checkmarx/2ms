@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
@@ -100,7 +99,6 @@ func execute(cmd *cobra.Command, args []string) {
 	var errorsChannel = make(chan error)
 
 	var wg sync.WaitGroup
-	var ctx = context.Background()
 
 	// -------------------------------------
 	// Get content from plugins
@@ -125,18 +123,16 @@ func execute(cmd *cobra.Command, args []string) {
 		}
 
 		wg.Add(1)
-		go plugin.GetItems(itemsChannel, errorsChannel, ctx, &wg)
+		go plugin.GetItems(itemsChannel, errorsChannel, &wg)
 	}
 
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
-				os.Exit(1)
 			case item := <-itemsChannel:
 				report.TotalItemsScanned++
 				wg.Add(1)
-				go secrets.Detect(secretsChannel, item, ctx, &wg)
+				go secrets.Detect(secretsChannel, item, &wg)
 			case secret := <-secretsChannel:
 				report.TotalSecretsFound++
 				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
