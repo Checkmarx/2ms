@@ -117,9 +117,6 @@ func (p *DiscordPlugin) getDiscordReady() (err error) {
 
 func (p *DiscordPlugin) getGuildsByNameOrIDs() []*discordgo.Guild {
 	var result []*discordgo.Guild
-	if len(p.Guilds) == 0 {
-		return p.Session.State.Guilds
-	}
 
 	for _, guild := range p.Guilds {
 		for _, g := range p.Session.State.Guilds {
