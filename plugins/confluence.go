@@ -72,7 +72,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	p.Spaces = confluenceSpaces
 	p.Enabled = true
 	p.History = runHistory
-	p.limit = make(chan struct{}, confluenceMaxRequests)
+	p.Limit = make(chan struct{}, confluenceMaxRequests)
 	return nil
 }
 
@@ -108,10 +108,10 @@ func (p *ConfluencePlugin) getSpaceItems(items chan Item, errs chan error, wg *s
 
 	for _, page := range pages.Pages {
 		wg.Add(1)
-		p.limit <- struct{}{}
+		p.Limit <- struct{}{}
 		go func(page ConfluencePage) {
 			p.getPageItems(items, errs, wg, page, space)
-			<-p.limit
+			<-p.Limit
 		}(page)
 	}
 }

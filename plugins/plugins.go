@@ -14,7 +14,7 @@ type Item struct {
 type Plugin struct {
 	ID      string
 	Enabled bool
-	limit   chan struct{}
+	Limit   chan struct{}
 }
 
 type IPlugin interface {
