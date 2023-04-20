@@ -14,7 +14,7 @@ const (
 	discordTokenFlag         = "discord-token"
 	discordServersFlag       = "discord-server"
 	discordChannelsFlag      = "discord-channel"
-	discordFromDateFlag      = "discord-from-date"
+	discordFromDateFlag      = "discord-duration"
 	discordMessagesCountFlag = "discord-messages-count"
 )
 
@@ -32,11 +32,14 @@ type DiscordPlugin struct {
 
 func (p *DiscordPlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
 	flags := cmd.Flags()
+
 	flags.String(discordTokenFlag, "", "discord token")
 	flags.StringArray(discordServersFlag, []string{}, "discord servers")
 	flags.StringArray(discordChannelsFlag, []string{}, "discord channels")
 	flags.Duration(discordFromDateFlag, defaultDateFrom, "discord from date")
 	flags.Int(discordMessagesCountFlag, 0, "discord messages count")
+
+	cmd.MarkFlagsRequiredTogether(discordTokenFlag, discordServersFlag)
 
 	return nil
 }
@@ -142,6 +145,7 @@ func (p *DiscordPlugin) readGuildMessages(guild *discordgo.Guild) (*[]Item, erro
 }
 
 func (p *DiscordPlugin) getChannelsByNameOrIDs(guild *discordgo.Guild) []*discordgo.Channel {
+	// TODO: is it includes threads?
 	var result []*discordgo.Channel
 	if len(p.Channels) == 0 {
 		return guild.Channels
