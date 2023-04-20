@@ -104,15 +104,25 @@ func (p *DiscordPlugin) getDiscordReady() (err error) {
 	}
 
 	p.Session.StateEnabled = true
-	ready := make(chan int)
-	p.Session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		ready <- 1
+	ready := make(chan error)
+	p.Session.AddHandlerOnce(func(s *discordgo.Session, r *discordgo.Ready) {
+		ready <- nil
 	})
-	err = p.Session.Open()
+	go func() {
+		err := p.Session.Open()
+		if err != nil {
+			ready <- err
+		}
+	}()
+	time.AfterFunc(time.Second*10, func() {
+		ready <- fmt.Errorf("discord session timeout")
+	})
+
+	err = <-ready
 	if err != nil {
 		return err
 	}
-	<-ready
+
 	return nil
 }
 
