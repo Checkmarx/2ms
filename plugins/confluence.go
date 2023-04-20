@@ -20,6 +20,7 @@ const argConfluenceUsername = "confluence-username"
 const argConfluenceToken = "confluence-token"
 const argConfluenceHistory = "history"
 const confluenceDefaultWindow = 25
+const confluenceMaxRequests = 500
 
 type ConfluencePlugin struct {
 	Plugin
@@ -72,6 +73,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	p.Spaces = confluenceSpaces
 	p.Enabled = true
 	p.History = runHistory
+	p.limit = make(chan struct{}, confluenceMaxRequests)
 	return nil
 }
 
@@ -106,8 +108,12 @@ func (p *ConfluencePlugin) getSpaceItems(items chan Item, errs chan error, ctx c
 	}
 
 	for _, page := range pages.Pages {
-		go p.getPageItems(items, errs, ctx, wg, page, space)
 		wg.Add(1)
+		p.limit <- struct{}{}
+		go func(page ConfluencePage) {
+			p.getPageItems(items, errs, ctx, wg, page, space)
+			<-p.limit
+		}(page)
 	}
 }
 
