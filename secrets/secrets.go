@@ -1,11 +1,13 @@
 package secrets
 
 import (
+	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
 	"strings"
+	"sync"
 )
 
 type Secrets struct {
@@ -55,20 +57,15 @@ func Init(tags []string) *Secrets {
 	}
 }
 
-func (s *Secrets) Detect(content string) []reporting.Secret {
-
-	secrets := make([]reporting.Secret, 0)
+func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, wg *sync.WaitGroup) {
+	defer wg.Done()
 
 	fragment := detect.Fragment{
-		Raw: string(content),
+		Raw: item.Content,
 	}
-
 	for _, value := range s.detector.Detect(fragment) {
-		secret := reporting.Secret{Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
-		secrets = append(secrets, secret)
+		secretsChannel <- reporting.Secret{ID: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
 	}
-
-	return secrets
 }
 
 func getRules(allRules []Rule, tags []string) map[string]config.Rule {
