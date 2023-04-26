@@ -7,11 +7,14 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
+
+const timeSleepInterval = 50
 
 var rootCmd = &cobra.Command{
 	Use:     "2ms",
@@ -145,6 +148,9 @@ func execute(cmd *cobra.Command, args []string) {
 		}
 	}()
 	wg.Wait()
+
+	// Wait for last secret to be added to report
+	time.Sleep(time.Millisecond * timeSleepInterval)
 
 	// -------------------------------------
 	// Show Report
