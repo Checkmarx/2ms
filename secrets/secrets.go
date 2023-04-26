@@ -2,7 +2,6 @@ package secrets
 
 import (
 	"github.com/checkmarx/2ms/plugins"
-	"github.com/checkmarx/2ms/reporting"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
@@ -40,6 +39,18 @@ const TagPublicSecret = "public-secret"
 const TagSensitiveUrl = "sensitive-url"
 const TagWebhook = "webhook"
 
+type Finding struct {
+	ID          string
+	Source      string
+	Content     string
+	Description string
+	StartLine   int
+	EndLine     int
+	StartColumn int
+	EndColumn   int
+	Secret      string
+}
+
 func Init(tags []string) *Secrets {
 
 	allRules, _ := loadAllRules()
@@ -57,14 +68,14 @@ func Init(tags []string) *Secrets {
 	}
 }
 
-func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, wg *sync.WaitGroup) {
+func (s *Secrets) Detect(secretsChannel chan Finding, item plugins.Item, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
 		Raw: item.Content,
 	}
-	for _, value := range s.detector.Detect(fragment) {
-		secretsChannel <- reporting.Secret{ID: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+	for _, find := range s.detector.Detect(fragment) {
+		secretsChannel <- Finding{ID: item.ID, Source: item.Source, Content: item.Content, Description: find.Description, StartLine: find.StartLine, EndLine: find.EndLine, StartColumn: find.StartColumn, EndColumn: find.EndColumn, Secret: find.Secret}
 	}
 }
 
