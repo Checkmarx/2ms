@@ -92,14 +92,13 @@ func execute(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg(err.Error())
 	}
 
-	validateTags(tags)
+	var itemsChannel = make(chan plugins.Item)
+	var secretsChannel = make(chan secrets.Finding)
+	var errorsChannel = make(chan error)
 
+	validateTags(tags)
 	secrets := secrets.Init(tags)
 	report := reporting.Init()
-
-	var itemsChannel = make(chan plugins.Item)
-	var secretsChannel = make(chan reporting.Secret)
-	var errorsChannel = make(chan error)
 
 	var wg sync.WaitGroup
 
@@ -138,7 +137,7 @@ func execute(cmd *cobra.Command, args []string) {
 				go secrets.Detect(secretsChannel, item, &wg)
 			case secret := <-secretsChannel:
 				report.TotalSecretsFound++
-				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
+				report.AddSecret(secret)
 			case err, ok := <-errorsChannel:
 				if !ok {
 					return
