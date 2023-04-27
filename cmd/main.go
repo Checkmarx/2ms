@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const timeSleepInterval = 50
+
 var rootCmd = &cobra.Command{
 	Use:     "2ms",
 	Short:   "2ms Secrets Detection",
@@ -89,12 +91,11 @@ func execute(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg(err.Error())
 	}
 
-	validateTags(tags)
-
 	var itemsChannel = make(chan plugins.Item)
 	var secretsChannel = make(chan secrets.Finding)
 	var errorsChannel = make(chan error)
 
+	validateTags(tags)
 	secrets := secrets.Init(tags)
 	report := reporting.Init()
 
@@ -145,6 +146,9 @@ func execute(cmd *cobra.Command, args []string) {
 		}
 	}()
 	wg.Wait()
+
+	// Wait for last secret to be added to report
+	time.Sleep(time.Millisecond * timeSleepInterval)
 
 	// -------------------------------------
 	// Show Report

@@ -25,8 +25,6 @@ type Secret struct {
 func Init() *Report {
 	return &Report{
 		Results:           make(map[string][]Secret),
-		TotalItemsScanned: 0,
-		TotalSecretsFound: 0,
 	}
 }
 
