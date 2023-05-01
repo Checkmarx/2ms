@@ -230,25 +230,27 @@ func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]
 	threadMessages := []*discordgo.Message{}
 
 	var beforeID string
-	for {
-		m, err := p.Session.ChannelMessages(channelID, 100, beforeID, "", "")
-		if err != nil {
-			return nil, err
-		}
-		if len(m) == 0 {
-			break
-		}
-		stop := true
+
+	m, err := p.Session.ChannelMessages(channelID, 100, beforeID, "", "")
+	if err != nil {
+		return nil, err
+	}
+
+	lastMessage := false
+	for len(m) > 0 && !lastMessage {
+
 		for _, message := range m {
 
 			timeSince := time.Since(message.Timestamp)
 			if p.BackwardDuration > 0 && timeSince > p.BackwardDuration {
 				logger.Debug().Msgf("Reached time limit (%s). Last message is %s old", p.BackwardDuration.String(), timeSince.Round(time.Hour).String())
+				lastMessage = true
 				break
 			}
 
 			if p.Count > 0 && len(messages) == p.Count {
 				logger.Debug().Msgf("Reached message count (%d)", p.Count)
+				lastMessage = true
 				break
 			}
 
@@ -261,12 +263,13 @@ func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]
 				threadMessages = append(threadMessages, tMgs...)
 			}
 
-			stop = false
 			messages = append(messages, message)
 			beforeID = message.ID
 		}
-		if stop {
-			break
+
+		m, err = p.Session.ChannelMessages(channelID, 100, beforeID, "", "")
+		if err != nil {
+			return nil, err
 		}
 	}
 
