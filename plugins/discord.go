@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/checkmarx/2ms/lib"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -30,6 +29,10 @@ type DiscordPlugin struct {
 	Count            int
 	BackwardDuration time.Duration
 	Session          *discordgo.Session
+
+	errChan   chan error
+	itemChan  chan Item
+	waitGroup *sync.WaitGroup
 }
 
 func (p *DiscordPlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
@@ -86,30 +89,23 @@ func (p *DiscordPlugin) IsEnabled() bool {
 func (p *DiscordPlugin) GetItems(itemsChan chan Item, errChan chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	items, err := p.GetItemsx()
+	p.errChan = errChan
+	p.itemChan = itemsChan
+	p.waitGroup = wg
+
+	err := p.getDiscordReady()
 	if err != nil {
 		errChan <- err
 		return
 	}
 
-	for _, item := range *items {
-		itemsChan <- item
-	}
-}
-
-func (p *DiscordPlugin) GetItemsx() (*[]Item, error) {
-
-	err := p.getDiscordReady()
-	if err != nil {
-		return nil, err
-	}
-
 	guilds := p.getGuildsByNameOrIDs()
 	log.Info().Msgf("Found %d guilds", len(guilds))
 
-	items := lib.ParallelApply(guilds, p.readGuildMessages)
-
-	return items, nil
+	wg.Add(len(guilds))
+	for _, guild := range guilds {
+		go p.readGuildMessages(guild)
+	}
 }
 
 func (p *DiscordPlugin) getDiscordReady() (err error) {
@@ -155,16 +151,19 @@ func (p *DiscordPlugin) getGuildsByNameOrIDs() []*discordgo.Guild {
 	return result
 }
 
-func (p *DiscordPlugin) readGuildMessages(guild *discordgo.Guild) (*[]Item, error) {
+func (p *DiscordPlugin) readGuildMessages(guild *discordgo.Guild) {
+	defer p.waitGroup.Done()
+
 	guildLogger := log.With().Str("guild", guild.Name).Logger()
 	guildLogger.Debug().Send()
 
 	selectedChannels := p.getChannelsByNameOrIDs(guild)
 	guildLogger.Info().Msgf("Found %d channels", len(selectedChannels))
 
-	items := lib.ParallelApply(selectedChannels, p.readChannelMessages)
-
-	return items, nil
+	p.waitGroup.Add(len(selectedChannels))
+	for _, channel := range selectedChannels {
+		go p.readChannelMessages(channel)
+	}
 }
 
 func (p *DiscordPlugin) getChannelsByNameOrIDs(guild *discordgo.Guild) []*discordgo.Channel {
@@ -184,7 +183,9 @@ func (p *DiscordPlugin) getChannelsByNameOrIDs(guild *discordgo.Guild) []*discor
 	return result
 }
 
-func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) (*[]Item, error) {
+func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) {
+	defer p.waitGroup.Done()
+
 	channelLogger := log.With().Str("guildID", channel.GuildID).Str("channel", channel.Name).Logger()
 	channelLogger.Debug().Send()
 
@@ -193,29 +194,35 @@ func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) (*[]Item
 		if err, ok := err.(*discordgo.RESTError); ok {
 			if err.Message.Code == 50001 {
 				channelLogger.Debug().Msg("No read permissions")
-				return nil, nil
+				return
 			}
 		}
 
 		channelLogger.Error().Err(err).Msg("Failed to get permissions")
-		return nil, err
+		p.errChan <- err
+		return
 	}
 	if permission&discordgo.PermissionViewChannel == 0 {
 		channelLogger.Debug().Msg("No read permissions")
-		return nil, nil
+		return
 	}
 	if channel.Type != discordgo.ChannelTypeGuildText {
 		channelLogger.Debug().Msg("Not a text channel")
-		return nil, nil
+		return
 	}
 
 	messages, err := p.getMessages(channel.ID, channelLogger)
 	if err != nil {
 		channelLogger.Error().Err(err).Msg("Failed to get messages")
-		return nil, err
+		p.errChan <- err
+		return
 	}
 	channelLogger.Info().Msgf("Found %d messages", len(messages))
-	return convertMessagesToItems(channel.GuildID, &messages), nil
+
+	items := convertMessagesToItems(channel.GuildID, &messages)
+	for _, item := range *items {
+		p.itemChan <- item
+	}
 }
 
 func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]*discordgo.Message, error) {
