@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -82,7 +83,21 @@ func (p *DiscordPlugin) IsEnabled() bool {
 	return p.Enabled
 }
 
-func (p *DiscordPlugin) GetItems() (*[]Item, error) {
+func (p *DiscordPlugin) GetItems(itemsChan chan Item, errChan chan error, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	items, err := p.GetItemsx()
+	if err != nil {
+		errChan <- err
+		return
+	}
+
+	for _, item := range *items {
+		itemsChan <- item
+	}
+}
+
+func (p *DiscordPlugin) GetItemsx() (*[]Item, error) {
 
 	err := p.getDiscordReady()
 	if err != nil {

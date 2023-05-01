@@ -4,6 +4,9 @@ import (
 	"os"
 	"strings"
 
+	"sync"
+	"time"
+
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
@@ -12,6 +15,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
+
+const timeSleepInterval = 50
 
 var rootCmd = &cobra.Command{
 	Use:     "2ms",
@@ -92,9 +97,17 @@ func execute(cmd *cobra.Command, args []string) {
 
 	validateTags(tags)
 
+	secrets := secrets.Init(tags)
+	report := reporting.Init()
+
+	var itemsChannel = make(chan plugins.Item)
+	var secretsChannel = make(chan reporting.Secret)
+	var errorsChannel = make(chan error)
+
+	var wg sync.WaitGroup
+
 	// -------------------------------------
 	// Get content from plugins
-
 	pluginsInitialized := 0
 	for _, plugin := range allPlugins {
 		err := plugin.Initialize(cmd)
@@ -110,41 +123,42 @@ func execute(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	items := make([]plugins.Item, 0)
 	for _, plugin := range allPlugins {
 		if !plugin.IsEnabled() {
 			continue
 		}
 
-		pluginItems, err := plugin.GetItems()
-		if err != nil {
-			log.Fatal().Msg(err.Error())
-		}
-		items = append(items, *pluginItems...)
+		wg.Add(1)
+		go plugin.GetItems(itemsChannel, errorsChannel, &wg)
 	}
 
-	report := reporting.Report{}
-	report.Results = make(map[string][]reporting.Secret)
-
-	// -------------------------------------
-	// Detect Secrets
-
-	secrets := secrets.Init(tags)
-
-	for _, item := range items {
-		secrets := secrets.Detect(item.Content)
-		if len(secrets) > 0 {
-			report.TotalSecretsFound = report.TotalSecretsFound + len(secrets)
-			report.Results[item.ID] = append(report.Results[item.ID], secrets...)
+	go func() {
+		for {
+			select {
+			case item := <-itemsChannel:
+				report.TotalItemsScanned++
+				wg.Add(1)
+				go secrets.Detect(secretsChannel, item, &wg)
+			case secret := <-secretsChannel:
+				report.TotalSecretsFound++
+				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
+			case err, ok := <-errorsChannel:
+				if !ok {
+					return
+				}
+				log.Fatal().Msg(err.Error())
+			}
 		}
-	}
-	report.TotalItemsScanned = len(items)
+	}()
+	wg.Wait()
+
+	// Wait for last secret to be added to report
+	time.Sleep(time.Millisecond * timeSleepInterval)
 
 	// -------------------------------------
 	// Show Report
-
-	if len(items) > 0 {
-		reporting.ShowReport(report)
+	if report.TotalItemsScanned > 0 {
+		report.ShowReport()
 	} else {
 		log.Error().Msg("Scan completed with empty content")
 		os.Exit(0)
