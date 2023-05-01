@@ -47,7 +47,6 @@ func (r *Report) generateResultsReport() {
 		fmt.Println("  - Secrets:")
 		for _, secret := range secrets {
 			fmt.Printf("   - Type: %s\n", secret.Description)
-			fmt.Printf("    - Location: %d-%d\n", secret.StartColumn, secret.EndColumn)
 			fmt.Printf("    - Value: %.40s\n", secret.Value)
 		}
 	}
