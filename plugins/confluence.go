@@ -13,13 +13,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const argConfluence = "confluence"
-const argConfluenceSpaces = "confluence-spaces"
-const argConfluenceUsername = "confluence-username"
-const argConfluenceToken = "confluence-token"
-const argConfluenceHistory = "history"
-const confluenceDefaultWindow = 25
-const confluenceMaxRequests = 500
+const (
+	argUrl                  = "url"
+	argSpaces               = "spaces"
+	argUsername             = "username"
+	argToken                = "token"
+	argHistory              = "history"
+	confluenceDefaultWindow = 25
+	confluenceMaxRequests   = 500
+)
 
 type ConfluencePlugin struct {
 	Plugin
@@ -41,37 +43,37 @@ func (p *ConfluencePlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
 	}
 
 	flags := confluenceCmd.Flags()
-	flags.StringP(argConfluence, "", "", "scan confluence url")
-	flags.StringArray(argConfluenceSpaces, []string{}, "confluence spaces")
-	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
-	flags.StringP(argConfluenceToken, "", "", "confluence token")
-	flags.BoolP(argConfluenceHistory, "", false, "scan pages history")
+	flags.StringP(argUrl, "", "", "confluence url")
+	flags.StringArray(argSpaces, []string{}, "confluence spaces")
+	flags.StringP(argUsername, "", "", "confluence username or email")
+	flags.StringP(argToken, "", "", "confluence token")
+	flags.BoolP(argHistory, "", false, "scan pages history")
 
 	return confluenceCmd
 }
 
 func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	confluenceUrl, _ := flags.GetString(argConfluence)
-	if confluenceUrl == "" {
+	url, _ := flags.GetString(argUrl)
+	if url == "" {
 		return errors.New("confluence URL arg is missing. Plugin initialization failed")
 	}
 
-	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
+	url = strings.TrimRight(url, "/")
 
-	confluenceSpaces, _ := flags.GetStringArray(argConfluenceSpaces)
-	confluenceUsername, _ := flags.GetString(argConfluenceUsername)
-	confluenceToken, _ := flags.GetString(argConfluenceToken)
-	runHistory, _ := flags.GetBool(argConfluenceHistory)
+	spaces, _ := flags.GetStringArray(argSpaces)
+	username, _ := flags.GetString(argUsername)
+	token, _ := flags.GetString(argToken)
+	runHistory, _ := flags.GetBool(argHistory)
 
-	if confluenceUsername == "" || confluenceToken == "" {
+	if username == "" || token == "" {
 		log.Warn().Msg("confluence credentials were not provided. The scan will be made anonymously only for the public pages")
 	}
 
-	p.Token = confluenceToken
-	p.Username = confluenceUsername
-	p.URL = confluenceUrl
-	p.Spaces = confluenceSpaces
+	p.Token = token
+	p.Username = username
+	p.URL = url
+	p.Spaces = spaces
 	p.Enabled = true
 	p.History = runHistory
 	p.Limit = make(chan struct{}, confluenceMaxRequests)
