@@ -38,14 +38,20 @@ func (p *ConfluencePlugin) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
-func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
-	flags := cmd.Flags()
+func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) *cobra.Command {
+	var confluenceCmd = &cobra.Command{
+		Use:   "confluence",
+		Short: "Scan confluence",
+	}
+
+	flags := confluenceCmd.Flags()
 	flags.StringP(argConfluence, "", "", "scan confluence url")
 	flags.StringArray(argConfluenceSpaces, []string{}, "confluence spaces")
 	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
 	flags.StringP(argConfluenceToken, "", "", "confluence token")
 	flags.BoolP(argConfluenceHistory, "", false, "scan pages history")
-	return nil
+
+	return confluenceCmd
 }
 
 func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
@@ -77,10 +83,8 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 }
 
 func (p *ConfluencePlugin) GetItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	go p.getSpacesItems(items, errs, wg)
 	wg.Add(1)
+	go p.getSpacesItems(items, errs, wg)
 }
 
 func (p *ConfluencePlugin) getSpacesItems(items chan Item, errs chan error, wg *sync.WaitGroup) {

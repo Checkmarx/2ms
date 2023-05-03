@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"github.com/checkmarx/2ms/plugins"
-	"github.com/checkmarx/2ms/reporting"
-	"github.com/checkmarx/2ms/secrets"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/checkmarx/2ms/plugins"
+	"github.com/checkmarx/2ms/reporting"
+	"github.com/checkmarx/2ms/secrets"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -17,9 +18,9 @@ import (
 const timeSleepInterval = 50
 
 var rootCmd = &cobra.Command{
-	Use:     "2ms",
-	Short:   "2ms Secrets Detection",
-	Run:     execute,
+	Use:   "2ms",
+	Short: "2ms Secrets Detection",
+	// Run:     execute,
 	Version: Version,
 }
 
@@ -27,6 +28,22 @@ var Version = ""
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
+}
+
+var channels = struct {
+	Items     chan plugins.Item
+	Secrets   chan reporting.Secret
+	Errors    chan error
+	WaitGroup *sync.WaitGroup
+
+	report *reporting.Report
+}{
+	Items:     make(chan plugins.Item),
+	Secrets:   make(chan reporting.Secret),
+	Errors:    make(chan error),
+	WaitGroup: &sync.WaitGroup{},
+
+	report: reporting.Init(),
 }
 
 func initLog() {
@@ -55,14 +72,73 @@ func initLog() {
 
 func Execute() {
 	cobra.OnInitialize(initLog)
-	rootCmd.Flags().BoolP("all", "", true, "scan all plugins")
-	rootCmd.Flags().StringSlice("tags", []string{"all"}, "select rules to be applied")
+	rootCmd.PersistentFlags().BoolP("all", "", true, "scan all plugins")
+	rootCmd.PersistentFlags().StringSlice("tags", []string{"all"}, "select rules to be applied")
 
-	for _, plugin := range allPlugins {
-		err := plugin.DefineCommandLineArgs(rootCmd)
+	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		tags, err := cmd.Flags().GetStringSlice("tags")
 		if err != nil {
 			log.Fatal().Msg(err.Error())
 		}
+
+		validateTags(tags)
+
+		secrets := secrets.Init(tags)
+
+		go func() {
+			for {
+				select {
+				case item := <-channels.Items:
+					channels.report.TotalItemsScanned++
+					channels.WaitGroup.Add(1)
+					go secrets.Detect(channels.Secrets, item, channels.WaitGroup)
+				case secret := <-channels.Secrets:
+					channels.report.TotalSecretsFound++
+					channels.report.Results[secret.ID] = append(channels.report.Results[secret.ID], secret)
+				case err, ok := <-channels.Errors:
+					if !ok {
+						return
+					}
+					log.Fatal().Msg(err.Error())
+				}
+			}
+		}()
+
+	}
+
+	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
+		channels.WaitGroup.Wait()
+
+		// Wait for last secret to be added to report
+		time.Sleep(time.Millisecond * timeSleepInterval)
+
+		// -------------------------------------
+		// Show Report
+		if channels.report.TotalItemsScanned > 0 {
+			channels.report.ShowReport()
+		} else {
+			log.Error().Msg("Scan completed with empty content")
+			os.Exit(0)
+		}
+
+		if channels.report.TotalSecretsFound > 0 {
+			os.Exit(1)
+		} else {
+			os.Exit(0)
+		}
+	}
+
+	for _, plugin := range allPlugins {
+		subCommand := plugin.DefineCommandLineArgs(rootCmd)
+		subCommand.Run = func(cmd *cobra.Command, args []string) {
+			err := plugin.Initialize(cmd)
+			if err != nil {
+				log.Fatal().Msg(err.Error())
+			}
+
+			plugin.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
+		}
+		rootCmd.AddCommand(subCommand)
 	}
 
 	rootCmd.PersistentFlags().StringP("log-level", "", "info", "log level (trace, debug, info, warn, error, fatal)")
