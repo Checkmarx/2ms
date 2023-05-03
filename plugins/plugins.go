@@ -19,8 +19,7 @@ type Plugin struct {
 }
 
 type IPlugin interface {
-	DefineCommandLineArgs(cmd *cobra.Command) *cobra.Command
+	DefineSubCommand(cmd *cobra.Command) *cobra.Command
 	Initialize(cmd *cobra.Command) error
 	GetItems(chan Item, chan error, *sync.WaitGroup)
-	IsEnabled() bool
 }

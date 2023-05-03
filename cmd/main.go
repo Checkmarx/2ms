@@ -18,9 +18,8 @@ import (
 const timeSleepInterval = 50
 
 var rootCmd = &cobra.Command{
-	Use:   "2ms",
-	Short: "2ms Secrets Detection",
-	// Run:     execute,
+	Use:     "2ms",
+	Short:   "2ms Secrets Detection",
 	Version: Version,
 }
 
@@ -74,62 +73,11 @@ func Execute() {
 	cobra.OnInitialize(initLog)
 	rootCmd.PersistentFlags().BoolP("all", "", true, "scan all plugins")
 	rootCmd.PersistentFlags().StringSlice("tags", []string{"all"}, "select rules to be applied")
-
-	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		tags, err := cmd.Flags().GetStringSlice("tags")
-		if err != nil {
-			log.Fatal().Msg(err.Error())
-		}
-
-		validateTags(tags)
-
-		secrets := secrets.Init(tags)
-
-		go func() {
-			for {
-				select {
-				case item := <-channels.Items:
-					channels.report.TotalItemsScanned++
-					channels.WaitGroup.Add(1)
-					go secrets.Detect(channels.Secrets, item, channels.WaitGroup)
-				case secret := <-channels.Secrets:
-					channels.report.TotalSecretsFound++
-					channels.report.Results[secret.ID] = append(channels.report.Results[secret.ID], secret)
-				case err, ok := <-channels.Errors:
-					if !ok {
-						return
-					}
-					log.Fatal().Msg(err.Error())
-				}
-			}
-		}()
-
-	}
-
-	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
-		channels.WaitGroup.Wait()
-
-		// Wait for last secret to be added to report
-		time.Sleep(time.Millisecond * timeSleepInterval)
-
-		// -------------------------------------
-		// Show Report
-		if channels.report.TotalItemsScanned > 0 {
-			channels.report.ShowReport()
-		} else {
-			log.Error().Msg("Scan completed with empty content")
-			os.Exit(0)
-		}
-
-		if channels.report.TotalSecretsFound > 0 {
-			os.Exit(1)
-		} else {
-			os.Exit(0)
-		}
-	}
+	rootCmd.PersistentFlags().StringP("log-level", "", "info", "log level (trace, debug, info, warn, error, fatal)")
 
 	for _, plugin := range allPlugins {
-		subCommand := plugin.DefineCommandLineArgs(rootCmd)
+		subCommand := plugin.DefineSubCommand(rootCmd)
+		subCommand.PreRun = preRun
 		subCommand.Run = func(cmd *cobra.Command, args []string) {
 			err := plugin.Initialize(cmd)
 			if err != nil {
@@ -138,10 +86,9 @@ func Execute() {
 
 			plugin.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
 		}
+		subCommand.PostRun = postRun
 		rootCmd.AddCommand(subCommand)
 	}
-
-	rootCmd.PersistentFlags().StringP("log-level", "", "info", "log level (trace, debug, info, warn, error, fatal)")
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal().Msg(err.Error())
@@ -162,7 +109,7 @@ func validateTags(tags []string) {
 	}
 }
 
-func execute(cmd *cobra.Command, args []string) {
+func preRun(cmd *cobra.Command, args []string) {
 	tags, err := cmd.Flags().GetStringSlice("tags")
 	if err != nil {
 		log.Fatal().Msg(err.Error())
@@ -171,51 +118,18 @@ func execute(cmd *cobra.Command, args []string) {
 	validateTags(tags)
 
 	secrets := secrets.Init(tags)
-	report := reporting.Init()
-
-	var itemsChannel = make(chan plugins.Item)
-	var secretsChannel = make(chan reporting.Secret)
-	var errorsChannel = make(chan error)
-
-	var wg sync.WaitGroup
-
-	// -------------------------------------
-	// Get content from plugins
-	pluginsInitialized := 0
-	for _, plugin := range allPlugins {
-		err := plugin.Initialize(cmd)
-		if err != nil {
-			log.Error().Msg(err.Error())
-			continue
-		}
-		pluginsInitialized += 1
-	}
-
-	if pluginsInitialized == 0 {
-		log.Fatal().Msg("no scan plugin initialized. At least one plugin must be initialized to proceed. Stopping")
-		os.Exit(1)
-	}
-
-	for _, plugin := range allPlugins {
-		if !plugin.IsEnabled() {
-			continue
-		}
-
-		wg.Add(1)
-		go plugin.GetItems(itemsChannel, errorsChannel, &wg)
-	}
 
 	go func() {
 		for {
 			select {
-			case item := <-itemsChannel:
-				report.TotalItemsScanned++
-				wg.Add(1)
-				go secrets.Detect(secretsChannel, item, &wg)
-			case secret := <-secretsChannel:
-				report.TotalSecretsFound++
-				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
-			case err, ok := <-errorsChannel:
+			case item := <-channels.Items:
+				channels.report.TotalItemsScanned++
+				channels.WaitGroup.Add(1)
+				go secrets.Detect(channels.Secrets, item, channels.WaitGroup)
+			case secret := <-channels.Secrets:
+				channels.report.TotalSecretsFound++
+				channels.report.Results[secret.ID] = append(channels.report.Results[secret.ID], secret)
+			case err, ok := <-channels.Errors:
 				if !ok {
 					return
 				}
@@ -223,24 +137,26 @@ func execute(cmd *cobra.Command, args []string) {
 			}
 		}
 	}()
-	wg.Wait()
+}
+
+func postRun(cmd *cobra.Command, args []string) {
+	channels.WaitGroup.Wait()
 
 	// Wait for last secret to be added to report
 	time.Sleep(time.Millisecond * timeSleepInterval)
 
 	// -------------------------------------
 	// Show Report
-	if report.TotalItemsScanned > 0 {
-		report.ShowReport()
+	if channels.report.TotalItemsScanned > 0 {
+		channels.report.ShowReport()
 	} else {
 		log.Error().Msg("Scan completed with empty content")
 		os.Exit(0)
 	}
 
-	if report.TotalSecretsFound > 0 {
+	if channels.report.TotalSecretsFound > 0 {
 		os.Exit(1)
 	} else {
 		os.Exit(0)
 	}
-
 }

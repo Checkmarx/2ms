@@ -30,15 +30,11 @@ type ConfluencePlugin struct {
 	History  bool
 }
 
-func (p *ConfluencePlugin) IsEnabled() bool {
-	return p.Enabled
-}
-
 func (p *ConfluencePlugin) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
-func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) *cobra.Command {
+func (p *ConfluencePlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
 	var confluenceCmd = &cobra.Command{
 		Use:   "confluence",
 		Short: "Scan confluence",
@@ -83,13 +79,10 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 }
 
 func (p *ConfluencePlugin) GetItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
-	wg.Add(1)
-	go p.getSpacesItems(items, errs, wg)
+	p.getSpacesItems(items, errs, wg)
 }
 
 func (p *ConfluencePlugin) getSpacesItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
-	defer wg.Done()
-
 	spaces, err := p.getSpaces()
 	if err != nil {
 		errs <- err
