@@ -2,6 +2,7 @@ package reporting
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -41,20 +42,25 @@ func (r *Report) ShowReport() {
 
 func (r *Report) generateResultsReport() {
 	for source, secrets := range r.Results {
-		itemLink := getItemId(source)
-		fmt.Printf("- Item ID: %s\n", itemLink)
-		fmt.Printf(" - Item Link: %s\n", source)
+		itemId := getItemId(source)
+		fmt.Printf("- Item ID: %s\n", itemId)
+		fmt.Printf(" - Item Full Path: %s\n", source)
 		fmt.Println("  - Secrets:")
 		for _, secret := range secrets {
 			fmt.Printf("   - Type: %s\n", secret.Description)
-			fmt.Printf("    - Location: %d-%d\n", secret.StartColumn, secret.EndColumn)
 			fmt.Printf("    - Value: %.40s\n", secret.Value)
 		}
 	}
 }
 
 func getItemId(fullPath string) string {
-	itemLinkStrings := strings.Split(fullPath, "/")
-	itemLink := itemLinkStrings[len(itemLinkStrings)-1]
-	return itemLink
+	var itemId string
+	if strings.Contains(fullPath, "/") {
+		itemLinkStrings := strings.Split(fullPath, "/")
+		itemId = itemLinkStrings[len(itemLinkStrings)-1]
+	}
+	if strings.Contains(fullPath, "\\") {
+		itemId = filepath.Base(fullPath)
+	}
+	return itemId
 }
