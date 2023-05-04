@@ -22,7 +22,7 @@ func (p *RepositoryPlugin) IsEnabled() bool {
 
 func (p *RepositoryPlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	flags.StringP(argRepository, "", "", "scan repository folder")
+	flags.String(argRepository, "", "scan repository folder")
 	return nil
 }
 
@@ -41,11 +41,12 @@ func (p *RepositoryPlugin) Initialize(cmd *cobra.Command) error {
 func (p *RepositoryPlugin) GetItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	go p.getFiles(items, errs, wg)
 	wg.Add(1)
+	go p.getFiles(items, errs, wg)
 }
 
 func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) {
+	defer wg.Done()
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
@@ -67,23 +68,25 @@ func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 		panic(err)
 	}
 
-	go p.getItems(items, errs, wg, fileList)
+	p.getItems(items, errs, wg, fileList)
 }
 
 func (p *RepositoryPlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup, fileList []string) {
-	defer wg.Done()
-
 	for _, filePath := range fileList {
-		actualFile, err := p.getItem(filePath)
-		if err != nil {
-			errs <- err
-			return
-		}
-		items <- *actualFile
+		wg.Add(1)
+		go func(filePath string) {
+			actualFile, err := p.getItem(wg, filePath)
+			if err != nil {
+				errs <- err
+				return
+			}
+			items <- *actualFile
+		}(filePath)
 	}
 }
 
-func (p *RepositoryPlugin) getItem(filePath string) (*Item, error) {
+func (p *RepositoryPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, error) {
+	defer wg.Done()
 	b, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
