@@ -65,7 +65,7 @@ func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 	})
 
 	if err != nil {
-		panic(err)
+		log.Fatalf(err.Error())
 	}
 
 	p.getItems(items, errs, wg, fileList)
