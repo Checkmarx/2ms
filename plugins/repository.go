@@ -2,11 +2,12 @@ package plugins
 
 import (
 	"errors"
-	"github.com/spf13/cobra"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 const argRepository = "path"
@@ -50,7 +51,7 @@ func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
-			log.Fatalf(err.Error())
+			log.Fatal().Err(err).Msg("error while walking through the directory")
 		}
 		if fInfo.Name() == ".git" && fInfo.IsDir() {
 			return filepath.SkipDir
@@ -65,7 +66,7 @@ func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 	})
 
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatal().Err(err).Msg("error while walking through the directory")
 	}
 
 	p.getItems(items, errs, wg, fileList)
