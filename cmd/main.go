@@ -30,6 +30,7 @@ var Version = ""
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
 	&plugins.DiscordPlugin{},
+	&plugins.RepositoryPlugin{},
 }
 
 func initLog() {
