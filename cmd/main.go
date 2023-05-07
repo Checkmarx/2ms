@@ -27,6 +27,7 @@ var Version = ""
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
+	&plugins.RepositoryPlugin{},
 }
 
 var channels = struct {
