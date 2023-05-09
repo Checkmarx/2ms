@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -48,15 +47,16 @@ func (p *ConfluencePlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
 	flags.StringP(argUsername, "", "", "confluence username or email")
 	flags.StringP(argToken, "", "", "confluence token")
 	flags.BoolP(argHistory, "", false, "scan pages history")
+	confluenceCmd.MarkFlagRequired(argUrl)
 
 	return confluenceCmd
 }
 
 func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	url, _ := flags.GetString(argUrl)
-	if url == "" {
-		return errors.New("confluence URL arg is missing. Plugin initialization failed")
+	url, err := flags.GetString(argUrl)
+	if err != nil {
+		return err
 	}
 
 	url = strings.TrimRight(url, "/")
@@ -74,7 +74,6 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	p.Username = username
 	p.URL = url
 	p.Spaces = spaces
-	p.Enabled = true
 	p.History = runHistory
 	p.Limit = make(chan struct{}, confluenceMaxRequests)
 	return nil

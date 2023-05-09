@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -17,25 +16,27 @@ type RepositoryPlugin struct {
 	Path string
 }
 
-func (p *RepositoryPlugin) IsEnabled() bool {
-	return p.Enabled
-}
+func (p *RepositoryPlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
+	var repositoryCmd = &cobra.Command{
+		Use:   "repository",
+		Short: "Scan repository",
+	}
 
-func (p *RepositoryPlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
-	flags := cmd.Flags()
+	flags := repositoryCmd.Flags()
 	flags.String(argRepository, "", "scan repository folder")
-	return nil
+	repositoryCmd.MarkFlagRequired(argRepository)
+
+	return repositoryCmd
 }
 
 func (p *RepositoryPlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	directoryPath, _ := flags.GetString(argRepository)
-	if directoryPath == "" {
-		return errors.New("path to repository missing. Plugin initialization failed")
+	directoryPath, err := flags.GetString(argRepository)
+	if err != nil {
+		return err
 	}
 
 	p.Path = directoryPath
-	p.Enabled = true
 	return nil
 }
 
