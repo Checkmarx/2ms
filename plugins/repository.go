@@ -24,7 +24,10 @@ func (p *RepositoryPlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
 
 	flags := repositoryCmd.Flags()
 	flags.String(argRepository, "", "scan repository folder")
-	repositoryCmd.MarkFlagRequired(argRepository)
+	err := repositoryCmd.MarkFlagRequired(argRepository)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error while marking flag as required")
+	}
 
 	return repositoryCmd
 }

@@ -47,7 +47,10 @@ func (p *ConfluencePlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
 	flags.StringP(argUsername, "", "", "confluence username or email")
 	flags.StringP(argToken, "", "", "confluence token")
 	flags.BoolP(argHistory, "", false, "scan pages history")
-	confluenceCmd.MarkFlagRequired(argUrl)
+	err := confluenceCmd.MarkFlagRequired(argUrl)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error while marking flag as required")
+	}
 
 	return confluenceCmd
 }
