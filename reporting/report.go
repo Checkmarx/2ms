@@ -2,8 +2,7 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/zricethezav/gitleaks/v8/config"
-	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -43,9 +42,9 @@ func (r *Report) ShowReport() {
 
 func (r *Report) generateResultsReport() {
 	for source, secrets := range r.Results {
-		itemLink := getItemId(source)
-		fmt.Printf("- Item ID: %s\n", itemLink)
-		fmt.Printf(" - Item Link: %s\n", source)
+		itemId := getItemId(source)
+		fmt.Printf("- Item ID: %s\n", itemId)
+		fmt.Printf(" - Item Full Path: %s\n", source)
 		fmt.Println("  - Secrets:")
 		for _, secret := range secrets {
 			fmt.Printf("   - Type: %s\n", secret.Description)
@@ -55,17 +54,13 @@ func (r *Report) generateResultsReport() {
 }
 
 func getItemId(fullPath string) string {
-	itemLinkStrings := strings.Split(fullPath, "/")
-	itemLink := itemLinkStrings[len(itemLinkStrings)-1]
-	return itemLink
-}
-
-func (r *Report) Write(reportPath string, orderedRules []config.Rule) error {
-	file, err := os.Create(reportPath)
-	if err != nil {
-		return err
+	var itemId string
+	if strings.Contains(fullPath, "/") {
+		itemLinkStrings := strings.Split(fullPath, "/")
+		itemId = itemLinkStrings[len(itemLinkStrings)-1]
 	}
-	writeSarif(*r, file, orderedRules)
-
-	return nil
+	if strings.Contains(fullPath, "\\") {
+		itemId = filepath.Base(fullPath)
+	}
+	return itemId
 }

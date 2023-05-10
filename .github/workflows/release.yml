@@ -46,7 +46,8 @@ jobs:
       - name: Set up Docker Buildx
         if: ${{ steps.semantic_release_info.outputs.git_tag }}
         uses: docker/setup-buildx-action@v2
-      - run: docker save -e image_file_name=bin/checkmarx-2ms.tar
+      - name: Save Docker Image
+        run: make save -e image_file_name=bin/checkmarx-2ms.tar
         if: ${{ steps.semantic_release_info.outputs.git_tag }}
         env:
           VERSION: ${{ steps.semantic_release_info.outputs.version }}
