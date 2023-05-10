@@ -15,6 +15,7 @@ import (
 )
 
 const timeSleepInterval = 50
+const reportPath = "report-path"
 
 var rootCmd = &cobra.Command{
 	Use:     "2ms",
@@ -57,6 +58,7 @@ func Execute() {
 	cobra.OnInitialize(initLog)
 	rootCmd.Flags().BoolP("all", "", true, "scan all plugins")
 	rootCmd.Flags().StringSlice("tags", []string{"all"}, "select rules to be applied")
+	rootCmd.Flags().StringP(reportPath, "r", "", "path to generate report file")
 
 	for _, plugin := range allPlugins {
 		err := plugin.DefineCommandLineArgs(rootCmd)
@@ -88,6 +90,7 @@ func validateTags(tags []string) {
 
 func execute(cmd *cobra.Command, args []string) {
 	tags, err := cmd.Flags().GetStringSlice("tags")
+	reportPath, _ := cmd.Flags().GetString("report-path")
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
@@ -156,6 +159,12 @@ func execute(cmd *cobra.Command, args []string) {
 	// Show Report
 	if report.TotalItemsScanned > 0 {
 		report.ShowReport()
+		if reportPath != "" {
+			err := report.Write(reportPath, secrets.OrderedRules)
+			if err != nil {
+				log.Error().Msgf("Failed to create sarif file report with error: %s", err)
+			}
+		}
 	} else {
 		log.Error().Msg("Scan completed with empty content")
 		os.Exit(0)

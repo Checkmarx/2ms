@@ -11,8 +11,9 @@ import (
 )
 
 type Secrets struct {
-	rules    map[string]config.Rule
-	detector detect.Detector
+	rules        map[string]config.Rule
+	detector     detect.Detector
+	OrderedRules []config.Rule
 }
 
 type Rule struct {
@@ -45,15 +46,16 @@ func Init(tags []string) *Secrets {
 	allRules, _ := loadAllRules()
 	rulesToBeApplied := getRules(allRules, tags)
 
-	cfg := config.Config{
+	config := config.Config{
 		Rules: rulesToBeApplied,
 	}
 
-	detector := detect.NewDetector(cfg)
+	detector := detect.NewDetector(config)
 
 	return &Secrets{
-		rules:    rulesToBeApplied,
-		detector: *detector,
+		rules:        rulesToBeApplied,
+		detector:     *detector,
+		OrderedRules: config.OrderedRules(),
 	}
 }
 

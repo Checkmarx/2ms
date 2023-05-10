@@ -2,6 +2,8 @@ package reporting
 
 import (
 	"fmt"
+	"github.com/zricethezav/gitleaks/v8/config"
+	"os"
 	"strings"
 )
 
@@ -56,4 +58,14 @@ func getItemId(fullPath string) string {
 	itemLinkStrings := strings.Split(fullPath, "/")
 	itemLink := itemLinkStrings[len(itemLinkStrings)-1]
 	return itemLink
+}
+
+func (r *Report) Write(reportPath string, orderedRules []config.Rule) error {
+	file, err := os.Create(reportPath)
+	if err != nil {
+		return err
+	}
+	writeSarif(*r, file, orderedRules)
+
+	return nil
 }
