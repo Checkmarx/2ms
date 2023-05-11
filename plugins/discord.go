@@ -48,8 +48,14 @@ func (p *DiscordPlugin) DefineCommand(channels Channels) *cobra.Command {
 	flags.Duration(fromDateFlag, defaultDateFrom, "discord from date")
 	flags.Int(messagesCountFlag, 0, "discord messages count")
 
-	discordCmd.MarkFlagRequired(tokenFlag)
-	discordCmd.MarkFlagRequired(serversFlag)
+	err := discordCmd.MarkFlagRequired(tokenFlag)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error while marking flag as required")
+	}
+	err = discordCmd.MarkFlagRequired(serversFlag)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error while marking flag as required")
+	}
 
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
 		err := p.Initialize(cmd)
