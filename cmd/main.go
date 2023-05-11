@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"strings"
+
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ var Version = ""
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
+	&plugins.DiscordPlugin{},
 	&plugins.RepositoryPlugin{},
 }
 
