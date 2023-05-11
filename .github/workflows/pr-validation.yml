@@ -49,7 +49,7 @@ jobs:
       
       - run: make build
       - name: Run docker and check its output
-        run: if docker run -t checkmarx/2ms:latest confluence | grep "confluence URL arg is missing"; then
+        run: if docker run -t checkmarx/2ms:latest confluence --url dump | grep "confluence credentials were not provided"; then
             echo "Docker ran as expected";
           else
             echo "Docker did not run as expected";
