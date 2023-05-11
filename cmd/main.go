@@ -71,10 +71,11 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSlice("tags", []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().StringP("log-level", "", "info", "log level (trace, debug, info, warn, error, fatal)")
 
+	rootCmd.PersistentPreRun = preRun
+	rootCmd.PersistentPostRun = postRun
+
 	for _, plugin := range allPlugins {
 		subCommand := plugin.DefineCommand(channels)
-		subCommand.PreRun = preRun
-		subCommand.PostRun = postRun
 		rootCmd.AddCommand(subCommand)
 	}
 
