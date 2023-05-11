@@ -35,7 +35,7 @@ func (p *ConfluencePlugin) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
-func (p *ConfluencePlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
+func (p *ConfluencePlugin) DefineCommand(channels Channels) *cobra.Command {
 	var confluenceCmd = &cobra.Command{
 		Use:   "confluence",
 		Short: "Scan confluence",
@@ -50,6 +50,15 @@ func (p *ConfluencePlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
 	err := confluenceCmd.MarkFlagRequired(argUrl)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error while marking flag as required")
+	}
+
+	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
+		err := p.Initialize(cmd)
+		if err != nil {
+			log.Fatal().Msg(err.Error())
+		}
+
+		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
 	return confluenceCmd

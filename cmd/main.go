@@ -30,21 +30,14 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.RepositoryPlugin{},
 }
 
-var channels = struct {
-	Items     chan plugins.Item
-	Secrets   chan reporting.Secret
-	Errors    chan error
-	WaitGroup *sync.WaitGroup
-
-	report *reporting.Report
-}{
+var channels = plugins.Channels{
 	Items:     make(chan plugins.Item),
-	Secrets:   make(chan reporting.Secret),
 	Errors:    make(chan error),
 	WaitGroup: &sync.WaitGroup{},
-
-	report: reporting.Init(),
 }
+
+var report = reporting.Init()
+var secretsChan = make(chan reporting.Secret)
 
 func initLog() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -77,16 +70,8 @@ func Execute() {
 	rootCmd.PersistentFlags().StringP("log-level", "", "info", "log level (trace, debug, info, warn, error, fatal)")
 
 	for _, plugin := range allPlugins {
-		subCommand := plugin.DefineSubCommand(rootCmd)
+		subCommand := plugin.DefineCommand(channels)
 		subCommand.PreRun = preRun
-		subCommand.Run = func(cmd *cobra.Command, args []string) {
-			err := plugin.Initialize(cmd)
-			if err != nil {
-				log.Fatal().Msg(err.Error())
-			}
-
-			plugin.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
-		}
 		subCommand.PostRun = postRun
 		rootCmd.AddCommand(subCommand)
 	}
@@ -124,12 +109,12 @@ func preRun(cmd *cobra.Command, args []string) {
 		for {
 			select {
 			case item := <-channels.Items:
-				channels.report.TotalItemsScanned++
+				report.TotalItemsScanned++
 				channels.WaitGroup.Add(1)
-				go secrets.Detect(channels.Secrets, item, channels.WaitGroup)
-			case secret := <-channels.Secrets:
-				channels.report.TotalSecretsFound++
-				channels.report.Results[secret.ID] = append(channels.report.Results[secret.ID], secret)
+				go secrets.Detect(secretsChan, item, channels.WaitGroup)
+			case secret := <-secretsChan:
+				report.TotalSecretsFound++
+				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
 			case err, ok := <-channels.Errors:
 				if !ok {
 					return
@@ -148,14 +133,14 @@ func postRun(cmd *cobra.Command, args []string) {
 
 	// -------------------------------------
 	// Show Report
-	if channels.report.TotalItemsScanned > 0 {
-		channels.report.ShowReport()
+	if report.TotalItemsScanned > 0 {
+		report.ShowReport()
 	} else {
 		log.Error().Msg("Scan completed with empty content")
 		os.Exit(0)
 	}
 
-	if channels.report.TotalSecretsFound > 0 {
+	if report.TotalSecretsFound > 0 {
 		os.Exit(1)
 	} else {
 		os.Exit(0)

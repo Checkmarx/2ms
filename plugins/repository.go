@@ -16,7 +16,7 @@ type RepositoryPlugin struct {
 	Path string
 }
 
-func (p *RepositoryPlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
+func (p *RepositoryPlugin) DefineCommand(channels Channels) *cobra.Command {
 	var repositoryCmd = &cobra.Command{
 		Use:   "repository",
 		Short: "Scan repository",
@@ -27,6 +27,15 @@ func (p *RepositoryPlugin) DefineSubCommand(cmd *cobra.Command) *cobra.Command {
 	err := repositoryCmd.MarkFlagRequired(argRepository)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error while marking flag as required")
+	}
+
+	repositoryCmd.Run = func(cmd *cobra.Command, args []string) {
+		err := p.Initialize(cmd)
+		if err != nil {
+			log.Fatal().Msg(err.Error())
+		}
+
+		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
 	return repositoryCmd

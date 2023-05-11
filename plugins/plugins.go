@@ -17,8 +17,12 @@ type Plugin struct {
 	Limit chan struct{}
 }
 
+type Channels struct {
+	Items     chan Item
+	Errors    chan error
+	WaitGroup *sync.WaitGroup
+}
+
 type IPlugin interface {
-	DefineSubCommand(cmd *cobra.Command) *cobra.Command
-	Initialize(cmd *cobra.Command) error
-	GetItems(chan Item, chan error, *sync.WaitGroup)
+	DefineCommand(channels Channels) *cobra.Command
 }
