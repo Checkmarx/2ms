@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
@@ -107,6 +108,8 @@ func execute(cmd *cobra.Command, args []string) {
 
 	var wg sync.WaitGroup
 
+	cfg := config.LoadConfig("2ms", Version)
+
 	// -------------------------------------
 	// Get content from plugins
 	pluginsInitialized := 0
@@ -142,7 +145,7 @@ func execute(cmd *cobra.Command, args []string) {
 				go secrets.Detect(secretsChannel, item, &wg)
 			case secret := <-secretsChannel:
 				report.TotalSecretsFound++
-				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
+				report.Results[secret.Source] = append(report.Results[secret.Source], secret)
 			case err, ok := <-errorsChannel:
 				if !ok {
 					return
@@ -161,7 +164,7 @@ func execute(cmd *cobra.Command, args []string) {
 	if report.TotalItemsScanned > 0 {
 		report.ShowReport()
 		if reportPath != "" {
-			err := report.Write(reportPath, secrets.OrderedRules)
+			err := report.Write(reportPath, cfg)
 			if err != nil {
 				log.Error().Msgf("Failed to create sarif file report with error: %s", err)
 			}

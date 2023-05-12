@@ -2,10 +2,9 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/checkmarx/2ms/config"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type Report struct {
@@ -16,6 +15,7 @@ type Report struct {
 
 type Secret struct {
 	ID          string
+	Source      string
 	Description string
 	StartLine   int
 	EndLine     int
@@ -44,35 +44,31 @@ func (r *Report) ShowReport() {
 
 func (r *Report) generateResultsReport() {
 	for source, secrets := range r.Results {
-		itemId := getItemId(source)
-		fmt.Printf("- Item ID: %s\n", itemId)
-		fmt.Printf(" - Item Full Path: %s\n", source)
+		fmt.Printf(" - Item Source: %s\n", source)
 		fmt.Println("  - Secrets:")
 		for _, secret := range secrets {
+			fmt.Printf("   - Item ID: %s\n", secret.ID)
 			fmt.Printf("   - Type: %s\n", secret.Description)
-			fmt.Printf("    - Value: %.40s\n", secret.Value)
+			fmt.Printf("   - Value: %.40s\n", secret.Value)
 		}
 	}
 }
 
-func getItemId(fullPath string) string {
-	var itemId string
-	if strings.Contains(fullPath, "/") {
-		itemLinkStrings := strings.Split(fullPath, "/")
-		itemId = itemLinkStrings[len(itemLinkStrings)-1]
-	}
-	if strings.Contains(fullPath, "\\") {
-		itemId = filepath.Base(fullPath)
-	}
-	return itemId
-}
-
-func (r *Report) Write(reportPath string, orderedRules []config.Rule) error {
+func (r *Report) Write(reportPath string, cfg *config.Config) error {
 	file, err := os.Create(reportPath)
 	if err != nil {
 		return err
 	}
-	writeSarif(*r, file, orderedRules)
 
-	return nil
+	fileExtension := filepath.Ext(reportPath)
+	switch fileExtension {
+	//case ".json":
+	//	err = writeJson(*r, file, cfg)
+	//case ".csv":
+	//	err = writeCsv(*r, file, cfg)
+	case ".sarif":
+		err = writeSarif(*r, file, cfg)
+	}
+
+	return err
 }

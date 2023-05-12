@@ -6,14 +6,14 @@ import (
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
+	"path/filepath"
 	"strings"
 	"sync"
 )
 
 type Secrets struct {
-	rules        map[string]config.Rule
-	detector     detect.Detector
-	OrderedRules []config.Rule
+	rules    map[string]config.Rule
+	detector detect.Detector
 }
 
 type Rule struct {
@@ -53,9 +53,8 @@ func Init(tags []string) *Secrets {
 	detector := detect.NewDetector(config)
 
 	return &Secrets{
-		rules:        rulesToBeApplied,
-		detector:     *detector,
-		OrderedRules: config.OrderedRules(),
+		rules:    rulesToBeApplied,
+		detector: *detector,
 	}
 }
 
@@ -66,8 +65,21 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 		Raw: item.Content,
 	}
 	for _, value := range s.detector.Detect(fragment) {
-		secretsChannel <- reporting.Secret{ID: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+		itemId := getItemId(item.ID)
+		secretsChannel <- reporting.Secret{ID: itemId, Source: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
 	}
+}
+
+func getItemId(fullPath string) string {
+	var itemId string
+	if strings.Contains(fullPath, "/") {
+		itemLinkStrings := strings.Split(fullPath, "/")
+		itemId = itemLinkStrings[len(itemLinkStrings)-1]
+	}
+	if strings.Contains(fullPath, "\\") {
+		itemId = filepath.Base(fullPath)
+	}
+	return itemId
 }
 
 func getRules(allRules []Rule, tags []string) map[string]config.Rule {
