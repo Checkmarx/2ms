@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
