@@ -1,14 +1,14 @@
 package cmd
 
 import (
-	"github.com/checkmarx/2ms/config"
-	"github.com/checkmarx/2ms/plugins"
-	"github.com/checkmarx/2ms/reporting"
-	"github.com/checkmarx/2ms/secrets"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/checkmarx/2ms/plugins"
+	"github.com/checkmarx/2ms/reporting"
+	"github.com/checkmarx/2ms/secrets"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -29,6 +29,7 @@ var Version = ""
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
+	&plugins.DiscordPlugin{},
 	&plugins.RepositoryPlugin{},
 }
 
