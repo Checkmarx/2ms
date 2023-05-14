@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -18,13 +19,13 @@ import (
 
 const timeSleepInterval = 50
 
+var Version = "0.0.0"
+
 var rootCmd = &cobra.Command{
 	Use:     "2ms",
 	Short:   "2ms Secrets Detection",
 	Version: Version,
 }
-
-var Version = ""
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
@@ -75,7 +76,10 @@ func Execute() {
 	rootCmd.PersistentPostRun = postRun
 
 	for _, plugin := range allPlugins {
-		subCommand := plugin.DefineCommand(channels)
+		subCommand, err := plugin.DefineCommand(channels)
+		if err != nil {
+			log.Fatal().Msg(fmt.Sprintf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error()))
+		}
 		rootCmd.AddCommand(subCommand)
 	}
 

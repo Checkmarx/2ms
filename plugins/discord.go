@@ -35,9 +35,13 @@ type DiscordPlugin struct {
 	waitGroup *sync.WaitGroup
 }
 
-func (p *DiscordPlugin) DefineCommand(channels Channels) *cobra.Command {
+func (p *DiscordPlugin) GetName() string {
+	return "discord"
+}
+
+func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var discordCmd = &cobra.Command{
-		Use:   "discord",
+		Use:   p.GetName(),
 		Short: "Scan discord",
 	}
 	flags := discordCmd.Flags()
@@ -50,23 +54,24 @@ func (p *DiscordPlugin) DefineCommand(channels Channels) *cobra.Command {
 
 	err := discordCmd.MarkFlagRequired(tokenFlag)
 	if err != nil {
-		log.Fatal().Err(err).Msg("error while marking flag as required")
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", tokenFlag, err)
 	}
 	err = discordCmd.MarkFlagRequired(serversFlag)
 	if err != nil {
-		log.Fatal().Err(err).Msg("error while marking flag as required")
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", serversFlag, err)
 	}
 
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
 		err := p.Initialize(cmd)
 		if err != nil {
-			log.Fatal().Msg(err.Error())
+			channels.Errors <- fmt.Errorf("discord plugin initialization failed: %w", err)
+			return
 		}
 
 		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
-	return discordCmd
+	return discordCmd, nil
 }
 
 func (p *DiscordPlugin) Initialize(cmd *cobra.Command) error {

@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -16,9 +17,13 @@ type RepositoryPlugin struct {
 	Path string
 }
 
-func (p *RepositoryPlugin) DefineCommand(channels Channels) *cobra.Command {
+func (p *RepositoryPlugin) GetName() string {
+	return "repository"
+}
+
+func (p *RepositoryPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var repositoryCmd = &cobra.Command{
-		Use:   "repository",
+		Use:   p.GetName(),
 		Short: "Scan repository",
 	}
 
@@ -26,26 +31,27 @@ func (p *RepositoryPlugin) DefineCommand(channels Channels) *cobra.Command {
 	flags.String(argRepository, "", "scan repository folder")
 	err := repositoryCmd.MarkFlagRequired(argRepository)
 	if err != nil {
-		log.Fatal().Err(err).Msg("error while marking flag as required")
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argRepository, err)
 	}
 
 	repositoryCmd.Run = func(cmd *cobra.Command, args []string) {
 		err := p.Initialize(cmd)
 		if err != nil {
-			log.Fatal().Msg(err.Error())
+			channels.Errors <- fmt.Errorf("error while initializing plugin: %w", err)
+			return
 		}
 
 		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
-	return repositoryCmd
+	return repositoryCmd, nil
 }
 
 func (p *RepositoryPlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	directoryPath, err := flags.GetString(argRepository)
 	if err != nil {
-		return err
+		return fmt.Errorf("error while getting '%s' flag value: %w", argRepository, err)
 	}
 
 	p.Path = directoryPath

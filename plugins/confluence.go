@@ -31,13 +31,17 @@ type ConfluencePlugin struct {
 	History  bool
 }
 
+func (p *ConfluencePlugin) GetName() string {
+	return "confluence"
+}
+
 func (p *ConfluencePlugin) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
-func (p *ConfluencePlugin) DefineCommand(channels Channels) *cobra.Command {
+func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var confluenceCmd = &cobra.Command{
-		Use:   "confluence",
+		Use:   p.GetName(),
 		Short: "Scan confluence",
 	}
 
@@ -49,26 +53,27 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) *cobra.Command {
 	flags.BoolP(argHistory, "", false, "scan pages history")
 	err := confluenceCmd.MarkFlagRequired(argUrl)
 	if err != nil {
-		log.Fatal().Err(err).Msg("error while marking flag as required")
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argUrl, err)
 	}
 
 	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
 		err := p.Initialize(cmd)
 		if err != nil {
-			log.Fatal().Msg(err.Error())
+			channels.Errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
+			return
 		}
 
 		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
-	return confluenceCmd
+	return confluenceCmd, nil
 }
 
 func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	url, err := flags.GetString(argUrl)
 	if err != nil {
-		return err
+		return fmt.Errorf("error while getting '%s' flag value: %w", argUrl, err)
 	}
 
 	url = strings.TrimRight(url, "/")
