@@ -1,8 +1,9 @@
 package plugins
 
 import (
-	"github.com/spf13/cobra"
 	"sync"
+
+	"github.com/spf13/cobra"
 )
 
 type Item struct {
@@ -12,14 +13,17 @@ type Item struct {
 }
 
 type Plugin struct {
-	ID      string
-	Enabled bool
-	Limit   chan struct{}
+	ID    string
+	Limit chan struct{}
+}
+
+type Channels struct {
+	Items     chan Item
+	Errors    chan error
+	WaitGroup *sync.WaitGroup
 }
 
 type IPlugin interface {
-	DefineCommandLineArgs(cmd *cobra.Command) error
-	Initialize(cmd *cobra.Command) error
-	GetItems(chan Item, chan error, *sync.WaitGroup)
-	IsEnabled() bool
+	GetName() string
+	DefineCommand(channels Channels) (*cobra.Command, error)
 }

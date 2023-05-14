@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	discordTokenFlag         = "discord-token"
-	discordServersFlag       = "discord-server"
-	discordChannelsFlag      = "discord-channel"
-	discordFromDateFlag      = "discord-duration"
-	discordMessagesCountFlag = "discord-messages-count"
+	tokenFlag         = "token"
+	serversFlag       = "server"
+	channelsFlag      = "channel"
+	fromDateFlag      = "duration"
+	messagesCountFlag = "messages-count"
 )
 
 const defaultDateFrom = time.Hour * 24 * 14
@@ -35,39 +35,64 @@ type DiscordPlugin struct {
 	waitGroup *sync.WaitGroup
 }
 
-func (p *DiscordPlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
-	flags := cmd.Flags()
+func (p *DiscordPlugin) GetName() string {
+	return "discord"
+}
 
-	flags.String(discordTokenFlag, "", "discord token")
-	flags.StringArray(discordServersFlag, []string{}, "discord servers")
-	flags.StringArray(discordChannelsFlag, []string{}, "discord channels")
-	flags.Duration(discordFromDateFlag, defaultDateFrom, "discord from date")
-	flags.Int(discordMessagesCountFlag, 0, "discord messages count")
+func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
+	var discordCmd = &cobra.Command{
+		Use:   p.GetName(),
+		Short: "Scan discord",
+	}
+	flags := discordCmd.Flags()
 
-	cmd.MarkFlagsRequiredTogether(discordTokenFlag, discordServersFlag)
+	flags.String(tokenFlag, "", "discord token")
+	flags.StringArray(serversFlag, []string{}, "discord servers")
+	flags.StringArray(channelsFlag, []string{}, "discord channels")
+	flags.Duration(fromDateFlag, defaultDateFrom, "discord from date")
+	flags.Int(messagesCountFlag, 0, "discord messages count")
 
-	return nil
+	err := discordCmd.MarkFlagRequired(tokenFlag)
+	if err != nil {
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", tokenFlag, err)
+	}
+	err = discordCmd.MarkFlagRequired(serversFlag)
+	if err != nil {
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", serversFlag, err)
+	}
+
+	discordCmd.Run = func(cmd *cobra.Command, args []string) {
+		err := p.Initialize(cmd)
+		if err != nil {
+			channels.Errors <- fmt.Errorf("discord plugin initialization failed: %w", err)
+			return
+		}
+
+		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
+	}
+
+	return discordCmd, nil
 }
 
 func (p *DiscordPlugin) Initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	token, _ := flags.GetString(discordTokenFlag)
+	token, _ := flags.GetString(tokenFlag)
 	if token == "" {
 		return fmt.Errorf("discord token arg is missing. Plugin initialization failed")
 	}
 
-	guilds, _ := flags.GetStringArray(discordServersFlag)
+	guilds, _ := flags.GetStringArray(serversFlag)
 	if len(guilds) == 0 {
 		return fmt.Errorf("discord servers arg is missing. Plugin initialization failed")
 	}
 
-	channels, _ := flags.GetStringArray(discordChannelsFlag)
+	channels, _ := flags.GetStringArray(channelsFlag)
 	if len(channels) == 0 {
 		log.Warn().Msg("discord channels not provided. Will scan all channels")
 	}
 
-	fromDate, _ := flags.GetDuration(discordFromDateFlag)
-	count, _ := flags.GetInt(discordMessagesCountFlag)
+	fromDate, _ := flags.GetDuration(fromDateFlag)
+	count, _ := flags.GetInt(messagesCountFlag)
 	if count == 0 && fromDate == 0 {
 		return fmt.Errorf("discord messages count or from date arg is missing. Plugin initialization failed")
 	}
