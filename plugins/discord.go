@@ -22,7 +22,6 @@ const (
 const defaultDateFrom = time.Hour * 24 * 14
 
 type DiscordPlugin struct {
-	Enabled          bool
 	Token            string
 	Guilds           []string
 	Channels         []string
@@ -62,19 +61,19 @@ func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error)
 	}
 
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
-		err := p.Initialize(cmd)
+		err := p.initialize(cmd)
 		if err != nil {
 			channels.Errors <- fmt.Errorf("discord plugin initialization failed: %w", err)
 			return
 		}
 
-		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
+		p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
 	return discordCmd, nil
 }
 
-func (p *DiscordPlugin) Initialize(cmd *cobra.Command) error {
+func (p *DiscordPlugin) initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	token, _ := flags.GetString(tokenFlag)
 	if token == "" {
@@ -102,16 +101,11 @@ func (p *DiscordPlugin) Initialize(cmd *cobra.Command) error {
 	p.Channels = channels
 	p.Count = count
 	p.BackwardDuration = fromDate
-	p.Enabled = true
 
 	return nil
 }
 
-func (p *DiscordPlugin) IsEnabled() bool {
-	return p.Enabled
-}
-
-func (p *DiscordPlugin) GetItems(itemsChan chan Item, errChan chan error, wg *sync.WaitGroup) {
+func (p *DiscordPlugin) getItems(itemsChan chan Item, errChan chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	p.errChan = errChan

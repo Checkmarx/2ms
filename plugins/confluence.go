@@ -57,19 +57,19 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 	}
 
 	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
-		err := p.Initialize(cmd)
+		err := p.initialize(cmd)
 		if err != nil {
 			channels.Errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
 			return
 		}
 
-		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
+		p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
 	return confluenceCmd, nil
 }
 
-func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
+func (p *ConfluencePlugin) initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	url, err := flags.GetString(argUrl)
 	if err != nil {
@@ -96,7 +96,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) GetItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
+func (p *ConfluencePlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	p.getSpacesItems(items, errs, wg)
 }
 
