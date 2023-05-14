@@ -41,16 +41,17 @@ func (p *ConfluencePlugin) GetCredentials() (string, string) {
 
 func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var confluenceCmd = &cobra.Command{
-		Use:   p.GetName(),
-		Short: "Scan confluence",
+		Use:   fmt.Sprintf("%s --%s URL", p.GetName(), argUrl),
+		Short: "Scan Confluence server",
+		Long:  "Scan Confluence server for sensitive information",
 	}
 
 	flags := confluenceCmd.Flags()
-	flags.StringP(argUrl, "", "", "confluence url")
-	flags.StringArray(argSpaces, []string{}, "confluence spaces")
-	flags.StringP(argUsername, "", "", "confluence username or email")
-	flags.StringP(argToken, "", "", "confluence token")
-	flags.BoolP(argHistory, "", false, "scan pages history")
+	flags.String(argUrl, "", "Confluence server URL (example: https://company.atlassian.net/wiki) [required]")
+	flags.StringArray(argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
+	flags.String(argUsername, "", "Confluence user name or email for authentication")
+	flags.String(argToken, "", "The Confluence API token for authentication")
+	flags.Bool(argHistory, false, "Scan pages history")
 	err := confluenceCmd.MarkFlagRequired(argUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argUrl, err)

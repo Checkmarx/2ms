@@ -23,12 +23,13 @@ func (p *RepositoryPlugin) GetName() string {
 
 func (p *RepositoryPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var repositoryCmd = &cobra.Command{
-		Use:   p.GetName(),
-		Short: "Scan repository",
+		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), argRepository),
+		Short: "Scan local repository",
+		Long:  "Scan local repository for sensitive information",
 	}
 
 	flags := repositoryCmd.Flags()
-	flags.String(argRepository, "", "scan repository folder")
+	flags.String(argRepository, "", "Local repository path [required]")
 	err := repositoryCmd.MarkFlagRequired(argRepository)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argRepository, err)
