@@ -2,6 +2,8 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub Discussions](https://img.shields.io/badge/chat-discussions-blue.svg?style=flat-square)](https://github.com/Checkmarx/2ms/discussions)
 
+![2ms Mascot](https://github.com/Checkmarx/2ms/assets/1287098/3a543045-9c6a-4a35-9bf8-f41919e7b03e)
+
 Too many secrets (2MS) is an open source project dedicated to helping people protect their sensitive information like passwords, API keys from appearing in public websites and communication services.
 
 During the software development lifecycle (SDLC), developers ofen communicate and exchange secret data in various ways. While there are tools available for detecting secrets in source code and Git repositories, there are few options for identifying secrets in plain text documents, emails, chat logs, content managment systems and more. Some of them are public, or have a mixture of private / public, meaning it's easy to make an onest mistake and publish secret data to the world wide web.
