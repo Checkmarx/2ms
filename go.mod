@@ -8,6 +8,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.1
 	github.com/zricethezav/gitleaks/v8 v8.16.1
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (

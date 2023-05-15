@@ -168,7 +168,7 @@ func execute(cmd *cobra.Command, args []string) {
 		if reportPath != "" {
 			err := report.Write(reportPath, cfg)
 			if err != nil {
-				log.Error().Msgf("Failed to create sarif file report with error: %s", err)
+				log.Error().Msgf("Failed to create report file with error: %s", err)
 			}
 		}
 	} else {

@@ -8,20 +8,20 @@ import (
 )
 
 type Report struct {
-	Results           map[string][]Secret
-	TotalItemsScanned int
-	TotalSecretsFound int
+	TotalItemsScanned int                 `json:"totalItemsScanned"`
+	TotalSecretsFound int                 `json:"totalSecretsFound"`
+	Results           map[string][]Secret `json:"results"`
 }
 
 type Secret struct {
-	ID          string
-	Source      string
-	Description string
-	StartLine   int
-	EndLine     int
-	StartColumn int
-	EndColumn   int
-	Value       string
+	ID          string `json:"id"`
+	Source      string `json:"source"`
+	Description string `json:"description"`
+	StartLine   int    `json:"startLine"`
+	EndLine     int    `json:"endLine"`
+	StartColumn int    `json:"startColumn"`
+	EndColumn   int    `json:"endColumn"`
+	Value       string `json:"value"`
 }
 
 func Init() *Report {
@@ -62,10 +62,10 @@ func (r *Report) Write(reportPath string, cfg *config.Config) error {
 
 	fileExtension := filepath.Ext(reportPath)
 	switch fileExtension {
-	//case ".json":
-	//	err = writeJson(*r, file, cfg)
-	//case ".csv":
-	//	err = writeCsv(*r, file, cfg)
+	case ".json":
+		err = writeJson(*r, file)
+	case ".yaml":
+		err = writeYaml(*r, file)
 	case ".sarif":
 		err = writeSarif(*r, file, cfg)
 	}

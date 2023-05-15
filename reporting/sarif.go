@@ -2,6 +2,7 @@ package reporting
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/checkmarx/2ms/config"
 	"io"
 )
@@ -22,7 +23,6 @@ func getRuns(report Report, cfg *config.Config) []Runs {
 	return []Runs{
 		{
 			Tool:    getTool(cfg),
-			Summary: getSummary(report),
 			Results: getResults(report),
 		},
 	}
@@ -30,27 +30,17 @@ func getRuns(report Report, cfg *config.Config) []Runs {
 
 func getTool(cfg *config.Config) Tool {
 	tool := Tool{
-		Name:            cfg.Name,
-		SemanticVersion: cfg.Version,
-	}
-
-	// if this tool has no rules, ensure that it is represented as [] instead of null/nil
-	if hasEmptyRules(tool) {
-		tool.Rules = make([]Rules, 0)
+		Driver: Driver{
+			Name:            cfg.Name,
+			SemanticVersion: cfg.Version,
+		},
 	}
 
 	return tool
 }
 
-func hasEmptyRules(tool Tool) bool {
-	return len(tool.Rules) == 0
-}
-
-func getSummary(report Report) Summary {
-	return Summary{TotalItemsScanned: report.TotalItemsScanned,
-		TotalItemsWithSecrets: len(report.Results),
-		TotalSecretsFound:     report.TotalSecretsFound,
-	}
+func messageText(secret Secret) string {
+	return fmt.Sprintf("%s has detected secret for file %s.", secret.Description, secret.ID)
 }
 
 func getResults(report Report) []Results {
@@ -58,9 +48,11 @@ func getResults(report Report) []Results {
 	for _, secrets := range report.Results {
 		for _, secret := range secrets {
 			r := Results{
-				ItemSource: secret.Source,
-				RuleId:     secret.Description,
-				Locations:  getLocations(secret),
+				Message: Message{
+					Text: messageText(secret),
+				},
+				RuleId:    secret.Description,
+				Locations: getLocation(secret),
 			}
 			results = append(results, r)
 		}
@@ -68,17 +60,21 @@ func getResults(report Report) []Results {
 	return results
 }
 
-func getLocations(secret Secret) []Locations {
+func getLocation(secret Secret) []Locations {
 	return []Locations{
 		{
-			ItemId: secret.ID,
-			Region: Region{
-				StartLine:   secret.StartLine,
-				EndLine:     secret.EndLine,
-				StartColumn: secret.StartColumn,
-				EndColumn:   secret.EndColumn,
-				Value: Value{
-					Text: secret.Value,
+			PhysicalLocation: PhysicalLocation{
+				ArtifactLocation: ArtifactLocation{
+					URI: secret.ID,
+				},
+				Region: Region{
+					StartLine:   secret.StartLine,
+					EndLine:     secret.EndLine,
+					StartColumn: secret.StartColumn,
+					EndColumn:   secret.EndColumn,
+					Snippet: Snippet{
+						Text: secret.Value,
+					},
 				},
 			},
 		},
@@ -90,48 +86,55 @@ type Sarif struct {
 	Version string `json:"version"`
 	Runs    []Runs `json:"runs"`
 }
-
-type Rules struct {
-	Name string `json:"name"`
-}
-
-type Tool struct {
-	Name            string  `json:"name"`
-	SemanticVersion string  `json:"semanticVersion"`
-	Rules           []Rules `json:"rules"`
-}
-
-type Region struct {
-	StartLine   int   `json:"startLine"`
-	StartColumn int   `json:"startColumn"`
-	EndLine     int   `json:"endLine"`
-	EndColumn   int   `json:"endColumn"`
-	Value       Value `json:"value"`
-}
-
-type Value struct {
+type ShortDescription struct {
 	Text string `json:"text"`
 }
 
+type Driver struct {
+	Name            string `json:"name"`
+	SemanticVersion string `json:"semanticVersion"`
+}
+
+type Tool struct {
+	Driver Driver `json:"driver"`
+}
+
+type Message struct {
+	Text string `json:"text"`
+}
+
+type ArtifactLocation struct {
+	URI string `json:"uri"`
+}
+
+type Region struct {
+	StartLine   int     `json:"startLine"`
+	StartColumn int     `json:"startColumn"`
+	EndLine     int     `json:"endLine"`
+	EndColumn   int     `json:"endColumn"`
+	Snippet     Snippet `json:"snippet"`
+}
+
+type Snippet struct {
+	Text string `json:"text"`
+}
+
+type PhysicalLocation struct {
+	ArtifactLocation ArtifactLocation `json:"artifactLocation"`
+	Region           Region           `json:"region"`
+}
+
 type Locations struct {
-	ItemId string `json:"itemId"`
-	Region Region `json:"region"`
+	PhysicalLocation PhysicalLocation `json:"physicalLocation"`
 }
 
 type Results struct {
-	ItemSource string      `json:"itemSource"`
-	RuleId     string      `json:"ruleId"`
-	Locations  []Locations `json:"location"`
-}
-
-type Summary struct {
-	TotalItemsScanned     int `json:"totalItemsScanned"`
-	TotalItemsWithSecrets int `json:"totalItemsWithSecrets"`
-	TotalSecretsFound     int `json:"totalSecretsFound"`
+	Message   Message     `json:"message"`
+	RuleId    string      `json:"ruleId"`
+	Locations []Locations `json:"locations"`
 }
 
 type Runs struct {
 	Tool    Tool      `json:"tool"`
-	Summary Summary   `json:"summary"`
 	Results []Results `json:"results"`
 }
