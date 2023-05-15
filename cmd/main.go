@@ -80,7 +80,7 @@ func Execute() {
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
 
-	group := "Plugins"
+	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
