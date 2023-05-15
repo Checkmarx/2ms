@@ -62,7 +62,7 @@ func Execute() {
 	cobra.OnInitialize(initLog)
 	rootCmd.Flags().BoolP("all", "", true, "scan all plugins")
 	rootCmd.Flags().StringSlice("tags", []string{"all"}, "select rules to be applied")
-	rootCmd.Flags().StringP(reportPath, "r", "", "path to generate report file")
+	rootCmd.Flags().StringSlice(reportPath, []string{"all"}, "path to generate report file")
 
 	for _, plugin := range allPlugins {
 		err := plugin.DefineCommandLineArgs(rootCmd)
@@ -94,7 +94,7 @@ func validateTags(tags []string) {
 
 func execute(cmd *cobra.Command, args []string) {
 	tags, err := cmd.Flags().GetStringSlice("tags")
-	reportPath, _ := cmd.Flags().GetString("report-path")
+	reportPath, _ := cmd.Flags().GetStringSlice("report-path")
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
@@ -165,7 +165,7 @@ func execute(cmd *cobra.Command, args []string) {
 	// Show Report
 	if report.TotalItemsScanned > 0 {
 		report.ShowReport()
-		if reportPath != "" {
+		if len(reportPath) > 0 {
 			err := report.Write(reportPath, cfg)
 			if err != nil {
 				log.Error().Msgf("Failed to create report file with error: %s", err)

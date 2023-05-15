@@ -54,21 +54,22 @@ func (r *Report) generateResultsReport() {
 	}
 }
 
-func (r *Report) Write(reportPath string, cfg *config.Config) error {
-	file, err := os.Create(reportPath)
-	if err != nil {
-		return err
-	}
+func (r *Report) Write(reportPath []string, cfg *config.Config) error {
+	for _, path := range reportPath {
+		file, err := os.Create(path)
+		if err != nil {
+			return err
+		}
 
-	fileExtension := filepath.Ext(reportPath)
-	switch fileExtension {
-	case ".json":
-		err = writeJson(*r, file)
-	case ".yaml":
-		err = writeYaml(*r, file)
-	case ".sarif":
-		err = writeSarif(*r, file, cfg)
+		fileExtension := filepath.Ext(path)
+		switch fileExtension {
+		case ".json":
+			err = writeJson(*r, file)
+		case ".yaml":
+			err = writeYaml(*r, file)
+		case ".sarif":
+			err = writeSarif(*r, file, cfg)
+		}
 	}
-
-	return err
+	return nil
 }
