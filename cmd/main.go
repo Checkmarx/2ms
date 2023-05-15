@@ -21,9 +21,15 @@ const timeSleepInterval = 50
 
 var Version = "0.0.0"
 
+const (
+	tagsFlagName     = "tags"
+	logLevelFlagName = "log-level"
+)
+
 var rootCmd = &cobra.Command{
 	Use:     "2ms",
 	Short:   "2ms Secrets Detection",
+	Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
 	Version: Version,
 }
 
@@ -44,7 +50,7 @@ var secretsChan = make(chan reporting.Secret)
 
 func initLog() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	ll, err := rootCmd.Flags().GetString("log-level")
+	ll, err := rootCmd.Flags().GetString(logLevelFlagName)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
@@ -68,15 +74,18 @@ func initLog() {
 
 func Execute() {
 	cobra.OnInitialize(initLog)
-	rootCmd.PersistentFlags().BoolP("all", "", true, "scan all plugins")
-	rootCmd.PersistentFlags().StringSlice("tags", []string{"all"}, "select rules to be applied")
-	rootCmd.PersistentFlags().StringP("log-level", "", "info", "log level (trace, debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().StringSlice(tagsFlagName, []string{"all"}, "select rules to be applied")
+	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
 
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
 
+	group := "Commands"
+	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
+
 	for _, plugin := range allPlugins {
 		subCommand, err := plugin.DefineCommand(channels)
+		subCommand.GroupID = group
 		if err != nil {
 			log.Fatal().Msg(fmt.Sprintf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error()))
 		}
@@ -103,7 +112,7 @@ func validateTags(tags []string) {
 }
 
 func preRun(cmd *cobra.Command, args []string) {
-	tags, err := cmd.Flags().GetStringSlice("tags")
+	tags, err := cmd.Flags().GetStringSlice(tagsFlagName)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}

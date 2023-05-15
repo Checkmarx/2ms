@@ -22,7 +22,6 @@ const (
 const defaultDateFrom = time.Hour * 24 * 14
 
 type DiscordPlugin struct {
-	Enabled          bool
 	Token            string
 	Guilds           []string
 	Channels         []string
@@ -41,40 +40,40 @@ func (p *DiscordPlugin) GetName() string {
 
 func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var discordCmd = &cobra.Command{
-		Use:   p.GetName(),
-		Short: "Scan discord",
+		Use:   fmt.Sprintf("%s --%s TOKEN --%s SERVER", p.GetName(), tokenFlag, serversFlag),
+		Short: "Scan Discord server",
+		Long:  "Scan Discord server for sensitive information.",
 	}
 	flags := discordCmd.Flags()
 
-	flags.String(tokenFlag, "", "discord token")
-	flags.StringArray(serversFlag, []string{}, "discord servers")
-	flags.StringArray(channelsFlag, []string{}, "discord channels")
-	flags.Duration(fromDateFlag, defaultDateFrom, "discord from date")
-	flags.Int(messagesCountFlag, 0, "discord messages count")
-
+	flags.String(tokenFlag, "", "Discord token [required]")
 	err := discordCmd.MarkFlagRequired(tokenFlag)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", tokenFlag, err)
 	}
+	flags.StringArray(serversFlag, []string{}, "Discord servers IDs to scan [required]")
 	err = discordCmd.MarkFlagRequired(serversFlag)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", serversFlag, err)
 	}
+	flags.StringArray(channelsFlag, []string{}, "Discord channels IDs to scan. If not provided, all channels will be scanned")
+	flags.Duration(fromDateFlag, defaultDateFrom, "The time interval to scan from the current time. For example, 24h for 24 hours or 7d for 7 days.")
+	flags.Int(messagesCountFlag, 0, "The number of messages to scan. If not provided, all messages will be scanned until the fromDate flag value.")
 
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
-		err := p.Initialize(cmd)
+		err := p.initialize(cmd)
 		if err != nil {
 			channels.Errors <- fmt.Errorf("discord plugin initialization failed: %w", err)
 			return
 		}
 
-		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
+		p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
 	return discordCmd, nil
 }
 
-func (p *DiscordPlugin) Initialize(cmd *cobra.Command) error {
+func (p *DiscordPlugin) initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	token, _ := flags.GetString(tokenFlag)
 	if token == "" {
@@ -102,16 +101,11 @@ func (p *DiscordPlugin) Initialize(cmd *cobra.Command) error {
 	p.Channels = channels
 	p.Count = count
 	p.BackwardDuration = fromDate
-	p.Enabled = true
 
 	return nil
 }
 
-func (p *DiscordPlugin) IsEnabled() bool {
-	return p.Enabled
-}
-
-func (p *DiscordPlugin) GetItems(itemsChan chan Item, errChan chan error, wg *sync.WaitGroup) {
+func (p *DiscordPlugin) getItems(itemsChan chan Item, errChan chan error, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	p.errChan = errChan
