@@ -41,35 +41,36 @@ func (p *ConfluencePlugin) GetCredentials() (string, string) {
 
 func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var confluenceCmd = &cobra.Command{
-		Use:   p.GetName(),
-		Short: "Scan confluence",
+		Use:   fmt.Sprintf("%s --%s URL", p.GetName(), argUrl),
+		Short: "Scan Confluence server",
+		Long:  "Scan Confluence server for sensitive information",
 	}
 
 	flags := confluenceCmd.Flags()
-	flags.StringP(argUrl, "", "", "confluence url")
-	flags.StringArray(argSpaces, []string{}, "confluence spaces")
-	flags.StringP(argUsername, "", "", "confluence username or email")
-	flags.StringP(argToken, "", "", "confluence token")
-	flags.BoolP(argHistory, "", false, "scan pages history")
+	flags.String(argUrl, "", "Confluence server URL (example: https://company.atlassian.net/wiki) [required]")
+	flags.StringArray(argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
+	flags.String(argUsername, "", "Confluence user name or email for authentication")
+	flags.String(argToken, "", "The Confluence API token for authentication")
+	flags.Bool(argHistory, false, "Scan pages history")
 	err := confluenceCmd.MarkFlagRequired(argUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argUrl, err)
 	}
 
 	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
-		err := p.Initialize(cmd)
+		err := p.initialize(cmd)
 		if err != nil {
 			channels.Errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
 			return
 		}
 
-		p.GetItems(channels.Items, channels.Errors, channels.WaitGroup)
+		p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
 	}
 
 	return confluenceCmd, nil
 }
 
-func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
+func (p *ConfluencePlugin) initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
 	url, err := flags.GetString(argUrl)
 	if err != nil {
@@ -96,7 +97,7 @@ func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) GetItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
+func (p *ConfluencePlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	p.getSpacesItems(items, errs, wg)
 }
 
