@@ -133,7 +133,11 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 	}
 }
 
-func getTeam(slackApi *slack.Client, teamName string) (*slack.Team, error) {
+type slackTeams interface {
+	ListTeams(slack.ListTeamsParameters) ([]slack.Team, string, error)
+}
+
+func getTeam(slackApi slackTeams, teamName string) (*slack.Team, error) {
 	cursorHolder := ""
 	for {
 		teams, cursor, err := slackApi.ListTeams(slack.ListTeamsParameters{Cursor: cursorHolder})
@@ -153,7 +157,11 @@ func getTeam(slackApi *slack.Client, teamName string) (*slack.Team, error) {
 	return nil, fmt.Errorf("team '%s' not found", teamName)
 }
 
-func getChannels(slackApi *slack.Client, teamId string, wantedChannels []string) (*[]slack.Channel, error) {
+type slackChannels interface {
+	GetConversations(*slack.GetConversationsParameters) ([]slack.Channel, string, error)
+}
+
+func getChannels(slackApi slackChannels, teamId string, wantedChannels []string) (*[]slack.Channel, error) {
 	cursorHolder := ""
 	selectedChannels := []slack.Channel{}
 	for {
