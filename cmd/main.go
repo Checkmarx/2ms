@@ -27,6 +27,9 @@ const (
 	logLevelFlagName  = "log-level"
 	reportPath        = "report-path"
 	stdoutFormat      = "stdout-format"
+	jsonFormat        = "json"
+	yamlFormat        = "yaml"
+	sarifFormat       = "sarif"
 )
 
 var rootCmd = &cobra.Command{
@@ -79,8 +82,8 @@ func Execute() {
 	cobra.OnInitialize(initLog)
 	rootCmd.PersistentFlags().StringSlice(tagsFlagName, []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
-	rootCmd.PersistentFlags().StringSlice(reportPath, []string{""}, "path to generate report file. Available formats are: json, yaml and sarif")
-	rootCmd.PersistentFlags().String(stdoutFormat, "yaml", "stdout output format, available formats are: json, yaml and sarif")
+	rootCmd.PersistentFlags().StringSlice(reportPath, []string{""}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
+	rootCmd.PersistentFlags().String(stdoutFormat, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
@@ -117,14 +120,15 @@ func validateTags(tags []string) {
 }
 
 func validateFormat(stdout string, reportPath []string) {
-	if !(strings.EqualFold(stdout, "yaml") || strings.EqualFold(stdout, "json") || strings.EqualFold(stdout, "sarif")) {
+	if !(strings.EqualFold(stdout, yamlFormat) || strings.EqualFold(stdout, jsonFormat) || strings.EqualFold(stdout, sarifFormat)) {
 		log.Fatal().Msgf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
 	}
 	for _, path := range reportPath {
 
 		fileExtension := filepath.Ext(path)
-		if !(strings.EqualFold(fileExtension, ".yaml") || strings.EqualFold(fileExtension, ".json") || strings.EqualFold(fileExtension, ".sarif")) {
-			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, fileExtension)
+		format := strings.TrimPrefix(fileExtension, ".")
+		if !(strings.EqualFold(format, yamlFormat) || strings.EqualFold(format, jsonFormat) || strings.EqualFold(format, sarifFormat)) {
+			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, format)
 		}
 	}
 }

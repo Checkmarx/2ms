@@ -5,6 +5,13 @@ import (
 	"github.com/checkmarx/2ms/config"
 	"os"
 	"path/filepath"
+	"strings"
+)
+
+const (
+	jsonFormat  = "json"
+	yamlFormat  = "yaml"
+	sarifFormat = "sarif"
 )
 
 type Report struct {
@@ -31,18 +38,10 @@ func Init() *Report {
 }
 
 func (r *Report) ShowReport(format string, cfg *config.Config) {
-	fileExtension := format
-	var output string
-	switch fileExtension {
-	case "json":
-		output = writeJsonStdOut(*r)
-	case "yaml":
-		output = writeYamlStdOut(*r)
-	case "sarif":
-		output = writeSarifStdOut(*r, cfg)
-	}
+	output := r.getOutput(format, cfg)
+
 	fmt.Println("Summary:")
-	fmt.Printf("%s", output)
+	fmt.Print(output)
 }
 
 func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
@@ -53,17 +52,23 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 		}
 
 		fileExtension := filepath.Ext(path)
-		switch fileExtension {
-		case ".json":
-			err = writeJsonFile(*r, file)
-		case ".yaml":
-			err = writeYamlFile(*r, file)
-		case ".sarif":
-			err = writeSarifFile(*r, file, cfg)
-		}
-		if err != nil {
-			return err
-		}
+		format := strings.TrimPrefix(fileExtension, ".")
+		output := r.getOutput(format, cfg)
+
+		file.WriteString(output)
 	}
 	return nil
+}
+
+func (r *Report) getOutput(format string, cfg *config.Config) string {
+	var output string
+	switch format {
+	case jsonFormat:
+		output = writeJson(*r)
+	case yamlFormat:
+		output = writeYaml(*r)
+	case sarifFormat:
+		output = writeSarif(*r, cfg)
+	}
+	return output
 }

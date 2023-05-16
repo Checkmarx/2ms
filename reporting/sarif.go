@@ -4,23 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/checkmarx/2ms/config"
-	"io"
 	"log"
 )
 
-func writeSarifFile(report Report, w io.WriteCloser, cfg *config.Config) error {
-	sarif := Sarif{
-		Schema:  "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
-		Version: "2.1.0",
-		Runs:    getRuns(report, cfg),
-	}
-
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", " ")
-	return encoder.Encode(sarif)
-}
-
-func writeSarifStdOut(report Report, cfg *config.Config) string {
+func writeSarif(report Report, cfg *config.Config) string {
 	sarif := Sarif{
 		Schema:  "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
 		Version: "2.1.0",
@@ -55,12 +42,23 @@ func getTool(cfg *config.Config) Tool {
 	return tool
 }
 
+func hasNoResults(report Report) bool {
+	return len(report.Results) == 0
+}
+
 func messageText(secret Secret) string {
 	return fmt.Sprintf("%s has detected secret for file %s.", secret.Description, secret.ID)
 }
 
 func getResults(report Report) []Results {
 	var results []Results
+
+	// if this report has no results, ensure that it is represented as [] instead of null/nil
+	if hasNoResults(report) {
+		results = make([]Results, 0)
+		return results
+	}
+
 	for _, secrets := range report.Results {
 		for _, secret := range secrets {
 			r := Results{
