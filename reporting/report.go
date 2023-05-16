@@ -2,8 +2,7 @@ package reporting
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
+	"github.com/checkmarx/2ms/secrets"
 )
 
 type Report struct {
@@ -14,6 +13,7 @@ type Report struct {
 
 type Secret struct {
 	ID          string
+	Links       []string
 	Description string
 	StartLine   int
 	EndLine     int
@@ -28,6 +28,27 @@ func Init() *Report {
 	}
 }
 
+func (r *Report) AddSecret(finding secrets.Finding) {
+	done := false
+
+	// If secret already exists, just add the link of new finding
+	if len(r.Results[finding.ID]) > 0 {
+		for i, s := range r.Results[finding.ID] {
+			if s.Value == finding.Secret {
+				s := &r.Results[finding.ID][i]
+				s.Links = append(s.Links, finding.Source)
+				done = true
+				break
+			}
+		}
+	}
+	// If secret don't exist on a specific source or if source doesn't exist just create the secret
+	if !done {
+		secret := Secret{ID: finding.ID, Links: []string{finding.Source}, Description: finding.Description, StartLine: finding.StartLine, EndLine: finding.EndLine, StartColumn: finding.StartColumn, EndColumn: finding.EndColumn, Value: finding.Secret}
+		r.Results[finding.ID] = append(r.Results[finding.ID], secret)
+	}
+}
+
 func (r *Report) ShowReport() {
 	fmt.Println("Summary:")
 	fmt.Printf("- Total items scanned: %d\n", r.TotalItemsScanned)
@@ -37,30 +58,20 @@ func (r *Report) ShowReport() {
 		fmt.Println("Detailed Report:")
 		r.generateResultsReport()
 	}
-
 }
 
 func (r *Report) generateResultsReport() {
 	for source, secrets := range r.Results {
-		itemId := getItemId(source)
-		fmt.Printf("- Item ID: %s\n", itemId)
-		fmt.Printf(" - Item Full Path: %s\n", source)
+		fmt.Printf("- Item ID: %s\n", source)
+		fmt.Printf(" - Item Link: %s\n", source)
 		fmt.Println("  - Secrets:")
 		for _, secret := range secrets {
 			fmt.Printf("   - Type: %s\n", secret.Description)
+			fmt.Printf("    - Links: %d\n", len(secret.Links))
+			for _, link := range secret.Links {
+				fmt.Printf("      - %s\n", link)
+			}
 			fmt.Printf("    - Value: %.40s\n", secret.Value)
 		}
 	}
-}
-
-func getItemId(fullPath string) string {
-	var itemId string
-	if strings.Contains(fullPath, "/") {
-		itemLinkStrings := strings.Split(fullPath, "/")
-		itemId = itemLinkStrings[len(itemLinkStrings)-1]
-	}
-	if strings.Contains(fullPath, "\\") {
-		itemId = filepath.Base(fullPath)
-	}
-	return itemId
 }
