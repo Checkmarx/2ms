@@ -18,6 +18,9 @@ type mockSlackClient struct {
 func (m *mockSlackClient) GetConversations(params *slack.GetConversationsParameters) ([]slack.Channel, string, error) {
 	return m.channels, "", m.err
 }
+func (m *mockSlackClient) ListTeams(params slack.ListTeamsParameters) ([]slack.Team, string, error) {
+	return nil, "", errors.New("not implemented")
+}
 
 func TestGetChannels(t *testing.T) {
 
