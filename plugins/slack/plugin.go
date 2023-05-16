@@ -1,10 +1,11 @@
-package plugins
+package slack
 
 import (
 	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog/log"
 	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
@@ -21,8 +22,8 @@ const (
 const slackDefaultDateFrom = time.Hour * 24 * 14
 
 type SlackPlugin struct {
-	Plugin
-	Channels
+	plugins.Plugin
+	plugins.Channels
 	Token string
 }
 
@@ -38,7 +39,7 @@ var (
 	messagesCountArg    int
 )
 
-func (p *SlackPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
+func (p *SlackPlugin) DefineCommand(channels plugins.Channels) (*cobra.Command, error) {
 	p.Channels = channels
 
 	command := &cobra.Command{
@@ -118,7 +119,7 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 				break
 			}
 			if message.Text != "" {
-				p.Items <- Item{
+				p.Items <- plugins.Item{
 					Content: message.Text,
 					Source:  channel.Name,
 					ID:      message.Timestamp,

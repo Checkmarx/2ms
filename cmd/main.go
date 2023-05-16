@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/checkmarx/2ms/plugins"
+	"github.com/checkmarx/2ms/plugins/slack"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
 
@@ -37,7 +38,7 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
 	&plugins.DiscordPlugin{},
 	&plugins.RepositoryPlugin{},
-	&plugins.SlackPlugin{},
+	&slack.SlackPlugin{},
 }
 
 var channels = plugins.Channels{
