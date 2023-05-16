@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/checkmarx/2ms/config"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"sync"
 	"time"
 
-	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
@@ -18,20 +19,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Version = "0.0.0"
+
 const (
 	timeSleepInterval = 50
+	tagsFlagName      = "tags"
+	logLevelFlagName  = "log-level"
 	reportPath        = "report-path"
 	stdoutFormat      = "stdout-format"
-	tagsFlagName     = "tags"
-	logLevelFlagName = "log-level"
 )
-
-var Version = "0.0.0"
 
 var rootCmd = &cobra.Command{
 	Use:     "2ms",
 	Short:   "2ms Secrets Detection",
-	Run:     execute,
+	Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
 	Version: Version,
 }
 
@@ -78,6 +79,8 @@ func Execute() {
 	cobra.OnInitialize(initLog)
 	rootCmd.PersistentFlags().StringSlice(tagsFlagName, []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().StringSlice(reportPath, []string{""}, "path to generate report file. Available formats are: json, yaml and sarif")
+	rootCmd.PersistentFlags().String(stdoutFormat, "yaml", "stdout output format, available formats are: json, yaml and sarif")
 
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
@@ -93,8 +96,6 @@ func Execute() {
 		}
 		rootCmd.AddCommand(subCommand)
 	}
-
-	rootCmd.PersistentFlags().StringP("log-level", "", "info", "log level (trace, debug, info, warn, error, fatal)")
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal().Msg(err.Error())
@@ -115,10 +116,21 @@ func validateTags(tags []string) {
 	}
 }
 
+func validateFormat(stdout string, reportPath []string) {
+	if !(strings.EqualFold(stdout, "yaml") || strings.EqualFold(stdout, "json") || strings.EqualFold(stdout, "sarif")) {
+		log.Fatal().Msgf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
+	}
+	for _, path := range reportPath {
+
+		fileExtension := filepath.Ext(path)
+		if !(strings.EqualFold(fileExtension, ".yaml") || strings.EqualFold(fileExtension, ".json") || strings.EqualFold(fileExtension, ".sarif")) {
+			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, fileExtension)
+		}
+	}
+}
+
 func preRun(cmd *cobra.Command, args []string) {
 	tags, err := cmd.Flags().GetStringSlice(tagsFlagName)
-	reportPath, _ := cmd.Flags().GetStringSlice(reportPath)
-	stdoutFormat, _ := cmd.Flags().GetString(stdoutFormat)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
@@ -126,41 +138,6 @@ func preRun(cmd *cobra.Command, args []string) {
 	validateTags(tags)
 
 	secrets := secrets.Init(tags)
-	report := reporting.Init()
-
-	cfg := config.LoadConfig("2ms", Version)
-
-	var itemsChannel = make(chan plugins.Item)
-	var secretsChannel = make(chan reporting.Secret)
-	var errorsChannel = make(chan error)
-
-	var wg sync.WaitGroup
-
-	// -------------------------------------
-	// Get content from plugins
-	pluginsInitialized := 0
-	for _, plugin := range allPlugins {
-		err := plugin.Initialize(cmd)
-		if err != nil {
-			log.Error().Msg(err.Error())
-			continue
-		}
-		pluginsInitialized += 1
-	}
-
-	if pluginsInitialized == 0 {
-		log.Fatal().Msg("no scan plugin initialized. At least one plugin must be initialized to proceed. Stopping")
-		os.Exit(1)
-	}
-
-	for _, plugin := range allPlugins {
-		if !plugin.IsEnabled() {
-			continue
-		}
-
-		wg.Add(1)
-		go plugin.GetItems(itemsChannel, errorsChannel, &wg)
-	}
 
 	go func() {
 		for {
@@ -171,7 +148,7 @@ func preRun(cmd *cobra.Command, args []string) {
 				go secrets.Detect(secretsChan, item, channels.WaitGroup)
 			case secret := <-secretsChan:
 				report.TotalSecretsFound++
-				report.Results[secret.Source] = append(report.Results[secret.ID], secret)
+				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
 			case err, ok := <-channels.Errors:
 				if !ok {
 					return
@@ -184,6 +161,13 @@ func preRun(cmd *cobra.Command, args []string) {
 
 func postRun(cmd *cobra.Command, args []string) {
 	channels.WaitGroup.Wait()
+
+	reportPath, _ := cmd.Flags().GetStringSlice(reportPath)
+	stdoutFormat, _ := cmd.Flags().GetString(stdoutFormat)
+
+	validateFormat(stdoutFormat, reportPath)
+
+	cfg := config.LoadConfig("2ms", Version)
 
 	// Wait for last secret to be added to report
 	time.Sleep(time.Millisecond * timeSleepInterval)
