@@ -55,7 +55,10 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 		format := strings.TrimPrefix(fileExtension, ".")
 		output := r.getOutput(format, cfg)
 
-		file.WriteString(output)
+		_, err = file.WriteString(output)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
