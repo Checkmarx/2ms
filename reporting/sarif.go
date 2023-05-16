@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"github.com/checkmarx/2ms/config"
 	"io"
+	"log"
 )
 
-func writeSarif(report Report, w io.WriteCloser, cfg *config.Config) error {
+func writeSarifFile(report Report, w io.WriteCloser, cfg *config.Config) error {
 	sarif := Sarif{
 		Schema:  "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
 		Version: "2.1.0",
@@ -17,6 +18,21 @@ func writeSarif(report Report, w io.WriteCloser, cfg *config.Config) error {
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", " ")
 	return encoder.Encode(sarif)
+}
+
+func writeSarifStdOut(report Report, cfg *config.Config) string {
+	sarif := Sarif{
+		Schema:  "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+		Version: "2.1.0",
+		Runs:    getRuns(report, cfg),
+	}
+
+	sarifReport, err := json.MarshalIndent(sarif, "", " ")
+	if err != nil {
+		log.Fatalf("failed to create Sarif report with error: %v", err)
+	}
+
+	return string(sarifReport)
 }
 
 func getRuns(report Report, cfg *config.Config) []Runs {

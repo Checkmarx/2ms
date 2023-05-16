@@ -30,31 +30,22 @@ func Init() *Report {
 	}
 }
 
-func (r *Report) ShowReport() {
+func (r *Report) ShowReport(format string, cfg *config.Config) {
+	fileExtension := format
+	var output string
+	switch fileExtension {
+	case "json":
+		output = writeJsonStdOut(*r)
+	case "yaml":
+		output = writeYamlStdOut(*r)
+	case "sarif":
+		output = writeSarifStdOut(*r, cfg)
+	}
 	fmt.Println("Summary:")
-	fmt.Printf("- Total items scanned: %d\n", r.TotalItemsScanned)
-	fmt.Printf("- Total items with secrets: %d\n", len(r.Results))
-	if len(r.Results) > 0 {
-		fmt.Printf("- Total secrets found: %d\n", r.TotalSecretsFound)
-		fmt.Println("Detailed Report:")
-		r.generateResultsReport()
-	}
-
+	fmt.Printf("%s", output)
 }
 
-func (r *Report) generateResultsReport() {
-	for source, secrets := range r.Results {
-		fmt.Printf(" - Item Source: %s\n", source)
-		fmt.Println("  - Secrets:")
-		for _, secret := range secrets {
-			fmt.Printf("   - Item ID: %s\n", secret.ID)
-			fmt.Printf("   - Type: %s\n", secret.Description)
-			fmt.Printf("   - Value: %.40s\n", secret.Value)
-		}
-	}
-}
-
-func (r *Report) Write(reportPath []string, cfg *config.Config) error {
+func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 	for _, path := range reportPath {
 		file, err := os.Create(path)
 		if err != nil {
@@ -64,11 +55,11 @@ func (r *Report) Write(reportPath []string, cfg *config.Config) error {
 		fileExtension := filepath.Ext(path)
 		switch fileExtension {
 		case ".json":
-			err = writeJson(*r, file)
+			err = writeJsonFile(*r, file)
 		case ".yaml":
-			err = writeYaml(*r, file)
+			err = writeYamlFile(*r, file)
 		case ".sarif":
-			err = writeSarif(*r, file, cfg)
+			err = writeSarifFile(*r, file, cfg)
 		}
 	}
 	return nil
