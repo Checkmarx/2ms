@@ -37,6 +37,7 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
 	&plugins.DiscordPlugin{},
 	&plugins.RepositoryPlugin{},
+	&plugins.SlackPlugin{},
 }
 
 var channels = plugins.Channels{
