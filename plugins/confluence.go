@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,11 +13,11 @@ import (
 )
 
 const (
-	argConfluence           = "confluence"
-	argConfluenceSpaces     = "confluence-spaces"
-	argConfluenceUsername   = "confluence-username"
-	argConfluenceToken      = "confluence-token"
-	argConfluenceHistory    = "history"
+	argUrl                  = "url"
+	argSpaces               = "spaces"
+	argUsername             = "username"
+	argToken                = "token"
+	argHistory              = "history"
 	confluenceDefaultWindow = 25
 	confluenceMaxRequests   = 500
 )
@@ -32,62 +31,77 @@ type ConfluencePlugin struct {
 	History  bool
 }
 
-func (p *ConfluencePlugin) IsEnabled() bool {
-	return p.Enabled
+func (p *ConfluencePlugin) GetName() string {
+	return "confluence"
 }
 
 func (p *ConfluencePlugin) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
-func (p *ConfluencePlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
-	flags := cmd.Flags()
-	flags.StringP(argConfluence, "", "", "scan confluence url")
-	flags.StringArray(argConfluenceSpaces, []string{}, "confluence spaces")
-	flags.StringP(argConfluenceUsername, "", "", "confluence username or email")
-	flags.StringP(argConfluenceToken, "", "", "confluence token")
-	flags.BoolP(argConfluenceHistory, "", false, "scan pages history")
-	return nil
-}
-
-func (p *ConfluencePlugin) Initialize(cmd *cobra.Command) error {
-	flags := cmd.Flags()
-	confluenceUrl, _ := flags.GetString(argConfluence)
-	if confluenceUrl == "" {
-		return errors.New("confluence URL arg is missing. Plugin initialization failed")
+func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
+	var confluenceCmd = &cobra.Command{
+		Use:   fmt.Sprintf("%s --%s URL", p.GetName(), argUrl),
+		Short: "Scan Confluence server",
+		Long:  "Scan Confluence server for sensitive information",
 	}
 
-	confluenceUrl = strings.TrimRight(confluenceUrl, "/")
+	flags := confluenceCmd.Flags()
+	flags.String(argUrl, "", "Confluence server URL (example: https://company.atlassian.net/wiki) [required]")
+	flags.StringArray(argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
+	flags.String(argUsername, "", "Confluence user name or email for authentication")
+	flags.String(argToken, "", "The Confluence API token for authentication")
+	flags.Bool(argHistory, false, "Scan pages history")
+	err := confluenceCmd.MarkFlagRequired(argUrl)
+	if err != nil {
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argUrl, err)
+	}
 
-	confluenceSpaces, _ := flags.GetStringArray(argConfluenceSpaces)
-	confluenceUsername, _ := flags.GetString(argConfluenceUsername)
-	confluenceToken, _ := flags.GetString(argConfluenceToken)
-	runHistory, _ := flags.GetBool(argConfluenceHistory)
+	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
+		err := p.initialize(cmd)
+		if err != nil {
+			channels.Errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
+			return
+		}
 
-	if confluenceUsername == "" || confluenceToken == "" {
+		p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
+	}
+
+	return confluenceCmd, nil
+}
+
+func (p *ConfluencePlugin) initialize(cmd *cobra.Command) error {
+	flags := cmd.Flags()
+	url, err := flags.GetString(argUrl)
+	if err != nil {
+		return fmt.Errorf("error while getting '%s' flag value: %w", argUrl, err)
+	}
+
+	url = strings.TrimRight(url, "/")
+
+	spaces, _ := flags.GetStringArray(argSpaces)
+	username, _ := flags.GetString(argUsername)
+	token, _ := flags.GetString(argToken)
+	runHistory, _ := flags.GetBool(argHistory)
+
+	if username == "" || token == "" {
 		log.Warn().Msg("confluence credentials were not provided. The scan will be made anonymously only for the public pages")
 	}
 
-	p.Token = confluenceToken
-	p.Username = confluenceUsername
-	p.URL = confluenceUrl
-	p.Spaces = confluenceSpaces
-	p.Enabled = true
+	p.Token = token
+	p.Username = username
+	p.URL = url
+	p.Spaces = spaces
 	p.History = runHistory
 	p.Limit = make(chan struct{}, confluenceMaxRequests)
 	return nil
 }
 
-func (p *ConfluencePlugin) GetItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	go p.getSpacesItems(items, errs, wg)
-	wg.Add(1)
+func (p *ConfluencePlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
+	p.getSpacesItems(items, errs, wg)
 }
 
 func (p *ConfluencePlugin) getSpacesItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
-	defer wg.Done()
-
 	spaces, err := p.getSpaces()
 	if err != nil {
 		errs <- err

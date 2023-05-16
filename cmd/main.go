@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strings"
+
 	"sync"
 	"time"
 
@@ -19,9 +21,12 @@ import (
 const (
 	timeSleepInterval = 50
 	reportPath        = "report-path"
-	tags              = "tags"
 	stdoutFormat      = "stdout-format"
+	tagsFlagName     = "tags"
+	logLevelFlagName = "log-level"
 )
+
+var Version = "0.0.0"
 
 var rootCmd = &cobra.Command{
 	Use:     "2ms",
@@ -30,17 +35,24 @@ var rootCmd = &cobra.Command{
 	Version: Version,
 }
 
-var Version = ""
-
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
 	&plugins.DiscordPlugin{},
 	&plugins.RepositoryPlugin{},
 }
 
+var channels = plugins.Channels{
+	Items:     make(chan plugins.Item),
+	Errors:    make(chan error),
+	WaitGroup: &sync.WaitGroup{},
+}
+
+var report = reporting.Init()
+var secretsChan = make(chan reporting.Secret)
+
 func initLog() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	ll, err := rootCmd.Flags().GetString("log-level")
+	ll, err := rootCmd.Flags().GetString(logLevelFlagName)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
@@ -64,16 +76,22 @@ func initLog() {
 
 func Execute() {
 	cobra.OnInitialize(initLog)
-	rootCmd.Flags().BoolP("all", "", true, "scan all plugins")
-	rootCmd.Flags().StringSlice(tags, []string{"all"}, "select rules to be applied")
-	rootCmd.Flags().StringSlice(reportPath, []string{"all"}, "path to generate report file")
-	rootCmd.Flags().StringP(stdoutFormat, "", "yaml", "scan all plugins")
+	rootCmd.PersistentFlags().StringSlice(tagsFlagName, []string{"all"}, "select rules to be applied")
+	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
+
+	rootCmd.PersistentPreRun = preRun
+	rootCmd.PersistentPostRun = postRun
+
+	group := "Commands"
+	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
-		err := plugin.DefineCommandLineArgs(rootCmd)
+		subCommand, err := plugin.DefineCommand(channels)
+		subCommand.GroupID = group
 		if err != nil {
-			log.Fatal().Msg(err.Error())
+			log.Fatal().Msg(fmt.Sprintf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error()))
 		}
+		rootCmd.AddCommand(subCommand)
 	}
 
 	rootCmd.PersistentFlags().StringP("log-level", "", "info", "log level (trace, debug, info, warn, error, fatal)")
@@ -97,11 +115,10 @@ func validateTags(tags []string) {
 	}
 }
 
-func execute(cmd *cobra.Command, args []string) {
-	tags, err := cmd.Flags().GetStringSlice(tags)
+func preRun(cmd *cobra.Command, args []string) {
+	tags, err := cmd.Flags().GetStringSlice(tagsFlagName)
 	reportPath, _ := cmd.Flags().GetStringSlice(reportPath)
 	stdoutFormat, _ := cmd.Flags().GetString(stdoutFormat)
-
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
@@ -111,13 +128,13 @@ func execute(cmd *cobra.Command, args []string) {
 	secrets := secrets.Init(tags)
 	report := reporting.Init()
 
+	cfg := config.LoadConfig("2ms", Version)
+
 	var itemsChannel = make(chan plugins.Item)
 	var secretsChannel = make(chan reporting.Secret)
 	var errorsChannel = make(chan error)
 
 	var wg sync.WaitGroup
-
-	cfg := config.LoadConfig("2ms", Version)
 
 	// -------------------------------------
 	// Get content from plugins
@@ -148,14 +165,14 @@ func execute(cmd *cobra.Command, args []string) {
 	go func() {
 		for {
 			select {
-			case item := <-itemsChannel:
+			case item := <-channels.Items:
 				report.TotalItemsScanned++
-				wg.Add(1)
-				go secrets.Detect(secretsChannel, item, &wg)
-			case secret := <-secretsChannel:
+				channels.WaitGroup.Add(1)
+				go secrets.Detect(secretsChan, item, channels.WaitGroup)
+			case secret := <-secretsChan:
 				report.TotalSecretsFound++
-				report.Results[secret.Source] = append(report.Results[secret.Source], secret)
-			case err, ok := <-errorsChannel:
+				report.Results[secret.Source] = append(report.Results[secret.ID], secret)
+			case err, ok := <-channels.Errors:
 				if !ok {
 					return
 				}
@@ -163,7 +180,10 @@ func execute(cmd *cobra.Command, args []string) {
 			}
 		}
 	}()
-	wg.Wait()
+}
+
+func postRun(cmd *cobra.Command, args []string) {
+	channels.WaitGroup.Wait()
 
 	// Wait for last secret to be added to report
 	time.Sleep(time.Millisecond * timeSleepInterval)
@@ -188,5 +208,4 @@ func execute(cmd *cobra.Command, args []string) {
 	} else {
 		os.Exit(0)
 	}
-
 }

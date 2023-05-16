@@ -10,3 +10,9 @@ save: build
 
 run:
 	docker run -it $(image_name) $(ARGS)
+
+# To run golangci-lint, you need to install it first: https://golangci-lint.run/usage/install/#local-installation
+lint:
+	golangci-lint run -v -E gofmt --timeout=5m
+lint-fix:
+	golangci-lint run -v -E gofmt --fix --timeout=5m

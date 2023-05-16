@@ -1,7 +1,7 @@
 package plugins
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -17,33 +17,47 @@ type RepositoryPlugin struct {
 	Path string
 }
 
-func (p *RepositoryPlugin) IsEnabled() bool {
-	return p.Enabled
+func (p *RepositoryPlugin) GetName() string {
+	return "repository"
 }
 
-func (p *RepositoryPlugin) DefineCommandLineArgs(cmd *cobra.Command) error {
-	flags := cmd.Flags()
-	flags.String(argRepository, "", "scan repository folder")
-	return nil
+func (p *RepositoryPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
+	var repositoryCmd = &cobra.Command{
+		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), argRepository),
+		Short: "Scan local repository",
+		Long:  "Scan local repository for sensitive information",
+	}
+
+	flags := repositoryCmd.Flags()
+	flags.String(argRepository, "", "Local repository path [required]")
+	err := repositoryCmd.MarkFlagRequired(argRepository)
+	if err != nil {
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argRepository, err)
+	}
+
+	repositoryCmd.Run = func(cmd *cobra.Command, args []string) {
+		err := p.initialize(cmd)
+		if err != nil {
+			channels.Errors <- fmt.Errorf("error while initializing plugin: %w", err)
+			return
+		}
+
+		channels.WaitGroup.Add(1)
+		go p.getFiles(channels.Items, channels.Errors, channels.WaitGroup)
+	}
+
+	return repositoryCmd, nil
 }
 
-func (p *RepositoryPlugin) Initialize(cmd *cobra.Command) error {
+func (p *RepositoryPlugin) initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	directoryPath, _ := flags.GetString(argRepository)
-	if directoryPath == "" {
-		return errors.New("path to repository missing. Plugin initialization failed")
+	directoryPath, err := flags.GetString(argRepository)
+	if err != nil {
+		return fmt.Errorf("error while getting '%s' flag value: %w", argRepository, err)
 	}
 
 	p.Path = directoryPath
-	p.Enabled = true
 	return nil
-}
-
-func (p *RepositoryPlugin) GetItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	wg.Add(1)
-	go p.getFiles(items, errs, wg)
 }
 
 func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) {
