@@ -44,8 +44,8 @@ func (p *SlackPlugin) DefineCommand(channels plugins.Channels) (*cobra.Command, 
 
 	command := &cobra.Command{
 		Use:   fmt.Sprintf("%s --%s TOKEN --%s TEAM", p.GetName(), slackTokenFlag, slackTeamFlag),
-		Short: "Scan Slack workspace",
-		Long:  "Scan Slack workspace for sensitive information.",
+		Short: "Scan Slack team",
+		Long:  "Scan Slack team for sensitive information.",
 		Run: func(cmd *cobra.Command, args []string) {
 			p.getItems()
 		},
@@ -63,7 +63,7 @@ func (p *SlackPlugin) DefineCommand(channels plugins.Channels) (*cobra.Command, 
 	}
 	command.Flags().StringArrayVar(&channelsArg, slackChannelFlag, []string{}, "Slack channels to scan")
 	command.Flags().DurationVar(&backwardDurationArg, slackBackwardDurationFlag, slackDefaultDateFrom, "Slack backward duration for messages (ex: 24h, 7d, 1M, 1y)")
-	command.Flags().IntVar(&messagesCountArg, slackMessagesCountFlag, 0, "Slack messages count")
+	command.Flags().IntVar(&messagesCountArg, slackMessagesCountFlag, 0, "Slack messages count to scan (0 = all messages)")
 
 	return command, nil
 }
