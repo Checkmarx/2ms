@@ -2,6 +2,8 @@ package plugins
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/slack-go/slack"
@@ -9,10 +11,14 @@ import (
 )
 
 const (
-	slackTokenFlag   = "token"
-	slackTeamFlag    = "team"
-	slackChannelFlag = "channel"
+	slackTokenFlag            = "token"
+	slackTeamFlag             = "team"
+	slackChannelFlag          = "channel"
+	slackBackwardDurationFlag = "duration"
+	slackMessagesCountFlag    = "messages-count"
 )
+
+const slackDefaultDateFrom = time.Hour * 24 * 14
 
 type SlackPlugin struct {
 	Plugin
@@ -25,9 +31,11 @@ func (p *SlackPlugin) GetName() string {
 }
 
 var (
-	tokenArg    string
-	teamArg     string
-	channelsArg []string
+	tokenArg            string
+	teamArg             string
+	channelsArg         []string
+	backwardDurationArg time.Duration
+	messagesCountArg    int
 )
 
 func (p *SlackPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
@@ -43,16 +51,23 @@ func (p *SlackPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	}
 
 	command.Flags().StringVar(&tokenArg, slackTokenFlag, "", "Slack token [required]")
-	command.MarkFlagRequired(slackTokenFlag)
+	err := command.MarkFlagRequired(slackTokenFlag)
+	if err != nil {
+		return nil, fmt.Errorf("error while marking flag %s as required: %w", slackTokenFlag, err)
+	}
 	command.Flags().StringVar(&teamArg, slackTeamFlag, "", "Slack team name or ID [required]")
-	command.MarkFlagRequired(slackTeamFlag)
+	err = command.MarkFlagRequired(slackTeamFlag)
+	if err != nil {
+		return nil, fmt.Errorf("error while marking flag %s as required: %w", slackTeamFlag, err)
+	}
 	command.Flags().StringArrayVar(&channelsArg, slackChannelFlag, []string{}, "Slack channels to scan")
+	command.Flags().DurationVar(&backwardDurationArg, slackBackwardDurationFlag, slackDefaultDateFrom, "Slack backward duration for messages (ex: 24h, 7d, 1M, 1y)")
+	command.Flags().IntVar(&messagesCountArg, slackMessagesCountFlag, 0, "Slack messages count")
 
 	return command, nil
 }
 
 func (p *SlackPlugin) getItems() {
-	// Take from https://api.slackApi.com/apps/A0578V8B7C7/oauth?
 	slackApi := slack.New(tokenArg)
 
 	team, err := getTeam(slackApi, teamArg)
@@ -83,6 +98,7 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 	log.Info().Msgf("Getting items from channel %s", channel.Name)
 
 	cursor := ""
+	counter := 0
 	for {
 		history, err := slackApi.GetConversationHistory(&slack.GetConversationHistoryParameters{
 			Cursor:    cursor,
@@ -93,6 +109,14 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 			return
 		}
 		for _, message := range history.Messages {
+			outOfRange, err := isMessageOutOfRange(message, backwardDurationArg, counter, messagesCountArg)
+			if err != nil {
+				p.Errors <- fmt.Errorf("error while checking message: %w", err)
+				return
+			}
+			if outOfRange {
+				break
+			}
 			if message.Text != "" {
 				p.Items <- Item{
 					Content: message.Text,
@@ -100,6 +124,7 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 					ID:      message.Timestamp,
 				}
 			}
+			counter++
 		}
 		if history.ResponseMetaData.NextCursor == "" {
 			break
@@ -158,4 +183,24 @@ func getChannels(slackApi *slack.Client, teamId string, wantedChannels []string)
 		}
 		cursorHolder = cursor
 	}
+}
+
+// Declare it to be consistent with all comparaisons
+var timeNow = time.Now()
+
+func isMessageOutOfRange(message slack.Message, backwardDuration time.Duration, currentMessagesCount int, limitMessagesCount int) (bool, error) {
+	if backwardDuration != 0 {
+		timestamp, err := strconv.ParseFloat(message.Timestamp, 64)
+		if err != nil {
+			return true, fmt.Errorf("error while parsing timestamp: %w", err)
+		}
+		messageDate := time.Unix(int64(timestamp), 0)
+		if messageDate.Before(timeNow.Add(-backwardDuration)) {
+			return true, nil
+		}
+	}
+	if limitMessagesCount != 0 && currentMessagesCount >= limitMessagesCount {
+		return true, nil
+	}
+	return false, nil
 }
