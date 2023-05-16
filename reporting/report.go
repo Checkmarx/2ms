@@ -61,6 +61,9 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 		case ".sarif":
 			err = writeSarifFile(*r, file, cfg)
 		}
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
