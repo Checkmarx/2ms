@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/checkmarx/2ms/config"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"sync"
@@ -18,13 +20,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const timeSleepInterval = 50
-
 var Version = "0.0.0"
 
 const (
-	tagsFlagName     = "tags"
-	logLevelFlagName = "log-level"
+	timeSleepInterval = 50
+	tagsFlagName      = "tags"
+	logLevelFlagName  = "log-level"
+	reportPath        = "report-path"
+	stdoutFormat      = "stdout-format"
+	jsonFormat        = "json"
+	yamlFormat        = "yaml"
+	sarifFormat       = "sarif"
 )
 
 var rootCmd = &cobra.Command{
@@ -78,6 +84,8 @@ func Execute() {
 	cobra.OnInitialize(initLog)
 	rootCmd.PersistentFlags().StringSlice(tagsFlagName, []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().StringSlice(reportPath, []string{""}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
+	rootCmd.PersistentFlags().String(stdoutFormat, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
@@ -109,6 +117,20 @@ func validateTags(tags []string) {
 			strings.EqualFold(tag, secrets.TagPassword) || strings.EqualFold(tag, secrets.TagUploadToken) || strings.EqualFold(tag, secrets.TagPublicSecret) ||
 			strings.EqualFold(tag, secrets.TagSensitiveUrl) || strings.EqualFold(tag, secrets.TagWebhook)) {
 			log.Fatal().Msgf(`invalid filter: %s`, tag)
+		}
+	}
+}
+
+func validateFormat(stdout string, reportPath []string) {
+	if !(strings.EqualFold(stdout, yamlFormat) || strings.EqualFold(stdout, jsonFormat) || strings.EqualFold(stdout, sarifFormat)) {
+		log.Fatal().Msgf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
+	}
+	for _, path := range reportPath {
+
+		fileExtension := filepath.Ext(path)
+		format := strings.TrimPrefix(fileExtension, ".")
+		if !(strings.EqualFold(format, yamlFormat) || strings.EqualFold(format, jsonFormat) || strings.EqualFold(format, sarifFormat)) {
+			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, format)
 		}
 	}
 }
@@ -146,13 +168,26 @@ func preRun(cmd *cobra.Command, args []string) {
 func postRun(cmd *cobra.Command, args []string) {
 	channels.WaitGroup.Wait()
 
+	reportPath, _ := cmd.Flags().GetStringSlice(reportPath)
+	stdoutFormat, _ := cmd.Flags().GetString(stdoutFormat)
+
+	validateFormat(stdoutFormat, reportPath)
+
+	cfg := config.LoadConfig("2ms", Version)
+
 	// Wait for last secret to be added to report
 	time.Sleep(time.Millisecond * timeSleepInterval)
 
 	// -------------------------------------
 	// Show Report
 	if report.TotalItemsScanned > 0 {
-		report.ShowReport()
+		report.ShowReport(stdoutFormat, cfg)
+		if len(reportPath) > 0 {
+			err := report.WriteFile(reportPath, cfg)
+			if err != nil {
+				log.Error().Msgf("Failed to create report file with error: %s", err)
+			}
+		}
 	} else {
 		log.Error().Msg("Scan completed with empty content")
 		os.Exit(0)

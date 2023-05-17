@@ -2,24 +2,33 @@ package reporting
 
 import (
 	"fmt"
+	"github.com/checkmarx/2ms/config"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
+const (
+	jsonFormat  = "json"
+	yamlFormat  = "yaml"
+	sarifFormat = "sarif"
+)
+
 type Report struct {
-	Results           map[string][]Secret
-	TotalItemsScanned int
-	TotalSecretsFound int
+	TotalItemsScanned int                 `json:"totalItemsScanned"`
+	TotalSecretsFound int                 `json:"totalSecretsFound"`
+	Results           map[string][]Secret `json:"results"`
 }
 
 type Secret struct {
-	ID          string
-	Description string
-	StartLine   int
-	EndLine     int
-	StartColumn int
-	EndColumn   int
-	Value       string
+	ID          string `json:"id"`
+	Source      string `json:"source"`
+	Description string `json:"description"`
+	StartLine   int    `json:"startLine"`
+	EndLine     int    `json:"endLine"`
+	StartColumn int    `json:"startColumn"`
+	EndColumn   int    `json:"endColumn"`
+	Value       string `json:"value"`
 }
 
 func Init() *Report {
@@ -28,39 +37,41 @@ func Init() *Report {
 	}
 }
 
-func (r *Report) ShowReport() {
-	fmt.Println("Summary:")
-	fmt.Printf("- Total items scanned: %d\n", r.TotalItemsScanned)
-	fmt.Printf("- Total items with secrets: %d\n", len(r.Results))
-	if len(r.Results) > 0 {
-		fmt.Printf("- Total secrets found: %d\n", r.TotalSecretsFound)
-		fmt.Println("Detailed Report:")
-		r.generateResultsReport()
-	}
+func (r *Report) ShowReport(format string, cfg *config.Config) {
+	output := r.getOutput(format, cfg)
 
+	fmt.Println("Summary:")
+	fmt.Print(output)
 }
 
-func (r *Report) generateResultsReport() {
-	for source, secrets := range r.Results {
-		itemId := getItemId(source)
-		fmt.Printf("- Item ID: %s\n", itemId)
-		fmt.Printf(" - Item Full Path: %s\n", source)
-		fmt.Println("  - Secrets:")
-		for _, secret := range secrets {
-			fmt.Printf("   - Type: %s\n", secret.Description)
-			fmt.Printf("    - Value: %.40s\n", secret.Value)
+func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
+	for _, path := range reportPath {
+		file, err := os.Create(path)
+		if err != nil {
+			return err
+		}
+
+		fileExtension := filepath.Ext(path)
+		format := strings.TrimPrefix(fileExtension, ".")
+		output := r.getOutput(format, cfg)
+
+		_, err = file.WriteString(output)
+		if err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
-func getItemId(fullPath string) string {
-	var itemId string
-	if strings.Contains(fullPath, "/") {
-		itemLinkStrings := strings.Split(fullPath, "/")
-		itemId = itemLinkStrings[len(itemLinkStrings)-1]
+func (r *Report) getOutput(format string, cfg *config.Config) string {
+	var output string
+	switch format {
+	case jsonFormat:
+		output = writeJson(*r)
+	case yamlFormat:
+		output = writeYaml(*r)
+	case sarifFormat:
+		output = writeSarif(*r, cfg)
 	}
-	if strings.Contains(fullPath, "\\") {
-		itemId = filepath.Base(fullPath)
-	}
-	return itemId
+	return output
 }
