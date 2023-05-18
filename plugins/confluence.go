@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -18,6 +19,7 @@ const (
 	argUsername             = "username"
 	argToken                = "token"
 	argHistory              = "history"
+	argPageId               = "pageId"
 	confluenceDefaultWindow = 25
 	confluenceMaxRequests   = 500
 )
@@ -251,20 +253,22 @@ func (p *ConfluencePlugin) getPageItems(items chan Item, errs chan error, wg *sy
 }
 
 func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceResult, version int) (*Item, int, error) {
-	var url string
-	var originalUrl string
+	var itemUrl, originalUrl, id string
 
 	// If no version given get the latest, else get the specified version
 	if version == 0 {
-		url = fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage.value,version,history.previousVersion", p.URL, page.ID)
+		itemUrl = fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage.value,version,history.previousVersion", p.URL, page.ID)
 		originalUrl = fmt.Sprintf("%s/spaces/%s/pages/%s", p.URL, space.Key, page.ID)
-
+		aux := strings.Split(originalUrl, "/")
+		id = aux[len(aux)-1]
 	} else {
-		url = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage.value,version,history.previousVersion", p.URL, page.ID, version)
-		originalUrl = fmt.Sprintf("%s/pages/viewpage.action?pageid=%spageVersion=%d", p.URL, page.ID, version)
+		itemUrl = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage.value,version,history.previousVersion", p.URL, page.ID, version)
+		originalUrl = fmt.Sprintf("%s/pages/viewpage.action?pageId=%s&pageVersion=%d", p.URL, page.ID, version)
+		u, _ := url.Parse(originalUrl)
+		id = u.Query().Get(argPageId)
 	}
 
-	request, err := lib.HttpRequest(http.MethodGet, url, p)
+	request, err := lib.HttpRequest(http.MethodGet, itemUrl, p)
 	if err != nil {
 		return nil, 0, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
@@ -276,8 +280,8 @@ func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceRes
 
 	content := &Item{
 		Content: pageContent.Body.Storage.Value,
-		Source:  url,
-		ID:      originalUrl,
+		Source:  itemUrl,
+		ID:      id,
 	}
 	return content, pageContent.History.PreviousVersion.Number, nil
 }

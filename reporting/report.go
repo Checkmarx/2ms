@@ -3,6 +3,7 @@ package reporting
 import (
 	"fmt"
 	"github.com/checkmarx/2ms/config"
+	"github.com/checkmarx/2ms/secrets"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,19 +22,41 @@ type Report struct {
 }
 
 type Secret struct {
-	ID          string `json:"id"`
-	Source      string `json:"source"`
-	Description string `json:"description"`
-	StartLine   int    `json:"startLine"`
-	EndLine     int    `json:"endLine"`
-	StartColumn int    `json:"startColumn"`
-	EndColumn   int    `json:"endColumn"`
-	Value       string `json:"value"`
+	ID          string   `json:"id"`
+	Links       []string `json:"links"`
+	Source      string   `json:"source"`
+	Description string   `json:"description"`
+	StartLine   int      `json:"startLine"`
+	EndLine     int      `json:"endLine"`
+	StartColumn int      `json:"startColumn"`
+	EndColumn   int      `json:"endColumn"`
+	Value       string   `json:"value"`
 }
 
 func Init() *Report {
 	return &Report{
 		Results: make(map[string][]Secret),
+	}
+}
+
+func (r *Report) AddSecret(finding secrets.Finding) {
+	done := false
+
+	// If secret already exists, just add the link of new finding
+	if len(r.Results[finding.ID]) > 0 {
+		for i, s := range r.Results[finding.ID] {
+			if s.Value == finding.Secret {
+				s := &r.Results[finding.ID][i]
+				s.Links = append(s.Links, finding.Source)
+				done = true
+				break
+			}
+		}
+	}
+	// If secret don't exist on a specific source or if source doesn't exist just create the secret
+	if !done {
+		secret := Secret{ID: finding.ID, Links: []string{finding.Source}, Description: finding.Description, StartLine: finding.StartLine, EndLine: finding.EndLine, StartColumn: finding.StartColumn, EndColumn: finding.EndColumn, Value: finding.Secret}
+		r.Results[finding.ID] = append(r.Results[finding.ID], secret)
 	}
 }
 

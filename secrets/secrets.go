@@ -2,11 +2,9 @@ package secrets
 
 import (
 	"github.com/checkmarx/2ms/plugins"
-	"github.com/checkmarx/2ms/reporting"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
-	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -21,25 +19,39 @@ type Rule struct {
 	Tags []string
 }
 
-const TagApiKey = "api-key"
-const TagClientId = "client-id"
-const TagClientSecret = "client-secret"
-const TagSecretKey = "secret-key"
-const TagAccessKey = "access-key"
-const TagAccessId = "access-id"
-const TagApiToken = "api-token"
-const TagAccessToken = "access-token"
-const TagRefreshToken = "refresh-token"
-const TagPrivateKey = "private-key"
-const TagPublicKey = "public-key"
-const TagEncryptionKey = "encryption-key"
-const TagTriggerToken = "trigger-token"
-const TagRegistrationToken = "registration-token"
-const TagPassword = "password"
-const TagUploadToken = "upload-token"
-const TagPublicSecret = "public-secret"
-const TagSensitiveUrl = "sensitive-url"
-const TagWebhook = "webhook"
+type Finding struct {
+	ID          string
+	Source      string
+	Content     string
+	Description string
+	StartLine   int
+	EndLine     int
+	StartColumn int
+	EndColumn   int
+	Secret      string
+}
+
+const (
+	TagApiKey            = "api-key"
+	TagClientId          = "client-id"
+	TagClientSecret      = "client-secret"
+	TagSecretKey         = "secret-key"
+	TagAccessKey         = "access-key"
+	TagAccessId          = "access-id"
+	TagApiToken          = "api-token"
+	TagAccessToken       = "access-token"
+	TagRefreshToken      = "refresh-token"
+	TagPrivateKey        = "private-key"
+	TagPublicKey         = "public-key"
+	TagEncryptionKey     = "encryption-key"
+	TagTriggerToken      = "trigger-token"
+	TagRegistrationToken = "registration-token"
+	TagPassword          = "password"
+	TagUploadToken       = "upload-token"
+	TagPublicSecret      = "public-secret"
+	TagSensitiveUrl      = "sensitive-url"
+	TagWebhook           = "webhook"
+)
 
 func Init(tags []string) *Secrets {
 
@@ -58,28 +70,15 @@ func Init(tags []string) *Secrets {
 	}
 }
 
-func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, wg *sync.WaitGroup) {
+func (s *Secrets) Detect(secretsChannel chan Finding, item plugins.Item, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
 		Raw: item.Content,
 	}
-	for _, value := range s.detector.Detect(fragment) {
-		itemId := getItemId(item.ID)
-		secretsChannel <- reporting.Secret{ID: itemId, Source: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+	for _, find := range s.detector.Detect(fragment) {
+		secretsChannel <- Finding{ID: item.ID, Source: item.Source, Content: item.Content, Description: find.Description, StartLine: find.StartLine, EndLine: find.EndLine, StartColumn: find.StartColumn, EndColumn: find.EndColumn, Secret: find.Secret}
 	}
-}
-
-func getItemId(fullPath string) string {
-	var itemId string
-	if strings.Contains(fullPath, "/") {
-		itemLinkStrings := strings.Split(fullPath, "/")
-		itemId = itemLinkStrings[len(itemLinkStrings)-1]
-	}
-	if strings.Contains(fullPath, "\\") {
-		itemId = filepath.Base(fullPath)
-	}
-	return itemId
 }
 
 func getRules(allRules []Rule, tags []string) map[string]config.Rule {

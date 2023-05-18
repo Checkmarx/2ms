@@ -52,7 +52,7 @@ var channels = plugins.Channels{
 }
 
 var report = reporting.Init()
-var secretsChan = make(chan reporting.Secret)
+var secretsChan = make(chan secrets.Finding)
 
 func initLog() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -152,7 +152,7 @@ func preRun(cmd *cobra.Command, args []string) {
 				go secrets.Detect(secretsChan, item, channels.WaitGroup)
 			case secret := <-secretsChan:
 				report.TotalSecretsFound++
-				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
+				report.AddSecret(secret)
 			case err, ok := <-channels.Errors:
 				if !ok {
 					return
