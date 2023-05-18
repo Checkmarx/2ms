@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/checkmarx/2ms/config"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/checkmarx/2ms/config"
 
 	"sync"
 	"time"
@@ -43,6 +44,7 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
 	&plugins.DiscordPlugin{},
 	&plugins.RepositoryPlugin{},
+	&plugins.SlackPlugin{},
 }
 
 var channels = plugins.Channels{
