@@ -80,7 +80,7 @@ func (p *Paligo) ShowFolder(folderId int) (*Folder, error) {
 		return nil, err
 	}
 
-	var folder *Folder
+	folder := &Folder{}
 	err = json.Unmarshal(req, folder)
 
 	return folder, err

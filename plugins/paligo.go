@@ -20,15 +20,17 @@ var (
 	paligoInstanceArg string
 	paligoFolderArg   int
 
-	foldersChan   = make(chan lib.Item)
 	componentChan = make(chan lib.Component)
 )
 
 type PaligoPlugin struct {
 	Plugin
 	Channels
+
 	username string
 	token    string
+
+	paligoApi *lib.Paligo
 }
 
 func (p *PaligoPlugin) GetCredentials() (string, string) {
@@ -77,40 +79,49 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 }
 
 func (p *PaligoPlugin) getItems() {
-	paligoApi := lib.NewPaligoApi(paligoInstanceArg, p.username, p.token)
-
-	p.Channels.WaitGroup.Add(1)
-	go p.handleFolders()
+	p.paligoApi = lib.NewPaligoApi(paligoInstanceArg, p.username, p.token)
 
 	if paligoFolderArg != 0 {
-		folder, err := paligoApi.ShowFolder(paligoFolderArg)
-		if err != nil {
-			log.Error().Err(err).Msg("error while getting folder")
-			p.Channels.Errors <- err
-		}
-		for _, folder := range folder.Children {
-			if folder.Type == "component" {
-				log.Info().Msgf("Found %s %s", folder.Type, folder.Name)
-			} else {
-				foldersChan <- folder
-			}
-		}
+		p.WaitGroup.Add(1)
+		go p.handleFolderChildren(&lib.Item{ID: paligoFolderArg})
 	} else {
-		folders, err := paligoApi.ListFolders()
+		folders, err := p.paligoApi.ListFolders()
 		if err != nil {
 			log.Error().Err(err).Msg("error while getting folders")
 			p.Channels.Errors <- err
+			return
 		}
+		p.WaitGroup.Add(len(*folders))
 		for _, folder := range *folders {
-			foldersChan <- folder.Item
+			go p.handleFolderChildren(&folder.Item)
 		}
 	}
 }
 
-func (p *PaligoPlugin) handleFolders() {
+func (p *PaligoPlugin) handleFolderChildren(folder *lib.Item) {
 	defer p.Channels.WaitGroup.Done()
 
-	for folder := range foldersChan {
-		log.Info().Msgf("Found folder %s", folder.Name)
+	log.Info().Msgf("Getting folder %s", folder.Name)
+	folderInfo, err := p.paligoApi.ShowFolder(folder.ID)
+	if err != nil {
+		log.Error().Err(err).Msg("error while getting folder")
+		p.Channels.Errors <- err
+		return
 	}
+
+	p.WaitGroup.Add(len(folderInfo.Children))
+	for _, child := range folderInfo.Children {
+		if child.Type == "component" {
+			go p.handleComponent(child)
+		} else {
+			go p.handleFolderChildren(&child)
+		}
+	}
+
+}
+
+func (p *PaligoPlugin) handleComponent(component lib.Item) {
+	defer p.Channels.WaitGroup.Done()
+
+	log.Info().Msgf("Getting component %s", component.Name)
 }
