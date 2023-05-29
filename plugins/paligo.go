@@ -83,7 +83,7 @@ func (p *PaligoPlugin) getItems() {
 
 	if paligoFolderArg != 0 {
 		p.WaitGroup.Add(1)
-		go p.handleFolderChildren(&lib.Item{ID: paligoFolderArg})
+		go p.handleFolderChildren(lib.Item{ID: paligoFolderArg, Name: "ID" + fmt.Sprint(paligoFolderArg)})
 	} else {
 		folders, err := p.paligoApi.ListFolders()
 		if err != nil {
@@ -93,28 +93,29 @@ func (p *PaligoPlugin) getItems() {
 		}
 		p.WaitGroup.Add(len(*folders))
 		for _, folder := range *folders {
-			go p.handleFolderChildren(&folder.Item)
+			go p.handleFolderChildren(folder.Item)
 		}
 	}
 }
 
-func (p *PaligoPlugin) handleFolderChildren(folder *lib.Item) {
+func (p *PaligoPlugin) handleFolderChildren(folder lib.Item) {
 	defer p.Channels.WaitGroup.Done()
 
 	log.Info().Msgf("Getting folder %s", folder.Name)
 	folderInfo, err := p.paligoApi.ShowFolder(folder.ID)
 	if err != nil {
-		log.Error().Err(err).Msg("error while getting folder")
+		log.Error().Err(err).Msgf("error while getting %s %s", folder.Type, folder.Name)
 		p.Channels.Errors <- err
 		return
 	}
 
-	p.WaitGroup.Add(len(folderInfo.Children))
 	for _, child := range folderInfo.Children {
 		if child.Type == "component" {
+			p.WaitGroup.Add(1)
 			go p.handleComponent(child)
-		} else {
-			go p.handleFolderChildren(&child)
+		} else if child.Type == "folder" {
+			p.WaitGroup.Add(1)
+			go p.handleFolderChildren(child)
 		}
 	}
 
