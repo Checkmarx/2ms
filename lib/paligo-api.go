@@ -72,8 +72,8 @@ func (p *Paligo) ListFolders() (*[]EmptyFolder, error) {
 	return &folders.Folders, err
 }
 
-func (p *Paligo) ShowFolder(folderId string) (*Folder, error) {
-	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders/%s", p.Instance, folderId)
+func (p *Paligo) ShowFolder(folderId int) (*Folder, error) {
+	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders/%d", p.Instance, folderId)
 
 	req, err := HttpRequest("GET", url, p)
 	if err != nil {

@@ -18,7 +18,7 @@ const (
 
 var (
 	paligoInstanceArg string
-	paligoFolderArg   string
+	paligoFolderArg   int
 
 	foldersChan   = make(chan lib.Item)
 	componentChan = make(chan lib.Component)
@@ -71,7 +71,7 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 	if err != nil {
 		return nil, fmt.Errorf("error while marking flag %s as required: %w", paligoTokenFlag, err)
 	}
-	command.Flags().StringVar(&paligoFolderArg, paligoFolderFlag, "", "Paligo folder ID")
+	command.Flags().IntVar(&paligoFolderArg, paligoFolderFlag, 0, "Paligo folder ID")
 
 	return command, nil
 }
@@ -82,7 +82,7 @@ func (p *PaligoPlugin) getItems() {
 	p.Channels.WaitGroup.Add(1)
 	go p.handleFolders()
 
-	if paligoFolderArg != "" {
+	if paligoFolderArg != 0 {
 		folder, err := paligoApi.ShowFolder(paligoFolderArg)
 		if err != nil {
 			log.Error().Err(err).Msg("error while getting folder")
