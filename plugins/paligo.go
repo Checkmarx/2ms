@@ -104,7 +104,7 @@ func (p *PaligoPlugin) handleFolderChildren(folder lib.Item) {
 	log.Info().Msgf("Getting folder %s", folder.Name)
 	folderInfo, err := p.paligoApi.ShowFolder(folder.ID)
 	if err != nil {
-		log.Error().Err(err).Msgf("error while getting %s %s", folder.Type, folder.Name)
+		log.Error().Err(err).Msgf("error while getting %s '%s'", folder.Type, folder.Name)
 		p.Channels.Errors <- err
 		return
 	}
@@ -121,8 +121,20 @@ func (p *PaligoPlugin) handleFolderChildren(folder lib.Item) {
 
 }
 
-func (p *PaligoPlugin) handleComponent(component lib.Item) {
+func (p *PaligoPlugin) handleComponent(item lib.Item) {
 	defer p.Channels.WaitGroup.Done()
 
-	log.Info().Msgf("Getting component %s", component.Name)
+	log.Info().Msgf("Getting component %s", item.Name)
+	document, err := p.paligoApi.ShowDocument(item.ID)
+	if err != nil {
+		log.Error().Err(err).Msgf("error while getting document '%s'", item.Name)
+		p.Channels.Errors <- fmt.Errorf("error while getting document '%s': %w", item.Name, err)
+		return
+	}
+
+	p.Items <- Item{
+		Content: document.Content,
+		Source:  item.Name,
+		ID:      fmt.Sprint(item.ID),
+	}
 }

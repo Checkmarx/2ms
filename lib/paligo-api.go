@@ -48,6 +48,19 @@ type ListFoldersResponse struct {
 	Folders    []EmptyFolder `json:"folders"`
 }
 
+type Document struct {
+	Item
+	Creator        int      `json:"creator"`
+	Owner          int      `json:"owner"`
+	Author         int      `json:"author"`
+	CreatedAt      int      `json:"created_at"`
+	ModifiedAt     int      `json:"modified_at"`
+	Checkout       bool     `json:"checkout"`
+	ParentResource int      `json:"parent_resource"`
+	Content        string   `json:"content"`
+	Languages      []string `json:"languages"`
+}
+
 type Paligo struct {
 	Instance string
 	Username string
@@ -84,6 +97,20 @@ func (p *Paligo) ShowFolder(folderId int) (*Folder, error) {
 	err = json.Unmarshal(req, folder)
 
 	return folder, err
+}
+
+func (p *Paligo) ShowDocument(documentId int) (*Document, error) {
+	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/documents/%d", p.Instance, documentId)
+
+	req, err := HttpRequest("GET", url, p)
+	if err != nil {
+		return nil, err
+	}
+
+	document := &Document{}
+	err = json.Unmarshal(req, document)
+
+	return document, err
 }
 
 func NewPaligoApi(instance string, username string, token string) *Paligo {
