@@ -1,12 +1,13 @@
 name: Release
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
-  build:
-    name: Build and Release
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -14,7 +15,30 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: '^1.20'
+          go-version: "^1.20"
+      - name: Go Linter
+        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.52.0 golangci-lint run -v -E gofmt --timeout=5m
+
+      - name: Unit Tests
+        run: go test ./...
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'workflow_dispatch'
+
+    outputs:
+      git_tag: ${{ steps.semantic_release_info.outputs.git_tag }}
+      version: ${{ steps.semantic_release_info.outputs.version }}
+      notes: ${{ steps.semantic_release_info.outputs.notes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "^1.20"
 
       - name: Gets release info
         id: semantic_release_info
@@ -22,47 +46,56 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Go Linter
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
-        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.52.0 golangci-lint run -v -E gofmt --timeout=5m
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ needs.release.outputs.git_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Unit Tests
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
-        run: go test ./...
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "^1.20"
+
+      - name: Gets release info
+        id: semantic_release_info
+        uses: jossef/action-semantic-release-info@v2.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Go Mod Tidy
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
         run: go mod tidy
 
       - name: Go Build
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
         env:
-          VERSION: ${{ steps.semantic_release_info.outputs.version }}
+          VERSION: ${{ needs.release.outputs.version }}
           CGO_ENABLED: 0
           GOOS: linux
           GOARCH: amd64
         run: go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o bin/2ms main.go
 
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Set up Docker Buildx
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
         uses: docker/setup-buildx-action@v2
       - name: Save Docker Image
         run: make save -e image_file_name=bin/checkmarx-2ms.tar
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
         env:
-          VERSION: ${{ steps.semantic_release_info.outputs.version }}
+          VERSION: ${{ needs.release.outputs.version }}
 
       - name: Creating Release
-        if: ${{ steps.semantic_release_info.outputs.git_tag }}
         uses: softprops/action-gh-release@v0.1.15
         with:
-          tag_name: ${{ steps.semantic_release_info.outputs.git_tag }}
-          name: ${{ steps.semantic_release_info.outputs.git_tag }}
-          body: ${{ steps.semantic_release_info.outputs.notes }}
+          tag_name: ${{ needs.release.outputs.git_tag }}
+          name: ${{ needs.release.outputs.git_tag }}
+          body: ${{ needs.release.outputs.notes }}
           target_commitish: ${{ steps.commit_and_push.outputs.latest_commit_hash }}
           files: |
             bin/2ms
             bin/checkmarx-2ms.tar
-
-
-
