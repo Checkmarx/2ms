@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/checkmarx/2ms/cmd"
 	"os"
 	"os/signal"
+
+	"github.com/checkmarx/2ms/cmd"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
