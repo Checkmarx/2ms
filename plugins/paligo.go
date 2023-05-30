@@ -19,8 +19,6 @@ const (
 var (
 	paligoInstanceArg string
 	paligoFolderArg   int
-
-	componentChan = make(chan lib.Component)
 )
 
 type PaligoPlugin struct {
