@@ -1,12 +1,16 @@
 package plugins
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/checkmarx/2ms/lib"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -28,7 +32,7 @@ type PaligoPlugin struct {
 	username string
 	token    string
 
-	paligoApi *lib.Paligo
+	paligoApi *PaligoClient
 }
 
 func (p *PaligoPlugin) GetCredentials() (string, string) {
@@ -77,11 +81,11 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 }
 
 func (p *PaligoPlugin) getItems() {
-	p.paligoApi = lib.NewPaligoApi(paligoInstanceArg, p.username, p.token)
+	p.paligoApi = NewPaligoApi(paligoInstanceArg, p.username, p.token)
 
 	if paligoFolderArg != 0 {
 		p.WaitGroup.Add(1)
-		go p.handleFolderChildren(lib.Item{ID: paligoFolderArg, Name: "ID" + fmt.Sprint(paligoFolderArg)})
+		go p.handleFolderChildren(PaligoItem{ID: paligoFolderArg, Name: "ID" + fmt.Sprint(paligoFolderArg)})
 	} else {
 		folders, err := p.paligoApi.ListFolders()
 		if err != nil {
@@ -91,12 +95,12 @@ func (p *PaligoPlugin) getItems() {
 		}
 		p.WaitGroup.Add(len(*folders))
 		for _, folder := range *folders {
-			go p.handleFolderChildren(folder.Item)
+			go p.handleFolderChildren(folder.PaligoItem)
 		}
 	}
 }
 
-func (p *PaligoPlugin) handleFolderChildren(folder lib.Item) {
+func (p *PaligoPlugin) handleFolderChildren(folder PaligoItem) {
 	defer p.Channels.WaitGroup.Done()
 
 	log.Info().Msgf("Getting folder %s", folder.Name)
@@ -119,7 +123,7 @@ func (p *PaligoPlugin) handleFolderChildren(folder lib.Item) {
 
 }
 
-func (p *PaligoPlugin) handleComponent(item lib.Item) {
+func (p *PaligoPlugin) handleComponent(item PaligoItem) {
 	defer p.Channels.WaitGroup.Done()
 
 	log.Info().Msgf("Getting component %s", item.Name)
@@ -134,5 +138,147 @@ func (p *PaligoPlugin) handleComponent(item lib.Item) {
 		Content: document.Content,
 		Source:  item.Name,
 		ID:      fmt.Sprint(item.ID),
+	}
+}
+
+/**
+ * Paligo API
+ */
+
+// https://paligo.net/docs/apidocs/en/index-en.html#UUID-a5b548af-9a37-d305-f5a8-11142d86fe20
+const (
+	PALIGO_DOCUMENT_SHOW_LIMIT = 50
+	PALIGO_FOLDER_SHOW_LIMIT   = 50
+	rateLimitDeviation         = 20
+)
+
+func rateLimitPerSecond(rateLimit int) rate.Limit {
+	return rate.Every(time.Minute / (time.Duration(rateLimit) - rateLimitDeviation))
+}
+
+type PaligoItem struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	UUID string `json:"uuid"`
+	Type string `json:"type"`
+}
+
+type Folder struct {
+	PaligoItem
+	Children []PaligoItem `json:"children"`
+}
+
+type EmptyFolder struct {
+	PaligoItem
+	Children string `json:"children"`
+}
+
+type Component struct {
+	PaligoItem
+	Subtype          string        `json:"subtype"`
+	Creator          int           `json:"creator"`
+	Owner            int           `json:"owner"`
+	Author           int           `json:"author"`
+	CreatedAt        int           `json:"created_at"`
+	ModifiedAt       int           `json:"modified_at"`
+	Checkout         bool          `json:"checkout"`
+	CheckoutUser     string        `json:"checkout_user"`
+	ParentResource   int           `json:"parent_resource"`
+	Taxonomies       []interface{} `json:"taxonomies"`
+	ReleaseStatus    string        `json:"release_status"`
+	Content          string        `json:"content"`
+	Languages        []string      `json:"languages"`
+	External         []interface{} `json:"external"`
+	CustomAttributes []interface{} `json:"custom_attributes"`
+}
+
+type ListFoldersResponse struct {
+	Page       int           `json:"page"`
+	NextPage   string        `json:"next_page"`
+	TotalPages int           `json:"total_pages"`
+	Folders    []EmptyFolder `json:"folders"`
+}
+
+type Document struct {
+	PaligoItem
+	Content   string   `json:"content"`
+	Languages []string `json:"languages"`
+}
+
+type PaligoClient struct {
+	Instance string
+	Username string
+	Token    string
+
+	foldersLimiter   *rate.Limiter
+	documentsLimiter *rate.Limiter
+}
+
+func (p *PaligoClient) GetCredentials() (string, string) {
+	return p.Username, p.Token
+}
+
+func (p *PaligoClient) ListFolders() (*[]EmptyFolder, error) {
+	if err := p.foldersLimiter.Wait(context.TODO()); err != nil {
+		log.Error().Msgf("Error waiting for rate limiter: %s", err)
+	}
+
+	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders", p.Instance)
+
+	req, err := lib.HttpRequest("GET", url, p)
+	if err != nil {
+		return nil, err
+	}
+
+	var folders *ListFoldersResponse
+	err = json.Unmarshal(req, &folders)
+
+	return &folders.Folders, err
+}
+
+func (p *PaligoClient) ShowFolder(folderId int) (*Folder, error) {
+	if err := p.foldersLimiter.Wait(context.TODO()); err != nil {
+		log.Error().Msgf("Error waiting for rate limiter: %s", err)
+	}
+
+	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders/%d", p.Instance, folderId)
+
+	req, err := lib.HttpRequest("GET", url, p)
+	if err != nil {
+		return nil, err
+	}
+
+	folder := &Folder{}
+	err = json.Unmarshal(req, folder)
+
+	return folder, err
+}
+
+func (p *PaligoClient) ShowDocument(documentId int) (*Document, error) {
+	if err := p.documentsLimiter.Wait(context.TODO()); err != nil {
+		log.Error().Msgf("Error waiting for rate limiter: %s", err)
+	}
+
+	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/documents/%d", p.Instance, documentId)
+
+	req, err := lib.HttpRequest("GET", url, p)
+	if err != nil {
+		return nil, err
+	}
+
+	document := &Document{}
+	err = json.Unmarshal(req, document)
+
+	return document, err
+}
+
+func NewPaligoApi(instance string, username string, token string) *PaligoClient {
+	return &PaligoClient{
+		Instance: instance,
+		Username: username,
+		Token:    token,
+
+		foldersLimiter:   rate.NewLimiter(rateLimitPerSecond(PALIGO_FOLDER_SHOW_LIMIT), 1),
+		documentsLimiter: rate.NewLimiter(rateLimitPerSecond(PALIGO_DOCUMENT_SHOW_LIMIT), 1),
 	}
 }
