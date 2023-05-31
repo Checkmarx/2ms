@@ -9,6 +9,11 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+
+    outputs:
+      git_tag: ${{ steps.semantic_release_info.outputs.git_tag }}
+      version: ${{ steps.semantic_release_info.outputs.version }}
+      notes: ${{ steps.semantic_release_info.outputs.notes }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -22,26 +27,9 @@ jobs:
       - name: Unit Tests
         run: go test ./...
 
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'workflow_dispatch'
-
-    outputs:
-      git_tag: ${{ steps.semantic_release_info.outputs.git_tag }}
-      version: ${{ steps.semantic_release_info.outputs.version }}
-      notes: ${{ steps.semantic_release_info.outputs.notes }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - uses: actions/setup-go@v4
-        with:
-          go-version: "^1.20"
-
       - name: Gets release info
         id: semantic_release_info
+        if: github.event_name == 'workflow_dispatch'
         uses: jossef/action-semantic-release-info@v2.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,8 +37,8 @@ jobs:
   build:
     name: Build and Release
     runs-on: ubuntu-latest
-    needs: release
-    if: ${{ needs.release.outputs.git_tag }}
+    needs: test
+    if: ${{ needs.test.outputs.git_tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -70,7 +58,7 @@ jobs:
 
       - name: Go Build
         env:
-          VERSION: ${{ needs.release.outputs.version }}
+          VERSION: ${{ needs.test.outputs.version }}
           CGO_ENABLED: 0
           GOOS: linux
           GOARCH: amd64
@@ -92,14 +80,14 @@ jobs:
           push: true
           tags: |
             checkmarx/2ms:latest
-            checkmarx/2ms:${{ needs.release.outputs.version }}
+            checkmarx/2ms:${{ needs.test.outputs.version }}
 
       - name: Creating Release
         uses: softprops/action-gh-release@v0.1.15
         with:
-          tag_name: ${{ needs.release.outputs.git_tag }}
-          name: ${{ needs.release.outputs.git_tag }}
-          body: ${{ needs.release.outputs.notes }}
+          tag_name: ${{ needs.test.outputs.git_tag }}
+          name: ${{ needs.test.outputs.git_tag }}
+          body: ${{ needs.test.outputs.notes }}
           target_commitish: ${{ steps.commit_and_push.outputs.latest_commit_hash }}
           files: |
             bin/2ms
