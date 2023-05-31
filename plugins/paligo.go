@@ -225,7 +225,7 @@ func (p *PaligoClient) ListFolders() (*[]EmptyFolder, error) {
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders", p.Instance)
 
-	req, err := lib.HttpRequest("GET", url, p)
+	req, _, err := lib.HttpRequest("GET", url, p)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (p *PaligoClient) ShowFolder(folderId int) (*Folder, error) {
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders/%d", p.Instance, folderId)
 
-	req, err := lib.HttpRequest("GET", url, p)
+	req, _, err := lib.HttpRequest("GET", url, p)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +261,7 @@ func (p *PaligoClient) ShowDocument(documentId int) (*Document, error) {
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/documents/%d", p.Instance, documentId)
 
-	req, err := lib.HttpRequest("GET", url, p)
+	req, _, err := lib.HttpRequest("GET", url, p)
 	if err != nil {
 		return nil, err
 	}
