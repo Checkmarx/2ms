@@ -86,6 +86,32 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 func (p *PaligoPlugin) getItems() {
 	p.paligoApi = newPaligoApi(paligoInstanceArg, p.username, p.token)
 
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for i := 1; i <= 300; i++ {
+			folders, err := p.paligoApi.listFolders()
+			if err != nil {
+				log.Error().Err(err).Msg("error while getting folders")
+			}
+			log.Info().Msgf("%d: Got %d folders", i, len(*folders))
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 1; i <= 300; i++ {
+			folder, err := p.paligoApi.showFolder(144628)
+			if err != nil {
+				log.Error().Err(err).Msg("error while getting folders")
+			}
+			log.Info().Msgf("%d: Got %d children", i, len(folder.Children))
+		}
+	}()
+	wg.Wait()
+	return
+
 	if paligoFolderArg != 0 {
 		p.WaitGroup.Add(1)
 		go p.handleFolderChildren(PaligoItem{ID: paligoFolderArg, Name: "ID" + fmt.Sprint(paligoFolderArg)})
@@ -243,6 +269,7 @@ func (p *PaligoClient) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
+// TODO: make a PaligoClient that accept URL and do the job
 func (p *PaligoClient) listFolders() (*[]EmptyFolder, error) {
 	if err := p.foldersLimiter.Wait(context.TODO()); err != nil {
 		log.Error().Msgf("Error waiting for rate limiter: %s", err)
