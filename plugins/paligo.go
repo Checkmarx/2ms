@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/checkmarx/2ms/lib"
@@ -81,13 +84,13 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 }
 
 func (p *PaligoPlugin) getItems() {
-	p.paligoApi = NewPaligoApi(paligoInstanceArg, p.username, p.token)
+	p.paligoApi = newPaligoApi(paligoInstanceArg, p.username, p.token)
 
 	if paligoFolderArg != 0 {
 		p.WaitGroup.Add(1)
 		go p.handleFolderChildren(PaligoItem{ID: paligoFolderArg, Name: "ID" + fmt.Sprint(paligoFolderArg)})
 	} else {
-		folders, err := p.paligoApi.ListFolders()
+		folders, err := p.paligoApi.listFolders()
 		if err != nil {
 			log.Error().Err(err).Msg("error while getting folders")
 			p.Channels.Errors <- err
@@ -104,7 +107,7 @@ func (p *PaligoPlugin) handleFolderChildren(folder PaligoItem) {
 	defer p.Channels.WaitGroup.Done()
 
 	log.Info().Msgf("Getting folder %s", folder.Name)
-	folderInfo, err := p.paligoApi.ShowFolder(folder.ID)
+	folderInfo, err := p.paligoApi.showFolder(folder.ID)
 	if err != nil {
 		log.Error().Err(err).Msgf("error while getting %s '%s'", folder.Type, folder.Name)
 		p.Channels.Errors <- err
@@ -127,7 +130,7 @@ func (p *PaligoPlugin) handleComponent(item PaligoItem) {
 	defer p.Channels.WaitGroup.Done()
 
 	log.Info().Msgf("Getting component %s", item.Name)
-	document, err := p.paligoApi.ShowDocument(item.ID)
+	document, err := p.paligoApi.showDocument(item.ID)
 	if err != nil {
 		log.Error().Err(err).Msgf("error while getting document '%s'", item.Name)
 		p.Channels.Errors <- fmt.Errorf("error while getting document '%s': %w", item.Name, err)
@@ -147,13 +150,13 @@ func (p *PaligoPlugin) handleComponent(item PaligoItem) {
 
 // https://paligo.net/docs/apidocs/en/index-en.html#UUID-a5b548af-9a37-d305-f5a8-11142d86fe20
 const (
-	PALIGO_DOCUMENT_SHOW_LIMIT = 50
-	PALIGO_FOLDER_SHOW_LIMIT   = 50
-	rateLimitDeviation         = 20
+	PALIGO_RATE_LIMIT_CHECK_INTERVAL = 5 * time.Second
+	PALIGO_DOCUMENT_SHOW_LIMIT       = 50
+	PALIGO_FOLDER_SHOW_LIMIT         = 50
 )
 
 func rateLimitPerSecond(rateLimit int) rate.Limit {
-	return rate.Every(time.Minute / (time.Duration(rateLimit) - rateLimitDeviation))
+	return rate.Every(time.Minute / time.Duration(rateLimit))
 }
 
 type PaligoItem struct {
@@ -214,71 +217,102 @@ type PaligoClient struct {
 	documentsLimiter *rate.Limiter
 }
 
+func reserveRateLimit(response *http.Response, lim *rate.Limiter, err error) error {
+	if response.StatusCode != 429 {
+		return err
+	}
+
+	rateLimit := response.Header.Get("Retry-After")
+	if rateLimit == "" {
+		return fmt.Errorf("Retry-After header not found")
+	}
+	seconds, err := strconv.Atoi(rateLimit)
+	if err != nil {
+		return err
+	}
+	log.Warn().Msgf("Rate limit exceeded, need to wait for %d seconds", seconds)
+	lim.SetBurst(0)
+	defer lim.SetBurst(1)
+	// We are not waiting for the exact time, because sometimes we get 429 even for fair use,
+	// and sometimes it is released earlier than the specified time
+	time.Sleep(PALIGO_RATE_LIMIT_CHECK_INTERVAL)
+	return nil
+}
+
 func (p *PaligoClient) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
-func (p *PaligoClient) ListFolders() (*[]EmptyFolder, error) {
+func (p *PaligoClient) listFolders() (*[]EmptyFolder, error) {
 	if err := p.foldersLimiter.Wait(context.TODO()); err != nil {
 		log.Error().Msgf("Error waiting for rate limiter: %s", err)
 	}
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders", p.Instance)
 
-	req, _, err := lib.HttpRequest("GET", url, p)
+	body, response, err := lib.HttpRequest("GET", url, p)
 	if err != nil {
-		return nil, err
+		if err := reserveRateLimit(response, p.foldersLimiter, err); err != nil {
+			return nil, err
+		}
+		return p.listFolders()
 	}
 
 	var folders *ListFoldersResponse
-	err = json.Unmarshal(req, &folders)
+	err = json.Unmarshal(body, &folders)
 
 	return &folders.Folders, err
 }
 
-func (p *PaligoClient) ShowFolder(folderId int) (*Folder, error) {
+func (p *PaligoClient) showFolder(folderId int) (*Folder, error) {
 	if err := p.foldersLimiter.Wait(context.TODO()); err != nil {
 		log.Error().Msgf("Error waiting for rate limiter: %s", err)
 	}
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders/%d", p.Instance, folderId)
 
-	req, _, err := lib.HttpRequest("GET", url, p)
+	body, response, err := lib.HttpRequest("GET", url, p)
 	if err != nil {
-		return nil, err
+		if err := reserveRateLimit(response, p.foldersLimiter, err); err != nil {
+			return nil, err
+		}
+		return p.showFolder(folderId)
 	}
 
 	folder := &Folder{}
-	err = json.Unmarshal(req, folder)
+	err = json.Unmarshal(body, folder)
 
 	return folder, err
 }
 
-func (p *PaligoClient) ShowDocument(documentId int) (*Document, error) {
+func (p *PaligoClient) showDocument(documentId int) (*Document, error) {
 	if err := p.documentsLimiter.Wait(context.TODO()); err != nil {
 		log.Error().Msgf("Error waiting for rate limiter: %s", err)
 	}
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/documents/%d", p.Instance, documentId)
 
-	req, _, err := lib.HttpRequest("GET", url, p)
+	body, response, err := lib.HttpRequest("GET", url, p)
 	if err != nil {
-		return nil, err
+		if err := reserveRateLimit(response, p.documentsLimiter, err); err != nil {
+			return nil, err
+		}
+		return p.showDocument(documentId)
 	}
 
 	document := &Document{}
-	err = json.Unmarshal(req, document)
+	err = json.Unmarshal(body, document)
 
 	return document, err
 }
 
-func NewPaligoApi(instance string, username string, token string) *PaligoClient {
+func newPaligoApi(instance string, username string, token string) *PaligoClient {
 	return &PaligoClient{
 		Instance: instance,
 		Username: username,
 		Token:    token,
 
-		foldersLimiter:   rate.NewLimiter(rateLimitPerSecond(PALIGO_FOLDER_SHOW_LIMIT), 1),
-		documentsLimiter: rate.NewLimiter(rateLimitPerSecond(PALIGO_DOCUMENT_SHOW_LIMIT), 1),
+		foldersLimiter:   rate.NewLimiter(rateLimitPerSecond(PALIGO_FOLDER_SHOW_LIMIT), PALIGO_FOLDER_SHOW_LIMIT),
+		documentsLimiter: rate.NewLimiter(rateLimitPerSecond(PALIGO_DOCUMENT_SHOW_LIMIT), PALIGO_DOCUMENT_SHOW_LIMIT),
 	}
 }
