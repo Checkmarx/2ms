@@ -255,7 +255,7 @@ func reserveRateLimit(response *http.Response, lim *rate.Limiter, err error) err
 	}
 	seconds, err := strconv.Atoi(rateLimit)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing Retry-After header: %w", err)
 	}
 	log.Warn().Msgf("Rate limit exceeded, need to wait for %d seconds", seconds)
 	lim.SetBurst(1)
@@ -269,20 +269,28 @@ func (p *PaligoClient) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
-// TODO: make a PaligoClient that accept URL and do the job
-func (p *PaligoClient) listFolders() (*[]EmptyFolder, error) {
-	if err := p.foldersLimiter.Wait(context.TODO()); err != nil {
+func (p *PaligoClient) request(endpoint string, lim *rate.Limiter) ([]byte, error) {
+	if err := lim.Wait(context.Background()); err != nil {
 		log.Error().Msgf("Error waiting for rate limiter: %s", err)
+		return nil, err
 	}
 
-	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders", p.Instance)
-
+	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/%s", p.Instance, endpoint)
 	body, response, err := lib.HttpRequest("GET", url, p)
 	if err != nil {
-		if err := reserveRateLimit(response, p.foldersLimiter, err); err != nil {
+		if err := reserveRateLimit(response, lim, err); err != nil {
 			return nil, err
 		}
-		return p.listFolders()
+		return p.request(endpoint, lim)
+	}
+
+	return body, nil
+}
+
+func (p *PaligoClient) listFolders() (*[]EmptyFolder, error) {
+	body, err := p.request("folders", p.foldersLimiter)
+	if err != nil {
+		return nil, err
 	}
 
 	var folders *ListFoldersResponse
@@ -292,18 +300,9 @@ func (p *PaligoClient) listFolders() (*[]EmptyFolder, error) {
 }
 
 func (p *PaligoClient) showFolder(folderId int) (*Folder, error) {
-	if err := p.foldersLimiter.Wait(context.TODO()); err != nil {
-		log.Error().Msgf("Error waiting for rate limiter: %s", err)
-	}
-
-	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/folders/%d", p.Instance, folderId)
-
-	body, response, err := lib.HttpRequest("GET", url, p)
+	body, err := p.request(fmt.Sprintf("folders/%d", folderId), p.foldersLimiter)
 	if err != nil {
-		if err := reserveRateLimit(response, p.foldersLimiter, err); err != nil {
-			return nil, err
-		}
-		return p.showFolder(folderId)
+		return nil, err
 	}
 
 	folder := &Folder{}
@@ -313,18 +312,9 @@ func (p *PaligoClient) showFolder(folderId int) (*Folder, error) {
 }
 
 func (p *PaligoClient) showDocument(documentId int) (*Document, error) {
-	if err := p.documentsLimiter.Wait(context.TODO()); err != nil {
-		log.Error().Msgf("Error waiting for rate limiter: %s", err)
-	}
-
-	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/documents/%d", p.Instance, documentId)
-
-	body, response, err := lib.HttpRequest("GET", url, p)
+	body, err := p.request(fmt.Sprintf("documents/%d", documentId), p.documentsLimiter)
 	if err != nil {
-		if err := reserveRateLimit(response, p.documentsLimiter, err); err != nil {
-			return nil, err
-		}
-		return p.showDocument(documentId)
+		return nil, err
 	}
 
 	document := &Document{}
