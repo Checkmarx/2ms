@@ -82,23 +82,17 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 	return command, nil
 }
 
-// var counter = 0
-
-// func wgAdd(wg *sync.WaitGroup) {
-// 	wg.Add(1)
-// 	counter++
-// 	log.Debug().Msgf("wgAdd: %d", counter)
-// }
-// func wgDone(wg *sync.WaitGroup) {
-// 	wg.Done()
-// 	counter--
-// 	log.Debug().Msgf("wgDone: %d", counter)
-// }
-
 func (p *PaligoPlugin) getItems() {
 	p.paligoApi = newPaligoApi(paligoInstanceArg, p.username, p.token)
 
-	itemsChan := make(chan PaligoItem)
+	foldersToProcess, err := p.getFirstProcessingFolders()
+	if err != nil {
+		p.Channels.Errors <- err
+		return
+	}
+
+	itemsChan := p.processFolders(foldersToProcess)
+
 	p.WaitGroup.Add(1)
 	go func() {
 		defer p.WaitGroup.Done()
@@ -106,125 +100,61 @@ func (p *PaligoPlugin) getItems() {
 			p.handleComponent(item)
 		}
 	}()
-
-	foldersToProcess := []PaligoItem{}
-
-	folders, err := p.paligoApi.listFolders()
-	if err != nil {
-		log.Error().Err(err).Msg("error while getting folders")
-		p.Channels.Errors <- err
-		return
-	}
-
-	for _, folder := range *folders {
-		foldersToProcess = append(foldersToProcess, folder.PaligoItem)
-	}
-
-	for len(foldersToProcess) > 0 {
-		folder := foldersToProcess[0]
-		foldersToProcess = foldersToProcess[1:]
-
-		log.Info().Msgf("Getting folder %s", folder.Name)
-		folderInfo, err := p.paligoApi.showFolder(folder.ID)
-		if err != nil {
-			log.Error().Err(err).Msgf("error while getting %s '%s'", folder.Type, folder.Name)
-			p.Channels.Errors <- err
-			return
-		}
-
-		for _, child := range folderInfo.Children {
-			if child.Type == "component" {
-				// log.Debug().Msgf("Found component %s", child.Name)
-				itemsChan <- child
-				// go p.handleComponent(child)
-			} else if child.Type == "folder" {
-				foldersToProcess = append(foldersToProcess, child)
-			}
-		}
-	}
-	close(itemsChan)
-
-	// go func () {
-	// 	for id <- foldersChan {
-	// 		folder, err := p.paligoApi.showFolder(id)
-	// 		if err != nil {
-	// 			log.Error().Err(err).Msg("error while getting folders")
-	// 			return
-	// 		}
-	// 		log.Info().Msgf("Got %d children", len(folder.Children))
-
-	// 	}
-	// 	close(foldersChan)
-	// }
-
-	// wg := sync.WaitGroup{}
-	// wg.Add(2)
-	// go func() {
-	// 	defer wg.Done()
-	// 	for i := 1; i <= 300; i++ {
-	// 		folders, err := p.paligoApi.listFolders()
-	// 		if err != nil {
-	// 			log.Error().Err(err).Msg("error while getting folders")
-	// 		}
-	// 		log.Info().Msgf("%d: Got %d folders", i, len(*folders))
-	// 	}
-	// }()
-
-	// go func() {
-	// 	defer wg.Done()
-	// 	for i := 1; i <= 300; i++ {
-	// 		folder, err := p.paligoApi.showFolder(144628)
-	// 		if err != nil {
-	// 			log.Error().Err(err).Msg("error while getting folders")
-	// 		}
-	// 		log.Info().Msgf("%d: Got %d children", i, len(folder.Children))
-	// 	}
-	// }()
-	// wg.Wait()
-	// return
-
-	// if paligoFolderArg != 0 {
-	// 	p.WaitGroup.Add(1)
-	// 	go p.handleFolderChildren(PaligoItem{ID: paligoFolderArg, Name: "ID" + fmt.Sprint(paligoFolderArg)})
-	// } else {
-	// 	folders, err := p.paligoApi.listFolders()
-	// 	if err != nil {
-	// 		log.Error().Err(err).Msg("error while getting folders")
-	// 		p.Channels.Errors <- err
-	// 		return
-	// 	}
-	// 	p.WaitGroup.Add(len(*folders))
-	// 	for _, folder := range *folders {
-	// 		go p.handleFolderChildren(folder.PaligoItem)
-	// 	}
-	// }
 }
 
-func (p *PaligoPlugin) handleFolderChildren(folder PaligoItem) {
-	defer p.Channels.WaitGroup.Done()
+func (p *PaligoPlugin) getFirstProcessingFolders() ([]PaligoItem, error) {
+	foldersToProcess := []PaligoItem{}
 
-	log.Info().Msgf("Getting folder %s", folder.Name)
-	folderInfo, err := p.paligoApi.showFolder(folder.ID)
-	if err != nil {
-		log.Error().Err(err).Msgf("error while getting %s '%s'", folder.Type, folder.Name)
-		p.Channels.Errors <- err
-		return
-	}
-
-	for _, child := range folderInfo.Children {
-		if child.Type == "component" {
-			p.WaitGroup.Add(1)
-			go p.handleComponent(child)
-		} else if child.Type == "folder" {
-			p.WaitGroup.Add(1)
-			go p.handleFolderChildren(child)
+	if paligoFolderArg != 0 {
+		foldersToProcess = append(foldersToProcess, PaligoItem{ID: paligoFolderArg, Name: "ID" + fmt.Sprint(paligoFolderArg)})
+	} else {
+		folders, err := p.paligoApi.listFolders()
+		if err != nil {
+			log.Error().Err(err).Msg("error while getting root folders")
+			return nil, fmt.Errorf("error while getting root folders: %w", err)
+		}
+		for _, folder := range *folders {
+			foldersToProcess = append(foldersToProcess, folder.PaligoItem)
 		}
 	}
+	return foldersToProcess, nil
+}
 
+func (p *PaligoPlugin) processFolders(foldersToProcess []PaligoItem) chan PaligoItem {
+
+	itemsChan := make(chan PaligoItem)
+
+	p.WaitGroup.Add(1)
+	go func() {
+		defer p.WaitGroup.Done()
+
+		for len(foldersToProcess) > 0 {
+			folder := foldersToProcess[0]
+			foldersToProcess = foldersToProcess[1:]
+
+			log.Info().Msgf("Getting folder %s", folder.Name)
+			folderInfo, err := p.paligoApi.showFolder(folder.ID)
+			if err != nil {
+				log.Error().Err(err).Msgf("error while getting %s '%s'", folder.Type, folder.Name)
+				p.Channels.Errors <- err
+				continue
+			}
+
+			for _, child := range folderInfo.Children {
+				if child.Type == "component" {
+					itemsChan <- child
+				} else if child.Type == "folder" {
+					foldersToProcess = append(foldersToProcess, child)
+				}
+			}
+		}
+		close(itemsChan)
+	}()
+
+	return itemsChan
 }
 
 func (p *PaligoPlugin) handleComponent(item PaligoItem) {
-	// defer p.Channels.WaitGroup.Done()
 
 	log.Info().Msgf("Getting component %s", item.Name)
 	document, err := p.paligoApi.showDocument(item.ID)
@@ -328,8 +258,7 @@ func reserveRateLimit(response *http.Response, lim *rate.Limiter, err error) err
 		return err
 	}
 	log.Warn().Msgf("Rate limit exceeded, need to wait for %d seconds", seconds)
-	lim.SetBurst(0)
-	defer lim.SetBurst(1)
+	lim.SetBurst(1)
 	// We are not waiting for the exact time, because sometimes we get 429 even for fair use,
 	// and sometimes it is released earlier than the specified time
 	time.Sleep(PALIGO_RATE_LIMIT_CHECK_INTERVAL)
