@@ -45,6 +45,7 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.DiscordPlugin{},
 	&plugins.RepositoryPlugin{},
 	&plugins.SlackPlugin{},
+	&plugins.PaligoPlugin{},
 }
 
 var channels = plugins.Channels{
