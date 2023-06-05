@@ -259,9 +259,7 @@ func reserveRateLimit(response *http.Response, lim *rate.Limiter, err error) err
 	}
 	log.Warn().Msgf("Rate limit exceeded, need to wait for %d seconds", seconds)
 	lim.SetBurst(1)
-	// We are not waiting for the exact time, because sometimes we get 429 even for fair use,
-	// and sometimes it is released earlier than the specified time
-	time.Sleep(PALIGO_RATE_LIMIT_CHECK_INTERVAL)
+	time.Sleep(time.Second * time.Duration(seconds))
 	return nil
 }
 
