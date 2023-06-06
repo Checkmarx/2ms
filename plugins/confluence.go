@@ -39,6 +39,10 @@ func (p *ConfluencePlugin) GetCredentials() (string, string) {
 	return p.Username, p.Token
 }
 
+func (p *ConfluencePlugin) GetAuthorizationHeader() string {
+	return lib.CreateBasicAuthCredentials(p)
+}
+
 func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var confluenceCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s --%s URL", p.GetName(), argUrl),

@@ -19,6 +19,7 @@ const (
 	paligoInstanceFlag = "instance"
 	paligoUsernameFlag = "username"
 	paligoTokenFlag    = "token"
+	paligoAuthFlag     = "auth"
 	paligoFolderFlag   = "folder"
 )
 
@@ -33,12 +34,20 @@ type PaligoPlugin struct {
 
 	username string
 	token    string
+	auth     string
 
 	paligoApi *PaligoClient
 }
 
 func (p *PaligoPlugin) GetCredentials() (string, string) {
 	return p.username, p.token
+}
+
+func (p *PaligoPlugin) GetAuthorizationHeader() string {
+	if p.auth != "" {
+		return fmt.Sprintf("Basic %s", p.auth)
+	}
+	return lib.CreateBasicAuthCredentials(p)
 }
 
 func (p *PaligoPlugin) GetName() string {
@@ -57,6 +66,11 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 		Short: "Scan Paligo instance",
 		Long:  "Scan Paligo instance for sensitive information.",
 		Run: func(cmd *cobra.Command, args []string) {
+			// Waits for MarkFlagsMutuallyExclusiveAndRequired https://github.com/spf13/cobra/pull/1972
+			if p.auth == "" && (p.username == "" || p.token == "") {
+				p.Channels.Errors <- fmt.Errorf("exactly one of the flags in the group %v must be set; none were set", []string{paligoAuthFlag, paligoUsernameFlag, paligoTokenFlag})
+				return
+			}
 			log.Info().Msg("Paligo plugin started")
 			p.getItems()
 		},
@@ -67,23 +81,22 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 	if err != nil {
 		return nil, fmt.Errorf("error while marking flag %s as required: %w", paligoInstanceFlag, err)
 	}
-	command.Flags().StringVar(&p.username, paligoUsernameFlag, "", "Paligo username [required]")
-	err = command.MarkFlagRequired(paligoUsernameFlag)
-	if err != nil {
-		return nil, fmt.Errorf("error while marking flag %s as required: %w", paligoUsernameFlag, err)
-	}
-	command.Flags().StringVar(&p.token, paligoTokenFlag, "", "Paligo token [required]")
-	err = command.MarkFlagRequired(paligoTokenFlag)
-	if err != nil {
-		return nil, fmt.Errorf("error while marking flag %s as required: %w", paligoTokenFlag, err)
-	}
+
+	command.Flags().StringVar(&p.username, paligoUsernameFlag, "", "Paligo username")
+	command.Flags().StringVar(&p.token, paligoTokenFlag, "", "Paligo token")
+	command.MarkFlagsRequiredTogether(paligoUsernameFlag, paligoTokenFlag)
+
+	command.Flags().StringVar(&p.auth, paligoAuthFlag, "", "Paligo encoded username:password")
+	command.MarkFlagsMutuallyExclusive(paligoUsernameFlag, paligoAuthFlag)
+	command.MarkFlagsMutuallyExclusive(paligoTokenFlag, paligoAuthFlag)
+
 	command.Flags().IntVar(&paligoFolderArg, paligoFolderFlag, 0, "Paligo folder ID")
 
 	return command, nil
 }
 
 func (p *PaligoPlugin) getItems() {
-	p.paligoApi = newPaligoApi(paligoInstanceArg, p.username, p.token)
+	p.paligoApi = newPaligoApi(paligoInstanceArg, p)
 
 	foldersToProcess, err := p.getFirstProcessingFolders()
 	if err != nil {
@@ -237,8 +250,7 @@ type Document struct {
 
 type PaligoClient struct {
 	Instance string
-	Username string
-	Token    string
+	auth     lib.IAuthorizationHeader
 
 	foldersLimiter   *rate.Limiter
 	documentsLimiter *rate.Limiter
@@ -263,10 +275,6 @@ func reserveRateLimit(response *http.Response, lim *rate.Limiter, err error) err
 	return nil
 }
 
-func (p *PaligoClient) GetCredentials() (string, string) {
-	return p.Username, p.Token
-}
-
 func (p *PaligoClient) request(endpoint string, lim *rate.Limiter) ([]byte, error) {
 	if err := lim.Wait(context.Background()); err != nil {
 		log.Error().Msgf("Error waiting for rate limiter: %s", err)
@@ -274,7 +282,7 @@ func (p *PaligoClient) request(endpoint string, lim *rate.Limiter) ([]byte, erro
 	}
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/%s", p.Instance, endpoint)
-	body, response, err := lib.HttpRequest("GET", url, p)
+	body, response, err := lib.HttpRequest("GET", url, p.auth)
 	if err != nil {
 		if err := reserveRateLimit(response, lim, err); err != nil {
 			return nil, err
@@ -321,11 +329,10 @@ func (p *PaligoClient) showDocument(documentId int) (*Document, error) {
 	return document, err
 }
 
-func newPaligoApi(instance string, username string, token string) *PaligoClient {
+func newPaligoApi(instance string, auth lib.IAuthorizationHeader) *PaligoClient {
 	return &PaligoClient{
 		Instance: instance,
-		Username: username,
-		Token:    token,
+		auth:     auth,
 
 		foldersLimiter:   rate.NewLimiter(rateLimitPerSecond(PALIGO_FOLDER_SHOW_LIMIT), PALIGO_FOLDER_SHOW_LIMIT),
 		documentsLimiter: rate.NewLimiter(rateLimitPerSecond(PALIGO_DOCUMENT_SHOW_LIMIT), PALIGO_DOCUMENT_SHOW_LIMIT),
