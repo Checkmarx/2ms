@@ -8,8 +8,8 @@ import (
 
 type Item struct {
 	Content string
-	Source  string
-	ID      string
+	// Unique identifier of the item (page, document, file) with user-friendly content (e.g. URL, file path)
+	ID string
 }
 
 type Plugin struct {
