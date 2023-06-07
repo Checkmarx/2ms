@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const argRepository = "path"
+const flagRepository = "path"
 
 type RepositoryPlugin struct {
 	Plugin
@@ -22,46 +22,29 @@ func (p *RepositoryPlugin) GetName() string {
 }
 
 func (p *RepositoryPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
-	var repositoryCmd = &cobra.Command{
-		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), argRepository),
+	var cmd = &cobra.Command{
+		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), flagRepository),
 		Short: "Scan local repository",
 		Long:  "Scan local repository for sensitive information",
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Info().Msg("Repository plugin started")
+			p.getFiles(channels.Items, channels.Errors, channels.WaitGroup)
+		},
 	}
 
-	flags := repositoryCmd.Flags()
-	flags.String(argRepository, "", "Local repository path [required]")
-	err := repositoryCmd.MarkFlagRequired(argRepository)
-	if err != nil {
-		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argRepository, err)
-	}
-
-	repositoryCmd.Run = func(cmd *cobra.Command, args []string) {
-		err := p.initialize(cmd)
-		if err != nil {
-			channels.Errors <- fmt.Errorf("error while initializing plugin: %w", err)
-			return
-		}
-
-		channels.WaitGroup.Add(1)
-		go p.getFiles(channels.Items, channels.Errors, channels.WaitGroup)
-	}
-
-	return repositoryCmd, nil
-}
-
-func (p *RepositoryPlugin) initialize(cmd *cobra.Command) error {
 	flags := cmd.Flags()
-	directoryPath, err := flags.GetString(argRepository)
-	if err != nil {
-		return fmt.Errorf("error while getting '%s' flag value: %w", argRepository, err)
+	flags.StringVar(&p.Path, flagRepository, "", "Local repository path [required]")
+	if err := cmd.MarkFlagDirname(flagRepository); err != nil {
+		return nil, fmt.Errorf("error while marking '%s' flag as directory: %w", flagRepository, err)
+	}
+	if err := cmd.MarkFlagRequired(flagRepository); err != nil {
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", flagRepository, err)
 	}
 
-	p.Path = directoryPath
-	return nil
+	return cmd, nil
 }
 
 func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) {
-	defer wg.Done()
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
