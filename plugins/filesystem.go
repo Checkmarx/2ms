@@ -10,48 +10,52 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const flagRepository = "path"
+const flagFolder = "path"
 
-type RepositoryPlugin struct {
+var ignoredFolders = []string{".git"}
+
+type FileSystemPlugin struct {
 	Plugin
 	Path string
 }
 
-func (p *RepositoryPlugin) GetName() string {
-	return "repository"
+func (p *FileSystemPlugin) GetName() string {
+	return "filesystem"
 }
 
-func (p *RepositoryPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
+func (p *FileSystemPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var cmd = &cobra.Command{
-		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), flagRepository),
-		Short: "Scan local repository",
-		Long:  "Scan local repository for sensitive information",
+		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), flagFolder),
+		Short: "Scan local folder",
+		Long:  "Scan local folder for sensitive information",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Info().Msg("Repository plugin started")
+			log.Info().Msg("Folder plugin started")
 			p.getFiles(channels.Items, channels.Errors, channels.WaitGroup)
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&p.Path, flagRepository, "", "Local repository path [required]")
-	if err := cmd.MarkFlagDirname(flagRepository); err != nil {
-		return nil, fmt.Errorf("error while marking '%s' flag as directory: %w", flagRepository, err)
+	flags.StringVar(&p.Path, flagFolder, "", "Local folder path [required]")
+	if err := cmd.MarkFlagDirname(flagFolder); err != nil {
+		return nil, fmt.Errorf("error while marking '%s' flag as directory: %w", flagFolder, err)
 	}
-	if err := cmd.MarkFlagRequired(flagRepository); err != nil {
-		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", flagRepository, err)
+	if err := cmd.MarkFlagRequired(flagFolder); err != nil {
+		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", flagFolder, err)
 	}
 
 	return cmd, nil
 }
 
-func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) {
+func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
 			log.Fatal().Err(err).Msg("error while walking through the directory")
 		}
-		if fInfo.Name() == ".git" && fInfo.IsDir() {
-			return filepath.SkipDir
+		for _, ignoredFolder := range ignoredFolders {
+			if fInfo.Name() == ignoredFolder && fInfo.IsDir() {
+				return filepath.SkipDir
+			}
 		}
 		if fInfo.Size() == 0 {
 			return nil
@@ -69,7 +73,7 @@ func (p *RepositoryPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 	p.getItems(items, errs, wg, fileList)
 }
 
-func (p *RepositoryPlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup, fileList []string) {
+func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup, fileList []string) {
 	for _, filePath := range fileList {
 		wg.Add(1)
 		go func(filePath string) {
@@ -83,7 +87,7 @@ func (p *RepositoryPlugin) getItems(items chan Item, errs chan error, wg *sync.W
 	}
 }
 
-func (p *RepositoryPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, error) {
+func (p *FileSystemPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, error) {
 	defer wg.Done()
 	b, err := os.ReadFile(filePath)
 	if err != nil {
