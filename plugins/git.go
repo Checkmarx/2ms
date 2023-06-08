@@ -13,8 +13,6 @@ import (
 type GitPlugin struct {
 	Plugin
 	Channels
-
-	path string
 }
 
 func (p *GitPlugin) GetName() string {
