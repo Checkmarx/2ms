@@ -118,10 +118,14 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 				break
 			}
 			if message.Text != "" {
+				url, err := slackApi.GetPermalink(&slack.PermalinkParameters{Channel: channel.ID, Ts: message.Timestamp})
+				if err != nil {
+					log.Warn().Msgf("Error while getting permalink for message %s: %s", message.Timestamp, err)
+					url = fmt.Sprintf("Channel: %s; Message: %s", channel.Name, message.Timestamp)
+				}
 				p.Items <- Item{
 					Content: message.Text,
-					Source:  channel.Name,
-					ID:      message.Timestamp,
+					ID:      url,
 				}
 			}
 			counter++

@@ -276,7 +276,6 @@ func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceRes
 
 	content := &Item{
 		Content: pageContent.Body.Storage.Value,
-		Source:  url,
 		ID:      originalUrl,
 	}
 	return content, pageContent.History.PreviousVersion.Number, nil
