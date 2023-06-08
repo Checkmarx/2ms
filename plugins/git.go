@@ -43,6 +43,8 @@ func scanGit(path string, itemsChan chan Item, errChan chan error) {
 	if err != nil {
 		errChan <- fmt.Errorf("error while scanning git repository: %w", err)
 	}
+	log.Debug().Msgf("scanned git repository: %s", path)
+
 	for file := range fileChan {
 		log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
 		if file.IsBinary || file.IsDelete {
@@ -57,10 +59,8 @@ func scanGit(path string, itemsChan chan Item, errChan chan error) {
 			}
 		}
 		if fileChanges != "" {
-			log.Debug().Msgf("file: %s; Changes: %s", file.NewName, fileChanges)
 			itemsChan <- Item{
 				Content: fileChanges,
-				Source:  file.NewName,
 				ID:      fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
 			}
 		}
