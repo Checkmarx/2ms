@@ -46,6 +46,7 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.FileSystemPlugin{},
 	&plugins.SlackPlugin{},
 	&plugins.PaligoPlugin{},
+	&plugins.GitPlugin{},
 }
 
 var channels = plugins.Channels{
