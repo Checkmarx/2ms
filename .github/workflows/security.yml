@@ -11,7 +11,7 @@ on:
     - cron: "0 0 * * *"
 
 jobs:
-  2ms:
+  twoms:
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
