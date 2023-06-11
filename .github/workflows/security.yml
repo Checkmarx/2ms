@@ -1,0 +1,44 @@
+name: Security Checks
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  2ms:
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v3
+      - name: Download latest 2ms version
+        run: curl -LO https://github.com/Checkmarx/2ms/releases/latest/download/2ms && chmod +x 2ms
+      - name: Run 2ms Security Scanner
+        run: ./2ms git . --report-path results.sarif
+      - name: Upload 2ms Results
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: results.sarif
+
+  gosec:
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v3
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: "-no-fail -fmt sarif -out results.sarif ./..."
+      - name: Upload Gosec Results
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: results.sarif
