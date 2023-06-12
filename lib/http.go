@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,15 +11,23 @@ type ICredentials interface {
 	GetCredentials() (string, string)
 }
 
-func HttpRequest(method string, url string, credentials ICredentials) ([]byte, *http.Response, error) {
+func CreateBasicAuthCredentials(credentials ICredentials) string {
+	username, password := credentials.GetCredentials()
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+}
+
+type IAuthorizationHeader interface {
+	GetAuthorizationHeader() string
+}
+
+func HttpRequest(method string, url string, autherization IAuthorizationHeader) ([]byte, *http.Response, error) {
 	request, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	username, password := credentials.GetCredentials()
-	if username != "" && password != "" {
-		request.SetBasicAuth(username, password)
+	if autherization.GetAuthorizationHeader() != "" {
+		request.Header.Set("Authorization", autherization.GetAuthorizationHeader())
 	}
 
 	client := &http.Client{}
