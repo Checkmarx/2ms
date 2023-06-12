@@ -12,8 +12,8 @@ RUN go build -o /app/2ms .
 # ^^^^ disable kics Healthcheck result
 FROM alpine:3.18
 
-RUN addgroup -S kics && adduser -S kics -G kics
-USER kics
+RUN addgroup -S 2ms && adduser -S 2ms -G 2ms
+USER 2ms
 
 COPY --from=builder /app/2ms /2ms
 ENTRYPOINT ["/2ms"]
