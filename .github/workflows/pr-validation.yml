@@ -39,7 +39,7 @@ jobs:
       - run: make build
       - name: Run docker and check its output
         run:
-          if docker run -v .:/repo -t checkmarx/2ms:latest git /repo | grep "Summary:"; then
+          if docker run -v "$(pwd)":/repo -t checkmarx/2ms:latest git /repo | grep -A 5 "Summary:"; then
           echo "Docker ran as expected";
           else
           echo "Docker did not run as expected";
