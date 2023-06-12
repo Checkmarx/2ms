@@ -67,15 +67,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: |
-            checkmarx/2ms:latest
-            checkmarx/2ms:${{ needs.test.outputs.version }}
-
       - name: Creating Release
         uses: softprops/action-gh-release@v0.1.15
         with:
@@ -85,3 +76,12 @@ jobs:
           target_commitish: ${{ steps.commit_and_push.outputs.latest_commit_hash }}
           files: |
             bin/2ms
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            checkmarx/2ms:latest
+            checkmarx/2ms:${{ needs.test.outputs.version }}
