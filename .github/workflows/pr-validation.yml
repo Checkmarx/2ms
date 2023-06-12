@@ -9,7 +9,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: '^1.20'
+          go-version: "^1.20"
 
       - name: Go Linter
         run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.52.0 golangci-lint run -v -E gofmt --timeout=5m
@@ -32,17 +32,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      
+
       - run: make build
       - name: Run docker and check its output
-        run: if docker run -t checkmarx/2ms:latest --version | grep "2ms version"; then
-            echo "Docker ran as expected";
+        run:
+          if docker run -v "$(pwd)":/repo -t checkmarx/2ms:latest git /repo | grep -A 5 "Summary:"; then
+          echo "Docker ran as expected";
           else
-            echo "Docker did not run as expected";
-            exit 1;
+          echo "Docker did not run as expected";
+          exit 1;
           fi
 
   kics:
@@ -50,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: mkdir -p kics-results
-      
+
       - name: Run KICS scan
         uses: checkmarx/kics-github-action@master
         with:
