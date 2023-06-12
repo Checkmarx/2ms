@@ -43,9 +43,10 @@ var rootCmd = &cobra.Command{
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
 	&plugins.DiscordPlugin{},
-	&plugins.RepositoryPlugin{},
+	&plugins.FileSystemPlugin{},
 	&plugins.SlackPlugin{},
 	&plugins.PaligoPlugin{},
+	&plugins.GitPlugin{},
 }
 
 var channels = plugins.Channels{
