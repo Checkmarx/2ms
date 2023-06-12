@@ -3,8 +3,10 @@ FROM golang:1.20.5-alpine3.18 AS builder
 
 WORKDIR /app
 
-COPY . .
+COPY go.mod go.sum ./
 RUN go mod download
+
+COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
