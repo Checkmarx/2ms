@@ -13,10 +13,12 @@ import (
 // TODO: positional arguments
 // TODO: other resources
 
+const envVarPrefix = "PREFIX"
+
 func TestBindFlags(t *testing.T) {
 	t.Run("BindFlags_TestEmptyViper", func(t *testing.T) {
 		cmd := &cobra.Command{}
-		v := viper.New()
+		v := getViper()
 
 		var (
 			testString  string
@@ -30,7 +32,7 @@ func TestBindFlags(t *testing.T) {
 		cmd.PersistentFlags().BoolVar(&testBool, "test-bool", false, "Test bool flag")
 		cmd.PersistentFlags().Float64Var(&testFloat64, "test-float64", 0.0, "Test float64 flag")
 
-		err := lib.BindFlags(cmd, v, "PREFIX")
+		err := lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, testString, v.GetString("test-string"))
@@ -41,8 +43,8 @@ func TestBindFlags(t *testing.T) {
 
 	t.Run("BindFlags_FromEnvVarsToCobraCommand", func(t *testing.T) {
 		cmd := &cobra.Command{}
-		v := viper.New()
-		v.SetEnvPrefix("PREFIX")
+		v := getViper()
+		v.SetEnvPrefix(envVarPrefix)
 
 		var (
 			testString  string
@@ -65,7 +67,7 @@ func TestBindFlags(t *testing.T) {
 		err = setEnv("PREFIX_TEST_FLOAT64", "1.23")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, "PREFIX")
+		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.NotEmpty(t, v.GetString("test-string"))
@@ -82,7 +84,7 @@ func TestBindFlags(t *testing.T) {
 
 	t.Run("BindFlags_NonPersistentFlags", func(t *testing.T) {
 		cmd := &cobra.Command{}
-		v := viper.New()
+		v := getViper()
 
 		var (
 			testString string
@@ -93,7 +95,7 @@ func TestBindFlags(t *testing.T) {
 		err := setEnv("PREFIX_TEST_STRING", "test-string-value")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, "PREFIX")
+		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.NotEmpty(t, v.GetString("test-string"))
@@ -112,14 +114,14 @@ func TestBindFlags(t *testing.T) {
 
 		cmd := &cobra.Command{}
 		cmd.AddCommand(subCommand)
-		v := viper.New()
+		v := getViper()
 
 		err := setEnv("PREFIX_TEST_STRING", "test-string-value")
 		assert.NoError(t, err)
 		err = setEnv("PREFIX_TEST_INT", "456")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, "PREFIX")
+		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.NotEmpty(t, v.GetString("test-string"))
@@ -131,7 +133,7 @@ func TestBindFlags(t *testing.T) {
 
 	t.Run("BindFlags_ArrayFlag", func(t *testing.T) {
 		cmd := &cobra.Command{}
-		v := viper.New()
+		v := getViper()
 
 		var (
 			testArray []string
@@ -142,7 +144,7 @@ func TestBindFlags(t *testing.T) {
 		err := setEnv("PREFIX_TEST_ARRAY", "test,array,value")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, "PREFIX")
+		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.NotEmpty(t, v.GetStringSlice("test-array"))
@@ -151,7 +153,7 @@ func TestBindFlags(t *testing.T) {
 
 	t.Run("BindFlags_ReturnsErrorForUnknownConfigurationKeys", func(t *testing.T) {
 		cmd := &cobra.Command{}
-		v := viper.New()
+		v := getViper()
 
 		var (
 			testString string
@@ -161,14 +163,14 @@ func TestBindFlags(t *testing.T) {
 
 		v.Set("unknown-key", "unknown-value")
 
-		err := lib.BindFlags(cmd, v, "PREFIX")
+		err := lib.BindFlags(cmd, v, envVarPrefix)
 
 		assert.EqualError(t, err, "unknown configuration key: 'unknown-key'\nShowing help for '' command")
 	})
 
 	t.Run("BindFlags_LowerCaseEnvVars", func(t *testing.T) {
 		cmd := &cobra.Command{}
-		v := viper.New()
+		v := getViper()
 
 		var (
 			testString string
@@ -179,7 +181,7 @@ func TestBindFlags(t *testing.T) {
 		err := setEnv("prefix_test_string", "test-string-value")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, "PREFIX")
+		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.NotEmpty(t, v.GetString("test-string"))
@@ -188,7 +190,7 @@ func TestBindFlags(t *testing.T) {
 
 	t.Run("BindFlags_OneWordFlagName", func(t *testing.T) {
 		cmd := &cobra.Command{}
-		v := viper.New()
+		v := getViper()
 
 		var (
 			testString string
@@ -199,7 +201,7 @@ func TestBindFlags(t *testing.T) {
 		err := setEnv("prefix_teststring", "test-string-value")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, "PREFIX")
+		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.NotEmpty(t, v.GetString("teststring"))
@@ -207,7 +209,15 @@ func TestBindFlags(t *testing.T) {
 	})
 }
 
+// TODO: dont change the env vars!
 // Helper function to set an environment variable for testing
 func setEnv(key, value string) error {
 	return os.Setenv(key, value)
+}
+
+func getViper() *viper.Viper {
+	v := viper.New()
+	v.SetEnvPrefix(envVarPrefix)
+
+	return v
 }
