@@ -2,6 +2,7 @@ package lib_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/checkmarx/2ms/lib"
@@ -147,23 +148,32 @@ func TestBindFlags(t *testing.T) {
 		assertClearEnv(t)
 		defer clearEnvVars(t)
 
+		arr := []string{"test", "array", "flag"}
+
 		cmd := &cobra.Command{}
 		v := getViper()
 
 		var (
-			testArray []string
+			// testArraySpaces []string
+			testArrayCommas []string
 		)
 
-		cmd.PersistentFlags().StringSliceVar(&testArray, "test-array", []string{}, "Test array flag")
+		// cmd.PersistentFlags().StringSliceVar(&testArraySpaces, "test-array-spaces", []string{}, "Test array flag")
+		cmd.PersistentFlags().StringSliceVar(&testArrayCommas, "test-array-commas", []string{}, "Test array flag")
 
-		err := setEnv("PREFIX_TEST_ARRAY", "test,array,value")
+		// err := setEnv("PREFIX_TEST_ARRAY_SPACES", strings.Join(arr, " "))
+		// assert.NoError(t, err)
+		err := setEnv("PREFIX_TEST_ARRAY_COMMAS", strings.Join(arr, ","))
 		assert.NoError(t, err)
 
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.NotEmpty(t, v.GetStringSlice("test-array"))
-		assert.Equal(t, testArray, v.GetStringSlice("test-array"))
+		// assert.NotEmpty(t, v.GetStringSlice("test-array-spaces"))
+		assert.NotEmpty(t, v.GetStringSlice("test-array-commas"))
+
+		// assert.Equal(t, testArraySpaces, arr)
+		assert.Equal(t, testArrayCommas, arr)
 	})
 
 	t.Run("BindFlags_ReturnsErrorForUnknownConfigurationKeys", func(t *testing.T) {
