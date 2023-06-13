@@ -16,12 +16,23 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	settingsMap := v.AllSettings()
 	cmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
 		settingsMap[f.Name] = true
-		if strings.Contains(f.Name, "-") {
-			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
-			variableName := fmt.Sprintf("%s_%s", envPrefix, envVarSuffix)
-			if err := v.BindEnv(f.Name, variableName); err != nil {
-				log.Err(err).Msg("Failed to bind Viper flags")
-			}
+		envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
+		variableName := fmt.Sprintf("%s_%s", envPrefix, envVarSuffix)
+		if err := v.BindEnv(f.Name, variableName); err != nil {
+			log.Err(err).Msg("Failed to bind Viper flags")
+		}
+
+		if !f.Changed && v.IsSet(f.Name) {
+			val := v.Get(f.Name)
+			setBoundFlags(f, val, cmd)
+		}
+	})
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		settingsMap[f.Name] = true
+		envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
+		variableName := fmt.Sprintf("%s_%s", envPrefix, envVarSuffix)
+		if err := v.BindEnv(f.Name, variableName); err != nil {
+			log.Err(err).Msg("Failed to bind Viper flags")
 		}
 		if !f.Changed && v.IsSet(f.Name) {
 			val := v.Get(f.Name)
