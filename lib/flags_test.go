@@ -17,6 +17,9 @@ const envVarPrefix = "PREFIX"
 
 func TestBindFlags(t *testing.T) {
 	t.Run("BindFlags_TestEmptyViper", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
 		cmd := &cobra.Command{}
 		v := getViper()
 
@@ -42,6 +45,9 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_FromEnvVarsToCobraCommand", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
 		cmd := &cobra.Command{}
 		v := getViper()
 		v.SetEnvPrefix(envVarPrefix)
@@ -83,6 +89,9 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_NonPersistentFlags", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
 		cmd := &cobra.Command{}
 		v := getViper()
 
@@ -103,6 +112,9 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_Subcommand", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
 		var (
 			testString string
 			testInt    int
@@ -132,6 +144,9 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_ArrayFlag", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
 		cmd := &cobra.Command{}
 		v := getViper()
 
@@ -152,6 +167,9 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_ReturnsErrorForUnknownConfigurationKeys", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
 		cmd := &cobra.Command{}
 		v := getViper()
 
@@ -169,6 +187,9 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_LowerCaseEnvVars", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
 		cmd := &cobra.Command{}
 		v := getViper()
 
@@ -189,6 +210,9 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_OneWordFlagName", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
 		cmd := &cobra.Command{}
 		v := getViper()
 
@@ -209,10 +233,24 @@ func TestBindFlags(t *testing.T) {
 	})
 }
 
-// TODO: dont change the env vars!
-// Helper function to set an environment variable for testing
+var envKeys []string
+
+func assertClearEnv(t *testing.T) {
+	assert.Len(t, envKeys, 0)
+}
+
 func setEnv(key, value string) error {
+	envKeys = append(envKeys, key)
 	return os.Setenv(key, value)
+}
+
+func clearEnvVars(t *testing.T) {
+	for len(envKeys) > 0 {
+		key := envKeys[0]
+		err := os.Unsetenv(key)
+		assert.NoError(t, err)
+		envKeys = envKeys[1:]
+	}
 }
 
 func getViper() *viper.Viper {
