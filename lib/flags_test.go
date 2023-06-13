@@ -10,12 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: test subcommand
-// TODO: test array
-// TODO: test persistent and not persistent flags
-// TODO: lowercase and uppercase env vars
-// TODO: test unknown configuration flag (flag in viper but not in cobra)
 // TODO: positional arguments
+// TODO: other resources
 
 func TestBindFlags(t *testing.T) {
 	t.Run("BindFlags_TestEmptyViper", func(t *testing.T) {
@@ -72,6 +68,11 @@ func TestBindFlags(t *testing.T) {
 		err = lib.BindFlags(cmd, v, "PREFIX")
 		assert.NoError(t, err)
 
+		assert.NotEmpty(t, v.GetString("test-string"))
+		assert.NotEmpty(t, v.GetInt("test-int"))
+		assert.NotEmpty(t, v.GetBool("test-bool"))
+		assert.NotEmpty(t, v.GetFloat64("test-float64"))
+
 		assert.Equal(t, testString, v.GetString("test-string"))
 		assert.Equal(t, testInt, v.GetInt("test-int"))
 		assert.Equal(t, testBool, v.GetBool("test-bool"))
@@ -80,7 +81,6 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_NonPersistentFlags", func(t *testing.T) {
-
 		cmd := &cobra.Command{}
 		v := viper.New()
 
@@ -96,30 +96,114 @@ func TestBindFlags(t *testing.T) {
 		err = lib.BindFlags(cmd, v, "PREFIX")
 		assert.NoError(t, err)
 
+		assert.NotEmpty(t, v.GetString("test-string"))
 		assert.Equal(t, testString, v.GetString("test-string"))
 	})
 
-	t.Run("BindFlags_ReturnsErrorForUnknownConfigurationKeys", func(t *testing.T) {
-		// Create a new Cobra command and Viper instance
+	t.Run("BindFlags_Subcommand", func(t *testing.T) {
+		var (
+			testString string
+			testInt    int
+		)
+
+		subCommand := &cobra.Command{}
+		subCommand.Flags().StringVar(&testString, "test-string", "", "Test string flag")
+		subCommand.PersistentFlags().IntVar(&testInt, "test-int", 0, "Test int flag")
+
+		cmd := &cobra.Command{}
+		cmd.AddCommand(subCommand)
+		v := viper.New()
+
+		err := setEnv("PREFIX_TEST_STRING", "test-string-value")
+		assert.NoError(t, err)
+		err = setEnv("PREFIX_TEST_INT", "456")
+		assert.NoError(t, err)
+
+		err = lib.BindFlags(cmd, v, "PREFIX")
+		assert.NoError(t, err)
+
+		assert.NotEmpty(t, v.GetString("test-string"))
+		assert.NotEmpty(t, v.GetInt("test-int"))
+
+		assert.Equal(t, testString, v.GetString("test-string"))
+		assert.Equal(t, testInt, v.GetInt("test-int"))
+	})
+
+	t.Run("BindFlags_ArrayFlag", func(t *testing.T) {
 		cmd := &cobra.Command{}
 		v := viper.New()
 
-		// Define some test flags
+		var (
+			testArray []string
+		)
+
+		cmd.PersistentFlags().StringSliceVar(&testArray, "test-array", []string{}, "Test array flag")
+
+		err := setEnv("PREFIX_TEST_ARRAY", "test,array,value")
+		assert.NoError(t, err)
+
+		err = lib.BindFlags(cmd, v, "PREFIX")
+		assert.NoError(t, err)
+
+		assert.NotEmpty(t, v.GetStringSlice("test-array"))
+		assert.Equal(t, testArray, v.GetStringSlice("test-array"))
+	})
+
+	t.Run("BindFlags_ReturnsErrorForUnknownConfigurationKeys", func(t *testing.T) {
+		cmd := &cobra.Command{}
+		v := viper.New()
+
 		var (
 			testString string
 		)
 
-		// Add the test flag to the command
 		cmd.PersistentFlags().StringVar(&testString, "test-string", "", "Test string flag")
 
-		// Set an unknown configuration key
 		v.Set("unknown-key", "unknown-value")
 
-		// Bind the flags to the Viper instance
 		err := lib.BindFlags(cmd, v, "PREFIX")
 
-		// Test that an error is returned for unknown configuration keys
 		assert.EqualError(t, err, "unknown configuration key: 'unknown-key'\nShowing help for '' command")
+	})
+
+	t.Run("BindFlags_LowerCaseEnvVars", func(t *testing.T) {
+		cmd := &cobra.Command{}
+		v := viper.New()
+
+		var (
+			testString string
+		)
+
+		cmd.PersistentFlags().StringVar(&testString, "test-string", "", "Test string flag")
+
+		err := setEnv("prefix_test_string", "test-string-value")
+		assert.NoError(t, err)
+
+		err = lib.BindFlags(cmd, v, "PREFIX")
+		assert.NoError(t, err)
+
+		assert.NotEmpty(t, v.GetString("test-string"))
+		assert.Equal(t, testString, v.GetString("test-string"))
+	})
+
+	t.Run("BindFlags_OneWordFlagName", func(t *testing.T) {
+		cmd := &cobra.Command{}
+		v := viper.New()
+
+		var (
+			testString string
+		)
+
+		cmd.Flags().StringVar(&testString, "teststring", "", "Test string flag")
+
+		err := setEnv("prefix_teststring", "test-string-value")
+		assert.NoError(t, err)
+
+		err = lib.BindFlags(cmd, v, "PREFIX")
+		assert.NoError(t, err)
+
+		assert.NotEmpty(t, v.GetString("teststring"))
+		assert.Equal(t, testString, v.GetString("teststring"))
 	})
 }
 
