@@ -33,6 +33,13 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 			return fmt.Errorf("unknown configuration key: '%s'\nShowing help for '%s' command", key, cmd.Name())
 		}
 	}
+
+	for _, subCmd := range cmd.Commands() {
+		if err := BindFlags(subCmd, v, envPrefix); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
