@@ -12,33 +12,21 @@ import (
 
 // BindFlags fill flags values with config file or environment variables data
 func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
-	log.Debug().Msg("console.bindFlags()")
 	settingsMap := v.AllSettings()
-	cmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
+
+	bindFlag := func(f *pflag.Flag) {
 		settingsMap[f.Name] = true
-		envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
-		variableName := fmt.Sprintf("%s_%s", envPrefix, envVarSuffix)
-		if err := v.BindEnv(f.Name, variableName); err != nil {
-			log.Err(err).Msg("Failed to bind Viper flags")
-		}
+		bindEnvVarIntoViper(f, v, envPrefix)
 
 		if !f.Changed && v.IsSet(f.Name) {
 			val := v.Get(f.Name)
-			setBoundFlags(f, val, cmd)
+			applyViperFlagToCommand(f, val, cmd)
 		}
-	})
-	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		settingsMap[f.Name] = true
-		envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
-		variableName := fmt.Sprintf("%s_%s", envPrefix, envVarSuffix)
-		if err := v.BindEnv(f.Name, variableName); err != nil {
-			log.Err(err).Msg("Failed to bind Viper flags")
-		}
-		if !f.Changed && v.IsSet(f.Name) {
-			val := v.Get(f.Name)
-			setBoundFlags(f, val, cmd)
-		}
-	})
+	}
+
+	cmd.PersistentFlags().VisitAll(bindFlag)
+	cmd.Flags().VisitAll(bindFlag)
+
 	for key, val := range settingsMap {
 		if val != true {
 			return fmt.Errorf("unknown configuration key: '%s'\nShowing help for '%s' command", key, cmd.Name())
@@ -47,7 +35,16 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	return nil
 }
 
-func setBoundFlags(flag *pflag.Flag, val interface{}, cmd *cobra.Command) {
+func bindEnvVarIntoViper(f *pflag.Flag, v *viper.Viper, envPrefix string) {
+	envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
+	envVarName := fmt.Sprintf("%s_%s", envPrefix, envVarSuffix)
+
+	if err := v.BindEnv(f.Name, envVarName); err != nil {
+		log.Err(err).Msg("Failed to bind Viper flags")
+	}
+}
+
+func applyViperFlagToCommand(flag *pflag.Flag, val interface{}, cmd *cobra.Command) {
 	switch t := val.(type) {
 	case []interface{}:
 		var paramSlice []string
