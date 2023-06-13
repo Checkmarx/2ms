@@ -25,7 +25,7 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 		}
 		if !f.Changed && v.IsSet(f.Name) {
 			val := v.Get(f.Name)
-			setBoundFlags(f.Name, val, cmd)
+			setBoundFlags(f, val, cmd)
 		}
 	})
 	for key, val := range settingsMap {
@@ -36,7 +36,7 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	return nil
 }
 
-func setBoundFlags(flagName string, val interface{}, cmd *cobra.Command) {
+func setBoundFlags(flag *pflag.Flag, val interface{}, cmd *cobra.Command) {
 	switch t := val.(type) {
 	case []interface{}:
 		var paramSlice []string
@@ -44,12 +44,12 @@ func setBoundFlags(flagName string, val interface{}, cmd *cobra.Command) {
 			paramSlice = append(paramSlice, param.(string))
 		}
 		valStr := strings.Join(paramSlice, ",")
-		if err := cmd.Flags().Set(flagName, valStr); err != nil {
+		if err := flag.Value.Set(valStr); err != nil {
 			log.Err(err).Msg("Failed to set Viper flags")
 		}
 	default:
 		newVal := fmt.Sprintf("%v", val)
-		if err := cmd.PersistentFlags().Set(flagName, newVal); err != nil {
+		if err := flag.Value.Set(newVal); err != nil {
 			log.Err(err).Msg("Failed to set Viper flags")
 		}
 	}
