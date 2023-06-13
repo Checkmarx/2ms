@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// TODO: can be a package
 // BindFlags fill flags values with config file or environment variables data
 func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	settingsMap := v.AllSettings()
@@ -39,7 +40,7 @@ func bindEnvVarIntoViper(f *pflag.Flag, v *viper.Viper, envPrefix string) {
 	envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
 	envVarName := fmt.Sprintf("%s_%s", envPrefix, envVarSuffix)
 
-	if err := v.BindEnv(f.Name, envVarName); err != nil {
+	if err := v.BindEnv(f.Name, envVarName, strings.ToLower(envVarName)); err != nil {
 		log.Err(err).Msg("Failed to bind Viper flags")
 	}
 }
