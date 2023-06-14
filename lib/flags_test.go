@@ -15,6 +15,8 @@ import (
 // TODO: positional arguments
 // TODO: other resources (yaml)
 // TODO: sub of sub commands
+// TODO: same flag name in different commands level
+// TODO: assert.Equal to the expected value and not to viper value because I don't care about the viper key and value.
 
 const envVarPrefix = "PREFIX"
 
@@ -374,26 +376,18 @@ subCommand:
 		subCmd.Flags().IntVar(&testInt, "test-int", 0, "Test int flag")
 		subCmd.PersistentFlags().BoolVar(&testBool, "test-bool", false, "Test bool flag")
 
-		err := setEnv("GLOBAL_STRING", "global-string-value-from-env")
+		err := setEnv("PREFIX_GLOBAL_STRING", "global-string-value-from-env")
 		assert.NoError(t, err)
-		err = setEnv("SUBCOMMAND_TEST_STRING", "test-string-value-from-env")
+		err = setEnv("PREFIX_TEST_STRING", "test-string-value-from-env")
 		assert.NoError(t, err)
 
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "global-string-value-from-env", v.GetString("global-string"))
-		assert.Equal(t, "test-string-value-from-env", v.GetString("test-string"))
-
-		assert.NotEmpty(t, v.GetString("global-string"))
-		assert.NotEmpty(t, v.GetString("test-string"))
-		assert.NotEmpty(t, v.GetInt("test-int"))
-		assert.NotEmpty(t, v.GetBool("test-bool"))
-
-		assert.Equal(t, globalString, v.GetString("global-string"))
-		assert.Equal(t, testString, v.GetString("test-string"))
-		assert.Equal(t, testInt, v.GetInt("test-int"))
-		assert.Equal(t, testBool, v.GetBool("test-bool"))
+		assert.Equal(t, globalString, "global-string-value-from-env")
+		assert.Equal(t, testString, "test-string-value-from-env")
+		assert.Equal(t, testInt, 123)
+		assert.Equal(t, testBool, true)
 	})
 }
 
