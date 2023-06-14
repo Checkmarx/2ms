@@ -13,13 +13,21 @@ import (
 // TODO: can be a package
 // BindFlags fill flags values with config file or environment variables data
 func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
-	settingsMap := v.AllSettings()
 
 	bindFlag := func(f *pflag.Flag) {
-		settingsMap[f.Name] = true
 		bindEnvVarIntoViper(f, v, envPrefix)
 
-		if !f.Changed && v.IsSet(f.Name) {
+		if f.Changed {
+			return
+		}
+
+		hirarchy := fmt.Sprintf("%s.%s", cmd.Name(), f.Name)
+		if v.IsSet(hirarchy) {
+			val := v.Get(hirarchy)
+			applyViperFlagToCommand(f, val, cmd)
+		}
+
+		if v.IsSet(f.Name) {
 			val := v.Get(f.Name)
 			applyViperFlagToCommand(f, val, cmd)
 		}
@@ -27,12 +35,6 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 
 	cmd.PersistentFlags().VisitAll(bindFlag)
 	cmd.Flags().VisitAll(bindFlag)
-
-	for key, val := range settingsMap {
-		if val != true {
-			return fmt.Errorf("unknown configuration key: '%s'\nShowing help for '%s' command", key, cmd.Name())
-		}
-	}
 
 	for _, subCmd := range cmd.Commands() {
 		if err := BindFlags(subCmd, v, envPrefix); err != nil {
@@ -54,6 +56,7 @@ func bindEnvVarIntoViper(f *pflag.Flag, v *viper.Viper, envPrefix string) {
 
 func applyViperFlagToCommand(flag *pflag.Flag, val interface{}, cmd *cobra.Command) {
 	switch t := val.(type) {
+	// TODO: remove this case?
 	case []interface{}:
 		var paramSlice []string
 		for _, param := range t {
