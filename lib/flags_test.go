@@ -246,6 +246,93 @@ func TestBindFlags(t *testing.T) {
 		assert.Equal(t, testString, v.GetString("teststring"))
 	})
 
+	t.Run("BindFlags_SameFlagNameDifferentCmd_Root", func(t *testing.T) {
+		/*
+			When the same flag name is used in different commands, the last command
+			will overwrite the previous one.
+			var (
+				cmd1op1 string
+				cmd1op2 string
+				rootOp1 string
+				rootOp2 string
+			)
+
+			func Execute() {
+				var rootCmd = &cobra.Command{
+					Use: "",
+					Run: func(cmd *cobra.Command, args []string) {
+						log.Printf("cmd1op1: %s", cmd1op1)
+						log.Printf("cmd1op2: %s", cmd1op2)
+						log.Printf("rootOp1: %s", rootOp1)
+						log.Printf("rootOp2: %s", rootOp2)
+					},
+				}
+
+				cmd1 := &cobra.Command{
+					Use: "cmd1",
+					Run: func(cmd *cobra.Command, args []string) {
+						log.Printf("cmd1op1: %s", cmd1op1)
+						log.Printf("cmd1op2: %s", cmd1op2)
+						log.Printf("rootOp1: %s", rootOp1)
+						log.Printf("rootOp2: %s", rootOp2)
+					},
+				}
+				cmd1.PersistentFlags().StringVar(&cmd1op1, "op1", "", "persistent option1 for cmd1, not required for rootCmd")
+				cmd1.Flags().StringVar(&cmd1op2, "op2", "", "option2 for cmd1, not required for rootCmd")
+				rootCmd.AddCommand(cmd1)
+
+				rootCmd.PersistentFlags().StringVar(&rootOp1, "op1", "", "persistent option1 for rootCmd, not required for cmd1")
+				rootCmd.Flags().StringVar(&rootOp2, "op2", "", "option2 for rootCmd, not required for cmd1")
+
+				err := rootCmd.Execute()
+				if err != nil {
+					os.Exit(1)
+				}
+			}
+		*/
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
+		rootCmd := &cobra.Command{}
+		cmd1 := &cobra.Command{}
+		cmd2 := &cobra.Command{}
+		v := getViper()
+
+		var (
+			testStringRoot           string
+			testStringPersistentRoot string
+			testString1              string
+			testStringPersistent1    string
+			testString2              string
+			testStringPersistent2    string
+		)
+
+		rootCmd.Flags().StringVar(&testStringRoot, "test-string", "", "Test string flag")
+		rootCmd.PersistentFlags().StringVar(&testStringPersistentRoot, "test-string-persistent", "", "Test string flag")
+		cmd1.Flags().StringVar(&testString1, "test-string", "", "Test string flag")
+		cmd1.PersistentFlags().StringVar(&testStringPersistent1, "test-string-persistent", "", "Test string flag")
+		cmd2.Flags().StringVar(&testString2, "test-string", "", "Test string flag")
+		cmd2.PersistentFlags().StringVar(&testStringPersistent2, "test-string-persistent", "", "Test string flag")
+
+		rootCmd.AddCommand(cmd1)
+		rootCmd.AddCommand(cmd2)
+
+		err := setEnv("prefix_test_string", "test-string-value")
+		assert.NoError(t, err)
+		err = setEnv("prefix_test_string_persistent", "test-string-persistent-value")
+		assert.NoError(t, err)
+
+		err = lib.BindFlags(rootCmd, v, envVarPrefix)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "test-string-value", testStringRoot)
+		assert.Equal(t, "test-string-persistent-value", testStringPersistentRoot)
+		assert.Empty(t, testString1)
+		assert.Empty(t, testStringPersistent1)
+		assert.Empty(t, testString2)
+		assert.Empty(t, testStringPersistent2)
+	})
+
 	t.Run("BindFlags_FromYAML_RootCMD", func(t *testing.T) {
 		assertClearEnv(t)
 		defer clearEnvVars(t)
@@ -429,6 +516,77 @@ subCommand:
 		assert.Equal(t, "global-string-value", globalString)
 		assert.Equal(t, "string-from-sub-command", firstString)
 		assert.Equal(t, "string from sub-sub command", secondString)
+	})
+
+	t.Run("BindFlags_FromYAML_SameFlagName_Root", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
+		yamlConfig := []byte(`
+test-string: global-string-value
+subCommand:
+  dummy-string: string-from-sub-command
+`)
+
+		cmd := &cobra.Command{}
+		v := getViper()
+		v.SetConfigType("yaml")
+		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+
+		var (
+			testStringRoot string
+			testStringSub  string
+		)
+
+		subCmd := &cobra.Command{
+			Use: "subCommand",
+		}
+		cmd.AddCommand(subCmd)
+
+		cmd.PersistentFlags().StringVar(&testStringRoot, "test-string", "", "Test string flag")
+		subCmd.PersistentFlags().StringVar(&testStringSub, "test-string", "", "Test string flag")
+
+		err := lib.BindFlags(cmd, v, envVarPrefix)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "global-string-value", testStringRoot)
+		assert.Equal(t, "", testStringSub)
+	})
+
+	t.Run("BindFlags_FromYAML_SameFlagName_SubCmd", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
+		yamlConfig := []byte(`
+test-string: global-string-value
+subCommand:
+  test-string: string-from-sub-command
+`)
+
+		cmd := &cobra.Command{}
+		v := getViper()
+		v.SetConfigType("yaml")
+		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+
+		var (
+			testStringRoot string
+			testStringSub  string
+		)
+
+		subCmd := &cobra.Command{
+			Use: "subCommand",
+		}
+
+		cmd.PersistentFlags().StringVar(&testStringRoot, "test-string", "", "Test string flag")
+		subCmd.PersistentFlags().StringVar(&testStringSub, "test-string", "", "Test string flag")
+
+		cmd.AddCommand(subCmd)
+
+		err := lib.BindFlags(cmd, v, envVarPrefix)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "", testStringRoot)
+		assert.Equal(t, "string-from-sub-command", testStringSub)
 	})
 }
 
