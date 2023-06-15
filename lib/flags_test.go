@@ -13,10 +13,9 @@ import (
 )
 
 // TODO: positional arguments
-// TODO: other resources (yaml)
-// TODO: sub of sub commands
 // TODO: same flag name in different commands level
 // TODO: assert.Equal to the expected value and not to viper value because I don't care about the viper key and value.
+// TODO: replace expected with actual
 
 const envVarPrefix = "PREFIX"
 
@@ -388,6 +387,48 @@ subCommand:
 		assert.Equal(t, testString, "test-string-value-from-env")
 		assert.Equal(t, testInt, 123)
 		assert.Equal(t, testBool, true)
+	})
+
+	t.Run("BindFlags_FromYAML_SubSubCmd", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
+		yamlConfig := []byte(`
+global-string: global-string-value
+subCommand:
+  first-string: string-from-sub-command
+  subSubCommand:
+    second-string: string from sub-sub command
+`)
+		cmd := &cobra.Command{}
+		v := getViper()
+		v.SetConfigType("yaml")
+		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+
+		var (
+			globalString string
+			firstString  string
+			secondString string
+		)
+
+		subSubCmd := &cobra.Command{
+			Use: "subSubCommand",
+		}
+		subCmd := &cobra.Command{
+			Use: "subCommand",
+		}
+		subCmd.AddCommand(subSubCmd)
+		cmd.AddCommand(subCmd)
+		cmd.PersistentFlags().StringVar(&globalString, "global-string", "", "Global string flag")
+		subCmd.PersistentFlags().StringVar(&firstString, "first-string", "", "Test string flag")
+		subSubCmd.Flags().StringVar(&secondString, "second-string", "", "Test string flag")
+
+		err := lib.BindFlags(cmd, v, envVarPrefix)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "global-string-value", globalString)
+		assert.Equal(t, "string-from-sub-command", firstString)
+		assert.Equal(t, "string from sub-sub command", secondString)
 	})
 }
 

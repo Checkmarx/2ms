@@ -13,6 +13,7 @@ import (
 // TODO: can be a package
 // BindFlags fill flags values with config file or environment variables data
 func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
+	commandHierarchy := getCommandHierarchy(cmd)
 
 	bindFlag := func(f *pflag.Flag) {
 		bindEnvVarIntoViper(f, v, envPrefix)
@@ -21,9 +22,9 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 			return
 		}
 
-		hirarchy := fmt.Sprintf("%s.%s", cmd.Name(), f.Name)
-		if v.IsSet(hirarchy) {
-			val := v.Get(hirarchy)
+		hierarchy := fmt.Sprintf("%s%s", commandHierarchy, f.Name)
+		if v.IsSet(hierarchy) {
+			val := v.Get(hierarchy)
 			applyViperFlagToCommand(f, val, cmd)
 		}
 
@@ -72,4 +73,20 @@ func applyViperFlagToCommand(flag *pflag.Flag, val interface{}, cmd *cobra.Comma
 			log.Err(err).Msg("Failed to set Viper flags")
 		}
 	}
+}
+
+func getCommandHierarchy(cmd *cobra.Command) string {
+	names := []string{}
+	if cmd.Name() != "" {
+		names = append(names, cmd.Name())
+	}
+	for parent := cmd.Parent(); parent != nil && parent.Name() != ""; parent = parent.Parent() {
+		names = append([]string{parent.Name()}, names...)
+	}
+
+	if len(names) == 0 {
+		return ""
+	}
+
+	return strings.Join(names, ".") + "."
 }
