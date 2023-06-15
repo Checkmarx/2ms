@@ -13,8 +13,12 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 ## Supported Platforms
 
 - Confluence
-- Discord (coming soon)
-
+- Discord
+- Slack
+- Git
+- Paligo
+- Local directory / files
+  
 ## Getting 2ms
 
 ```
