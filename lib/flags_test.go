@@ -13,8 +13,6 @@ import (
 )
 
 // TODO: positional arguments
-// TODO: assert.Equal to the expected value and not to viper value because I don't care about the viper key and value.
-// TODO: replace expected with actual
 
 const envVarPrefix = "PREFIX"
 
@@ -41,10 +39,10 @@ func TestBindFlags(t *testing.T) {
 		err := lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.Equal(t, testString, v.GetString("test-string"))
-		assert.Equal(t, testInt, v.GetInt("test-int"))
-		assert.Equal(t, testBool, v.GetBool("test-bool"))
-		assert.Equal(t, testFloat64, v.GetFloat64("test-float64"))
+		assert.Empty(t, testString)
+		assert.Empty(t, testInt)
+		assert.Empty(t, testBool)
+		assert.Empty(t, testFloat64)
 	})
 
 	t.Run("BindFlags_FromEnvVarsToCobraCommand", func(t *testing.T) {
@@ -79,16 +77,10 @@ func TestBindFlags(t *testing.T) {
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.NotEmpty(t, v.GetString("test-string"))
-		assert.NotEmpty(t, v.GetInt("test-int"))
-		assert.NotEmpty(t, v.GetBool("test-bool"))
-		assert.NotEmpty(t, v.GetFloat64("test-float64"))
-
-		assert.Equal(t, testString, v.GetString("test-string"))
-		assert.Equal(t, testInt, v.GetInt("test-int"))
-		assert.Equal(t, testBool, v.GetBool("test-bool"))
-		assert.Equal(t, testFloat64, v.GetFloat64("test-float64"))
-
+		assert.Equal(t, "test-string-value", testString)
+		assert.Equal(t, 456, testInt)
+		assert.Equal(t, true, testBool)
+		assert.Equal(t, 1.23, testFloat64)
 	})
 
 	t.Run("BindFlags_NonPersistentFlags", func(t *testing.T) {
@@ -110,8 +102,7 @@ func TestBindFlags(t *testing.T) {
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.NotEmpty(t, v.GetString("test-string"))
-		assert.Equal(t, testString, v.GetString("test-string"))
+		assert.Equal(t, "test-string-value", testString)
 	})
 
 	t.Run("BindFlags_Subcommand", func(t *testing.T) {
@@ -123,7 +114,9 @@ func TestBindFlags(t *testing.T) {
 			testInt    int
 		)
 
-		subCommand := &cobra.Command{}
+		subCommand := &cobra.Command{
+			Use: "subCommand",
+		}
 		subCommand.Flags().StringVar(&testString, "test-string", "", "Test string flag")
 		subCommand.PersistentFlags().IntVar(&testInt, "test-int", 0, "Test int flag")
 
@@ -131,19 +124,16 @@ func TestBindFlags(t *testing.T) {
 		cmd.AddCommand(subCommand)
 		v := getViper()
 
-		err := setEnv("PREFIX_TEST_STRING", "test-string-value")
+		err := setEnv("PREFIX_SUBCOMMAND_TEST_STRING", "test-string-value")
 		assert.NoError(t, err)
-		err = setEnv("PREFIX_TEST_INT", "456")
+		err = setEnv("PREFIX_SUBCOMMAND_TEST_INT", "456")
 		assert.NoError(t, err)
 
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.NotEmpty(t, v.GetString("test-string"))
-		assert.NotEmpty(t, v.GetInt("test-int"))
-
-		assert.Equal(t, testString, v.GetString("test-string"))
-		assert.Equal(t, testInt, v.GetInt("test-int"))
+		assert.Equal(t, "test-string-value", testString)
+		assert.Equal(t, 456, testInt)
 	})
 
 	t.Run("BindFlags_ArrayFlag", func(t *testing.T) {
@@ -171,11 +161,8 @@ func TestBindFlags(t *testing.T) {
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		// assert.NotEmpty(t, v.GetStringSlice("test-array-spaces"))
-		assert.NotEmpty(t, v.GetStringSlice("test-array-commas"))
-
 		// assert.Equal(t, testArraySpaces, arr)
-		assert.Equal(t, testArrayCommas, arr)
+		assert.Equal(t, arr, testArrayCommas)
 	})
 
 	t.Run("BindFlags_ReturnsErrorForUnknownConfigurationKeys", func(t *testing.T) {
@@ -218,8 +205,7 @@ func TestBindFlags(t *testing.T) {
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.NotEmpty(t, v.GetString("test-string"))
-		assert.Equal(t, testString, v.GetString("test-string"))
+		assert.Equal(t, "test-string-value", testString)
 	})
 
 	t.Run("BindFlags_OneWordFlagName", func(t *testing.T) {
@@ -241,8 +227,7 @@ func TestBindFlags(t *testing.T) {
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.NotEmpty(t, v.GetString("teststring"))
-		assert.Equal(t, testString, v.GetString("teststring"))
+		assert.Equal(t, "test-string-value", testString)
 	})
 
 	t.Run("BindFlags_SameFlagNameDifferentCmd", func(t *testing.T) {
@@ -381,17 +366,11 @@ test-float: 123.456
 		err := lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.NotEmpty(t, v.GetString("test-string"))
-		assert.NotEmpty(t, v.GetInt("test-int"))
-		assert.NotEmpty(t, v.GetBool("test-bool"))
-		assert.NotEmpty(t, v.GetStringSlice("test-array"))
-		assert.NotEmpty(t, v.GetFloat64("test-float"))
-
-		assert.Equal(t, testString, v.GetString("test-string"))
-		assert.Equal(t, testInt, v.GetInt("test-int"))
-		assert.Equal(t, testBool, v.GetBool("test-bool"))
-		assert.Equal(t, testArray, v.GetStringSlice("test-array"))
-		assert.Equal(t, testFloat, v.GetFloat64("test-float"))
+		assert.Equal(t, "test-string-value", testString)
+		assert.Equal(t, 123, testInt)
+		assert.Equal(t, true, testBool)
+		assert.Equal(t, []string{"test", "array", "flag"}, testArray)
+		assert.Equal(t, 123.456, testFloat)
 	})
 
 	t.Run("BindFlags_FromYAML_SubCMD", func(t *testing.T) {
@@ -430,15 +409,10 @@ subCommand:
 		err := lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.NotEmpty(t, v.GetString("global-string"))
-		assert.NotEmpty(t, v.GetString("subCommand.test-string"))
-		assert.NotEmpty(t, v.GetInt("subCommand.test-int"))
-		assert.NotEmpty(t, v.GetBool("subCommand.test-bool"))
-
-		assert.Equal(t, globalString, v.GetString("global-string"))
-		assert.Equal(t, testString, v.GetString("subCommand.test-string"))
-		assert.Equal(t, testInt, v.GetInt("subCommand.test-int"))
-		assert.Equal(t, testBool, v.GetBool("subCommand.test-bool"))
+		assert.Equal(t, "global-string-value", globalString)
+		assert.Equal(t, "test-string-value", testString)
+		assert.Equal(t, 123, testInt)
+		assert.Equal(t, true, testBool)
 	})
 
 	t.Run("BindFlags_FromYAML_SubCMD_WithEnvVars", func(t *testing.T) {
@@ -481,10 +455,10 @@ subCommand:
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.Equal(t, globalString, "global-string-value-from-env")
-		assert.Equal(t, testString, "test-string-value-from-env")
-		assert.Equal(t, testInt, 123)
-		assert.Equal(t, testBool, true)
+		assert.Equal(t, "global-string-value-from-env", globalString)
+		assert.Equal(t, "test-string-value-from-env", testString)
+		assert.Equal(t, 123, testInt)
+		assert.Equal(t, true, testBool)
 	})
 
 	t.Run("BindFlags_FromYAML_SubSubCmd", func(t *testing.T) {

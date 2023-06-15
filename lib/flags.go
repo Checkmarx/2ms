@@ -53,7 +53,6 @@ func bindEnvVarIntoViper(v *viper.Viper, fullFlagName, envPrefix string) {
 
 func applyViperFlagToCommand(flag *pflag.Flag, val interface{}, cmd *cobra.Command) {
 	switch t := val.(type) {
-	// TODO: remove this case?
 	case []interface{}:
 		var paramSlice []string
 		for _, param := range t {
