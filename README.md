@@ -14,6 +14,7 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 
 - Confluence
 - Discord
+- Slack
 - Git
 - Paligo
 - Local directory / files
