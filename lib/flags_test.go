@@ -13,7 +13,6 @@ import (
 )
 
 // TODO: positional arguments
-// TODO: same flag name in different commands level
 // TODO: assert.Equal to the expected value and not to viper value because I don't care about the viper key and value.
 // TODO: replace expected with actual
 
@@ -246,7 +245,7 @@ func TestBindFlags(t *testing.T) {
 		assert.Equal(t, testString, v.GetString("teststring"))
 	})
 
-	t.Run("BindFlags_SameFlagNameDifferentCmd_Root", func(t *testing.T) {
+	t.Run("BindFlags_SameFlagNameDifferentCmd", func(t *testing.T) {
 		/*
 			When the same flag name is used in different commands, the last command
 			will overwrite the previous one.
@@ -294,8 +293,12 @@ func TestBindFlags(t *testing.T) {
 		defer clearEnvVars(t)
 
 		rootCmd := &cobra.Command{}
-		cmd1 := &cobra.Command{}
-		cmd2 := &cobra.Command{}
+		cmd1 := &cobra.Command{
+			Use: "cmd1",
+		}
+		cmd2 := &cobra.Command{
+			Use: "cmd2",
+		}
 		v := getViper()
 
 		var (
@@ -321,16 +324,24 @@ func TestBindFlags(t *testing.T) {
 		assert.NoError(t, err)
 		err = setEnv("prefix_test_string_persistent", "test-string-persistent-value")
 		assert.NoError(t, err)
+		err = setEnv("prefix_cmd1_test_string", "test-string-value-cmd1")
+		assert.NoError(t, err)
+		err = setEnv("prefix_cmd1_test_string_persistent", "test-string-persistent-value-cmd1")
+		assert.NoError(t, err)
+		err = setEnv("prefix_cmd2_test_string", "test-string-value-cmd2")
+		assert.NoError(t, err)
+		err = setEnv("prefix_cmd2_test_string_persistent", "test-string-persistent-value-cmd2")
+		assert.NoError(t, err)
 
 		err = lib.BindFlags(rootCmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "test-string-value", testStringRoot)
 		assert.Equal(t, "test-string-persistent-value", testStringPersistentRoot)
-		assert.Empty(t, testString1)
-		assert.Empty(t, testStringPersistent1)
-		assert.Empty(t, testString2)
-		assert.Empty(t, testStringPersistent2)
+		assert.Equal(t, "test-string-value-cmd1", testString1)
+		assert.Equal(t, "test-string-persistent-value-cmd1", testStringPersistent1)
+		assert.Equal(t, "test-string-value-cmd2", testString2)
+		assert.Equal(t, "test-string-persistent-value-cmd2", testStringPersistent2)
 	})
 
 	t.Run("BindFlags_FromYAML_RootCMD", func(t *testing.T) {
@@ -464,7 +475,7 @@ subCommand:
 
 		err := setEnv("PREFIX_GLOBAL_STRING", "global-string-value-from-env")
 		assert.NoError(t, err)
-		err = setEnv("PREFIX_TEST_STRING", "test-string-value-from-env")
+		err = setEnv("PREFIX_SUBCOMMAND_TEST_STRING", "test-string-value-from-env")
 		assert.NoError(t, err)
 
 		err = lib.BindFlags(cmd, v, envVarPrefix)
@@ -585,7 +596,7 @@ subCommand:
 		err := lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "", testStringRoot)
+		assert.Equal(t, "global-string-value", testStringRoot)
 		assert.Equal(t, "string-from-sub-command", testStringSub)
 	})
 }

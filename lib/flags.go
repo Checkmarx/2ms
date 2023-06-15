@@ -16,20 +16,16 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	commandHierarchy := getCommandHierarchy(cmd)
 
 	bindFlag := func(f *pflag.Flag) {
-		bindEnvVarIntoViper(f, v, envPrefix)
+		fullFlagName := fmt.Sprintf("%s%s", commandHierarchy, f.Name)
+
+		bindEnvVarIntoViper(v, fullFlagName, envPrefix)
 
 		if f.Changed {
 			return
 		}
 
-		hierarchy := fmt.Sprintf("%s%s", commandHierarchy, f.Name)
-		if v.IsSet(hierarchy) {
-			val := v.Get(hierarchy)
-			applyViperFlagToCommand(f, val, cmd)
-		}
-
-		if v.IsSet(f.Name) {
-			val := v.Get(f.Name)
+		if v.IsSet(fullFlagName) {
+			val := v.Get(fullFlagName)
 			applyViperFlagToCommand(f, val, cmd)
 		}
 	}
@@ -46,11 +42,11 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	return nil
 }
 
-func bindEnvVarIntoViper(f *pflag.Flag, v *viper.Viper, envPrefix string) {
-	envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
+func bindEnvVarIntoViper(v *viper.Viper, fullFlagName, envPrefix string) {
+	envVarSuffix := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(fullFlagName, "-", "_"), ".", "_"))
 	envVarName := fmt.Sprintf("%s_%s", envPrefix, envVarSuffix)
 
-	if err := v.BindEnv(f.Name, envVarName, strings.ToLower(envVarName)); err != nil {
+	if err := v.BindEnv(fullFlagName, envVarName, strings.ToLower(envVarName)); err != nil {
 		log.Err(err).Msg("Failed to bind Viper flags")
 	}
 }
