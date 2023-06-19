@@ -85,3 +85,10 @@ jobs:
           tags: |
             checkmarx/2ms:latest
             checkmarx/2ms:${{ needs.test.outputs.version }}
+
+      - name: Update Docker repo description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: checkmarx/2ms

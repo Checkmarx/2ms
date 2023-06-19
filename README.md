@@ -11,16 +11,30 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 2ms is built over a secret detection engine (currently [gitleaks](https://github.com/gitleaks/gitleaks)) and includes various plugins to interact with popular platforms. This means anyone can contribute, improve and extend 2ms quite easily. We believe that by working together, we can create a more secure digital world. You're welcome to join our [community](https://github.com/Checkmarx/2ms/discussions).
 
 ## Supported Platforms
-* Confluence
-* Discord (coming soon)
 
-## Getting 2ms 
+- Confluence
+- Discord
+- Slack
+- Git
+- Paligo
+- Local directory / files
+  
+## Getting 2ms
+
 ```
 # git clone https://github.com/Checkmarx/2ms.git
 # cd 2ms
 # go build
 # ./2ms (linux / mac)
 ```
+
+### Docker
+
+```
+docker run -v path/to/my/repo:/repo checkmarx/2ms git /repo
+```
+
+(For `git` command, you have to mount your git repository to `/repo` inside the container)
 
 ## Getting started
 
@@ -32,4 +46,5 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 - `--confluence-token` confluence token
 
 ---
+
 Made by Checkmarx with :heart:
