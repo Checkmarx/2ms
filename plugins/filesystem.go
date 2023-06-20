@@ -11,12 +11,14 @@ import (
 )
 
 const flagFolder = "path"
+const flagIgnored = "ignore"
 
 var ignoredFolders = []string{".git"}
 
 type FileSystemPlugin struct {
 	Plugin
-	Path string
+	Path    string
+	Ignored *[]string
 }
 
 func (p *FileSystemPlugin) GetName() string {
@@ -43,6 +45,8 @@ func (p *FileSystemPlugin) DefineCommand(channels Channels) (*cobra.Command, err
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", flagFolder, err)
 	}
 
+	p.Ignored = flags.StringArray(flagIgnored, []string{}, "Patterns to ignore")
+
 	return cmd, nil
 }
 
@@ -55,6 +59,17 @@ func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 		for _, ignoredFolder := range ignoredFolders {
 			if fInfo.Name() == ignoredFolder && fInfo.IsDir() {
 				return filepath.SkipDir
+			}
+		}
+		for _, ignoredPattern := range *p.Ignored {
+			matched, err := filepath.Match(ignoredPattern, filepath.Base(path))
+			if err != nil {
+				return err
+			}
+			if fInfo.IsDir() && matched {
+				return filepath.SkipDir
+			} else if matched {
+				return nil
 			}
 		}
 		if fInfo.Size() == 0 {
