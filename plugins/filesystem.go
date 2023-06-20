@@ -66,9 +66,10 @@ func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 			if err != nil {
 				return err
 			}
-			if fInfo.IsDir() && matched {
+			if matched && fInfo.IsDir() {
 				return filepath.SkipDir
-			} else if matched {
+			}
+			if matched {
 				return nil
 			}
 		}
