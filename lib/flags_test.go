@@ -277,7 +277,9 @@ func TestBindFlags(t *testing.T) {
 		assertClearEnv(t)
 		defer clearEnvVars(t)
 
-		rootCmd := &cobra.Command{}
+		rootCmd := &cobra.Command{
+			Use: "root",
+		}
 		cmd1 := &cobra.Command{
 			Use: "cmd1",
 		}

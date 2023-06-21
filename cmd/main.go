@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/checkmarx/2ms/config"
+	"github.com/checkmarx/2ms/lib"
 
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var Version = "0.0.0"
@@ -31,6 +33,7 @@ const (
 	jsonFormat        = "json"
 	yamlFormat        = "yaml"
 	sarifFormat       = "sarif"
+	configFileFlag    = "config"
 )
 
 var rootCmd = &cobra.Command{
@@ -39,6 +42,11 @@ var rootCmd = &cobra.Command{
 	Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
 	Version: Version,
 }
+
+const envPrefix = "2MS"
+
+var configFilePath string
+var vConfig = viper.New()
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
@@ -58,11 +66,18 @@ var channels = plugins.Channels{
 var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
 
-func initLog() {
+func initialize() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	// TODO: tests? check with the existing tests. combine levels of EnvVars, config and args
+	err := lib.LoadConfigFromFile(rootCmd, vConfig, configFileFlag, envPrefix)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+
 	ll, err := rootCmd.Flags().GetString(logLevelFlagName)
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		cobra.CheckErr(err)
 	}
 	switch strings.ToLower(ll) {
 	case "trace":
@@ -83,7 +98,12 @@ func initLog() {
 }
 
 func Execute() {
-	cobra.OnInitialize(initLog)
+	vConfig.SetEnvPrefix(envPrefix)
+	vConfig.AutomaticEnv()
+
+	cobra.OnInitialize(initialize)
+	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "YAML config file path")
+	rootCmd.MarkFlagFilename(configFileFlag, "yaml", "yml")
 	rootCmd.PersistentFlags().StringSlice(tagsFlagName, []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringSlice(reportPath, []string{""}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")

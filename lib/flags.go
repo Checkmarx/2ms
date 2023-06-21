@@ -10,14 +10,31 @@ import (
 	"github.com/spf13/viper"
 )
 
+func LoadConfigFromFile(rootCmd *cobra.Command, config *viper.Viper, configFileFlagName string, envPrefix string) error {
+	configFilePath, err := rootCmd.Flags().GetString(configFileFlagName)
+	if err != nil {
+		return err
+	}
+
+	if configFilePath != "" {
+		// TODO: Yaml? JSON?
+		config.SetConfigFile(configFilePath)
+		if err := config.ReadInConfig(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // TODO: can be a package
+// TODO: can be private now?
 // BindFlags fill flags values with config file or environment variables data
 func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	commandHierarchy := getCommandHierarchy(cmd)
 
 	bindFlag := func(f *pflag.Flag) {
 		fullFlagName := fmt.Sprintf("%s%s", commandHierarchy, f.Name)
-
 		bindEnvVarIntoViper(v, fullFlagName, envPrefix)
 
 		if f.Changed {
@@ -29,7 +46,7 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 			applyViperFlagToCommand(f, val, cmd)
 		}
 	}
-
+	// TODO: remove persistent flags
 	cmd.PersistentFlags().VisitAll(bindFlag)
 	cmd.Flags().VisitAll(bindFlag)
 
@@ -68,14 +85,16 @@ func applyViperFlagToCommand(flag *pflag.Flag, val interface{}, cmd *cobra.Comma
 			log.Err(err).Msg("Failed to set Viper flags")
 		}
 	}
+	flag.Changed = true
 }
 
 func getCommandHierarchy(cmd *cobra.Command) string {
 	names := []string{}
-	if cmd.Name() != "" {
-		names = append(names, cmd.Name())
+	if !cmd.HasParent() {
+		return ""
 	}
-	for parent := cmd.Parent(); parent != nil && parent.Name() != ""; parent = parent.Parent() {
+
+	for parent := cmd; parent.HasParent() && parent.Name() != ""; parent = parent.Parent() {
 		names = append([]string{parent.Name()}, names...)
 	}
 
