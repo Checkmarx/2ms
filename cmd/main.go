@@ -154,8 +154,10 @@ func preRun(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg(err.Error())
 	}
 
-	if err := secrets.AddRegexRule(customRegex); err != nil {
-		log.Fatal().Msg(err.Error())
+	if customRegex != "" {
+		if err := secrets.AddRegexRule(customRegex); err != nil {
+			log.Fatal().Msg(err.Error())
+		}
 	}
 
 	go func() {
