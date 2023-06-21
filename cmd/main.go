@@ -31,6 +31,7 @@ const (
 	jsonFormat        = "json"
 	yamlFormat        = "yaml"
 	sarifFormat       = "sarif"
+	customRegexRule   = "regex"
 )
 
 var rootCmd = &cobra.Command{
@@ -88,6 +89,7 @@ func Execute() {
 	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringSlice(reportPath, []string{""}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().String(stdoutFormat, "yaml", "stdout output format, available formats are: json, yaml, sarif")
+	rootCmd.PersistentFlags().String(customRegexRule, "", "custom regex to apply to the scan, must be valid Go regex")
 
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
@@ -146,6 +148,15 @@ func preRun(cmd *cobra.Command, args []string) {
 	validateTags(tags)
 
 	secrets := secrets.Init(tags)
+
+	customRegex, err := cmd.Flags().GetString(customRegexRule)
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+	}
+
+	if err := secrets.AddRegexRule(customRegex); err != nil {
+		log.Fatal().Msg(err.Error())
+	}
 
 	go func() {
 		for {
