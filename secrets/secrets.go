@@ -44,7 +44,7 @@ const TagPublicSecret = "public-secret"
 const TagSensitiveUrl = "sensitive-url"
 const TagWebhook = "webhook"
 
-const CustomRuleId = "custom-regex"
+const customRegexRuleIdFormat = "custom-regex-%d"
 
 func Init(tags []string) *Secrets {
 
@@ -79,18 +79,20 @@ func (s *Secrets) AddCustomRule(rule config.Rule) {
 	s.rules[rule.RuleID] = rule
 }
 
-func (s *Secrets) AddRegexRule(pattern string) error {
-	regex, err := regexp.Compile(pattern)
-	if err != nil {
-		return fmt.Errorf("failed to compile regex rule %s: %w", pattern, err)
+func (s *Secrets) AddRegexRules(patterns []string) error {
+	for idx, pattern := range patterns {
+		regex, err := regexp.Compile(pattern)
+		if err != nil {
+			return fmt.Errorf("failed to compile regex rule %s: %w", pattern, err)
+		}
+		rule := config.Rule{
+			Description: "Custom Regex Rule From User",
+			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
+			Regex:       regex,
+			Keywords:    []string{},
+		}
+		s.AddCustomRule(rule)
 	}
-	rule := config.Rule{
-		Description: "Custom Regex Rule From User",
-		RuleID:      CustomRuleId,
-		Regex:       regex,
-		Keywords:    []string{},
-	}
-	s.AddCustomRule(rule)
 	return nil
 }
 
