@@ -75,10 +75,6 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 	}
 }
 
-func (s *Secrets) AddCustomRule(rule config.Rule) {
-	s.rules[rule.RuleID] = rule
-}
-
 func (s *Secrets) AddRegexRules(patterns []string) error {
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
@@ -91,7 +87,7 @@ func (s *Secrets) AddRegexRules(patterns []string) error {
 			Regex:       regex,
 			Keywords:    []string{},
 		}
-		s.AddCustomRule(rule)
+		s.rules[rule.RuleID] = rule
 	}
 	return nil
 }
