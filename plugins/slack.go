@@ -60,7 +60,7 @@ func (p *SlackPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while marking flag %s as required: %w", slackTeamFlag, err)
 	}
-	command.Flags().StringArrayVar(&channelsArg, slackChannelFlag, []string{}, "Slack channels to scan")
+	command.Flags().StringSliceVar(&channelsArg, slackChannelFlag, []string{}, "Slack channels to scan")
 	command.Flags().DurationVar(&backwardDurationArg, slackBackwardDurationFlag, slackDefaultDateFrom, "Slack backward duration for messages (ex: 24h, 7d, 1M, 1y)")
 	command.Flags().IntVar(&messagesCountArg, slackMessagesCountFlag, 0, "Slack messages count to scan (0 = all messages)")
 
