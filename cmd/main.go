@@ -92,7 +92,10 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&tagsVar, tagsFlagName, []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
-	rootCmd.MarkFlagFilename(reportPathFlagName, "json", "yaml", "yml", "sarif")
+	err := rootCmd.MarkFlagFilename(reportPathFlagName, "json", "yaml", "yml", "sarif")
+	if err != nil {
+		cobra.CheckErr(err)
+	}
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
 
