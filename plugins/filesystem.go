@@ -11,12 +11,14 @@ import (
 )
 
 const flagFolder = "path"
+const flagIgnored = "ignore"
 
 var ignoredFolders = []string{".git"}
 
 type FileSystemPlugin struct {
 	Plugin
-	Path string
+	Path    string
+	Ignored []string
 }
 
 func (p *FileSystemPlugin) GetName() string {
@@ -43,6 +45,8 @@ func (p *FileSystemPlugin) DefineCommand(channels Channels) (*cobra.Command, err
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", flagFolder, err)
 	}
 
+	flags.StringSliceVar(&p.Ignored, flagIgnored, []string{}, "Patterns to ignore")
+
 	return cmd, nil
 }
 
@@ -55,6 +59,18 @@ func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 		for _, ignoredFolder := range ignoredFolders {
 			if fInfo.Name() == ignoredFolder && fInfo.IsDir() {
 				return filepath.SkipDir
+			}
+		}
+		for _, ignoredPattern := range p.Ignored {
+			matched, err := filepath.Match(ignoredPattern, filepath.Base(path))
+			if err != nil {
+				return err
+			}
+			if matched && fInfo.IsDir() {
+				return filepath.SkipDir
+			}
+			if matched {
+				return nil
 			}
 		}
 		if fInfo.Size() == 0 {
@@ -77,6 +93,7 @@ func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.W
 	for _, filePath := range fileList {
 		wg.Add(1)
 		go func(filePath string) {
+			defer wg.Done()
 			actualFile, err := p.getItem(wg, filePath)
 			if err != nil {
 				errs <- err
@@ -88,7 +105,6 @@ func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.W
 }
 
 func (p *FileSystemPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, error) {
-	defer wg.Done()
 	b, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
