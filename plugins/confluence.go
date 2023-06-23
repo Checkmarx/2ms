@@ -51,11 +51,11 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 	}
 
 	flags := confluenceCmd.Flags()
-	flags.String(argUrl, "", "Confluence server URL (example: https://company.atlassian.net/wiki) [required]")
-	flags.StringArray(argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
-	flags.String(argUsername, "", "Confluence user name or email for authentication")
-	flags.String(argToken, "", "The Confluence API token for authentication")
-	flags.Bool(argHistory, false, "Scan pages history")
+	flags.StringVar(&p.URL, argUrl, "", "Confluence server URL (example: https://company.atlassian.net/wiki) [required]")
+	flags.StringSliceVar(&p.Spaces, argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
+	flags.StringVar(&p.Username, argUsername, "", "Confluence user name or email for authentication")
+	flags.StringVar(&p.Token, argToken, "", "The Confluence API token for authentication")
+	flags.BoolVar(&p.History, argHistory, false, "Scan pages history")
 	err := confluenceCmd.MarkFlagRequired(argUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argUrl, err)
@@ -75,28 +75,13 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 }
 
 func (p *ConfluencePlugin) initialize(cmd *cobra.Command) error {
-	flags := cmd.Flags()
-	url, err := flags.GetString(argUrl)
-	if err != nil {
-		return fmt.Errorf("error while getting '%s' flag value: %w", argUrl, err)
-	}
 
-	url = strings.TrimRight(url, "/")
+	p.URL = strings.TrimRight(p.URL, "/")
 
-	spaces, _ := flags.GetStringArray(argSpaces)
-	username, _ := flags.GetString(argUsername)
-	token, _ := flags.GetString(argToken)
-	runHistory, _ := flags.GetBool(argHistory)
-
-	if username == "" || token == "" {
+	if p.Username == "" || p.Token == "" {
 		log.Warn().Msg("confluence credentials were not provided. The scan will be made anonymously only for the public pages")
 	}
 
-	p.Token = token
-	p.Username = username
-	p.URL = url
-	p.Spaces = spaces
-	p.History = runHistory
 	p.Limit = make(chan struct{}, confluenceMaxRequests)
 	return nil
 }
