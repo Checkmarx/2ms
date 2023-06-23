@@ -1,14 +1,17 @@
 package secrets
 
 import (
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"sync"
+
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
-	"path/filepath"
-	"strings"
-	"sync"
 )
 
 type Secrets struct {
@@ -41,6 +44,8 @@ const TagPublicSecret = "public-secret"
 const TagSensitiveUrl = "sensitive-url"
 const TagWebhook = "webhook"
 
+const customRegexRuleIdFormat = "custom-regex-%d"
+
 func Init(tags []string) *Secrets {
 
 	allRules, _ := loadAllRules()
@@ -68,6 +73,23 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 		itemId := getItemId(item.ID)
 		secretsChannel <- reporting.Secret{ID: itemId, Source: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
 	}
+}
+
+func (s *Secrets) AddRegexRules(patterns []string) error {
+	for idx, pattern := range patterns {
+		regex, err := regexp.Compile(pattern)
+		if err != nil {
+			return fmt.Errorf("failed to compile regex rule %s: %w", pattern, err)
+		}
+		rule := config.Rule{
+			Description: "Custom Regex Rule From User",
+			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
+			Regex:       regex,
+			Keywords:    []string{},
+		}
+		s.rules[rule.RuleID] = rule
+	}
+	return nil
 }
 
 func getItemId(fullPath string) string {
