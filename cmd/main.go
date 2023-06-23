@@ -24,14 +24,23 @@ var Version = "0.0.0"
 
 const (
 	timeSleepInterval = 50
-	tagsFlagName      = "tags"
-	logLevelFlagName  = "log-level"
-	reportPath        = "report-path"
-	stdoutFormat      = "stdout-format"
 	jsonFormat        = "json"
 	yamlFormat        = "yaml"
 	sarifFormat       = "sarif"
-	customRegexRule   = "regex"
+
+	tagsFlagName     = "tags"
+	logLevelFlagName = "log-level"
+	reportPath       = "report-path"
+	stdoutFormat     = "stdout-format"
+	customRegexRule  = "regex"
+)
+
+var (
+	tagsVar            []string
+	logLevelVar        string
+	reportPathVar      []string
+	stdoutFormatVar    string
+	customRegexRuleVar []string
 )
 
 var rootCmd = &cobra.Command{
@@ -60,12 +69,7 @@ var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
 
 func initLog() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	ll, err := rootCmd.Flags().GetString(logLevelFlagName)
-	if err != nil {
-		log.Fatal().Msg(err.Error())
-	}
-	switch strings.ToLower(ll) {
+	switch strings.ToLower(logLevelVar) {
 	case "trace":
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	case "debug":
@@ -85,11 +89,12 @@ func initLog() {
 
 func Execute() {
 	cobra.OnInitialize(initLog)
-	rootCmd.PersistentFlags().StringSlice(tagsFlagName, []string{"all"}, "select rules to be applied")
-	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
-	rootCmd.PersistentFlags().StringSlice(reportPath, []string{""}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
-	rootCmd.PersistentFlags().String(stdoutFormat, "yaml", "stdout output format, available formats are: json, yaml, sarif")
-	rootCmd.PersistentFlags().StringArray(customRegexRule, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
+	rootCmd.PersistentFlags().StringSliceVar(&tagsVar, tagsFlagName, []string{"all"}, "select rules to be applied")
+	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPath, []string{""}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
+	rootCmd.MarkFlagFilename(reportPath, "json", "yaml", "yml", "sarif")
+	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormat, "yaml", "stdout output format, available formats are: json, yaml, sarif")
+	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRule, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
 
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
@@ -140,22 +145,12 @@ func validateFormat(stdout string, reportPath []string) {
 }
 
 func preRun(cmd *cobra.Command, args []string) {
-	tags, err := cmd.Flags().GetStringSlice(tagsFlagName)
-	if err != nil {
+	validateTags(tagsVar)
+
+	secrets := secrets.Init(tagsVar)
+
+	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
 		log.Fatal().Msg(err.Error())
-	}
-
-	validateTags(tags)
-
-	secrets := secrets.Init(tags)
-
-	customRegexes, err := cmd.Flags().GetStringArray(customRegexRule)
-	if err != nil {
-		cobra.CheckErr(err)
-	}
-
-	if err := secrets.AddRegexRules(customRegexes); err != nil {
-		cobra.CheckErr(err)
 	}
 
 	go func() {
@@ -181,10 +176,7 @@ func preRun(cmd *cobra.Command, args []string) {
 func postRun(cmd *cobra.Command, args []string) {
 	channels.WaitGroup.Wait()
 
-	reportPath, _ := cmd.Flags().GetStringSlice(reportPath)
-	stdoutFormat, _ := cmd.Flags().GetString(stdoutFormat)
-
-	validateFormat(stdoutFormat, reportPath)
+	validateFormat(stdoutFormat, reportPathVar)
 
 	cfg := config.LoadConfig("2ms", Version)
 
@@ -196,7 +188,7 @@ func postRun(cmd *cobra.Command, args []string) {
 	if report.TotalItemsScanned > 0 {
 		report.ShowReport(stdoutFormat, cfg)
 		if len(reportPath) > 0 {
-			err := report.WriteFile(reportPath, cfg)
+			err := report.WriteFile(reportPathVar, cfg)
 			if err != nil {
 				log.Error().Msgf("Failed to create report file with error: %s", err)
 			}
