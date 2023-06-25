@@ -18,7 +18,7 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 - Git
 - Paligo
 - Local directory / files
-  
+
 ## Getting 2ms
 
 ```
@@ -35,12 +35,45 @@ docker run -v path/to/my/repo:/repo checkmarx/2ms git /repo
 
 ## Getting started
 
-### Command line arguments (wip, see [#20](https://github.com/Checkmarx/2ms/discussions/20))
+<!-- command-line:start -->
 
-- `--confluence` The URL of the Confluence instance to scan.
-- `--confluence-spaces` A comma-separated list of Confluence spaces to scan.
-- `--confluence-username` confluence username or email
-- `--confluence-token` confluence token
+bla bla bla
+
+```
+2ms Secrets Detection: A tool to detect secrets in public websites and communication services.
+
+Usage:
+  2ms [command]
+
+Commands
+  confluence  Scan Confluence server
+  discord     Scan Discord server
+  filesystem  Scan local folder
+  git         Scan Git repository
+  paligo      Scan Paligo instance
+  slack       Scan Slack team
+
+Additional Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+
+Flags:
+      --config string          YAML config file path
+  -h, --help                   help for 2ms
+      --log-level string       log level (trace, debug, info, warn, error, fatal) (default "info")
+      --regex stringArray      custom regexes to apply to the scan, must be valid Go regex
+      --report-path strings    path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
+      --stdout-format string   stdout output format, available formats are: json, yaml, sarif (default "yaml")
+      --tags strings           select rules to be applied (default [all])
+  -v, --version                version for 2ms
+
+Use "2ms [command] --help" for more information about a command.
+bla bla bla
+```
+
+bla bla bla
+
+<!-- command-line:end -->
 
 ---
 

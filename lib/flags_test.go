@@ -711,7 +711,7 @@ subcommand:
 			}
 			testString := cmd.PersistentFlags().String("test-string", "", "Test string flag")
 			testInt := cmd.PersistentFlags().Int("test-int", 0, "Test int flag")
-			assert.NoError(t, cmd.MarkFlagRequired("test-string"))
+			assert.NoError(t, cmd.MarkPersistentFlagRequired("test-string"))
 			cmd.PersistentFlags().String(configFlagName, "", "Config file name")
 
 			var subcommandBool bool
