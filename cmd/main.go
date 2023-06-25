@@ -66,14 +66,20 @@ var channels = plugins.Channels{
 var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
 
+// TODO: docs
 func initialize() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	// TODO: tests? check with the existing tests. combine levels of EnvVars, config and args
-	err := lib.LoadConfigFromAllSources(rootCmd, vConfig, configFileFlag, envPrefix)
+	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
 	if err != nil {
 		cobra.CheckErr(err)
 	}
+	if configFilePath != "" {
+		// TODO: Yaml? JSON?
+		vConfig.SetConfigFile(configFilePath)
+		cobra.CheckErr(vConfig.ReadInConfig())
+	}
+	cobra.CheckErr(lib.BindFlags(rootCmd, vConfig, envPrefix))
 
 	ll, err := rootCmd.Flags().GetString(logLevelFlagName)
 	if err != nil {

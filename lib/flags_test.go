@@ -631,7 +631,14 @@ subcommand:
 	var v *viper.Viper
 
 	cobra.OnInitialize(func() {
-		err := lib.LoadConfigFromAllSources(cmd, v, configFlagName, envVarPrefix)
+		configFilePath, err := cmd.Flags().GetString(configFlagName)
+		if err != nil {
+			cobra.CheckErr(err)
+		}
+		if configFilePath != "" {
+			v.SetConfigFile(configFilePath)
+			assert.NoError(t, v.ReadInConfig())
+		}
 		assert.NoError(t, err)
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)

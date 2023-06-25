@@ -10,26 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// TODO: remove cmd dependency
-func LoadConfigFromAllSources(rootCmd *cobra.Command, config *viper.Viper, configFileFlagName string, envPrefix string) error {
-	configFilePath, err := rootCmd.Flags().GetString(configFileFlagName)
-	if err != nil {
-		return err
-	}
-
-	if configFilePath != "" {
-		// TODO: Yaml? JSON?
-		config.SetConfigFile(configFilePath)
-		if err := config.ReadInConfig(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // TODO: can be a package
-// TODO: can be private now?
 // BindFlags fill flags values with config file or environment variables data
 func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	commandHierarchy := getCommandHierarchy(cmd)
