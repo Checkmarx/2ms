@@ -111,7 +111,6 @@ func Execute() {
 
 	cobra.OnInitialize(initialize)
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "YAML config file path")
-	rootCmd.MarkFlagFilename(configFileFlag, "yaml", "yml")
 	rootCmd.PersistentFlags().StringSliceVar(&tagsVar, tagsFlagName, []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")

@@ -349,7 +349,7 @@ test-float: 123.456
 		cmd := &cobra.Command{}
 		v := getViper()
 		v.SetConfigType("yaml")
-		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+		assert.NoError(t, v.ReadConfig(bytes.NewBuffer(yamlConfig)))
 
 		var (
 			testString string
@@ -390,7 +390,7 @@ subCommand:
 		cmd := &cobra.Command{}
 		v := getViper()
 		v.SetConfigType("yaml")
-		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+		assert.NoError(t, v.ReadConfig(bytes.NewBuffer(yamlConfig)))
 
 		var (
 			globalString string
@@ -431,7 +431,7 @@ subCommand:
 		cmd := &cobra.Command{}
 		v := getViper()
 		v.SetConfigType("yaml")
-		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+		assert.NoError(t, v.ReadConfig(bytes.NewBuffer(yamlConfig)))
 
 		var (
 			globalString string
@@ -477,7 +477,7 @@ subCommand:
 		cmd := &cobra.Command{}
 		v := getViper()
 		v.SetConfigType("yaml")
-		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+		assert.NoError(t, v.ReadConfig(bytes.NewBuffer(yamlConfig)))
 
 		var (
 			globalString string
@@ -518,7 +518,7 @@ subCommand:
 		cmd := &cobra.Command{}
 		v := getViper()
 		v.SetConfigType("yaml")
-		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+		assert.NoError(t, v.ReadConfig(bytes.NewBuffer(yamlConfig)))
 
 		var (
 			testStringRoot string
@@ -553,7 +553,7 @@ subCommand:
 		cmd := &cobra.Command{}
 		v := getViper()
 		v.SetConfigType("yaml")
-		v.ReadConfig(bytes.NewBuffer(yamlConfig))
+		assert.NoError(t, v.ReadConfig(bytes.NewBuffer(yamlConfig)))
 
 		var (
 			testStringRoot string
@@ -591,7 +591,7 @@ subCommand:
 		cmd := &cobra.Command{}
 		v := getViper()
 		v.SetConfigType("json")
-		v.ReadConfig(bytes.NewBuffer(jsonConfig))
+		assert.NoError(t, v.ReadConfig(bytes.NewBuffer(jsonConfig)))
 
 		subCmd := &cobra.Command{
 			Use: "subCommand",
@@ -711,7 +711,7 @@ subcommand:
 			}
 			testString := cmd.PersistentFlags().String("test-string", "", "Test string flag")
 			testInt := cmd.PersistentFlags().Int("test-int", 0, "Test int flag")
-			cmd.MarkFlagRequired("test-string")
+			assert.NoError(t, cmd.MarkFlagRequired("test-string"))
 			cmd.PersistentFlags().String(configFlagName, "", "Config file name")
 
 			var subcommandBool bool
