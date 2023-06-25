@@ -589,11 +589,11 @@ func TestEndToEndWithExecute(t *testing.T) {
 		{
 			name:    "from env vars",
 			args:    []string{"subcommand"},
-			envVars: map[string]string{"TEST_STRING": "env-value", "TEST_INT": "123", "SUBCOMMAND_STRING": "env-value-subcommand"},
+			envVars: map[string]string{"TEST_STRING": "env-value", "TEST_INT": "123", "SUBCOMMAND_TEST_BOOL": "true"},
 		},
 		{
 			name: "from argument",
-			args: []string{"subcommand", "--test-string", "argument-value", "--test-int", "123", "--subcommand-string", "argument-value-subcommand"},
+			args: []string{"subcommand", "--test-string", "argument-value", "--test-int", "123", "--test-bool", "true"},
 		},
 		{
 			name: "from config",
@@ -602,15 +602,15 @@ func TestEndToEndWithExecute(t *testing.T) {
 test-string: config-value
 test-int: 123
 subcommand:
-  subcommand-string: config-value-subcommand
+  test-bool: true
 `),
 		},
 		{
 			name: "from argument and env vars",
 			args: []string{"subcommand", "--test-string", "argument-value"},
 			envVars: map[string]string{
-				"TEST_INT":          "123",
-				"SUBCOMMAND_STRING": "env-value-subcommand",
+				"TEST_INT":             "123",
+				"SUBCOMMAND_TEST_BOOL": "true",
 			},
 		},
 		{
@@ -622,35 +622,13 @@ subcommand:
 			config: []byte(`
 test-int: 123
 subcommand:
-  subcommand-string: config-value-subcommand
+  test-bool: true
 `),
 		},
 	}
 
-	cmd := &cobra.Command{
-		Use: "root",
-	}
-	testString := cmd.PersistentFlags().String("test-string", "", "Test string flag")
-	testInt := cmd.PersistentFlags().Int("test-int", 0, "Test int flag")
-	cmd.MarkFlagRequired("test-string")
-	cmd.PersistentFlags().String(configFlagName, "", "Config file name")
-
-	var subcommandString string
-	subCommandExecuted := false
-	subCmd := &cobra.Command{
-		Use: "subcommand",
-		Run: func(cmd *cobra.Command, args []string) {
-			// TODO: test values
-			assert.NotEmpty(t, *testString)
-			assert.NotEmpty(t, *testInt)
-			assert.NotEmpty(t, subcommandString)
-			subCommandExecuted = true
-		},
-	}
-	subCmd.Flags().StringVar(&subcommandString, "subcommand-string", "", "Subcommand string flag")
-	cmd.AddCommand(subCmd)
-
-	v := getViper()
+	var cmd *cobra.Command
+	var v *viper.Viper
 
 	cobra.OnInitialize(func() {
 		err := lib.LoadConfigFromAllSources(cmd, v, configFlagName, envVarPrefix)
@@ -663,7 +641,7 @@ subcommand:
 		t.Run(tc.name, func(t *testing.T) {
 			assertClearEnv(t)
 			for key, value := range tc.envVars {
-				err := setEnv(key, value)
+				err := setEnv(envVarPrefix+"_"+key, value)
 				assert.NoError(t, err)
 			}
 			defer clearEnvVars(t)
@@ -675,6 +653,30 @@ subcommand:
 
 				tc.args = append(tc.args, "--"+configFlagName, configFileName)
 			}
+
+			cmd = &cobra.Command{
+				Use: "root",
+			}
+			testString := cmd.PersistentFlags().String("test-string", "", "Test string flag")
+			testInt := cmd.PersistentFlags().Int("test-int", 0, "Test int flag")
+			cmd.MarkFlagRequired("test-string")
+			cmd.PersistentFlags().String(configFlagName, "", "Config file name")
+
+			var subcommandBool bool
+			var subCommandExecuted bool
+			subCmd := &cobra.Command{
+				Use: "subcommand",
+				Run: func(cmd *cobra.Command, args []string) {
+					assert.NotEmpty(t, *testString)
+					assert.NotEmpty(t, *testInt)
+					assert.NotEmpty(t, subcommandBool)
+					subCommandExecuted = true
+				},
+			}
+			subCmd.Flags().BoolVar(&subcommandBool, "test-bool", false, "Subcommand string flag")
+			cmd.AddCommand(subCmd)
+
+			v = getViper()
 
 			cmd.SetArgs(tc.args)
 			err := cmd.Execute()
