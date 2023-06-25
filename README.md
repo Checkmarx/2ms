@@ -37,8 +37,6 @@ docker run -v path/to/my/repo:/repo checkmarx/2ms git /repo
 
 <!-- command-line:start -->
 
-bla bla bla
-
 ```
 2ms Secrets Detection: A tool to detect secrets in public websites and communication services.
 
@@ -68,12 +66,48 @@ Flags:
   -v, --version                version for 2ms
 
 Use "2ms [command] --help" for more information about a command.
-bla bla bla
 ```
 
-bla bla bla
-
 <!-- command-line:end -->
+
+| :warning: Using configuration env or file                                                                                                                                                      |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Please note that even using configuration file or environment variables, you still need to specify the subcommand name in the CLI arguments. Also, positional arguments are not yet supported. |
+
+### Environment Variables
+
+To use a flag as an environment variable, see the following rules:
+
+- Replace `-` with `_`
+- Start with `2MS_`
+- Prefer uppercase
+- Append the subcommand name(s) (if any) with `_`
+
+Examples:
+
+- `--log-level` -> `2MS_LOG_LEVEL`
+- `paligo instance` -> `2MS_PALIGO_INSTANCE`
+
+### Configuration File
+
+You can use `--config` flag to specify a configuration file. The configuration file is a YAML/JSON file with the following structure:
+
+```yaml
+# global flags that will be applied to all commands
+log-level: info
+report-path:
+  - ./report.yaml
+  - ./report.json
+  - ./report.sarif
+
+# the subcommand will be selected from the CLI arguments
+# the flags below will be applied to the selected subcommand
+paligo:
+  instance: your-instance
+  username: your-username
+  # you can combine config file and Environment Variables
+  # token: your-token
+```
 
 ---
 
