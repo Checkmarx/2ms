@@ -46,19 +46,19 @@ func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error)
 	}
 	flags := discordCmd.Flags()
 
-	flags.String(tokenFlag, "", "Discord token [required]")
+	flags.StringVar(&p.Token, tokenFlag, "", "Discord token [required]")
 	err := discordCmd.MarkFlagRequired(tokenFlag)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", tokenFlag, err)
 	}
-	flags.StringArray(serversFlag, []string{}, "Discord servers IDs to scan [required]")
+	flags.StringSliceVar(&p.Guilds, serversFlag, []string{}, "Discord servers IDs to scan [required]")
 	err = discordCmd.MarkFlagRequired(serversFlag)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", serversFlag, err)
 	}
-	flags.StringArray(channelsFlag, []string{}, "Discord channels IDs to scan. If not provided, all channels will be scanned")
-	flags.Duration(fromDateFlag, defaultDateFrom, "The time interval to scan from the current time. For example, 24h for 24 hours or 7d for 7 days.")
-	flags.Int(messagesCountFlag, 0, "The number of messages to scan. If not provided, all messages will be scanned until the fromDate flag value.")
+	flags.StringSliceVar(&p.Channels, channelsFlag, []string{}, "Discord channels IDs to scan. If not provided, all channels will be scanned")
+	flags.DurationVar(&p.BackwardDuration, fromDateFlag, defaultDateFrom, "The time interval to scan from the current time. For example, 24h for 24 hours or 7d for 7 days.")
+	flags.IntVar(&p.Count, messagesCountFlag, 0, "The number of messages to scan. If not provided, all messages will be scanned until the fromDate flag value.")
 
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
 		err := p.initialize(cmd)
@@ -74,33 +74,13 @@ func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error)
 }
 
 func (p *DiscordPlugin) initialize(cmd *cobra.Command) error {
-	flags := cmd.Flags()
-	token, _ := flags.GetString(tokenFlag)
-	if token == "" {
-		return fmt.Errorf("discord token arg is missing. Plugin initialization failed")
-	}
-
-	guilds, _ := flags.GetStringArray(serversFlag)
-	if len(guilds) == 0 {
-		return fmt.Errorf("discord servers arg is missing. Plugin initialization failed")
-	}
-
-	channels, _ := flags.GetStringArray(channelsFlag)
-	if len(channels) == 0 {
+	if len(p.Channels) == 0 {
 		log.Warn().Msg("discord channels not provided. Will scan all channels")
 	}
 
-	fromDate, _ := flags.GetDuration(fromDateFlag)
-	count, _ := flags.GetInt(messagesCountFlag)
-	if count == 0 && fromDate == 0 {
+	if p.Count == 0 && p.BackwardDuration == 0 {
 		return fmt.Errorf("discord messages count or from date arg is missing. Plugin initialization failed")
 	}
-
-	p.Token = token
-	p.Guilds = guilds
-	p.Channels = channels
-	p.Count = count
-	p.BackwardDuration = fromDate
 
 	return nil
 }

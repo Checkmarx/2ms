@@ -26,14 +26,24 @@ var Version = "0.0.0"
 
 const (
 	timeSleepInterval = 50
-	tagsFlagName      = "tags"
-	logLevelFlagName  = "log-level"
-	reportPath        = "report-path"
-	stdoutFormat      = "stdout-format"
 	jsonFormat        = "json"
 	yamlFormat        = "yaml"
 	sarifFormat       = "sarif"
 	configFileFlag    = "config"
+
+	tagsFlagName            = "tags"
+	logLevelFlagName        = "log-level"
+	reportPathFlagName      = "report-path"
+	stdoutFormatFlagName    = "stdout-format"
+	customRegexRuleFlagName = "regex"
+)
+
+var (
+	tagsVar            []string
+	logLevelVar        string
+	reportPathVar      []string
+	stdoutFormatVar    string
+	customRegexRuleVar []string
 )
 
 var rootCmd = &cobra.Command{
@@ -77,11 +87,7 @@ func initialize() {
 	cobra.CheckErr(lib.LoadConfig(vConfig, configFilePath))
 	cobra.CheckErr(lib.BindFlags(rootCmd, vConfig, envPrefix))
 
-	ll, err := rootCmd.Flags().GetString(logLevelFlagName)
-	if err != nil {
-		cobra.CheckErr(err)
-	}
-	switch strings.ToLower(ll) {
+	switch strings.ToLower(logLevelVar) {
 	case "trace":
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	case "debug":
@@ -106,10 +112,11 @@ func Execute() {
 	cobra.OnInitialize(initialize)
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "YAML config file path")
 	rootCmd.MarkFlagFilename(configFileFlag, "yaml", "yml")
-	rootCmd.PersistentFlags().StringSlice(tagsFlagName, []string{"all"}, "select rules to be applied")
-	rootCmd.PersistentFlags().String(logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
-	rootCmd.PersistentFlags().StringSlice(reportPath, []string{""}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
-	rootCmd.PersistentFlags().String(stdoutFormat, "yaml", "stdout output format, available formats are: json, yaml, sarif")
+	rootCmd.PersistentFlags().StringSliceVar(&tagsVar, tagsFlagName, []string{"all"}, "select rules to be applied")
+	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
+	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
+	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
 
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
@@ -160,14 +167,13 @@ func validateFormat(stdout string, reportPath []string) {
 }
 
 func preRun(cmd *cobra.Command, args []string) {
-	tags, err := cmd.Flags().GetStringSlice(tagsFlagName)
-	if err != nil {
+	validateTags(tagsVar)
+
+	secrets := secrets.Init(tagsVar)
+
+	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
 		log.Fatal().Msg(err.Error())
 	}
-
-	validateTags(tags)
-
-	secrets := secrets.Init(tags)
 
 	go func() {
 		for {
@@ -192,10 +198,7 @@ func preRun(cmd *cobra.Command, args []string) {
 func postRun(cmd *cobra.Command, args []string) {
 	channels.WaitGroup.Wait()
 
-	reportPath, _ := cmd.Flags().GetStringSlice(reportPath)
-	stdoutFormat, _ := cmd.Flags().GetString(stdoutFormat)
-
-	validateFormat(stdoutFormat, reportPath)
+	validateFormat(stdoutFormatVar, reportPathVar)
 
 	cfg := config.LoadConfig("2ms", Version)
 
@@ -205,9 +208,9 @@ func postRun(cmd *cobra.Command, args []string) {
 	// -------------------------------------
 	// Show Report
 	if report.TotalItemsScanned > 0 {
-		report.ShowReport(stdoutFormat, cfg)
-		if len(reportPath) > 0 {
-			err := report.WriteFile(reportPath, cfg)
+		report.ShowReport(stdoutFormatVar, cfg)
+		if len(reportPathFlagName) > 0 {
+			err := report.WriteFile(reportPathVar, cfg)
 			if err != nil {
 				log.Error().Msgf("Failed to create report file with error: %s", err)
 			}

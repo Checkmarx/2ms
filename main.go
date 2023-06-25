@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	// send all logs to stdout
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"})
 

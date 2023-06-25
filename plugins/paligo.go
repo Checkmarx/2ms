@@ -66,7 +66,7 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 		Short: "Scan Paligo instance",
 		Long:  "Scan Paligo instance for sensitive information.",
 		Run: func(cmd *cobra.Command, args []string) {
-			// Waits for MarkFlagsMutuallyExclusiveAndRequired https://github.com/spf13/cobra/pull/1972
+			// Waits for MarkFlagsOneRequired https://github.com/spf13/cobra/pull/1952
 			if p.auth == "" && (p.username == "" || p.token == "") {
 				p.Channels.Errors <- fmt.Errorf("exactly one of the flags in the group %v must be set; none were set", []string{paligoAuthFlag, paligoUsernameFlag, paligoTokenFlag})
 				return
