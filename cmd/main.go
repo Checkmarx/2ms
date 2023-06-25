@@ -76,7 +76,6 @@ var channels = plugins.Channels{
 var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
 
-// TODO: docs
 func initialize() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 

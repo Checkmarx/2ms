@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: positional arguments
-
 const envVarPrefix = "PREFIX"
 
 func TestBindFlags(t *testing.T) {

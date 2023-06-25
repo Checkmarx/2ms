@@ -24,6 +24,7 @@ func LoadConfig(v *viper.Viper, configFilePath string) error {
 }
 
 // TODO: can be a package
+
 // BindFlags fill flags values with config file or environment variables data
 func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 	commandHierarchy := getCommandHierarchy(cmd)
