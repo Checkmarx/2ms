@@ -1,0 +1,23 @@
+name: PR Labels
+
+on:
+  pull_request_target:
+    types: [opened]
+    
+jobs:
+  mark_as_community:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Mark as Community if PR is from a fork
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['Community']
+            })
