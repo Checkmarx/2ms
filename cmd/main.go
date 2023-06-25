@@ -74,11 +74,7 @@ func initialize() {
 	if err != nil {
 		cobra.CheckErr(err)
 	}
-	if configFilePath != "" {
-		// TODO: Yaml? JSON?
-		vConfig.SetConfigFile(configFilePath)
-		cobra.CheckErr(vConfig.ReadInConfig())
-	}
+	cobra.CheckErr(lib.LoadConfig(vConfig, configFilePath))
 	cobra.CheckErr(lib.BindFlags(rootCmd, vConfig, envPrefix))
 
 	ll, err := rootCmd.Flags().GetString(logLevelFlagName)

@@ -2,6 +2,7 @@ package lib
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -9,6 +10,18 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
+
+func LoadConfig(v *viper.Viper, configFilePath string) error {
+	if configFilePath == "" {
+		return nil
+	}
+
+	configType := strings.TrimPrefix(filepath.Ext(configFilePath), ".")
+
+	v.SetConfigType(configType)
+	v.SetConfigFile(configFilePath)
+	return v.ReadInConfig()
+}
 
 // TODO: can be a package
 // BindFlags fill flags values with config file or environment variables data
@@ -28,7 +41,6 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 			applyViperFlagToCommand(f, val, cmd)
 		}
 	}
-	// TODO: remove persistent flags
 	cmd.PersistentFlags().VisitAll(bindFlag)
 	cmd.Flags().VisitAll(bindFlag)
 

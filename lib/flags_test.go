@@ -575,16 +575,49 @@ subCommand:
 		assert.Equal(t, "global-string-value", testStringRoot)
 		assert.Equal(t, "string-from-sub-command", testStringSub)
 	})
+
+	t.Run("BindFlags_FromJSON", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
+		jsonConfig := []byte(`
+			{
+			  "global-string": "global-string-value",
+			  "subCommand": {
+				"test-string": "string-from-sub-command"
+			  }
+			}`)
+
+		cmd := &cobra.Command{}
+		v := getViper()
+		v.SetConfigType("json")
+		v.ReadConfig(bytes.NewBuffer(jsonConfig))
+
+		subCmd := &cobra.Command{
+			Use: "subCommand",
+		}
+		cmd.AddCommand(subCmd)
+
+		globalString := cmd.PersistentFlags().String("global-string", "", "Global string flag")
+		testString := subCmd.PersistentFlags().String("test-string", "", "Test string flag")
+
+		err := lib.BindFlags(cmd, v, envVarPrefix)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "global-string-value", *globalString)
+		assert.Equal(t, "string-from-sub-command", *testString)
+	})
 }
 
 func TestEndToEndWithExecute(t *testing.T) {
 	configFlagName := "config"
 
 	testCases := []struct {
-		name    string
-		args    []string
-		envVars map[string]string
-		config  []byte
+		name         string
+		args         []string
+		envVars      map[string]string
+		config       []byte
+		configFormat string
 	}{
 		{
 			name:    "from env vars",
@@ -604,6 +637,7 @@ test-int: 123
 subcommand:
   test-bool: true
 `),
+			configFormat: "yaml",
 		},
 		{
 			name: "from argument and env vars",
@@ -624,6 +658,20 @@ test-int: 123
 subcommand:
   test-bool: true
 `),
+			configFormat: "yaml",
+		},
+		{
+			name: "from JSON config",
+			args: []string{"subcommand"},
+			config: []byte(`
+				{
+					"test-string": "config-value",
+					"test-int": 123,
+					"subcommand": {
+						"test-bool": true
+					}
+				}`),
+			configFormat: "json",
 		},
 	}
 
@@ -635,10 +683,7 @@ subcommand:
 		if err != nil {
 			cobra.CheckErr(err)
 		}
-		if configFilePath != "" {
-			v.SetConfigFile(configFilePath)
-			assert.NoError(t, v.ReadInConfig())
-		}
+		err = lib.LoadConfig(v, configFilePath)
 		assert.NoError(t, err)
 		err = lib.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
@@ -655,7 +700,7 @@ subcommand:
 
 			var configFileName string
 			if tc.config != nil {
-				configFileName = writeTempFile(t, tc.config)
+				configFileName = writeTempFile(t, tc.config, tc.configFormat)
 				defer os.Remove(configFileName)
 
 				tc.args = append(tc.args, "--"+configFlagName, configFileName)
@@ -715,8 +760,8 @@ func clearEnvVars(t *testing.T) {
 	}
 }
 
-func writeTempFile(t *testing.T, content []byte) string {
-	file, err := os.CreateTemp("", "config-*.yaml")
+func writeTempFile(t *testing.T, content []byte, fileExtension string) string {
+	file, err := os.CreateTemp("", "config-*."+fileExtension)
 	assert.NoError(t, err)
 
 	_, err = file.Write([]byte(content))
