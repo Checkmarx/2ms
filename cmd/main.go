@@ -70,7 +70,7 @@ func initialize() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	// TODO: tests? check with the existing tests. combine levels of EnvVars, config and args
-	err := lib.LoadConfigFromFile(rootCmd, vConfig, configFileFlag, envPrefix)
+	err := lib.LoadConfigFromAllSources(rootCmd, vConfig, configFileFlag, envPrefix)
 	if err != nil {
 		cobra.CheckErr(err)
 	}

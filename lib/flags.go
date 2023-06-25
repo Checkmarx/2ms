@@ -10,7 +10,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func LoadConfigFromFile(rootCmd *cobra.Command, config *viper.Viper, configFileFlagName string, envPrefix string) error {
+// TODO: remove cmd dependency
+func LoadConfigFromAllSources(rootCmd *cobra.Command, config *viper.Viper, configFileFlagName string, envPrefix string) error {
 	configFilePath, err := rootCmd.Flags().GetString(configFileFlagName)
 	if err != nil {
 		return err
