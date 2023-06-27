@@ -33,6 +33,7 @@ const (
 	reportPathFlagName      = "report-path"
 	stdoutFormatFlagName    = "stdout-format"
 	customRegexRuleFlagName = "regex"
+	ignoreFlagName          = "ignore"
 )
 
 var (
@@ -41,6 +42,7 @@ var (
 	reportPathVar      []string
 	stdoutFormatVar    string
 	customRegexRuleVar []string
+	ignoreVar          []string
 )
 
 var rootCmd = &cobra.Command{
@@ -94,6 +96,7 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
+	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore by id or by source, example: --ignore=test.js,temp.js or --ignore=fdr3g4 --ignore=kdj3h4")
 
 	rootCmd.PersistentPreRun = preRun
 	rootCmd.PersistentPostRun = postRun
