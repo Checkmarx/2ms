@@ -369,7 +369,7 @@ var RulesCommand = &cobra.Command{
 		fmt.Fprintln(tab, "Name\tDescription\tTags")
 		fmt.Fprintln(tab, "----\t----\t----")
 		for _, rule := range rules {
-			fmt.Fprintln(tab, fmt.Sprintf("%s\t%s\t%s", rule.Rule.RuleID, rule.Rule.Description, strings.Join(rule.Tags, ",")))
+			fmt.Fprintf(tab, "%s\t%s\t%s\n", rule.Rule.RuleID, rule.Rule.Description, strings.Join(rule.Tags, ","))
 		}
 		tab.Flush()
 
