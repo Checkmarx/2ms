@@ -28,19 +28,21 @@ const (
 	yamlFormat        = "yaml"
 	sarifFormat       = "sarif"
 
-	tagsFlagName            = "tags"
 	logLevelFlagName        = "log-level"
 	reportPathFlagName      = "report-path"
 	stdoutFormatFlagName    = "stdout-format"
 	customRegexRuleFlagName = "regex"
+	includeRuleFlagName     = "include-rule"
+	excludeRuleFlagName     = "exclude-rule"
 )
 
 var (
-	tagsVar            []string
 	logLevelVar        string
 	reportPathVar      []string
 	stdoutFormatVar    string
 	customRegexRuleVar []string
+	includeRuleVar     []string
+	excludeRuleVar     []string
 )
 
 var rootCmd = &cobra.Command{
@@ -89,11 +91,14 @@ func initLog() {
 
 func Execute() {
 	cobra.OnInitialize(initLog)
-	rootCmd.PersistentFlags().StringSliceVar(&tagsVar, tagsFlagName, []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
+
+	rootCmd.PersistentFlags().StringSliceVar(&includeRuleVar, includeRuleFlagName, []string{}, "include rules by name or tag to apply to the scan (adds to list, starts from empty)")
+	rootCmd.PersistentFlags().StringSliceVar(&excludeRuleVar, excludeRuleFlagName, []string{}, "exclude rules by name or tag to apply to the scan (removes from list, starts from all)")
+	rootCmd.MarkFlagsMutuallyExclusive(includeRuleFlagName, excludeRuleFlagName)
 
 	rootCmd.AddCommand(secrets.RulesCommand)
 
@@ -145,9 +150,10 @@ func validateFormat(stdout string, reportPath []string) {
 }
 
 func preRun(cmd *cobra.Command, args []string) {
-	validateTags(tagsVar)
-
-	secrets := secrets.Init(tagsVar)
+	secrets, err := secrets.Init(includeRuleVar, excludeRuleVar)
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+	}
 
 	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
 		log.Fatal().Msg(err.Error())

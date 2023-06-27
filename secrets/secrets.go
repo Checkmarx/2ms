@@ -49,10 +49,27 @@ const TagWebhook = "webhook"
 
 const customRegexRuleIdFormat = "custom-regex-%d"
 
-func Init(tags []string) *Secrets {
+func Init(includeList, excludeList []string) (*Secrets, error) {
+	if len(includeList) > 0 && len(excludeList) > 0 {
+		return nil, fmt.Errorf("cannot use both include and exclude flags")
+	}
 
 	allRules, _ := loadAllRules()
-	rulesToBeApplied := getRules(allRules, tags)
+	rulesToBeApplied := make(map[string]config.Rule)
+	if len(includeList) > 0 {
+		rulesToBeApplied = selectRules(allRules, includeList)
+	} else if len(excludeList) > 0 {
+		rulesToBeApplied = excludeRules(allRules, excludeList)
+	} else {
+		for _, rule := range allRules {
+			// required to be empty when not running via cli. otherwise rule will be ignored
+			rule.Rule.Keywords = []string{}
+			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		}
+	}
+	if len(rulesToBeApplied) == 0 {
+		return nil, fmt.Errorf("no rules were selected")
+	}
 
 	config := config.Config{
 		Rules: rulesToBeApplied,
@@ -63,7 +80,7 @@ func Init(tags []string) *Secrets {
 	return &Secrets{
 		rules:    rulesToBeApplied,
 		detector: *detector,
-	}
+	}, nil
 }
 
 func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, wg *sync.WaitGroup) {
@@ -105,6 +122,46 @@ func getItemId(fullPath string) string {
 		itemId = filepath.Base(fullPath)
 	}
 	return itemId
+}
+
+func selectRules(allRules []Rule, tags []string) map[string]config.Rule {
+	rulesToBeApplied := make(map[string]config.Rule)
+
+	for _, rule := range allRules {
+		if isRuleMatch(rule, tags) {
+			// required to be empty when not running via cli. otherwise rule will be ignored
+			rule.Rule.Keywords = []string{}
+			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		}
+	}
+	return rulesToBeApplied
+}
+
+func excludeRules(allRules []Rule, tags []string) map[string]config.Rule {
+	rulesToBeApplied := make(map[string]config.Rule)
+
+	for _, rule := range allRules {
+		if !isRuleMatch(rule, tags) {
+			// required to be empty when not running via cli. otherwise rule will be ignored
+			rule.Rule.Keywords = []string{}
+			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		}
+	}
+	return rulesToBeApplied
+}
+
+func isRuleMatch(rule Rule, tags []string) bool {
+	for _, tag := range tags {
+		if strings.EqualFold(rule.Rule.RuleID, tag) {
+			return true
+		}
+		for _, ruleTag := range rule.Tags {
+			if strings.EqualFold(ruleTag, tag) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func getRules(allRules []Rule, tags []string) map[string]config.Rule {
@@ -301,6 +358,7 @@ var RulesCommand = &cobra.Command{
 	Short: "List all rules",
 	Long:  `List all rules`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+
 		rules, err := loadAllRules()
 		if err != nil {
 			return err
