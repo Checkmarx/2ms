@@ -12,6 +12,22 @@ func TestLoadAllRules(t *testing.T) {
 	}
 }
 
+func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
+	ruleIDMap := make(map[string]bool)
+	allRules, err := loadAllRules()
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, rule := range allRules {
+		if _, ok := ruleIDMap[rule.Rule.RuleID]; ok {
+			t.Errorf("duplicate rule id found: %s", rule.Rule.RuleID)
+		}
+
+		ruleIDMap[rule.Rule.RuleID] = true
+	}
+}
+
 func TestIsAllFilter_AllFilterNotPresent(t *testing.T) {
 	filters := []string{"token", "key"}
 
