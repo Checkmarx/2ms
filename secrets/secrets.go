@@ -2,13 +2,16 @@ package secrets
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
+	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
@@ -292,4 +295,27 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.ZendeskSecretKey(), Tags: []string{TagSecretKey}})
 
 	return allRules, nil
+}
+
+var RulesCommand = &cobra.Command{
+	Use:   "rules",
+	Short: "List all rules",
+	Long:  `List all rules`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		rules, err := loadAllRules()
+		if err != nil {
+			return err
+		}
+
+		tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
+
+		fmt.Fprintln(tab, "Name\tDescription\tTags")
+		fmt.Fprintln(tab, "----\t----\t----")
+		for _, rule := range rules {
+			fmt.Fprintln(tab, fmt.Sprintf("%s\t%s\t%s", rule.Rule.RuleID, rule.Rule.Description, strings.Join(rule.Tags, ",")))
+		}
+		tab.Flush()
+
+		return nil
+	},
 }

@@ -95,6 +95,8 @@ func Execute() {
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
 
+	rootCmd.AddCommand(secrets.RulesCommand)
+
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
