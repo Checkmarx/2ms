@@ -47,8 +47,7 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 }
 
 func (p *GitPlugin) buildScanOptions() string {
-	var options []string
-	options = append(options, "--full-history")
+	options := []string{"--full-history"}
 	if p.scanAllBranches {
 		options = append(options, "--all")
 	}
