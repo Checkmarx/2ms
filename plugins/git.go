@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog/log"
@@ -11,13 +12,15 @@ import (
 )
 
 const (
-	argDepth = "depth"
+	argDepth           = "depth"
+	argScanAllBranches = "all"
 )
 
 type GitPlugin struct {
 	Plugin
 	Channels
-	depth int
+	depth           int
+	scanAllBranches bool
 }
 
 func (p *GitPlugin) GetName() string {
@@ -38,16 +41,21 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 		},
 	}
 	flags := command.Flags()
+	flags.BoolVar(&p.scanAllBranches, argScanAllBranches, false, "scan all branches")
 	flags.IntVar(&p.depth, argDepth, 0, "number of commits to scan from HEAD")
 	return command, nil
 }
 
 func (p *GitPlugin) buildScanOptions() string {
-	options := ""
-	if p.depth > 0 {
-		options = fmt.Sprintf("--full-history --all -n %d", p.depth)
+	var options []string
+	options = append(options, "--full-history")
+	if p.scanAllBranches {
+		options = append(options, "--all")
 	}
-	return options
+	if p.depth > 0 {
+		options = append(options, fmt.Sprintf("-n %d", p.depth))
+	}
+	return strings.Join(options, " ")
 }
 
 func scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan error) {
