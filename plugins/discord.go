@@ -57,7 +57,7 @@ func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error)
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", serversFlag, err)
 	}
 	flags.StringSliceVar(&p.Channels, channelsFlag, []string{}, "Discord channels IDs to scan. If not provided, all channels will be scanned")
-	flags.DurationVar(&p.BackwardDuration, fromDateFlag, defaultDateFrom, "The time interval to scan from the current time. For example, 24h for 24 hours or 7d for 7 days.")
+	flags.DurationVar(&p.BackwardDuration, fromDateFlag, defaultDateFrom, "The time interval to scan from the current time. For example, 24h for 24 hours or 336h0m0s for 14 days.")
 	flags.IntVar(&p.Count, messagesCountFlag, 0, "The number of messages to scan. If not provided, all messages will be scanned until the fromDate flag value.")
 
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
@@ -86,8 +86,6 @@ func (p *DiscordPlugin) initialize(cmd *cobra.Command) error {
 }
 
 func (p *DiscordPlugin) getItems(itemsChan chan Item, errChan chan error, wg *sync.WaitGroup) {
-	defer wg.Done()
-
 	p.errChan = errChan
 	p.itemChan = itemsChan
 	p.waitGroup = wg
@@ -101,7 +99,7 @@ func (p *DiscordPlugin) getItems(itemsChan chan Item, errChan chan error, wg *sy
 	guilds := p.getGuildsByNameOrIDs()
 	log.Info().Msgf("Found %d guilds", len(guilds))
 
-	wg.Add(len(guilds))
+	p.waitGroup.Add(len(guilds))
 	for _, guild := range guilds {
 		go p.readGuildMessages(guild)
 	}
