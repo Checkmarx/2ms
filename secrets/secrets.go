@@ -2,13 +2,16 @@ package secrets
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
+	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
@@ -46,10 +49,27 @@ const TagWebhook = "webhook"
 
 const customRegexRuleIdFormat = "custom-regex-%d"
 
-func Init(tags []string) *Secrets {
+func Init(includeList, excludeList []string) (*Secrets, error) {
+	if len(includeList) > 0 && len(excludeList) > 0 {
+		return nil, fmt.Errorf("cannot use both include and exclude flags")
+	}
 
 	allRules, _ := loadAllRules()
-	rulesToBeApplied := getRules(allRules, tags)
+	rulesToBeApplied := make(map[string]config.Rule)
+	if len(includeList) > 0 {
+		rulesToBeApplied = selectRules(allRules, includeList)
+	} else if len(excludeList) > 0 {
+		rulesToBeApplied = excludeRules(allRules, excludeList)
+	} else {
+		for _, rule := range allRules {
+			// required to be empty when not running via cli. otherwise rule will be ignored
+			rule.Rule.Keywords = []string{}
+			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		}
+	}
+	if len(rulesToBeApplied) == 0 {
+		return nil, fmt.Errorf("no rules were selected")
+	}
 
 	config := config.Config{
 		Rules: rulesToBeApplied,
@@ -60,7 +80,7 @@ func Init(tags []string) *Secrets {
 	return &Secrets{
 		rules:    rulesToBeApplied,
 		detector: *detector,
-	}
+	}, nil
 }
 
 func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, wg *sync.WaitGroup) {
@@ -102,6 +122,46 @@ func getItemId(fullPath string) string {
 		itemId = filepath.Base(fullPath)
 	}
 	return itemId
+}
+
+func selectRules(allRules []Rule, tags []string) map[string]config.Rule {
+	rulesToBeApplied := make(map[string]config.Rule)
+
+	for _, rule := range allRules {
+		if isRuleMatch(rule, tags) {
+			// required to be empty when not running via cli. otherwise rule will be ignored
+			rule.Rule.Keywords = []string{}
+			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		}
+	}
+	return rulesToBeApplied
+}
+
+func excludeRules(allRules []Rule, tags []string) map[string]config.Rule {
+	rulesToBeApplied := make(map[string]config.Rule)
+
+	for _, rule := range allRules {
+		if !isRuleMatch(rule, tags) {
+			// required to be empty when not running via cli. otherwise rule will be ignored
+			rule.Rule.Keywords = []string{}
+			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		}
+	}
+	return rulesToBeApplied
+}
+
+func isRuleMatch(rule Rule, tags []string) bool {
+	for _, tag := range tags {
+		if strings.EqualFold(rule.Rule.RuleID, tag) {
+			return true
+		}
+		for _, ruleTag := range rule.Tags {
+			if strings.EqualFold(ruleTag, tag) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func getRules(allRules []Rule, tags []string) map[string]config.Rule {
@@ -166,7 +226,7 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.ConfluentSecretKey(), Tags: []string{TagSecretKey}})
 	allRules = append(allRules, Rule{Rule: *rules.Contentful(), Tags: []string{TagApiToken}})
 	allRules = append(allRules, Rule{Rule: *rules.Databricks(), Tags: []string{TagApiToken}})
-	allRules = append(allRules, Rule{Rule: *rules.DatadogtokenAccessToken(), Tags: []string{TagAccessToken}})
+	allRules = append(allRules, Rule{Rule: *rules.DatadogtokenAccessToken(), Tags: []string{TagAccessToken, TagClientId}})
 	allRules = append(allRules, Rule{Rule: *rules.DigitalOceanPAT(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.DigitalOceanOAuthToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.DigitalOceanRefreshToken(), Tags: []string{TagRefreshToken}})
@@ -178,7 +238,6 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.DropBoxShortLivedAPIToken(), Tags: []string{TagApiToken}})
 	allRules = append(allRules, Rule{Rule: *rules.DropBoxLongLivedAPIToken(), Tags: []string{TagApiToken}})
 	allRules = append(allRules, Rule{Rule: *rules.DroneciAccessToken(), Tags: []string{TagAccessToken}})
-	allRules = append(allRules, Rule{Rule: *rules.DatadogtokenAccessToken(), Tags: []string{TagClientId}})
 	allRules = append(allRules, Rule{Rule: *rules.Duffel(), Tags: []string{TagApiToken}})
 	allRules = append(allRules, Rule{Rule: *rules.Dynatrace(), Tags: []string{TagApiToken}})
 	allRules = append(allRules, Rule{Rule: *rules.EasyPost(), Tags: []string{TagApiToken}})
@@ -292,4 +351,30 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.ZendeskSecretKey(), Tags: []string{TagSecretKey}})
 
 	return allRules, nil
+}
+
+var RulesCommand = &cobra.Command{
+	Use:   "rules",
+	Short: "List all rules",
+	Long:  `List all rules`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+
+		rules, err := loadAllRules()
+		if err != nil {
+			return err
+		}
+
+		tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
+
+		fmt.Fprintln(tab, "Name\tDescription\tTags")
+		fmt.Fprintln(tab, "----\t----\t----")
+		for _, rule := range rules {
+			fmt.Fprintf(tab, "%s\t%s\t%s\n", rule.Rule.RuleID, rule.Rule.Description, strings.Join(rule.Tags, ","))
+		}
+		if err = tab.Flush(); err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
