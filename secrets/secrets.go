@@ -371,7 +371,9 @@ var RulesCommand = &cobra.Command{
 		for _, rule := range rules {
 			fmt.Fprintf(tab, "%s\t%s\t%s\n", rule.Rule.RuleID, rule.Rule.Description, strings.Join(rule.Tags, ","))
 		}
-		tab.Flush()
+		if err = tab.Flush(); err != nil {
+			return err
+		}
 
 		return nil
 	},
