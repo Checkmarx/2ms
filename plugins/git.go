@@ -13,7 +13,7 @@ import (
 
 const (
 	argDepth           = "depth"
-	argScanAllBranches = "all"
+	argScanAllBranches = "all-branches"
 )
 
 type GitPlugin struct {
