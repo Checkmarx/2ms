@@ -17,7 +17,7 @@ const (
 type GitPlugin struct {
 	Plugin
 	Channels
-	Depth int
+	depth int
 }
 
 func (p *GitPlugin) GetName() string {
@@ -38,14 +38,14 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 		},
 	}
 	flags := command.Flags()
-	flags.IntVar(&p.Depth, argDepth, 0, "number of commits to scan from HEAD")
+	flags.IntVar(&p.depth, argDepth, 0, "number of commits to scan from HEAD")
 	return command, nil
 }
 
 func (p *GitPlugin) buildScanOptions() string {
 	options := ""
-	if p.Depth > 0 {
-		options = fmt.Sprintf("--full-history --all -n %d", p.Depth)
+	if p.depth > 0 {
+		options = fmt.Sprintf("--full-history --all -n %d", p.depth)
 	}
 	return options
 }
