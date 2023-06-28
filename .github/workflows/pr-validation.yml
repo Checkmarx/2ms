@@ -27,6 +27,11 @@ jobs:
       - name: Go Test
         run: go test -v ./...
 
+      - name: go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code
+
   build:
     runs-on: ubuntu-latest
     steps:
