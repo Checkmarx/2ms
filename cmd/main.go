@@ -136,6 +136,7 @@ func validateFormat(stdout string, reportPath []string) {
 }
 
 func preRun(cmd *cobra.Command, args []string) {
+	validateFormat(stdoutFormatVar, reportPathVar)
 	secrets, err := secrets.Init(includeRuleVar, excludeRuleVar)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
@@ -167,8 +168,6 @@ func preRun(cmd *cobra.Command, args []string) {
 
 func postRun(cmd *cobra.Command, args []string) {
 	channels.WaitGroup.Wait()
-
-	validateFormat(stdoutFormatVar, reportPathVar)
 
 	cfg := config.LoadConfig("2ms", Version)
 
