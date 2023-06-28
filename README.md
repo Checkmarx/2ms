@@ -18,11 +18,12 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 - Git
 - Paligo
 - Local directory / files
-  
+
 ## Getting 2ms
 
-```
-# go install github.com/checkmarx/2ms@latest
+```bash
+curl -LO https://github.com/Checkmarx/2ms/releases/latest/download/2ms && chmod +x 2ms
+./2ms
 ```
 
 ### Docker
