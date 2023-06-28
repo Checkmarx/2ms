@@ -28,19 +28,21 @@ const (
 	yamlFormat        = "yaml"
 	sarifFormat       = "sarif"
 
-	tagsFlagName            = "tags"
 	logLevelFlagName        = "log-level"
 	reportPathFlagName      = "report-path"
 	stdoutFormatFlagName    = "stdout-format"
 	customRegexRuleFlagName = "regex"
+	includeRuleFlagName     = "include-rule"
+	excludeRuleFlagName     = "exclude-rule"
 )
 
 var (
-	tagsVar            []string
 	logLevelVar        string
 	reportPathVar      []string
 	stdoutFormatVar    string
 	customRegexRuleVar []string
+	includeRuleVar     []string
+	excludeRuleVar     []string
 )
 
 var rootCmd = &cobra.Command{
@@ -89,43 +91,33 @@ func initLog() {
 
 func Execute() {
 	cobra.OnInitialize(initLog)
-	rootCmd.PersistentFlags().StringSliceVar(&tagsVar, tagsFlagName, []string{"all"}, "select rules to be applied")
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
 
-	rootCmd.PersistentPreRun = preRun
-	rootCmd.PersistentPostRun = postRun
+	rootCmd.PersistentFlags().StringSliceVar(&includeRuleVar, includeRuleFlagName, []string{}, "include rules by name or tag to apply to the scan (adds to list, starts from empty)")
+	rootCmd.PersistentFlags().StringSliceVar(&excludeRuleVar, excludeRuleFlagName, []string{}, "exclude rules by name or tag to apply to the scan (removes from list, starts from all)")
+	rootCmd.MarkFlagsMutuallyExclusive(includeRuleFlagName, excludeRuleFlagName)
+
+	rootCmd.AddCommand(secrets.RulesCommand)
 
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
 		subCommand, err := plugin.DefineCommand(channels)
-		subCommand.GroupID = group
 		if err != nil {
 			log.Fatal().Msg(fmt.Sprintf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error()))
 		}
+		subCommand.GroupID = group
+		subCommand.PreRun = preRun
+		subCommand.PostRun = postRun
 		rootCmd.AddCommand(subCommand)
 	}
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal().Msg(err.Error())
-	}
-}
-
-func validateTags(tags []string) {
-	for _, tag := range tags {
-		if !(strings.EqualFold(tag, "all") || strings.EqualFold(tag, secrets.TagApiKey) || strings.EqualFold(tag, secrets.TagClientId) ||
-			strings.EqualFold(tag, secrets.TagClientSecret) || strings.EqualFold(tag, secrets.TagSecretKey) || strings.EqualFold(tag, secrets.TagAccessKey) ||
-			strings.EqualFold(tag, secrets.TagAccessId) || strings.EqualFold(tag, secrets.TagApiToken) || strings.EqualFold(tag, secrets.TagAccessToken) ||
-			strings.EqualFold(tag, secrets.TagRefreshToken) || strings.EqualFold(tag, secrets.TagPrivateKey) || strings.EqualFold(tag, secrets.TagPublicKey) ||
-			strings.EqualFold(tag, secrets.TagEncryptionKey) || strings.EqualFold(tag, secrets.TagTriggerToken) || strings.EqualFold(tag, secrets.TagRegistrationToken) ||
-			strings.EqualFold(tag, secrets.TagPassword) || strings.EqualFold(tag, secrets.TagUploadToken) || strings.EqualFold(tag, secrets.TagPublicSecret) ||
-			strings.EqualFold(tag, secrets.TagSensitiveUrl) || strings.EqualFold(tag, secrets.TagWebhook)) {
-			log.Fatal().Msgf(`invalid filter: %s`, tag)
-		}
 	}
 }
 
@@ -144,10 +136,11 @@ func validateFormat(stdout string, reportPath []string) {
 }
 
 func preRun(cmd *cobra.Command, args []string) {
-	validateTags(tagsVar)
 	validateFormat(stdoutFormatVar, reportPathVar)
-
-	secrets := secrets.Init(tagsVar)
+	secrets, err := secrets.Init(includeRuleVar, excludeRuleVar)
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+	}
 
 	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
 		log.Fatal().Msg(err.Error())
