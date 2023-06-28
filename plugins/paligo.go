@@ -302,8 +302,11 @@ func (p *PaligoClient) listFolders() (*[]EmptyFolder, error) {
 
 	var folders *ListFoldersResponse
 	err = json.Unmarshal(body, &folders)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing folders response: %w", err)
+	}
 
-	return &folders.Folders, err
+	return &folders.Folders, nil
 }
 
 func (p *PaligoClient) showFolder(folderId int) (*Folder, error) {
