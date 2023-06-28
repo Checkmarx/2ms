@@ -90,7 +90,7 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 	command.MarkFlagsMutuallyExclusive(paligoUsernameFlag, paligoAuthFlag)
 	command.MarkFlagsMutuallyExclusive(paligoTokenFlag, paligoAuthFlag)
 
-	command.Flags().IntVar(&paligoFolderArg, paligoFolderFlag, 0, "Paligo folder ID")
+	command.Flags().IntVar(&paligoFolderArg, paligoFolderFlag, 0, "Paligo folder ID. If not specified, the whole instance will be scanned")
 
 	return command, nil
 }
