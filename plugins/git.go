@@ -41,7 +41,7 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 		},
 	}
 	flags := command.Flags()
-	flags.BoolVar(&p.scanAllBranches, argScanAllBranches, false, "scan all branches")
+	flags.BoolVar(&p.scanAllBranches, argScanAllBranches, false, "scan all branches [default: false]")
 	flags.IntVar(&p.depth, argDepth, 0, "number of commits to scan from HEAD")
 	return command, nil
 }
