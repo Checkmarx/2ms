@@ -22,7 +22,7 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 ## Getting 2ms
 
 ```
-# go install github.com/checkmarx/2ms@latest
+go install github.com/checkmarx/2ms@latest
 ```
 
 ### Docker
