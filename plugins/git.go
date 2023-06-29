@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog/log"
@@ -10,9 +11,16 @@ import (
 	"github.com/zricethezav/gitleaks/v8/detect/git"
 )
 
+const (
+	argDepth           = "depth"
+	argScanAllBranches = "all-branches"
+)
+
 type GitPlugin struct {
 	Plugin
 	Channels
+	depth           int
+	scanAllBranches bool
 }
 
 func (p *GitPlugin) GetName() string {
@@ -23,21 +31,34 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	p.Channels = channels
 
 	command := &cobra.Command{
-		Use:   fmt.Sprintf("%s <PATH>", p.GetName()),
-		Short: "Scan Git repository",
-		Long:  "Scan Git repository for sensitive information.",
+		Use:   fmt.Sprintf("%s <CLONED_REPO>", p.GetName()),
+		Short: "Scan local Git repository",
+		Long:  "Scan local Git repository for sensitive information.",
 		Args:  cobra.MatchAll(cobra.ExactArgs(1), validGitRepoArgs),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Git plugin started")
-			scanGit(args[0], channels.Items, channels.Errors)
+			scanGit(args[0], p.buildScanOptions(), channels.Items, channels.Errors)
 		},
 	}
-
+	flags := command.Flags()
+	flags.BoolVar(&p.scanAllBranches, argScanAllBranches, false, "scan all branches [default: false]")
+	flags.IntVar(&p.depth, argDepth, 0, "number of commits to scan from HEAD")
 	return command, nil
 }
 
-func scanGit(path string, itemsChan chan Item, errChan chan error) {
-	fileChan, err := git.GitLog(path, "")
+func (p *GitPlugin) buildScanOptions() string {
+	options := []string{"--full-history"}
+	if p.scanAllBranches {
+		options = append(options, "--all")
+	}
+	if p.depth > 0 {
+		options = append(options, fmt.Sprintf("-n %d", p.depth))
+	}
+	return strings.Join(options, " ")
+}
+
+func scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan error) {
+	fileChan, err := git.GitLog(path, scanOptions)
 	if err != nil {
 		errChan <- fmt.Errorf("error while scanning git repository: %w", err)
 	}
