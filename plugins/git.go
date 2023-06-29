@@ -31,9 +31,9 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	p.Channels = channels
 
 	command := &cobra.Command{
-		Use:   fmt.Sprintf("%s <PATH>", p.GetName()),
-		Short: "Scan Git repository",
-		Long:  "Scan Git repository for sensitive information.",
+		Use:   fmt.Sprintf("%s <CLONED_REPO>", p.GetName()),
+		Short: "Scan local Git repository",
+		Long:  "Scan local Git repository for sensitive information.",
 		Args:  cobra.MatchAll(cobra.ExactArgs(1), validGitRepoArgs),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Git plugin started")
