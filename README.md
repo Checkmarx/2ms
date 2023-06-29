@@ -36,8 +36,6 @@ docker run -v path/to/my/repo:/repo checkmarx/2ms git /repo
 
 ## Getting started
 
-<!-- command-line:start -->
-
 ```
 2ms Secrets Detection: A tool to detect secrets in public websites and communication services.
 
@@ -68,8 +66,6 @@ Flags:
 
 Use "2ms [command] --help" for more information about a command.
 ```
-
-<!-- command-line:end -->
 
 | :warning: Using configuration env or file                                                                                                                                                      |
 | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
