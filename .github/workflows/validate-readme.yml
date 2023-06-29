@@ -19,6 +19,6 @@ jobs:
         run: ./.ci/update-readme.sh
       - name: validate README wasn't updated
         run: |
-          if ! git diff-index --quiet HEAD; thne
+          if ! git diff-index --quiet HEAD; then
             echo "::error:: file=README.md,title=Outdated README::README.md is outdated, please run ./.ci/update-readme.sh"
           fi

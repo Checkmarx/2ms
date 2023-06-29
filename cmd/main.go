@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/checkmarx/2ms/config"
+	"github.com/checkmarx/2ms/lib"
 
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var Version = "0.0.0"
@@ -27,6 +29,7 @@ const (
 	jsonFormat        = "json"
 	yamlFormat        = "yaml"
 	sarifFormat       = "sarif"
+	configFileFlag    = "config"
 
 	logLevelFlagName        = "log-level"
 	reportPathFlagName      = "report-path"
@@ -52,6 +55,11 @@ var rootCmd = &cobra.Command{
 	Version: Version,
 }
 
+const envPrefix = "2MS"
+
+var configFilePath string
+var vConfig = viper.New()
+
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
 	&plugins.DiscordPlugin{},
@@ -70,7 +78,16 @@ var channels = plugins.Channels{
 var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
 
-func initLog() {
+func initialize() {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+	cobra.CheckErr(lib.LoadConfig(vConfig, configFilePath))
+	cobra.CheckErr(lib.BindFlags(rootCmd, vConfig, envPrefix))
+
 	switch strings.ToLower(logLevelVar) {
 	case "trace":
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
@@ -90,7 +107,12 @@ func initLog() {
 }
 
 func Execute() {
-	cobra.OnInitialize(initLog)
+	vConfig.SetEnvPrefix(envPrefix)
+	vConfig.AutomaticEnv()
+
+	cobra.OnInitialize(initialize)
+	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
+	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
