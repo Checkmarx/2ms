@@ -229,49 +229,7 @@ func TestBindFlags(t *testing.T) {
 	})
 
 	t.Run("BindFlags_SameFlagNameDifferentCmd", func(t *testing.T) {
-		/*
-			When the same flag name is used in different commands, the last command
-			will overwrite the previous one.
-			var (
-				cmd1op1 string
-				cmd1op2 string
-				rootOp1 string
-				rootOp2 string
-			)
 
-			func Execute() {
-				var rootCmd = &cobra.Command{
-					Use: "",
-					Run: func(cmd *cobra.Command, args []string) {
-						log.Printf("cmd1op1: %s", cmd1op1)
-						log.Printf("cmd1op2: %s", cmd1op2)
-						log.Printf("rootOp1: %s", rootOp1)
-						log.Printf("rootOp2: %s", rootOp2)
-					},
-				}
-
-				cmd1 := &cobra.Command{
-					Use: "cmd1",
-					Run: func(cmd *cobra.Command, args []string) {
-						log.Printf("cmd1op1: %s", cmd1op1)
-						log.Printf("cmd1op2: %s", cmd1op2)
-						log.Printf("rootOp1: %s", rootOp1)
-						log.Printf("rootOp2: %s", rootOp2)
-					},
-				}
-				cmd1.PersistentFlags().StringVar(&cmd1op1, "op1", "", "persistent option1 for cmd1, not required for rootCmd")
-				cmd1.Flags().StringVar(&cmd1op2, "op2", "", "option2 for cmd1, not required for rootCmd")
-				rootCmd.AddCommand(cmd1)
-
-				rootCmd.PersistentFlags().StringVar(&rootOp1, "op1", "", "persistent option1 for rootCmd, not required for cmd1")
-				rootCmd.Flags().StringVar(&rootOp2, "op2", "", "option2 for rootCmd, not required for cmd1")
-
-				err := rootCmd.Execute()
-				if err != nil {
-					os.Exit(1)
-				}
-			}
-		*/
 		assertClearEnv(t)
 		defer clearEnvVars(t)
 
