@@ -30,29 +30,6 @@ jobs:
       - name: Unit Tests
         run: go test ./...
 
-      - name: update README
-        run: |
-          help_message=$(go run .)
-          echo '```' > output.txt
-          echo "$help_message" >> output.txt
-          echo '```' >> output.txt
-          sed -i '/<!-- command-line:start -->/,/<!-- command-line:end -->/{
-            /<!-- command-line:start -->/{
-              p
-              r output.txt
-            }
-            /<!-- command-line:end -->/!d
-          }' README.md
-      - name: commit and push
-        id: git-check
-        continue-on-error: true
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git add README.md
-          git diff-index --quiet HEAD || git commit -m "docs: update help message in README.md"
-          git push
-
       - name: Gets release info
         id: semantic_release_info
         if: github.event_name == 'workflow_dispatch'
