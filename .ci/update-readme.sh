@@ -1,7 +1,9 @@
 help_message=$(go run .)
+
 echo '```' >output.txt
 echo "$help_message" >>output.txt
 echo '```' >>output.txt
+
 sed -i '/<!-- command-line:start -->/,/<!-- command-line:end -->/{
             /<!-- command-line:start -->/{
               p
@@ -9,3 +11,5 @@ sed -i '/<!-- command-line:start -->/,/<!-- command-line:end -->/{
             }
             /<!-- command-line:end -->/!d
           }' README.md
+
+rm output.txt
