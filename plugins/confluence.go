@@ -241,16 +241,13 @@ func (p *ConfluencePlugin) getPageItems(items chan Item, errs chan error, wg *sy
 
 func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceResult, version int) (*Item, int, error) {
 	var url string
-	var originalUrl string
 
 	// If no version given get the latest, else get the specified version
 	if version == 0 {
-		url = fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage.value,version,history.previousVersion", p.URL, page.ID)
-		originalUrl = fmt.Sprintf("%s/spaces/%s/pages/%s", p.URL, space.Key, page.ID)
+		url = fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage,version,history.previousVersion", p.URL, page.ID)
 
 	} else {
-		url = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage.value,version,history.previousVersion", p.URL, page.ID, version)
-		originalUrl = fmt.Sprintf("%s/pages/viewpage.action?pageid=%spageVersion=%d", p.URL, page.ID, version)
+		url = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage,version,history.previousVersion", p.URL, page.ID, version)
 	}
 
 	request, _, err := lib.HttpRequest(http.MethodGet, url, p)
@@ -265,7 +262,7 @@ func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceRes
 
 	content := &Item{
 		Content: pageContent.Body.Storage.Value,
-		ID:      originalUrl,
+		ID:      pageContent.Links["base"] + pageContent.Links["webui"],
 	}
 	return content, pageContent.History.PreviousVersion.Number, nil
 }
@@ -296,6 +293,7 @@ type ConfluencePageContent struct {
 	Version struct {
 		Number int `json:"number"`
 	} `json:"version"`
+	Links map[string]string `json:"_links"`
 }
 
 type ConfluencePage struct {
