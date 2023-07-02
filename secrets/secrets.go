@@ -1,9 +1,9 @@
 package secrets
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -15,6 +15,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
+	"github.com/zricethezav/gitleaks/v8/report"
 )
 
 type Secrets struct {
@@ -90,8 +91,17 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 		Raw: item.Content,
 	}
 	for _, value := range s.detector.Detect(fragment) {
-		itemId := getItemId(item.ID)
-		secretsChannel <- reporting.Secret{ID: itemId, Source: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+		itemId := getFindingId(item, value)
+		secretsChannel <- reporting.Secret{
+			ID:          itemId,
+			Description: item.Description,
+			Rule:        value.Description,
+			StartLine:   value.StartLine,
+			StartColumn: value.StartColumn,
+			EndLine:     value.EndLine,
+			EndColumn:   value.EndColumn,
+			Value:       value.Secret,
+		}
 	}
 }
 
@@ -112,16 +122,10 @@ func (s *Secrets) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func getItemId(fullPath string) string {
-	var itemId string
-	if strings.Contains(fullPath, "/") {
-		itemLinkStrings := strings.Split(fullPath, "/")
-		itemId = itemLinkStrings[len(itemLinkStrings)-1]
-	}
-	if strings.Contains(fullPath, "\\") {
-		itemId = filepath.Base(fullPath)
-	}
-	return itemId
+func getFindingId(item plugins.Item, finding report.Finding) string {
+	idParts := []string{item.ID, finding.RuleID, finding.Secret}
+	sha := sha256.Sum256([]byte(strings.Join(idParts, "")))
+	return fmt.Sprintf("%x", sha)
 }
 
 func selectRules(allRules []Rule, tags []string) map[string]config.Rule {

@@ -79,8 +79,9 @@ func scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan 
 		}
 		if fileChanges != "" {
 			itemsChan <- Item{
-				Content: fileChanges,
-				ID:      fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
+				Content:     fileChanges,
+				ID:          fmt.Sprintf("%s-%s", file.PatchHeader.SHA, file.NewName),
+				Description: fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
 			}
 		}
 	}

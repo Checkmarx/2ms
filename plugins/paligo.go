@@ -180,8 +180,9 @@ func (p *PaligoPlugin) handleComponent(item PaligoItem) {
 	url := fmt.Sprintf("https://%s.paligoapp.com/document/edit/%d", p.paligoApi.Instance, document.ID)
 
 	p.Items <- Item{
-		Content: document.Content,
-		ID:      url,
+		Content:     document.Content,
+		ID:          fmt.Sprintf("%d", document.ID),
+		Description: url,
 	}
 }
 

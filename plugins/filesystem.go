@@ -111,8 +111,9 @@ func (p *FileSystemPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, 
 	}
 
 	content := &Item{
-		Content: string(b),
-		ID:      filePath,
+		Content:     string(b),
+		ID:          filePath,
+		Description: filePath,
 	}
 	return content, nil
 }
