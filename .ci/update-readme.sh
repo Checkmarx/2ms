@@ -13,3 +13,5 @@ sed -i '/<!-- command-line:start -->/,/<!-- command-line:end -->/{
           }' README.md
 
 rm output.txt
+
+git --no-pager diff README.md
