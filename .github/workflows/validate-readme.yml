@@ -27,6 +27,3 @@ jobs:
             echo "::error file=README.md,title=Outdated README,line=$start_line,endLine=$end_line::README.md is outdated, please run ./.ci/update-readme.sh"
             exit 1
           fi
-      - name: print diff
-        if: failure()
-        run: git diff
