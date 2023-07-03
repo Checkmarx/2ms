@@ -116,9 +116,9 @@ func (p *FileSystemPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, 
 	}
 
 	content := &Item{
-		Content:     string(b),
-		ID:          fmt.Sprintf("%s-%s-%s", p.GetName(), p.ProjectName, filePath),
-		Description: filePath,
+		Content: string(b),
+		ID:      fmt.Sprintf("%s-%s-%s", p.GetName(), p.ProjectName, filePath),
+		Source:  filePath,
 	}
 	return content, nil
 }

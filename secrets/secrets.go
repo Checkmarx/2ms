@@ -94,7 +94,7 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 		itemId := getFindingId(item, value)
 		secretsChannel <- reporting.Secret{
 			ID:          itemId,
-			Description: item.Description,
+			Source:      item.Source,
 			Type:        value.Description,
 			StartLine:   value.StartLine,
 			StartColumn: value.StartColumn,

@@ -82,9 +82,9 @@ func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan Item
 		}
 		if fileChanges != "" {
 			itemsChan <- Item{
-				Content:     fileChanges,
-				ID:          fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName),
-				Description: fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
+				Content: fileChanges,
+				ID:      fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName),
+				Source:  fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
 			}
 		}
 	}

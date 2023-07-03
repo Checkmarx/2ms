@@ -23,7 +23,7 @@ type Report struct {
 
 type Secret struct {
 	ID          string `json:"id"`
-	Description string `json:"description"`
+	Source      string `json:"source"`
 	Type        string `json:"type"`
 	StartLine   int    `json:"startLine"`
 	EndLine     int    `json:"endLine"`

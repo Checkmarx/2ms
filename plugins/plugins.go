@@ -11,7 +11,7 @@ type Item struct {
 	// Unique identifier of the item
 	ID string
 	// User friendly description and/or link to the item
-	Description string
+	Source string
 }
 
 type Plugin struct {

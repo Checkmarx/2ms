@@ -277,9 +277,9 @@ func convertMessagesToItems(pluginName, guildId string, messages *[]*discordgo.M
 	items := []Item{}
 	for _, message := range *messages {
 		items = append(items, Item{
-			Content:     message.Content,
-			ID:          fmt.Sprintf("%s-%s-%s-%s", pluginName, guildId, message.ChannelID, message.ID),
-			Description: fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guildId, message.ChannelID, message.ID),
+			Content: message.Content,
+			ID:      fmt.Sprintf("%s-%s-%s-%s", pluginName, guildId, message.ChannelID, message.ID),
+			Source:  fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guildId, message.ChannelID, message.ID),
 		})
 	}
 	return &items
