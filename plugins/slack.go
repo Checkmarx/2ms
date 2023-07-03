@@ -125,7 +125,7 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 				}
 				p.Items <- Item{
 					Content:     message.Text,
-					ID:          fmt.Sprintf("%s-%s", channel.ID, message.Timestamp),
+					ID:          fmt.Sprintf("%s-%s-%s", p.GetName(), channel.ID, message.Timestamp),
 					Description: url,
 				}
 			}

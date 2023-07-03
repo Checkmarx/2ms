@@ -216,7 +216,7 @@ func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) {
 	}
 	channelLogger.Info().Msgf("Found %d messages", len(messages))
 
-	items := convertMessagesToItems(channel.GuildID, &messages)
+	items := convertMessagesToItems(p.GetName(), channel.GuildID, &messages)
 	for _, item := range *items {
 		p.itemChan <- item
 	}
@@ -273,12 +273,12 @@ func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]
 	return append(messages, threadMessages...), nil
 }
 
-func convertMessagesToItems(guildId string, messages *[]*discordgo.Message) *[]Item {
+func convertMessagesToItems(pluginName, guildId string, messages *[]*discordgo.Message) *[]Item {
 	items := []Item{}
 	for _, message := range *messages {
 		items = append(items, Item{
 			Content:     message.Content,
-			ID:          fmt.Sprintf("%s-%s-%s", guildId, message.ChannelID, message.ID),
+			ID:          fmt.Sprintf("%s-%s-%s-%s", pluginName, guildId, message.ChannelID, message.ID),
 			Description: fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guildId, message.ChannelID, message.ID),
 		})
 	}
