@@ -95,7 +95,7 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 		secretsChannel <- reporting.Secret{
 			ID:          itemId,
 			Source:      item.Source,
-			Type:        value.Description,
+			RuleID:      value.RuleID,
 			StartLine:   value.StartLine,
 			StartColumn: value.StartColumn,
 			EndLine:     value.EndLine,
