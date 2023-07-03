@@ -1,7 +1,7 @@
 package secrets
 
 import (
-	"crypto/sha256"
+	"crypto/sha1"
 	"fmt"
 	"os"
 	"regexp"
@@ -124,7 +124,7 @@ func (s *Secrets) AddRegexRules(patterns []string) error {
 
 func getFindingId(item plugins.Item, finding report.Finding) string {
 	idParts := []string{item.ID, finding.RuleID, finding.Secret}
-	sha := sha256.Sum256([]byte(strings.Join(idParts, "")))
+	sha := sha1.Sum([]byte(strings.Join(idParts, "-")))
 	return fmt.Sprintf("%x", sha)
 }
 
