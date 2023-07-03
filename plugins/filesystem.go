@@ -11,7 +11,7 @@ import (
 )
 
 const flagFolder = "path"
-const flagIgnored = "ignore"
+const flagIgnored = "ignore-pattern"
 
 var ignoredFolders = []string{".git"}
 
