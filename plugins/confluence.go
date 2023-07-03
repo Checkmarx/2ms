@@ -262,7 +262,7 @@ func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceRes
 
 	content := &Item{
 		Content:     pageContent.Body.Storage.Value,
-		ID:          page.ID,
+		ID:          fmt.Sprintf("%s-%s-%s", p.URL, space.Key, page.ID),
 		Description: pageContent.Links["base"] + pageContent.Links["webui"],
 	}
 	return content, pageContent.History.PreviousVersion.Number, nil

@@ -14,7 +14,10 @@ import (
 const (
 	argDepth           = "depth"
 	argScanAllBranches = "all-branches"
+	argProjectName     = "project-name"
 )
+
+var projectName string
 
 type GitPlugin struct {
 	Plugin
@@ -43,6 +46,7 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	flags := command.Flags()
 	flags.BoolVar(&p.scanAllBranches, argScanAllBranches, false, "scan all branches [default: false]")
 	flags.IntVar(&p.depth, argDepth, 0, "number of commits to scan from HEAD")
+	flags.StringVar(&projectName, argProjectName, "", "Project name to differentiate between filesystem scans")
 	return command, nil
 }
 
@@ -80,7 +84,7 @@ func scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan 
 		if fileChanges != "" {
 			itemsChan <- Item{
 				Content:     fileChanges,
-				ID:          fmt.Sprintf("%s-%s", file.PatchHeader.SHA, file.NewName),
+				ID:          fmt.Sprintf("%s-%s-%s", projectName, file.PatchHeader.SHA, file.NewName),
 				Description: fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
 			}
 		}
