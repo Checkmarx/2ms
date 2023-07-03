@@ -37,7 +37,7 @@ const (
 	customRegexRuleFlagName = "regex"
 	includeRuleFlagName     = "include-rule"
 	excludeRuleFlagName     = "exclude-rule"
-	ignoreFlagName          = "ignore"
+	ignoreFlagName          = "ignore-result"
 )
 
 var (
@@ -122,7 +122,7 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&includeRuleVar, includeRuleFlagName, []string{}, "include rules by name or tag to apply to the scan (adds to list, starts from empty)")
 	rootCmd.PersistentFlags().StringSliceVar(&excludeRuleVar, excludeRuleFlagName, []string{}, "exclude rules by name or tag to apply to the scan (removes from list, starts from all)")
 	rootCmd.MarkFlagsMutuallyExclusive(includeRuleFlagName, excludeRuleFlagName)
-	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore by id or by source, example: --ignore=test.js,temp.js or --ignore=fdr3g4 --ignore=kdj3h4")
+	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
 
 	rootCmd.AddCommand(secrets.RulesCommand)
 
@@ -176,7 +176,7 @@ func preRun(cmd *cobra.Command, args []string) {
 			case item := <-channels.Items:
 				report.TotalItemsScanned++
 				channels.WaitGroup.Add(1)
-				go secrets.Detect(secretsChan, item, channels.WaitGroup)
+				go secrets.Detect(item, secretsChan, channels.WaitGroup, ignoreVar)
 			case secret := <-secretsChan:
 				report.TotalSecretsFound++
 				report.Results[secret.ID] = append(report.Results[secret.ID], secret)

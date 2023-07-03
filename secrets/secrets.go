@@ -83,7 +83,7 @@ func Init(includeList, excludeList []string) (*Secrets, error) {
 	}, nil
 }
 
-func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, wg *sync.WaitGroup) {
+func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret, wg *sync.WaitGroup, ignoredIds []string) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
@@ -91,7 +91,10 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		itemId := getItemId(item.ID)
-		secretsChannel <- reporting.Secret{ID: itemId, Source: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+		secret := reporting.Secret{ID: itemId, Source: item.ID, Description: value.Description, StartLine: value.StartLine, StartColumn: value.StartColumn, EndLine: value.EndLine, EndColumn: value.EndColumn, Value: value.Secret}
+		if !isSecretIgnored(&secret, &ignoredIds) {
+			secretsChannel <- secret
+		}
 	}
 }
 
@@ -122,6 +125,15 @@ func getItemId(fullPath string) string {
 		itemId = filepath.Base(fullPath)
 	}
 	return itemId
+}
+
+func isSecretIgnored(secret *reporting.Secret, ignoredIds *[]string) bool {
+	for _, ignoredId := range *ignoredIds {
+		if secret.ID == ignoredId {
+			return true
+		}
+	}
+	return false
 }
 
 func selectRules(allRules []Rule, tags []string) map[string]config.Rule {
