@@ -18,11 +18,12 @@ During the software development lifecycle (SDLC), developers ofen communicate an
 - Git
 - Paligo
 - Local directory / files
-  
+
 ## Getting 2ms
 
-```
-# go install github.com/checkmarx/2ms@latest
+```bash
+curl -LO https://github.com/Checkmarx/2ms/releases/latest/download/2ms && chmod +x 2ms
+./2ms
 ```
 
 ### Docker
@@ -35,12 +36,40 @@ docker run -v path/to/my/repo:/repo checkmarx/2ms git /repo
 
 ## Getting started
 
-### Command line arguments (wip, see [#20](https://github.com/Checkmarx/2ms/discussions/20))
+<!-- command-line:start -->
+```
+2ms Secrets Detection: A tool to detect secrets in public websites and communication services.
 
-- `--confluence` The URL of the Confluence instance to scan.
-- `--confluence-spaces` A comma-separated list of Confluence spaces to scan.
-- `--confluence-username` confluence username or email
-- `--confluence-token` confluence token
+Usage:
+  2ms [command]
+
+Commands
+  confluence  Scan Confluence server
+  discord     Scan Discord server
+  filesystem  Scan local folder
+  git         Scan local Git repository
+  paligo      Scan Paligo instance
+  slack       Scan Slack team
+
+Additional Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  rules       List all rules
+
+Flags:
+      --config string          config file path
+      --exclude-rule strings   exclude rules by name or tag to apply to the scan (removes from list, starts from all)
+  -h, --help                   help for 2ms
+      --include-rule strings   include rules by name or tag to apply to the scan (adds to list, starts from empty)
+      --log-level string       log level (trace, debug, info, warn, error, fatal) (default "info")
+      --regex stringArray      custom regexes to apply to the scan, must be valid Go regex
+      --report-path strings    path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
+      --stdout-format string   stdout output format, available formats are: json, yaml, sarif (default "yaml")
+  -v, --version                version for 2ms
+
+Use "2ms [command] --help" for more information about a command.
+```
+<!-- command-line:end -->
 
 ---
 
