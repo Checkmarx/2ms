@@ -18,11 +18,13 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v3
-      - name: Download latest 2ms version
-        run: curl -LO https://github.com/Checkmarx/2ms/releases/latest/download/2ms && chmod +x 2ms
-      - name: Run 2ms Security Scanner
-        run: ./2ms git . --report-path results.sarif
-      - name: Upload 2ms Results
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: results.sarif
+      - name: run 2ms
+        uses: baruchiro/2ms-github-action
+      # - name: Download latest 2ms version
+      #   run: curl -LO https://github.com/Checkmarx/2ms/releases/latest/download/2ms && chmod +x 2ms
+      # - name: Run 2ms Security Scanner
+      #   run: ./2ms git . --report-path results.sarif
+      # - name: Upload 2ms Results
+      #   uses: github/codeql-action/upload-sarif@v2
+      #   with:
+      #     sarif_file: results.sarif
