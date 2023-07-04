@@ -21,6 +21,7 @@ jobs:
       - name: 2ms Scan
         uses: docker://checkmarx/2ms:latest
         with:
+          volumes: ".:/repo"
           args: git . --report-path results.sarif
       # - name: Download latest 2ms version
       #   run: curl -LO https://github.com/Checkmarx/2ms/releases/latest/download/2ms && chmod +x 2ms
