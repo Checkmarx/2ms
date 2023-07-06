@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2MS Scan Result</title>
+</head>
+<style>
+{{ includeCSS }}
+</style>
+<body>
+  {{ includeLogo }}
+  <div class="container">
+      <div class="report-header-footer">
+        <span class="title">
+          2MS
+          <span>REPORT</span>
+        </span>
+      </div>
+
+  <div class="run-info">
+    <span style="flex-basis:100%" id="scan-paths"><strong>Total items scanned:</strong> {{ .TotalItemsScanned }}</span>
+    <span style="flex-basis:100%" id="scan-paths"><strong>Total serets found:</strong> {{ .TotalSecretsFound }}</span>
+  </div>
+  <hr class="separator">
+
+  {{ range $file, $secrets := .Results }}
+
+  <div class="secret-info">
+  <h3>{{ $file }}</h3>
+
+  <ul>
+    {{ range $index, $secret := $secrets }}
+
+      <div class="secret-info-details">
+        <span><strong>ID:</strong> {{ .ID }}</span>
+        <span><strong>Source:</strong> {{ .Source }}</span>
+        <span><strong>Description:</strong> {{ .Description }}</span>
+        <span><strong>Start Line:</strong> {{ .StartLine }}</span>
+        <span><strong>End Line:</strong> {{ .EndLine }}</span>
+        <span><strong>Start Column:</strong> {{ .StartColumn }}</span>
+        <span><strong>End Column:</strong> {{ .EndColumn }}</span>
+        <span><strong>Value:</strong> {{ .Value }}</span>
+      </div>
+
+    {{ end }}
+  </ul>
+  </div>
+
+  {{ end }}
+  <hr class="separator">
+  <div class="social-networks">
+    <a href="https://github.com/Checkmarx/2ms/" rel="noopener" target="_blank">
+        <div>{{ includeSVG }}</div>
+    </a>
+   </div>
+   <div class="report-header-footer">
+     <span class="footer-text">The 2MS project is powered by&nbsp;<a href="https://www.checkmarx.com/" class="checkmarx" rel="noopener" target="_blank">Checkmarx</a>, global leader of Application Security Testing</span>
+    </div>
+  </div>
+  </body>
+</html>
+
