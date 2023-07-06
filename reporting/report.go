@@ -12,6 +12,7 @@ const (
 	jsonFormat  = "json"
 	yamlFormat  = "yaml"
 	sarifFormat = "sarif"
+	htmlFormat  = "html"
 )
 
 type Report struct {
@@ -72,6 +73,8 @@ func (r *Report) getOutput(format string, cfg *config.Config) string {
 		output = writeYaml(*r)
 	case sarifFormat:
 		output = writeSarif(*r, cfg)
+	case htmlFormat:
+		output = writeHtml(*r)
 	}
 	return output
 }
