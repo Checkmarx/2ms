@@ -29,6 +29,7 @@ const (
 	jsonFormat        = "json"
 	yamlFormat        = "yaml"
 	sarifFormat       = "sarif"
+	htmlFormat        = "html"
 	configFileFlag    = "config"
 
 	logLevelFlagName        = "log-level"
@@ -114,8 +115,8 @@ func Execute() {
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
-	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
-	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
+	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif, .html)")
+	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif, html")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
 
 	rootCmd.PersistentFlags().StringSliceVar(&includeRuleVar, includeRuleFlagName, []string{}, "include rules by name or tag to apply to the scan (adds to list, starts from empty)")
@@ -144,15 +145,15 @@ func Execute() {
 }
 
 func validateFormat(stdout string, reportPath []string) {
-	if !(strings.EqualFold(stdout, yamlFormat) || strings.EqualFold(stdout, jsonFormat) || strings.EqualFold(stdout, sarifFormat)) {
-		log.Fatal().Msgf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
+	if !(strings.EqualFold(stdout, yamlFormat) || strings.EqualFold(stdout, jsonFormat) || strings.EqualFold(stdout, sarifFormat) || strings.EqualFold(stdout, htmlFormat)) {
+		log.Fatal().Msgf(`invalid output format: %s, available formats are: json, yaml, sarif, html`, stdout)
 	}
 	for _, path := range reportPath {
 
 		fileExtension := filepath.Ext(path)
 		format := strings.TrimPrefix(fileExtension, ".")
-		if !(strings.EqualFold(format, yamlFormat) || strings.EqualFold(format, jsonFormat) || strings.EqualFold(format, sarifFormat)) {
-			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, format)
+		if !(strings.EqualFold(format, yamlFormat) || strings.EqualFold(format, jsonFormat) || strings.EqualFold(format, sarifFormat) || strings.EqualFold(format, htmlFormat)) {
+			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml, sarif, html`, format)
 		}
 	}
 }
