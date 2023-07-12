@@ -2,10 +2,11 @@ package reporting
 
 import (
 	"fmt"
-	"github.com/checkmarx/2ms/config"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/checkmarx/2ms/config"
 )
 
 const (
@@ -23,7 +24,7 @@ type Report struct {
 type Secret struct {
 	ID          string `json:"id"`
 	Source      string `json:"source"`
-	Description string `json:"description"`
+	RuleID      string `json:"ruleId"`
 	StartLine   int    `json:"startLine"`
 	EndLine     int    `json:"endLine"`
 	StartColumn int    `json:"startColumn"`

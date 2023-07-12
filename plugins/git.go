@@ -14,6 +14,7 @@ import (
 const (
 	argDepth           = "depth"
 	argScanAllBranches = "all-branches"
+	argProjectName     = "project-name"
 )
 
 type GitPlugin struct {
@@ -21,6 +22,7 @@ type GitPlugin struct {
 	Channels
 	depth           int
 	scanAllBranches bool
+	projectName     string
 }
 
 func (p *GitPlugin) GetName() string {
@@ -37,12 +39,13 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 		Args:  cobra.MatchAll(cobra.ExactArgs(1), validGitRepoArgs),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Git plugin started")
-			scanGit(args[0], p.buildScanOptions(), channels.Items, channels.Errors)
+			p.scanGit(args[0], p.buildScanOptions(), channels.Items, channels.Errors)
 		},
 	}
 	flags := command.Flags()
 	flags.BoolVar(&p.scanAllBranches, argScanAllBranches, false, "scan all branches [default: false]")
 	flags.IntVar(&p.depth, argDepth, 0, "number of commits to scan from HEAD")
+	flags.StringVar(&p.projectName, argProjectName, "", "Project name to differentiate between filesystem scans")
 	return command, nil
 }
 
@@ -57,7 +60,7 @@ func (p *GitPlugin) buildScanOptions() string {
 	return strings.Join(options, " ")
 }
 
-func scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan error) {
+func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan error) {
 	fileChan, err := git.GitLog(path, scanOptions)
 	if err != nil {
 		errChan <- fmt.Errorf("error while scanning git repository: %w", err)
@@ -80,7 +83,8 @@ func scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan 
 		if fileChanges != "" {
 			itemsChan <- Item{
 				Content: fileChanges,
-				ID:      fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
+				ID:      fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName),
+				Source:  fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
 			}
 		}
 	}

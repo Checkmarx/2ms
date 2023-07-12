@@ -10,15 +10,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const flagFolder = "path"
-const flagIgnored = "ignore"
+const (
+	flagFolder      = "path"
+	flagProjectName = "project-name"
+	flagIgnored     = "ignore"
+)
 
 var ignoredFolders = []string{".git"}
 
 type FileSystemPlugin struct {
 	Plugin
-	Path    string
-	Ignored []string
+	Path        string
+	ProjectName string
+	Ignored     []string
 }
 
 func (p *FileSystemPlugin) GetName() string {
@@ -46,6 +50,7 @@ func (p *FileSystemPlugin) DefineCommand(channels Channels) (*cobra.Command, err
 	}
 
 	flags.StringSliceVar(&p.Ignored, flagIgnored, []string{}, "Patterns to ignore")
+	flags.StringVar(&p.ProjectName, flagProjectName, "", "Project name to differentiate between filesystem scans")
 
 	return cmd, nil
 }
@@ -112,7 +117,8 @@ func (p *FileSystemPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, 
 
 	content := &Item{
 		Content: string(b),
-		ID:      filePath,
+		ID:      fmt.Sprintf("%s-%s-%s", p.GetName(), p.ProjectName, filePath),
+		Source:  filePath,
 	}
 	return content, nil
 }
