@@ -3,8 +3,9 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/checkmarx/2ms/config"
 	"log"
+
+	"github.com/checkmarx/2ms/config"
 )
 
 func writeSarif(report Report, cfg *config.Config) string {
@@ -47,7 +48,7 @@ func hasNoResults(report Report) bool {
 }
 
 func messageText(secret Secret) string {
-	return fmt.Sprintf("%s has detected secret for file %s.", secret.Description, secret.ID)
+	return fmt.Sprintf("%s has detected secret for file %s.", secret.Source, secret.ID)
 }
 
 func getResults(report Report) []Results {
@@ -65,7 +66,7 @@ func getResults(report Report) []Results {
 				Message: Message{
 					Text: messageText(secret),
 				},
-				RuleId:    secret.Description,
+				RuleId:    secret.Source,
 				Locations: getLocation(secret),
 			}
 			results = append(results, r)

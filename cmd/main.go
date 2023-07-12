@@ -202,7 +202,7 @@ func postRun(cmd *cobra.Command, args []string) {
 	// Show Report
 	if report.TotalItemsScanned > 0 {
 		report.ShowReport(stdoutFormatVar, cfg)
-		if len(reportPathFlagName) > 0 {
+		if len(reportPathVar) > 0 {
 			err := report.WriteFile(reportPathVar, cfg)
 			if err != nil {
 				log.Error().Msgf("Failed to create report file with error: %s", err)

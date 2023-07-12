@@ -181,7 +181,8 @@ func (p *PaligoPlugin) handleComponent(item PaligoItem) {
 
 	p.Items <- Item{
 		Content: document.Content,
-		ID:      url,
+		ID:      fmt.Sprintf("%s-%s-%d", p.GetName(), p.paligoApi.Instance, document.ID),
+		Source:  url,
 	}
 }
 
