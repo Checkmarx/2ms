@@ -50,13 +50,38 @@ jobs:
       - name: Go Mod Tidy
         run: go mod tidy
 
-      - name: Go Build
+      - name: Compile for Linux amd64
         env:
           VERSION: ${{ needs.test.outputs.version }}
           CGO_ENABLED: 0
           GOOS: linux
           GOARCH: amd64
-        run: go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o bin/2ms main.go
+        run: |
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          zip -j dist/linux-amd64-$VERSION.zip dist/2ms
+          rm dist/2ms
+
+      - name: Compile for MacOS amd64
+        env:
+          VERSION: ${{ needs.test.outputs.version }}
+          CGO_ENABLED: 0
+          GOOS: darwin
+          GOARCH: amd64
+        run: |
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          zip -j dist/macos-amd64-$VERSION.zip dist/2ms
+          rm dist/2ms
+
+      - name: Compile for Windows amd64
+        env:
+          VERSION: ${{ needs.test.outputs.version }}
+          CGO_ENABLED: 0
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms.exe main.go
+          zip -j dist/windows-amd64-$VERSION.zip dist/2ms.exe
+          rm dist/2ms.exe
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -75,7 +100,7 @@ jobs:
           body: ${{ needs.test.outputs.notes }}
           target_commitish: ${{ steps.commit_and_push.outputs.latest_commit_hash }}
           files: |
-            bin/2ms
+            dist/*.zip
 
       - name: Build and push
         uses: docker/build-push-action@v4
