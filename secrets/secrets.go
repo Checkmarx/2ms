@@ -11,6 +11,7 @@ import (
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
@@ -104,6 +105,8 @@ func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret
 		}
 		if !isSecretIgnored(&secret, &ignoredIds) {
 			secretsChannel <- secret
+		} else {
+			log.Debug().Msgf("Secret %s was ignored", secret.ID)
 		}
 	}
 }
