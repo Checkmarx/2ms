@@ -11,6 +11,7 @@ import (
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
@@ -84,7 +85,7 @@ func Init(includeList, excludeList []string) (*Secrets, error) {
 	}, nil
 }
 
-func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item, wg *sync.WaitGroup) {
+func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret, wg *sync.WaitGroup, ignoredIds []string) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
@@ -92,7 +93,7 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
-		secretsChannel <- reporting.Secret{
+		secret := reporting.Secret{
 			ID:          itemId,
 			Source:      item.Source,
 			RuleID:      value.RuleID,
@@ -101,6 +102,11 @@ func (s *Secrets) Detect(secretsChannel chan reporting.Secret, item plugins.Item
 			EndLine:     value.EndLine,
 			EndColumn:   value.EndColumn,
 			Value:       value.Secret,
+		}
+		if !isSecretIgnored(&secret, &ignoredIds) {
+			secretsChannel <- secret
+		} else {
+			log.Debug().Msgf("Secret %s was ignored", secret.ID)
 		}
 	}
 }
@@ -126,6 +132,15 @@ func getFindingId(item plugins.Item, finding report.Finding) string {
 	idParts := []string{item.ID, finding.RuleID, finding.Secret}
 	sha := sha1.Sum([]byte(strings.Join(idParts, "-")))
 	return fmt.Sprintf("%x", sha)
+}
+
+func isSecretIgnored(secret *reporting.Secret, ignoredIds *[]string) bool {
+	for _, ignoredId := range *ignoredIds {
+		if secret.ID == ignoredId {
+			return true
+		}
+	}
+	return false
 }
 
 func selectRules(allRules []Rule, tags []string) map[string]config.Rule {
