@@ -37,6 +37,7 @@ const (
 	customRegexRuleFlagName = "regex"
 	includeRuleFlagName     = "include-rule"
 	excludeRuleFlagName     = "exclude-rule"
+	ignoreFlagName          = "ignore-result"
 )
 
 var (
@@ -46,6 +47,7 @@ var (
 	customRegexRuleVar []string
 	includeRuleVar     []string
 	excludeRuleVar     []string
+	ignoreVar          []string
 )
 
 var rootCmd = &cobra.Command{
@@ -117,10 +119,10 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
-
 	rootCmd.PersistentFlags().StringSliceVar(&includeRuleVar, includeRuleFlagName, []string{}, "include rules by name or tag to apply to the scan (adds to list, starts from empty)")
 	rootCmd.PersistentFlags().StringSliceVar(&excludeRuleVar, excludeRuleFlagName, []string{}, "exclude rules by name or tag to apply to the scan (removes from list, starts from all)")
 	rootCmd.MarkFlagsMutuallyExclusive(includeRuleFlagName, excludeRuleFlagName)
+	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
 
 	rootCmd.AddCommand(secrets.RulesCommand)
 
@@ -174,7 +176,7 @@ func preRun(cmd *cobra.Command, args []string) {
 			case item := <-channels.Items:
 				report.TotalItemsScanned++
 				channels.WaitGroup.Add(1)
-				go secrets.Detect(secretsChan, item, channels.WaitGroup)
+				go secrets.Detect(item, secretsChan, channels.WaitGroup, ignoreVar)
 			case secret := <-secretsChan:
 				report.TotalSecretsFound++
 				report.Results[secret.ID] = append(report.Results[secret.ID], secret)

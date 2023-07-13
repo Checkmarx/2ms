@@ -13,7 +13,7 @@ import (
 const (
 	flagFolder      = "path"
 	flagProjectName = "project-name"
-	flagIgnored     = "ignore"
+	flagIgnored     = "ignore-pattern"
 )
 
 var ignoredFolders = []string{".git"}
