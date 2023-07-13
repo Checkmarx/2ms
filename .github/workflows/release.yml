@@ -58,7 +58,7 @@ jobs:
           GOARCH: amd64
         run: |
           go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
-          zip -j dist/linux-amd64-$VERSION.zip dist/2ms
+          zip -j dist/linux-amd64.zip dist/2ms
           rm dist/2ms
 
       - name: Compile for MacOS amd64
@@ -69,7 +69,7 @@ jobs:
           GOARCH: amd64
         run: |
           go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
-          zip -j dist/macos-amd64-$VERSION.zip dist/2ms
+          zip -j dist/macos-amd64.zip dist/2ms
           rm dist/2ms
 
       - name: Compile for Windows amd64
@@ -80,7 +80,7 @@ jobs:
           GOARCH: amd64
         run: |
           go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms.exe main.go
-          zip -j dist/windows-amd64-$VERSION.zip dist/2ms.exe
+          zip -j dist/windows-amd64.zip dist/2ms.exe
           rm dist/2ms.exe
 
       - name: Set up Docker Buildx
