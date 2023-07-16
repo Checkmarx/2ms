@@ -40,6 +40,9 @@ func (p *ConfluencePlugin) GetCredentials() (string, string) {
 }
 
 func (p *ConfluencePlugin) GetAuthorizationHeader() string {
+	if p.Username == "" || p.Token == "" {
+		return ""
+	}
 	return lib.CreateBasicAuthCredentials(p)
 }
 
