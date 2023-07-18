@@ -72,6 +72,17 @@ jobs:
           zip -j dist/macos-amd64.zip dist/2ms
           rm dist/2ms
 
+      - name: Compile for MacOS arm64
+        env:
+          VERSION: ${{ needs.test.outputs.version }}
+          CGO_ENABLED: 0
+          GOOS: darwin
+          GOARCH: arm64
+        run: |
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          zip -j dist/macos-arm64.zip dist/2ms
+          rm dist/2ms
+
       - name: Compile for Windows amd64
         env:
           VERSION: ${{ needs.test.outputs.version }}
