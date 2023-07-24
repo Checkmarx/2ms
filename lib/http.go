@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 type ICredentials interface {
@@ -20,14 +22,19 @@ type IAuthorizationHeader interface {
 	GetAuthorizationHeader() string
 }
 
-func HttpRequest(method string, url string, autherization IAuthorizationHeader) ([]byte, *http.Response, error) {
+type RetrySettings struct {
+	MaxRetries int
+	ErrorCodes []int
+}
+
+func HttpRequest(method string, url string, authorization IAuthorizationHeader, retry RetrySettings) ([]byte, *http.Response, error) {
 	request, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
 
-	if autherization.GetAuthorizationHeader() != "" {
-		request.Header.Set("Authorization", autherization.GetAuthorizationHeader())
+	if authorization.GetAuthorizationHeader() != "" {
+		request.Header.Set("Authorization", authorization.GetAuthorizationHeader())
 	}
 
 	client := &http.Client{}
@@ -39,6 +46,14 @@ func HttpRequest(method string, url string, autherization IAuthorizationHeader) 
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		if retry.MaxRetries > 0 {
+			for _, code := range retry.ErrorCodes {
+				if response.StatusCode == code {
+					log.Warn().Msgf("retrying http request %v", url)
+					return HttpRequest(method, url, authorization, RetrySettings{MaxRetries: retry.MaxRetries - 1, ErrorCodes: retry.ErrorCodes})
+				}
+			}
+		}
 		return nil, response, fmt.Errorf("error calling http url \"%v\". status code: %v", url, response)
 	}
 
