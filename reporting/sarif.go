@@ -47,8 +47,8 @@ func hasNoResults(report Report) bool {
 	return len(report.Results) == 0
 }
 
-func messageText(secret Secret) string {
-	return fmt.Sprintf("%s has detected secret for file %s.", secret.Source, secret.ID)
+func messageText(ruleName string, filePath string) string {
+	return fmt.Sprintf("%s has detected secret for file %s.", ruleName, filePath)
 }
 
 func getResults(report Report) []Results {
@@ -64,9 +64,9 @@ func getResults(report Report) []Results {
 		for _, secret := range secrets {
 			r := Results{
 				Message: Message{
-					Text: messageText(secret),
+					Text: messageText(secret.ID, secret.Source),
 				},
-				RuleId:    secret.Source,
+				RuleId:    secret.ID,
 				Locations: getLocation(secret),
 			}
 			results = append(results, r)
@@ -80,7 +80,7 @@ func getLocation(secret Secret) []Locations {
 		{
 			PhysicalLocation: PhysicalLocation{
 				ArtifactLocation: ArtifactLocation{
-					URI: secret.ID,
+					URI: secret.Source,
 				},
 				Region: Region{
 					StartLine:   secret.StartLine,
