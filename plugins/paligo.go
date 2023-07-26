@@ -284,7 +284,7 @@ func (p *PaligoClient) request(endpoint string, lim *rate.Limiter) ([]byte, erro
 	}
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/%s", p.Instance, endpoint)
-	body, response, err := lib.HttpRequest("GET", url, p.auth)
+	body, response, err := lib.HttpRequest("GET", url, p.auth, lib.RetrySettings{})
 	if err != nil {
 		if err := reserveRateLimit(response, lim, err); err != nil {
 			return nil, err
