@@ -64,9 +64,9 @@ func getResults(report Report) []Results {
 		for _, secret := range secrets {
 			r := Results{
 				Message: Message{
-					Text: messageText(secret.ID, secret.Source),
+					Text: messageText(secret.RuleID, secret.Source),
 				},
-				RuleId:    secret.ID,
+				RuleId:    secret.RuleID,
 				Locations: getLocation(secret),
 			}
 			results = append(results, r)
