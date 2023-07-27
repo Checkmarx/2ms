@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/checkmarx/2ms/config"
@@ -25,11 +26,9 @@ import (
 var Version = "0.0.0"
 
 const (
-	timeSleepInterval = 50
-	jsonFormat        = "json"
-	yamlFormat        = "yaml"
-	sarifFormat       = "sarif"
-	configFileFlag    = "config"
+	timeSleepInterval         = 50
+	outputFormatRegexpPattern = `^(ya?ml|json|sarif)$`
+	configFileFlag            = "config"
 
 	logLevelFlagName        = "log-level"
 	reportPathFlagName      = "report-path"
@@ -146,14 +145,15 @@ func Execute() {
 }
 
 func validateFormat(stdout string, reportPath []string) {
-	if !(strings.EqualFold(stdout, yamlFormat) || strings.EqualFold(stdout, jsonFormat) || strings.EqualFold(stdout, sarifFormat)) {
+	r := regexp.MustCompile(outputFormatRegexpPattern)
+	if !(r.MatchString(stdout)) {
 		log.Fatal().Msgf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
 	}
-	for _, path := range reportPath {
 
+	for _, path := range reportPath {
 		fileExtension := filepath.Ext(path)
 		format := strings.TrimPrefix(fileExtension, ".")
-		if !(strings.EqualFold(format, yamlFormat) || strings.EqualFold(format, jsonFormat) || strings.EqualFold(format, sarifFormat)) {
+		if !(r.MatchString(format)) {
 			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, format)
 		}
 	}
