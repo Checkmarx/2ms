@@ -41,8 +41,6 @@ func Init() *Report {
 
 func (r *Report) ShowReport(format string, cfg *config.Config) {
 	output := r.getOutput(format, cfg)
-
-	fmt.Println("Summary:")
 	fmt.Print(output)
 }
 
