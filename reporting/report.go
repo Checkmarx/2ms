@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	jsonFormat  = "json"
-	yamlFormat  = "yaml"
-	sarifFormat = "sarif"
+	jsonFormat      = "json"
+	longYamlFormat  = "yaml"
+	shortYamlFormat = "yml"
+	sarifFormat     = "sarif"
 )
 
 type Report struct {
@@ -69,7 +70,7 @@ func (r *Report) getOutput(format string, cfg *config.Config) string {
 	switch format {
 	case jsonFormat:
 		output = writeJson(*r)
-	case yamlFormat:
+	case longYamlFormat, shortYamlFormat:
 		output = writeYaml(*r)
 	case sarifFormat:
 		output = writeSarif(*r, cfg)
