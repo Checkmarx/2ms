@@ -102,7 +102,7 @@ We offer the following list of integrations in the form of plugins
 scans a [Confluence](https://www.atlassian.com/software/confluence) instance
 
 ```
-2ms confluence --url URL [flags]
+2ms confluence <URL> [flags]
 ```
 
 | Flag         | Value  | Default                        | Description                                                                      |
