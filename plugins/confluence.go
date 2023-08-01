@@ -48,23 +48,22 @@ func (p *ConfluencePlugin) GetAuthorizationHeader() string {
 
 func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var confluenceCmd = &cobra.Command{
-		Use:   fmt.Sprintf("%s --%s URL", p.GetName(), argUrl),
+		Use:   fmt.Sprintf("%s <URL>", p.GetName()),
 		Short: "Scan Confluence server",
 		Long:  "Scan Confluence server for sensitive information",
+		Args:  cobra.ExactArgs(1), // This makes sure only one argument (URL) is provided.
 	}
 
 	flags := confluenceCmd.Flags()
-	flags.StringVar(&p.URL, argUrl, "", "Confluence server URL (example: https://company.atlassian.net/wiki) [required]")
 	flags.StringSliceVar(&p.Spaces, argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
 	flags.StringVar(&p.Username, argUsername, "", "Confluence user name or email for authentication")
 	flags.StringVar(&p.Token, argToken, "", "The Confluence API token for authentication")
 	flags.BoolVar(&p.History, argHistory, false, "Scan pages history")
-	err := confluenceCmd.MarkFlagRequired(argUrl)
-	if err != nil {
-		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argUrl, err)
-	}
 
 	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
+		// Now, args[0] contains the provided URL.
+		p.URL = strings.TrimRight(args[0], "/")
+
 		err := p.initialize(cmd)
 		if err != nil {
 			channels.Errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)

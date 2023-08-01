@@ -116,7 +116,7 @@ scans a [Confluence](https://www.atlassian.com/software/confluence) instance
 For example:
 
 ```
-2ms confluence --url https://checkmarx.atlassian.net/wiki --spaces secrets
+2ms confluence <URL> https://checkmarx.atlassian.net/wiki --spaces secrets
 ```
 
 - 💡 [The `secrets` Confluence site](https://checkmarx.atlassian.net/wiki/spaces/secrets) purposely created with plain example secrets as a test subject for this demo
