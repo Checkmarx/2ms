@@ -37,6 +37,7 @@ const (
 	includeRuleFlagName     = "include-rule"
 	excludeRuleFlagName     = "exclude-rule"
 	ignoreFlagName          = "ignore-result"
+	ignoreSecretsFlagName   = "ignore-secrets"
 )
 
 var (
@@ -47,6 +48,7 @@ var (
 	includeRuleVar     []string
 	excludeRuleVar     []string
 	ignoreVar          []string
+	ignoreSecrets      bool
 )
 
 var rootCmd = &cobra.Command{
@@ -136,6 +138,7 @@ func Execute() {
 		subCommand.GroupID = group
 		subCommand.PreRun = preRun
 		subCommand.PostRun = postRun
+		subCommand.Flags().BoolVar(&ignoreSecrets, ignoreSecretsFlagName, false, "Return success (0) exit status regardless of the report's result [default: false]")
 		rootCmd.AddCommand(subCommand)
 	}
 
@@ -193,6 +196,8 @@ func preRun(cmd *cobra.Command, args []string) {
 func postRun(cmd *cobra.Command, args []string) {
 	channels.WaitGroup.Wait()
 
+	ignoreSecrets, _ := cmd.Flags().GetBool("ignore-secrets")
+
 	cfg := config.LoadConfig("2ms", Version)
 
 	// Wait for last secret to be added to report
@@ -213,7 +218,7 @@ func postRun(cmd *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	if report.TotalSecretsFound > 0 {
+	if report.TotalSecretsFound > 0 && !ignoreSecrets {
 		os.Exit(1)
 	} else {
 		os.Exit(0)
