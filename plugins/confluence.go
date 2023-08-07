@@ -10,6 +10,8 @@ import (
 	"github.com/checkmarx/2ms/lib"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+
+	"net/url"
 )
 
 const (
@@ -46,6 +48,20 @@ func (p *ConfluencePlugin) GetAuthorizationHeader() string {
 	return lib.CreateBasicAuthCredentials(p)
 }
 
+func validateURL(urlStr string) bool {
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+
+	if parsedURL.Scheme != "https" {
+		return false
+	}
+
+	return true
+}
+
+
 func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 	var confluenceCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s <URL>", p.GetName()),
@@ -61,6 +77,11 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 	flags.BoolVar(&p.History, argHistory, false, "Scan pages history")
 
 	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
+		if !validateURL(args[0]) {
+			channels.Errors <- fmt.Errorf("invalid URL format")
+			return
+		}
+
 		p.URL = strings.TrimRight(args[0], "/")
 
 		err := p.initialize(cmd)
