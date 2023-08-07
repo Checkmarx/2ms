@@ -51,7 +51,7 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 		Use:   fmt.Sprintf("%s <URL>", p.GetName()),
 		Short: "Scan Confluence server",
 		Long:  "Scan Confluence server for sensitive information",
-		Args:  cobra.ExactArgs(1), // This makes sure only one argument (URL) is provided.
+		Args:  cobra.ExactArgs(1), 
 	}
 
 	flags := confluenceCmd.Flags()
@@ -61,7 +61,6 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 	flags.BoolVar(&p.History, argHistory, false, "Scan pages history")
 
 	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
-		// Now, args[0] contains the provided URL.
 		p.URL = strings.TrimRight(args[0], "/")
 
 		err := p.initialize(cmd)
