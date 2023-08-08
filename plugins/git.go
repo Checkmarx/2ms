@@ -101,7 +101,7 @@ func validGitRepoArgs(cmd *cobra.Command, args []string) error {
 	gitFolder := fmt.Sprintf("%s/.git", args[0])
 	stat, err = os.Stat(gitFolder)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error - %s is not a git repository. Please make sure the root path of the provided directory contains .git subdirectory", args[0])
 	}
 	if !stat.IsDir() {
 		return fmt.Errorf("%s is not a git repository", args[0])
