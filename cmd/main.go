@@ -37,7 +37,7 @@ const (
 	includeRuleFlagName     = "include-rule"
 	excludeRuleFlagName     = "exclude-rule"
 	ignoreFlagName          = "ignore-result"
-	IgnoreOnExitFlag        = "ignore-on-exit"
+	ignoreOnExitFlag        = "ignore-on-exit"
 )
 
 var (
@@ -139,7 +139,7 @@ func Execute() {
 		subCommand.GroupID = group
 		subCommand.PreRun = preRun
 		subCommand.PostRun = postRun
-		subCommand.Flags().StringVar(&ignoreOnExitVar, IgnoreOnExitFlag, "none", "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
+		subCommand.Flags().StringVar(&ignoreOnExitVar, ignoreOnExitFlag, "none", "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 		rootCmd.AddCommand(subCommand)
 	}
 
