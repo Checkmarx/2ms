@@ -13,7 +13,7 @@
 
 2ms precompiled binaries for amd64 architecture are attached as assets in our [releases page](https://github.com/Checkmarx/2ms/releases)
 
-- [Download for Windows](https://github.com/checkmarx/2ms/releases/latest/download/linux-amd64.zip)
+- [Download for Windows](https://github.com/checkmarx/2ms/releases/latest/download/windows-amd64.zip)
 - [Download for MacOS](https://github.com/checkmarx/2ms/releases/latest/download/macos-amd64.zip)
 - [Download for Linux](https://github.com/checkmarx/2ms/releases/latest/download/linux-amd64.zip)
 - [Other](https://github.com/Checkmarx/2ms/releases)
