@@ -37,7 +37,7 @@ const (
 	includeRuleFlagName     = "include-rule"
 	excludeRuleFlagName     = "exclude-rule"
 	ignoreFlagName          = "ignore-result"
-	ignoreSecretsFlagName   = "ignore-secrets"
+	IgnoreOnExitFlag        = "ignore-on-exit"
 )
 
 var (
@@ -48,7 +48,8 @@ var (
 	includeRuleVar     []string
 	excludeRuleVar     []string
 	ignoreVar          []string
-	ignoreSecrets      bool
+	ignoreOnExitVar    string
+	shouldIgnore       string
 )
 
 var rootCmd = &cobra.Command{
@@ -138,7 +139,7 @@ func Execute() {
 		subCommand.GroupID = group
 		subCommand.PreRun = preRun
 		subCommand.PostRun = postRun
-		subCommand.Flags().BoolVar(&ignoreSecrets, ignoreSecretsFlagName, false, "Return success (0) exit status regardless of the report's result [default: false]")
+		subCommand.Flags().StringVar(&ignoreOnExitVar, IgnoreOnExitFlag, "none", "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 		rootCmd.AddCommand(subCommand)
 	}
 
@@ -163,6 +164,11 @@ func validateFormat(stdout string, reportPath []string) {
 }
 
 func preRun(cmd *cobra.Command, args []string) {
+	shouldIgnore, _ := cmd.Flags().GetString("ignore-on-exit")
+	if err := InitShouldIgnoreArg(shouldIgnore); err != nil {
+		log.Fatal().Msg(err.Error())
+	}
+
 	validateFormat(stdoutFormatVar, reportPathVar)
 	secrets, err := secrets.Init(includeRuleVar, excludeRuleVar)
 	if err != nil {
@@ -196,8 +202,6 @@ func preRun(cmd *cobra.Command, args []string) {
 func postRun(cmd *cobra.Command, args []string) {
 	channels.WaitGroup.Wait()
 
-	ignoreSecrets, _ := cmd.Flags().GetBool("ignore-secrets")
-
 	cfg := config.LoadConfig("2ms", Version)
 
 	// Wait for last secret to be added to report
@@ -218,9 +222,21 @@ func postRun(cmd *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 
-	if report.TotalSecretsFound > 0 && !ignoreSecrets {
+	if report.TotalSecretsFound > 0 && (shouldIgnore == "none" || shouldIgnore == "errors") {
 		os.Exit(1)
 	} else {
 		os.Exit(0)
 	}
+}
+
+// InitShouldIgnoreArg initializes what kind of errors should be used on exit codes
+func InitShouldIgnoreArg(arg string) error {
+	validArgs := []string{"none", "all", "results", "errors"}
+	for _, validArg := range validArgs {
+		if strings.EqualFold(validArg, arg) {
+			shouldIgnore = strings.ToLower(arg)
+			return nil
+		}
+	}
+	return fmt.Errorf("unknown argument for --ignore-on-exit: %s\nvalid arguments:\n  %s", arg, strings.Join(validArgs, "\n  "))
 }
