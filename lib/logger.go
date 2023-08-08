@@ -12,7 +12,7 @@ type SpecificLevelWriter struct {
 	Levels []zerolog.Level
 }
 
-func (w *SpecificLevelWriter) WriteLevel(level zerolog.Level, p []byte) (int, error) {
+func (w SpecificLevelWriter) WriteLevel(level zerolog.Level, p []byte) (int, error) {
 	for _, l := range w.Levels {
 		if l == level {
 			return w.Write(p)
@@ -23,13 +23,13 @@ func (w *SpecificLevelWriter) WriteLevel(level zerolog.Level, p []byte) (int, er
 
 func CreateLogger(minimumLevel zerolog.Level) zerolog.Logger {
 	writer := zerolog.MultiLevelWriter(
-		&SpecificLevelWriter{
+		SpecificLevelWriter{
 			Writer: zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "15:04:05"},
 			Levels: []zerolog.Level{
 				zerolog.DebugLevel, zerolog.InfoLevel, zerolog.WarnLevel,
 			},
 		},
-		&SpecificLevelWriter{
+		SpecificLevelWriter{
 			Writer: zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"},
 			Levels: []zerolog.Level{
 				zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel,
