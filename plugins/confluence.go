@@ -49,15 +49,9 @@ func (p *ConfluencePlugin) GetAuthorizationHeader() string {
 }
 
 func validateURL(urlStr string) bool {
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
+	if parsedURL, err := url.Parse(urlStr); err != nil || parsedURL.Scheme != "https" {
 		return false
 	}
-
-	if parsedURL.Scheme != "https" {
-		return false
-	}
-
 	return true
 }
 
