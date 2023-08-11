@@ -37,7 +37,7 @@ const (
 	includeRuleFlagName     = "include-rule"
 	excludeRuleFlagName     = "exclude-rule"
 	ignoreFlagName          = "ignore-result"
-	ignoreOnExitFlag        = "ignore-on-exit"
+	ignoreOnExitFlagName    = "ignore-on-exit"
 )
 
 var (
@@ -49,7 +49,6 @@ var (
 	excludeRuleVar     []string
 	ignoreVar          []string
 	ignoreOnExitVar    string
-	shouldIgnore       string
 )
 
 var rootCmd = &cobra.Command{
@@ -110,10 +109,9 @@ func initialize() {
 	}
 }
 
-func Execute() {
+func Execute() error {
 	vConfig.SetEnvPrefix(envPrefix)
 	vConfig.AutomaticEnv()
-
 	cobra.OnInitialize(initialize)
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
@@ -125,58 +123,63 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&excludeRuleVar, excludeRuleFlagName, []string{}, "exclude rules by name or tag to apply to the scan (removes from list, starts from all)")
 	rootCmd.MarkFlagsMutuallyExclusive(includeRuleFlagName, excludeRuleFlagName)
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
+	rootCmd.PersistentFlags().StringVar(&ignoreOnExitVar, ignoreOnExitFlagName, "none", "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 
 	rootCmd.AddCommand(secrets.RulesCommand)
-
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
 		subCommand, err := plugin.DefineCommand(channels)
 		if err != nil {
-			log.Fatal().Msg(fmt.Sprintf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error()))
+			return fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
 		subCommand.GroupID = group
-		subCommand.PreRun = preRun
-		subCommand.PostRun = postRun
-		subCommand.Flags().StringVar(&ignoreOnExitVar, ignoreOnExitFlag, "none", "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
+		subCommand.PreRunE = preRun
+		subCommand.PostRunE = postRun
 		rootCmd.AddCommand(subCommand)
 	}
-
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatal().Msg(err.Error())
+		return err
 	}
+
+	return nil
 }
 
-func validateFormat(stdout string, reportPath []string) {
+func validateFormat(stdout string, reportPath []string) error {
 	r := regexp.MustCompile(outputFormatRegexpPattern)
 	if !(r.MatchString(stdout)) {
-		log.Fatal().Msgf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
+		return fmt.Errorf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
 	}
 
 	for _, path := range reportPath {
 		fileExtension := filepath.Ext(path)
 		format := strings.TrimPrefix(fileExtension, ".")
 		if !(r.MatchString(format)) {
-			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, format)
+			return fmt.Errorf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, format)
 		}
 	}
+
+	return nil
 }
 
-func preRun(cmd *cobra.Command, args []string) {
-	shouldIgnore, _ := cmd.Flags().GetString("ignore-on-exit")
-	if err := InitShouldIgnoreArg(shouldIgnore); err != nil {
-		log.Fatal().Msg(err.Error())
+func preRun(cmd *cobra.Command, args []string) error {
+	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
+		return err
 	}
 
-	validateFormat(stdoutFormatVar, reportPathVar)
 	secrets, err := secrets.Init(includeRuleVar, excludeRuleVar)
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		return err
 	}
 
 	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
-		log.Fatal().Msg(err.Error())
+		fmt.Println(err)
+		return err
+	}
+
+	if err := InitShouldIgnoreArg(ignoreOnExitVar); err != nil {
+		return err
 	}
 
 	go func() {
@@ -190,16 +193,18 @@ func preRun(cmd *cobra.Command, args []string) {
 				report.TotalSecretsFound++
 				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
 			case err, ok := <-channels.Errors:
-				if !ok {
+				//ToDo discuss whether this is the right approach
+				if !ok || ShowError("errors") {
 					return
 				}
 				log.Fatal().Msg(err.Error())
 			}
 		}
 	}()
+	return nil
 }
 
-func postRun(cmd *cobra.Command, args []string) {
+func postRun(cmd *cobra.Command, args []string) error {
 	channels.WaitGroup.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
@@ -214,19 +219,22 @@ func postRun(cmd *cobra.Command, args []string) {
 		if len(reportPathVar) > 0 {
 			err := report.WriteFile(reportPathVar, cfg)
 			if err != nil {
-				log.Error().Msgf("Failed to create report file with error: %s", err)
+				return fmt.Errorf("failed to create report file with error: %s", err)
 			}
 		}
 	} else {
-		log.Error().Msg("Scan completed with empty content")
-		os.Exit(0)
+		fmt.Println("Scan completed with empty content")
+		return nil
 	}
 
-	if report.TotalSecretsFound > 0 && (shouldIgnore == "none" || shouldIgnore == "errors") {
+	if report.TotalSecretsFound > 0 && ShowError("errors") {
+		// if return actual error then help usage is getting called.
+		// if not, then nil error is passed and exit code will always be 0
+		//	return fmt.Errorf("SecretsFound")
 		os.Exit(1)
-	} else {
-		os.Exit(0)
 	}
+
+	return nil
 }
 
 // InitShouldIgnoreArg initializes what kind of errors should be used on exit codes
@@ -234,9 +242,14 @@ func InitShouldIgnoreArg(arg string) error {
 	validArgs := []string{"none", "all", "results", "errors"}
 	for _, validArg := range validArgs {
 		if strings.EqualFold(validArg, arg) {
-			shouldIgnore = strings.ToLower(arg)
+			ignoreOnExitVar = strings.ToLower(arg)
 			return nil
 		}
 	}
 	return fmt.Errorf("unknown argument for --ignore-on-exit: %s\nvalid arguments:\n  %s", arg, strings.Join(validArgs, "\n  "))
+}
+
+// ShowError returns true if should show error, otherwise returns false
+func ShowError(kind string) bool {
+	return strings.EqualFold(ignoreOnExitVar, "none") || (!strings.EqualFold(ignoreOnExitVar, "all") && !strings.EqualFold(ignoreOnExitVar, kind))
 }
