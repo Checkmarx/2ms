@@ -174,7 +174,6 @@ func preRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -228,9 +227,6 @@ func postRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if report.TotalSecretsFound > 0 && ShowError("errors") {
-		// if return actual error then help usage is getting called.
-		// if not, then nil error is passed and exit code will always be 0
-		//	return fmt.Errorf("SecretsFound")
 		os.Exit(1)
 	}
 
