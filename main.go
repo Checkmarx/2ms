@@ -5,6 +5,7 @@ import (
 	"os/signal"
 
 	"github.com/checkmarx/2ms/cmd"
+	"github.com/checkmarx/2ms/lib"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -12,8 +13,7 @@ import (
 
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	// send all logs to stdout
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"})
+	log.Logger = lib.CreateLogger(zerolog.InfoLevel)
 
 	// this block sets up a go routine to listen for an interrupt signal
 	// which will immediately exit gitleaks
