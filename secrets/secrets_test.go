@@ -106,6 +106,24 @@ func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 	}
 }
 
+func TestLoadAllRules_CustomRulesLoaded(t *testing.T) {
+	allRules, err := loadAllRules()
+	ruleIDMap := make(map[string]bool)
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, rule := range allRules {
+		ruleIDMap[rule.Rule.RuleID] = true
+	}
+	for _, customRule := range customRules {
+		_, ok := ruleIDMap[customRule.RuleID]
+		if !ok {
+			t.Errorf("custom rule not found: %s", customRule.RuleID)
+		}
+	}
+}
+
 func TestIsAllFilter_AllFilterNotPresent(t *testing.T) {
 	filters := []string{"token", "key"}
 
