@@ -129,30 +129,6 @@ func (s *Secrets) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func addCustomRules(rules []CustomRuleConfiguration) ([]Rule, error) {
-	var customRules []Rule
-	customRules = make([]Rule, len(rules))
-	for idx, rule := range rules {
-		regex, err := regexp.Compile(rule.RegexPattern)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compile custom regex rule %s: %w", rule.RuleID, err)
-		}
-		customRules[idx] = Rule{
-			Rule: config.Rule{
-				Description: rule.Description,
-				RuleID:      rule.RuleID,
-				Regex:       regex,
-				Keywords:    []string{},
-			},
-			Tags: rule.Tags,
-		}
-		if rule.SecretGroup != 0 {
-			customRules[idx].Rule.SecretGroup = rule.SecretGroup
-		}
-	}
-	return customRules, nil
-}
-
 func getFindingId(item plugins.Item, finding report.Finding) string {
 	idParts := []string{item.ID, finding.RuleID, finding.Secret}
 	sha := sha1.Sum([]byte(strings.Join(idParts, "-")))
@@ -394,12 +370,6 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.YandexAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.ZendeskSecretKey(), Tags: []string{TagSecretKey}})
 	allRules = append(allRules, Rule{Rule: *secrets.AuthenticatedURL(), Tags: []string{TagPassword}})
-
-	builtCustomRules, err := addCustomRules(customRules)
-	if err != nil {
-		return nil, err
-	}
-	allRules = append(allRules, builtCustomRules...)
 
 	return allRules, nil
 }
