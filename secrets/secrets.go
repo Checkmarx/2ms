@@ -11,6 +11,7 @@ import (
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
+	secrets "github.com/checkmarx/2ms/secrets/rules"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
@@ -126,30 +127,6 @@ func (s *Secrets) AddRegexRules(patterns []string) error {
 		s.rules[rule.RuleID] = rule
 	}
 	return nil
-}
-
-func addCustomRules(rules []CustomRuleConfiguration) ([]Rule, error) {
-	var customRules []Rule
-	customRules = make([]Rule, len(rules))
-	for idx, rule := range rules {
-		regex, err := regexp.Compile(rule.RegexPattern)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compile custom regex rule %s: %w", rule.RuleID, err)
-		}
-		customRules[idx] = Rule{
-			Rule: config.Rule{
-				Description: rule.Description,
-				RuleID:      rule.RuleID,
-				Regex:       regex,
-				Keywords:    []string{},
-			},
-			Tags: rule.Tags,
-		}
-		if rule.SecretGroup != 0 {
-			customRules[idx].Rule.SecretGroup = rule.SecretGroup
-		}
-	}
-	return customRules, nil
 }
 
 func getFindingId(item plugins.Item, finding report.Finding) string {
@@ -392,12 +369,7 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.YandexAWSAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.YandexAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.ZendeskSecretKey(), Tags: []string{TagSecretKey}})
-
-	builtCustomRules, err := addCustomRules(customRules)
-	if err != nil {
-		return nil, err
-	}
-	allRules = append(allRules, builtCustomRules...)
+	allRules = append(allRules, Rule{Rule: *secrets.AuthenticatedURL(), Tags: []string{TagPassword}})
 
 	return allRules, nil
 }
