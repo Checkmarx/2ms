@@ -365,8 +365,10 @@ func TestSecrets(t *testing.T) {
 		ShouldFind bool
 	}{
 		{
-			Content:    "AKCp8jRRiQSAbghbuZmHKZcaKGEqbAASGH2SAb3rxXJQsSq9dGga8gFXe6aHpcRmzuHxN6oaT",
-			Name:       "JFROG Secret without keyword",
+			Content: "AKCp8jRRiQSAbghbuZmHKZcaKGEqbAASGH2SAb3rxXJQsSq9dGga8gFXe6aHpcRmzuHxN6oaT",
+			Name:    "JFROG Secret without keyword",
+			// gitleaks is using "keywords" to identify the next literal after the keyword is a secret,
+			// that is why we are not expecting to find this secret
 			ShouldFind: false,
 		},
 		{
