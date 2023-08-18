@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/lib"
 
 	"sync"
-	"time"
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
@@ -212,17 +212,16 @@ func preRun(cmd *cobra.Command, args []string) error {
 func postRun(cmd *cobra.Command, args []string) error {
 	channels.WaitGroup.Wait()
 
-	// check whether error channel is empty
-	if len(errorChan) != 0 {
-		errorInChan := <-errorChan
-		return errorInChan
-	}
-	close(errorChan)
-
 	cfg := config.LoadConfig("2ms", Version)
 
 	// Wait for last secret to be added to report
 	time.Sleep(time.Millisecond * timeSleepInterval)
+
+	if len(errorChan) != 0 {
+		errorInChan := <-errorChan
+		close(errorChan)
+		return errorInChan
+	}
 
 	// -------------------------------------
 	// Show Report
