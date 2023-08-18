@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 
 	"github.com/checkmarx/2ms/cmd"
 	"github.com/checkmarx/2ms/lib"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -23,6 +23,7 @@ func main() {
 
 	if err := cmd.Execute(); err != nil {
 		if cmd.ShowError("errors") {
+			fmt.Println(err)
 			os.Exit(1)
 		}
 	}

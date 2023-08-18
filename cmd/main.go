@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -18,7 +17,6 @@ import (
 	"github.com/checkmarx/2ms/secrets"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -80,6 +78,7 @@ var channels = plugins.Channels{
 
 var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
+var errorChan = make(chan error, 1)
 
 func initialize() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -112,6 +111,7 @@ func initialize() {
 func Execute() error {
 	vConfig.SetEnvPrefix(envPrefix)
 	vConfig.AutomaticEnv()
+
 	cobra.OnInitialize(initialize)
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
@@ -126,6 +126,7 @@ func Execute() error {
 	rootCmd.PersistentFlags().StringVar(&ignoreOnExitVar, ignoreOnExitFlagName, "none", "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 
 	rootCmd.AddCommand(secrets.RulesCommand)
+
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
@@ -139,8 +140,13 @@ func Execute() error {
 		subCommand.PostRunE = postRun
 		rootCmd.AddCommand(subCommand)
 	}
+
 	if err := rootCmd.Execute(); err != nil {
 		return err
+	}
+
+	if report.TotalSecretsFound > 0 && ShowError("errors") {
+		return fmt.Errorf("")
 	}
 
 	return nil
@@ -192,19 +198,26 @@ func preRun(cmd *cobra.Command, args []string) error {
 				report.TotalSecretsFound++
 				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
 			case err, ok := <-channels.Errors:
-				//ToDo discuss whether this is the right approach
 				if !ok || ShowError("errors") {
 					return
 				}
-				log.Fatal().Msg(err.Error())
+				errorChan <- err
 			}
 		}
 	}()
+
 	return nil
 }
 
 func postRun(cmd *cobra.Command, args []string) error {
 	channels.WaitGroup.Wait()
+
+	// check whether error channel is empty
+	if len(errorChan) != 0 {
+		errorInChan := <-errorChan
+		return errorInChan
+	}
+	close(errorChan)
 
 	cfg := config.LoadConfig("2ms", Version)
 
@@ -214,7 +227,10 @@ func postRun(cmd *cobra.Command, args []string) error {
 	// -------------------------------------
 	// Show Report
 	if report.TotalItemsScanned > 0 {
-		report.ShowReport(stdoutFormatVar, cfg)
+		if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
+			return err
+		}
+
 		if len(reportPathVar) > 0 {
 			err := report.WriteFile(reportPathVar, cfg)
 			if err != nil {
@@ -223,11 +239,6 @@ func postRun(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		fmt.Println("Scan completed with empty content")
-		return nil
-	}
-
-	if report.TotalSecretsFound > 0 && ShowError("errors") {
-		os.Exit(1)
 	}
 
 	return nil
