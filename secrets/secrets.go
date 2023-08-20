@@ -11,7 +11,7 @@ import (
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
-	secrets "github.com/checkmarx/2ms/secrets/rules"
+	internalRules "github.com/checkmarx/2ms/secrets/rules"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
@@ -369,7 +369,7 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.YandexAWSAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.YandexAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.ZendeskSecretKey(), Tags: []string{TagSecretKey}})
-	allRules = append(allRules, Rule{Rule: *secrets.AuthenticatedURL(), Tags: []string{TagPassword}})
+	allRules = append(allRules, Rule{Rule: *internalRules.AuthenticatedURL(), Tags: []string{TagSensitiveUrl}})
 
 	return allRules, nil
 }
