@@ -7,7 +7,7 @@ import (
 )
 
 func AuthenticatedURL() *config.Rule {
-	regex, _ := regexp.Compile(":\\/\\/(.+:.+)?@")
+	regex, _ := regexp.Compile(`:\/\/(.+:.+)?@`)
 	rule := config.Rule{
 		Description: "Identify username:password inside URLS",
 		RuleID:      "username-password-secret",
