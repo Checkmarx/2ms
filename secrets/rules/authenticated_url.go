@@ -10,7 +10,7 @@ func AuthenticatedURL() *config.Rule {
 	regex, _ := regexp.Compile(`:\/\/(.+:.+)?@`)
 	rule := config.Rule{
 		Description: "Identify username:password inside URLS",
-		RuleID:      "username-password-secret",
+		RuleID:      "authenticated-url",
 		Regex:       regex,
 		Keywords:    []string{},
 		SecretGroup: 1,
