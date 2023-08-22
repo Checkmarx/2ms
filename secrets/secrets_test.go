@@ -2,6 +2,9 @@ package secrets
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -411,4 +414,40 @@ func TestSecrets(t *testing.T) {
 		})
 	}
 
+}
+
+func TestAllGitleaksRulesAreUsed(t *testing.T) {
+	// URL of the remote Go file
+	remoteURL := "https://raw.githubusercontent.com/gitleaks/gitleaks/master/cmd/generate/config/main.go"
+
+	response, err := http.Get(remoteURL)
+	if err != nil {
+		fmt.Printf("Failed to fetch remote file: %v\n", err)
+		return
+	}
+	defer response.Body.Close()
+
+	content, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Printf("Failed to read remote file content: %v\n", err)
+		return
+	}
+
+	regexPattern := `configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`
+
+	re := regexp.MustCompile(regexPattern)
+
+	matches := re.FindAllStringSubmatch(string(content), -1)
+
+	var gitleaksRules []string
+
+	for _, match := range matches {
+
+		gitleaksRules = append(gitleaksRules, match[1])
+
+	}
+
+	for _, element := range gitleaksRules {
+		fmt.Println(element)
+	}
 }
