@@ -1,4 +1,4 @@
-package secrets
+package rules
 
 import (
 	"regexp"
@@ -16,5 +16,16 @@ func AuthenticatedURL() *config.Rule {
 		SecretGroup: 1,
 	}
 
-	return &rule
+	tPositives := []string{
+		"mongodb+srv://radar:mytoken@io.dbb.mongodb.net/?retryWrites=true&w=majority",
+		"--output=https://elastic:bF21iC0bfTVXo3qhpJqTGs78@c22f5bc9787c4c268d3b069ad866bdc2.eu-central-1.aws.cloud.es.io:9243/tfs",
+		"https://abc:123@google.com",
+	}
+
+	fPositives := []string{
+		"https://google.com",
+		"https://google.com?user=abc&password=123",
+	}
+
+	return validate(rule, tPositives, fPositives)
 }
