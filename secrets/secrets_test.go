@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"regexp"
 	"sync"
 	"testing"
@@ -417,7 +418,7 @@ func TestSecrets(t *testing.T) {
 }
 
 func TestAllGitleaksRulesAreUsed(t *testing.T) {
-	// URL of the remote Go file
+	// Import the rules from "gitleak"
 	remoteURL := "https://raw.githubusercontent.com/gitleaks/gitleaks/master/cmd/generate/config/main.go"
 
 	response, err := http.Get(remoteURL)
@@ -433,9 +434,7 @@ func TestAllGitleaksRulesAreUsed(t *testing.T) {
 		return
 	}
 
-	regexPattern := `configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`
-
-	re := regexp.MustCompile(regexPattern)
+	re := regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
 
 	matches := re.FindAllStringSubmatch(string(content), -1)
 
@@ -447,7 +446,22 @@ func TestAllGitleaksRulesAreUsed(t *testing.T) {
 
 	}
 
-	for _, element := range gitleaksRules {
-		fmt.Println(element)
+	//Import the rules from our project "2ms"
+	localContent, err := os.ReadFile("secrets.go")
+	if err != nil {
+		t.Fatalf("Failed to read local file content: %v", err)
 	}
+	localRegex2 := regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
+	ourRules := localRegex2.FindAllStringSubmatch(string(localContent), -1)
+
+	localRules := make(map[string]bool)
+
+	for _, match := range ourRules {
+		localRules[match[1]] = true
+	}
+
 }
+
+// for _, element := range localRules {
+// 	fmt.Println(element)
+// }
