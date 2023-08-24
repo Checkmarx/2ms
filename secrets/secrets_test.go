@@ -418,6 +418,7 @@ func TestSecrets(t *testing.T) {
 }
 
 func TestAllGitleaksRulesAreUsed(t *testing.T) {
+
 	// Import the rules from "gitleak"
 	remoteURL := "https://raw.githubusercontent.com/gitleaks/gitleaks/master/cmd/generate/config/main.go"
 
@@ -454,14 +455,29 @@ func TestAllGitleaksRulesAreUsed(t *testing.T) {
 	localRegex2 := regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
 	ourRules := localRegex2.FindAllStringSubmatch(string(localContent), -1)
 
-	localRules := make(map[string]bool)
+	localRulesMap := make(map[string]bool)
 
 	for _, match := range ourRules {
-		localRules[match[1]] = true
+		localRulesMap[match[1]] = true
 	}
 
-}
+	//compare the rules and check if missing ruels in our list of ruels
 
-// for _, element := range localRules {
-// 	fmt.Println(element)
-// }
+	missingInLocal := []string{}
+	for _, rule := range gitleaksRules {
+		if _, found := localRulesMap[rule]; !found {
+			missingInLocal = append(missingInLocal, rule)
+		}
+	}
+
+	if len(missingInLocal) > 0 {
+		t.Errorf("Test failed. Differences found:\n")
+		if len(missingInLocal) > 0 {
+			fmt.Printf("Rules missing in local but present in gitleaks:\n")
+			for _, rule := range missingInLocal {
+				fmt.Printf("%s\n", rule)
+			}
+		}
+
+	}
+}
