@@ -29,14 +29,18 @@ func (p *FileSystemPlugin) GetName() string {
 	return "filesystem"
 }
 
-func (p *FileSystemPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
+func (p *FileSystemPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
 	var cmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), flagFolder),
 		Short: "Scan local folder",
 		Long:  "Scan local folder for sensitive information",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Folder plugin started")
-			p.getFiles(channels.Items, channels.Errors, channels.WaitGroup)
+
+			wg := &sync.WaitGroup{}
+			p.getFiles(items, errors, wg)
+			wg.Wait()
+			close(items)
 		},
 	}
 
