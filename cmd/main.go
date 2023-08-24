@@ -11,7 +11,6 @@ import (
 	"github.com/checkmarx/2ms/lib"
 
 	"sync"
-	"time"
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
@@ -129,7 +128,7 @@ func Execute() {
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
-		subCommand, err := plugin.DefineCommand(channels)
+		subCommand, err := plugin.DefineCommand(channels.Items, channels.Errors)
 		if err != nil {
 			log.Fatal().Msg(fmt.Sprintf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error()))
 		}
@@ -170,22 +169,32 @@ func preRun(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg(err.Error())
 	}
 
+	channels.WaitGroup.Add(1)
 	go func() {
-		for {
-			select {
-			case item := <-channels.Items:
-				report.TotalItemsScanned++
-				channels.WaitGroup.Add(1)
-				go secrets.Detect(item, secretsChan, channels.WaitGroup, ignoreVar)
-			case secret := <-secretsChan:
-				report.TotalSecretsFound++
-				report.Results[secret.ID] = append(report.Results[secret.ID], secret)
-			case err, ok := <-channels.Errors:
-				if !ok {
-					return
-				}
-				log.Fatal().Msg(err.Error())
-			}
+		defer channels.WaitGroup.Done()
+
+		wgItems := &sync.WaitGroup{}
+		for item := range channels.Items {
+			report.TotalItemsScanned++
+			wgItems.Add(1)
+			go secrets.Detect(item, secretsChan, wgItems, ignoreVar)
+		}
+		wgItems.Wait()
+		close(secretsChan)
+	}()
+
+	channels.WaitGroup.Add(1)
+	go func() {
+		defer channels.WaitGroup.Done()
+		for secret := range secretsChan {
+			report.TotalSecretsFound++
+			report.Results[secret.ID] = append(report.Results[secret.ID], secret)
+		}
+	}()
+
+	go func() {
+		for err := range channels.Errors {
+			log.Fatal().Msg(err.Error())
 		}
 	}()
 }
@@ -194,9 +203,6 @@ func postRun(cmd *cobra.Command, args []string) {
 	channels.WaitGroup.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
-
-	// Wait for last secret to be added to report
-	time.Sleep(time.Millisecond * timeSleepInterval)
 
 	// -------------------------------------
 	// Show Report

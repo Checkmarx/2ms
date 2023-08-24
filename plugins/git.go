@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog/log"
@@ -29,8 +30,12 @@ func (p *GitPlugin) GetName() string {
 	return "git"
 }
 
-func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
-	p.Channels = channels
+func (p *GitPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+	p.Channels = Channels{
+		Items:     items,
+		Errors:    errors,
+		WaitGroup: &sync.WaitGroup{},
+	}
 
 	command := &cobra.Command{
 		Use:   fmt.Sprintf("%s <CLONED_REPO>", p.GetName()),
@@ -39,7 +44,9 @@ func (p *GitPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 		Args:  cobra.MatchAll(cobra.ExactArgs(1), validGitRepoArgs),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Git plugin started")
-			p.scanGit(args[0], p.buildScanOptions(), channels.Items, channels.Errors)
+			p.scanGit(args[0], p.buildScanOptions(), p.Channels.Items, p.Channels.Errors)
+			p.WaitGroup.Wait()
+			close(items)
 		},
 	}
 	flags := command.Flags()

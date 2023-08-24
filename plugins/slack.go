@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -38,8 +39,12 @@ var (
 	messagesCountArg    int
 )
 
-func (p *SlackPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
-	p.Channels = channels
+func (p *SlackPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+	p.Channels = Channels{
+		Items:     items,
+		Errors:    errors,
+		WaitGroup: &sync.WaitGroup{},
+	}
 
 	command := &cobra.Command{
 		Use:   fmt.Sprintf("%s --%s TOKEN --%s TEAM", p.GetName(), slackTokenFlag, slackTeamFlag),
@@ -47,6 +52,8 @@ func (p *SlackPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
 		Long:  "Scan Slack team for sensitive information.",
 		Run: func(cmd *cobra.Command, args []string) {
 			p.getItems()
+			p.Channels.WaitGroup.Wait()
+			close(items)
 		},
 	}
 
