@@ -417,12 +417,11 @@ func TestSecrets(t *testing.T) {
 
 }
 
+// Check if all the rules that exist in "gitleaks" are included in our list of rules (In secret.go file)
 func TestAllGitleaksRulesAreUsed(t *testing.T) {
 
-	// Import the rules from "gitleak"
-	remoteURL := "https://raw.githubusercontent.com/gitleaks/gitleaks/master/cmd/generate/config/main.go"
-
-	response, err := http.Get(remoteURL)
+	// Import the rules from "gitleaks"
+	response, err := http.Get("https://raw.githubusercontent.com/gitleaks/gitleaks/master/cmd/generate/config/main.go")
 	if err != nil {
 		fmt.Printf("Failed to fetch remote file: %v\n", err)
 		return
@@ -435,33 +434,32 @@ func TestAllGitleaksRulesAreUsed(t *testing.T) {
 		return
 	}
 
-	re := regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
-
-	matches := re.FindAllStringSubmatch(string(content), -1)
+	reGitleaks := regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
+	matchesGitleaks := reGitleaks.FindAllStringSubmatch(string(content), -1)
 
 	var gitleaksRules []string
 
-	for _, match := range matches {
-
+	for _, match := range matchesGitleaks {
 		gitleaksRules = append(gitleaksRules, match[1])
-
 	}
 
 	//Import the rules from our project "2ms"
-	localContent, err := os.ReadFile("secrets.go")
+
+	localfile, err := os.ReadFile("secrets.go")
 	if err != nil {
-		t.Fatalf("Failed to read local file content: %v", err)
+		t.Errorf("Failed to read local file content: %v", err)
 	}
-	localRegex2 := regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
-	ourRules := localRegex2.FindAllStringSubmatch(string(localContent), -1)
+
+	reLocal := regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
+	matchLocal := reLocal.FindAllStringSubmatch(string(localfile), -1)
 
 	localRulesMap := make(map[string]bool)
 
-	for _, match := range ourRules {
+	for _, match := range matchLocal {
 		localRulesMap[match[1]] = true
 	}
 
-	//compare the rules and check if missing ruels in our list of ruels
+	//Compare the rules and check if missing ruels in our list of ruels
 
 	missingInLocal := []string{}
 	for _, rule := range gitleaksRules {
