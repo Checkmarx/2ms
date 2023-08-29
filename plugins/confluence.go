@@ -63,17 +63,11 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 		Short: "Scan Confluence server",
 		Long:  "Scan Confluence server for sensitive information",
 		Args:  cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			p.URL = strings.TrimRight(args[0], "/")
-
-			err := p.initialize(cmd)
-			if err != nil {
-				return fmt.Errorf("error while initializing confluence plugin: %w", err)
-			}
-
-			return nil
-		},
 		Run: func(cmd *cobra.Command, args []string) {
+			err := p.initialize(cmd, args[0])
+			if err != nil {
+				channels.Errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
+			}
 			p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
 		},
 	}
@@ -87,9 +81,9 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 	return confluenceCmd, nil
 }
 
-func (p *ConfluencePlugin) initialize(cmd *cobra.Command) error {
+func (p *ConfluencePlugin) initialize(cmd *cobra.Command, urlArg string) error {
 
-	p.URL = strings.TrimRight(p.URL, "/")
+	p.URL = strings.TrimRight(urlArg, "/")
 
 	if p.Username == "" || p.Token == "" {
 		log.Warn().Msg("confluence credentials were not provided. The scan will be made anonymously only for the public pages")
