@@ -11,6 +11,7 @@ import (
 
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
+	internalRules "github.com/checkmarx/2ms/secrets/rules"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
@@ -292,6 +293,8 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.Heroku(), Tags: []string{TagApiKey}})
 	allRules = append(allRules, Rule{Rule: *rules.HubSpot(), Tags: []string{TagApiToken, TagApiKey}})
 	allRules = append(allRules, Rule{Rule: *rules.Intercom(), Tags: []string{TagApiToken, TagApiKey}})
+	allRules = append(allRules, Rule{Rule: *rules.JFrogAPIKey(), Tags: []string{TagApiKey}})
+	allRules = append(allRules, Rule{Rule: *rules.JFrogIdentityToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.JWT(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.KrakenAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.KucoinAccessToken(), Tags: []string{TagAccessToken}})
@@ -344,8 +347,15 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.ShopifySharedSecret(), Tags: []string{TagPublicSecret}})
 	allRules = append(allRules, Rule{Rule: *rules.SidekiqSecret(), Tags: []string{TagSecretKey}})
 	allRules = append(allRules, Rule{Rule: *rules.SidekiqSensitiveUrl(), Tags: []string{TagSensitiveUrl}})
-	allRules = append(allRules, Rule{Rule: *rules.SlackAccessToken(), Tags: []string{TagAccessToken}})
-	allRules = append(allRules, Rule{Rule: *rules.SlackWebHook(), Tags: []string{TagWebhook}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackBotToken(), Tags: []string{TagAccessToken}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackAppLevelToken(), Tags: []string{TagAccessToken}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackLegacyToken(), Tags: []string{TagAccessToken}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackUserToken(), Tags: []string{TagAccessToken}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackConfigurationToken(), Tags: []string{TagAccessToken}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackConfigurationRefreshToken(), Tags: []string{TagRefreshToken}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackLegacyBotToken(), Tags: []string{TagAccessToken}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackLegacyWorkspaceToken(), Tags: []string{TagAccessToken}})
+	allRules = append(allRules, Rule{Rule: *rules.SlackWebHookUrl(), Tags: []string{TagWebhook}})
 	allRules = append(allRules, Rule{Rule: *rules.StripeAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.SquareAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.SquareSpaceAccessToken(), Tags: []string{TagAccessToken}})
@@ -368,6 +378,7 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.YandexAWSAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.YandexAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.ZendeskSecretKey(), Tags: []string{TagSecretKey}})
+	allRules = append(allRules, Rule{Rule: *internalRules.AuthenticatedURL(), Tags: []string{TagSensitiveUrl}})
 
 	return allRules, nil
 }

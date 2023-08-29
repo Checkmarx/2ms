@@ -57,7 +57,7 @@ func isValidURL(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
+func (p *ConfluencePlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
 	var confluenceCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s <URL>", p.GetName()),
 		Short: "Scan Confluence server",
@@ -66,9 +66,12 @@ func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, err
 		Run: func(cmd *cobra.Command, args []string) {
 			err := p.initialize(cmd, args[0])
 			if err != nil {
-				channels.Errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
+				errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
 			}
-			p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
+			wg := &sync.WaitGroup{}
+			p.getItems(items, errors, wg)
+			wg.Wait()
+			close(items)
 		},
 	}
 
@@ -94,18 +97,14 @@ func (p *ConfluencePlugin) initialize(cmd *cobra.Command, urlArg string) error {
 }
 
 func (p *ConfluencePlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
-	p.getSpacesItems(items, errs, wg)
-}
-
-func (p *ConfluencePlugin) getSpacesItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	spaces, err := p.getSpaces()
 	if err != nil {
 		errs <- err
 	}
 
 	for _, space := range spaces {
-		go p.getSpaceItems(items, errs, wg, space)
 		wg.Add(1)
+		go p.getSpaceItems(items, errs, wg, space)
 	}
 }
 
