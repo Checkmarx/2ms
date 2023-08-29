@@ -48,48 +48,43 @@ func (p *ConfluencePlugin) GetAuthorizationHeader() string {
 	return lib.CreateBasicAuthCredentials(p)
 }
 
-func isValidURL(urlStr string) bool {
-    parsedURL, err := url.Parse(urlStr)
-    return err == nil && parsedURL.Scheme == "https"
+func isValidURL(cmd *cobra.Command, args []string) error {
+	urlStr := args[0]
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL format")
+	}
+	return nil
 }
 
-
 func (p *ConfluencePlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
-    var confluenceCmd = &cobra.Command{
-        Use:   fmt.Sprintf("%s <URL>", p.GetName()),
-        Short: "Scan Confluence server",
-        Long:  "Scan Confluence server for sensitive information",
-        Args:  cobra.ExactArgs(1),
-        PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-            if len(args) != 1 {
-                return fmt.Errorf("requires exactly 1 argument: the Confluence URL")
-            }
+	var confluenceCmd = &cobra.Command{
+		Use:   fmt.Sprintf("%s <URL>", p.GetName()),
+		Short: "Scan Confluence server",
+		Long:  "Scan Confluence server for sensitive information",
+		Args:  cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			p.URL = strings.TrimRight(args[0], "/")
 
-            if !isValidURL(args[0]) {
-                return fmt.Errorf("invalid URL format")
-            }
+			err := p.initialize(cmd)
+			if err != nil {
+				return fmt.Errorf("error while initializing confluence plugin: %w", err)
+			}
 
-            p.URL = strings.TrimRight(args[0], "/")
+			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
+		},
+	}
 
-            err := p.initialize(cmd)
-            if err != nil {
-                return fmt.Errorf("error while initializing confluence plugin: %w", err)
-            }
+	flags := confluenceCmd.Flags()
+	flags.StringSliceVar(&p.Spaces, argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
+	flags.StringVar(&p.Username, argUsername, "", "Confluence user name or email for authentication")
+	flags.StringVar(&p.Token, argToken, "", "The Confluence API token for authentication")
+	flags.BoolVar(&p.History, argHistory, false, "Scan pages history")
 
-            return nil
-        },
-        Run: func(cmd *cobra.Command, args []string) {
-            p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
-        },
-    }
-
-    flags := confluenceCmd.Flags()
-    flags.StringSliceVar(&p.Spaces, argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
-    flags.StringVar(&p.Username, argUsername, "", "Confluence user name or email for authentication")
-    flags.StringVar(&p.Token, argToken, "", "The Confluence API token for authentication")
-    flags.BoolVar(&p.History, argHistory, false, "Scan pages history")
-
-    return confluenceCmd, nil
+	return confluenceCmd, nil
 }
 
 func (p *ConfluencePlugin) initialize(cmd *cobra.Command) error {
