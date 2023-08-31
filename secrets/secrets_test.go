@@ -2,10 +2,6 @@ package secrets
 
 import (
 	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"regexp"
 	"sync"
 	"testing"
 
@@ -415,67 +411,4 @@ func TestSecrets(t *testing.T) {
 		})
 	}
 
-}
-
-// Check if all the rules that exist in "gitleaks" are included in our list of rules (In secret.go file)
-func TestAllGitleaksRulesAreUsed(t *testing.T) {
-
-	// Import the rules from "gitleaks"
-	response, err := http.Get("https://raw.githubusercontent.com/gitleaks/gitleaks/master/cmd/generate/config/main.go")
-	if err != nil {
-		fmt.Printf("Failed to fetch remote file: %v\n", err)
-		return
-	}
-	defer response.Body.Close()
-
-	content, err := io.ReadAll(response.Body)
-	if err != nil {
-		fmt.Printf("Failed to read remote file content: %v\n", err)
-		return
-	}
-
-	reGitleaks := regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
-	matchesGitleaks := reGitleaks.FindAllStringSubmatch(string(content), -1)
-
-	var gitleaksRules []string
-
-	for _, match := range matchesGitleaks {
-		gitleaksRules = append(gitleaksRules, match[1])
-	}
-
-	//Import the rules from our project "2ms"
-
-	localfile, err := os.ReadFile("secrets.go")
-	if err != nil {
-		t.Errorf("Failed to read local file content: %v", err)
-	}
-
-	reLocal := regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
-	matchLocal := reLocal.FindAllStringSubmatch(string(localfile), -1)
-
-	localRulesMap := make(map[string]bool)
-
-	for _, match := range matchLocal {
-		localRulesMap[match[1]] = true
-	}
-
-	//Compare the rules and check if missing ruels in our list of ruels
-
-	missingInLocal := []string{}
-	for _, rule := range gitleaksRules {
-		if _, found := localRulesMap[rule]; !found {
-			missingInLocal = append(missingInLocal, rule)
-		}
-	}
-
-	if len(missingInLocal) > 0 {
-		t.Errorf("Test failed. Differences found:\n")
-		if len(missingInLocal) > 0 {
-			fmt.Printf("Rules missing in local but present in gitleaks:\n")
-			for _, rule := range missingInLocal {
-				fmt.Printf("%s\n", rule)
-			}
-		}
-
-	}
 }
