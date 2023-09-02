@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -78,7 +77,6 @@ var channels = plugins.Channels{
 
 var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
-var errorChan = make(chan error, 1)
 
 func initialize() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -212,7 +210,8 @@ func preRun(cmd *cobra.Command, args []string) error {
 
 	go func() {
 		for err := range channels.Errors {
-			log.Fatal().Msg(err.Error())
+			//log.Fatal().Msg(err.Error())
+			fmt.Println(err.Error())
 		}
 	}()
 
@@ -221,6 +220,12 @@ func preRun(cmd *cobra.Command, args []string) error {
 
 func postRun(cmd *cobra.Command, args []string) error {
 	channels.WaitGroup.Wait()
+
+	//if len(channels.Errors) != 0 {
+	//	errorInChan := <-channels.Errors
+	//		close(channels.Errors)
+	//		return errorInChan
+	//	}
 
 	cfg := config.LoadConfig("2ms", Version)
 

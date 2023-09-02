@@ -40,6 +40,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan Item, errors chan error) (*c
 			p.getFiles(items, errors, wg)
 			wg.Wait()
 			close(items)
+			return nil
 		},
 	}
 
