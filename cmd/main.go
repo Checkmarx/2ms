@@ -5,16 +5,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/lib"
-
-	"sync"
-
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
-
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -168,6 +165,10 @@ func validateFormat(stdout string, reportPath []string) error {
 }
 
 func preRun(cmd *cobra.Command, args []string) error {
+	if err := InitShouldIgnoreArg(ignoreOnExitVar); err != nil {
+		return err
+	}
+
 	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
 		return err
 	}
@@ -178,10 +179,6 @@ func preRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
-		return err
-	}
-
-	if err := InitShouldIgnoreArg(ignoreOnExitVar); err != nil {
 		return err
 	}
 
@@ -210,7 +207,6 @@ func preRun(cmd *cobra.Command, args []string) error {
 
 	go func() {
 		for err := range channels.Errors {
-			//log.Fatal().Msg(err.Error())
 			fmt.Println(err.Error())
 		}
 	}()
@@ -221,16 +217,14 @@ func preRun(cmd *cobra.Command, args []string) error {
 func postRun(cmd *cobra.Command, args []string) error {
 	channels.WaitGroup.Wait()
 
-	//if len(channels.Errors) != 0 {
-	//	errorInChan := <-channels.Errors
-	//		close(channels.Errors)
-	//		return errorInChan
-	//	}
+	if len(channels.Errors) != 0 {
+		errorInChan := <-channels.Errors
+		close(channels.Errors)
+		return errorInChan
+	}
 
 	cfg := config.LoadConfig("2ms", Version)
 
-	// -------------------------------------
-	// Show Report
 	if report.TotalItemsScanned > 0 {
 		if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
 			return err
@@ -249,7 +243,6 @@ func postRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// InitShouldIgnoreArg initializes what kind of errors should be used on exit codes
 func InitShouldIgnoreArg(arg string) error {
 	validArgs := []string{"none", "all", "results", "errors"}
 	for _, validArg := range validArgs {
@@ -261,7 +254,9 @@ func InitShouldIgnoreArg(arg string) error {
 	return fmt.Errorf("unknown argument for --ignore-on-exit: %s\nvalid arguments:\n  %s", arg, strings.Join(validArgs, "\n  "))
 }
 
-// ShowError returns true if should show error, otherwise returns false
 func ShowError(kind string) bool {
-	return strings.EqualFold(ignoreOnExitVar, "none") || (!strings.EqualFold(ignoreOnExitVar, "all") && !strings.EqualFold(ignoreOnExitVar, kind))
+	if strings.EqualFold(ignoreOnExitVar, "none") || strings.EqualFold(ignoreOnExitVar, "results") {
+		return true
+	}
+	return false
 }
