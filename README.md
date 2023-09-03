@@ -103,7 +103,7 @@ We offer the following list of integrations in the form of plugins
 scans a [Confluence](https://www.atlassian.com/software/confluence) instance
 
 ```
-2ms confluence --url URL [flags]
+2ms confluence <URL> [flags]
 ```
 
 | Flag         | Value  | Default                        | Description                                                                      |
@@ -117,7 +117,7 @@ scans a [Confluence](https://www.atlassian.com/software/confluence) instance
 For example:
 
 ```
-2ms confluence --url https://checkmarx.atlassian.net/wiki --spaces secrets
+2ms confluence https://checkmarx.atlassian.net/wiki --spaces secrets
 ```
 
 - 💡 [The `secrets` Confluence site](https://checkmarx.atlassian.net/wiki/spaces/secrets) purposely created with plain example secrets as a test subject for this demo

@@ -10,6 +10,8 @@ import (
 	"github.com/checkmarx/2ms/lib"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+
+	"net/url"
 )
 
 const (
@@ -46,43 +48,45 @@ func (p *ConfluencePlugin) GetAuthorizationHeader() string {
 	return lib.CreateBasicAuthCredentials(p)
 }
 
+func isValidURL(cmd *cobra.Command, args []string) error {
+	urlStr := args[0]
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL format")
+	}
+	return nil
+}
+
 func (p *ConfluencePlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
 	var confluenceCmd = &cobra.Command{
-		Use:   fmt.Sprintf("%s --%s URL", p.GetName(), argUrl),
+		Use:   fmt.Sprintf("%s <URL>", p.GetName()),
 		Short: "Scan Confluence server",
 		Long:  "Scan Confluence server for sensitive information",
+		Args:  cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
+		Run: func(cmd *cobra.Command, args []string) {
+			err := p.initialize(cmd, args[0])
+			if err != nil {
+				errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
+			}
+			wg := &sync.WaitGroup{}
+			p.getItems(items, errors, wg)
+			wg.Wait()
+			close(items)
+		},
 	}
 
 	flags := confluenceCmd.Flags()
-	flags.StringVar(&p.URL, argUrl, "", "Confluence server URL (example: https://company.atlassian.net/wiki) [required]")
 	flags.StringSliceVar(&p.Spaces, argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
 	flags.StringVar(&p.Username, argUsername, "", "Confluence user name or email for authentication")
 	flags.StringVar(&p.Token, argToken, "", "The Confluence API token for authentication")
 	flags.BoolVar(&p.History, argHistory, false, "Scan pages history")
-	err := confluenceCmd.MarkFlagRequired(argUrl)
-	if err != nil {
-		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", argUrl, err)
-	}
-
-	confluenceCmd.Run = func(cmd *cobra.Command, args []string) {
-		err := p.initialize(cmd)
-		if err != nil {
-			errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
-			return
-		}
-
-		wg := &sync.WaitGroup{}
-		p.getItems(items, errors, wg)
-		wg.Wait()
-		close(items)
-	}
 
 	return confluenceCmd, nil
 }
 
-func (p *ConfluencePlugin) initialize(cmd *cobra.Command) error {
+func (p *ConfluencePlugin) initialize(cmd *cobra.Command, urlArg string) error {
 
-	p.URL = strings.TrimRight(p.URL, "/")
+	p.URL = strings.TrimRight(urlArg, "/")
 
 	if p.Username == "" || p.Token == "" {
 		log.Warn().Msg("confluence credentials were not provided. The scan will be made anonymously only for the public pages")
