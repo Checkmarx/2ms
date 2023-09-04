@@ -22,7 +22,7 @@ func main() {
 	go listenForInterrupt(stopChan)
 
 	if err := cmd.Execute(); err != nil {
-		if cmd.ShowError("errors") {
+		if cmd.ShowError() {
 			fmt.Println(err)
 			os.Exit(1)
 		}

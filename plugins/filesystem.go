@@ -37,7 +37,11 @@ func (p *FileSystemPlugin) DefineCommand(items chan Item, errors chan error) (*c
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log.Info().Msg("Folder plugin started")
 			wg := &sync.WaitGroup{}
-			p.getFiles(items, errors, wg)
+
+			if err := p.getFiles(items, errors, wg); err != nil {
+				return err
+			}
+
 			wg.Wait()
 			close(items)
 			return nil

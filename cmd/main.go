@@ -56,6 +56,7 @@ const envPrefix = "2MS"
 
 var configFilePath string
 var vConfig = viper.New()
+var showErrorKind = "errors"
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
@@ -140,7 +141,8 @@ func Execute() error {
 		return err
 	}
 
-	if report.TotalSecretsFound > 0 && ShowError("errors") {
+	if report.TotalSecretsFound > 0 {
+		showErrorKind = "results"
 		return fmt.Errorf("")
 	}
 
@@ -202,6 +204,7 @@ func preRun(cmd *cobra.Command, args []string) error {
 		for secret := range secretsChan {
 			report.TotalSecretsFound++
 			report.Results[secret.ID] = append(report.Results[secret.ID], secret)
+
 		}
 	}()
 
@@ -254,9 +257,14 @@ func InitShouldIgnoreArg(arg string) error {
 	return fmt.Errorf("unknown argument for --ignore-on-exit: %s\nvalid arguments:\n  %s", arg, strings.Join(validArgs, "\n  "))
 }
 
-func ShowError(kind string) bool {
-	if strings.EqualFold(ignoreOnExitVar, "none") || strings.EqualFold(ignoreOnExitVar, "results") {
+func ShowError() bool {
+	if strings.EqualFold(ignoreOnExitVar, "none") {
+		return true
+	} else if strings.EqualFold(ignoreOnExitVar, "all") {
+		return false
+	} else if strings.EqualFold(ignoreOnExitVar, showErrorKind) {
+		return false
+	} else {
 		return true
 	}
-	return false
 }
