@@ -9,54 +9,56 @@ import (
 	"regexp"
 )
 
-// Check if all the rules that exist in "gitleaks" are included in our list of rules (in secret.go file)
+//Scripts to Check if all the rules that exist in
+// the latest version "gitleaks" are included in our list of rules (in secret.go file)
+
 func main() {
 
-	//Find the latest release of "gitleaks"
-	release, err := fetchLatestRelease()
+	latestGitleaksRelease, err := fetchGitleaksLatestRelease()
 	if err != nil {
-		fmt.Printf("Error fetching latest release: %s\n", err)
-		return
+		fmt.Printf("%s\n", err)
+		os.Exit(1)
 	}
 
-	// Import the rules from "gitleaks"
-	rawURL := fmt.Sprintf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go", release.TagName)
-	content, err := fetchRemoteContent(rawURL)
+	rawURLGitleaksrules := fmt.Sprintf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go", latestGitleaksRelease)
+	gitleaksRules, err := fetchGitleaksRules(rawURLGitleaksrules)
 	if err != nil {
-		fmt.Printf("Error fetching remote content: %s\n", err)
-		return
+		fmt.Printf("%s\n", err)
+		os.Exit(1)
 	}
-	reGitleaks := regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
-	matchesGitleaks := reGitleaks.FindAllStringSubmatch(string(content), -1)
+	regexGitleaksRules := regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
+	matchesGitleaksRules := regexGitleaksRules.FindAllStringSubmatch(string(gitleaksRules), -1)
 
-	//Import the rules from our project "2ms"
-	localContent, err := fetchLocalContent("secrets/secrets.go")
+	ourRules, err := fetchOurRules("secrets/secrets.go")
 	if err != nil {
-		fmt.Printf("Error fetching local content: %s\n", err)
-		return
-	}
-	reLocal := regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
-	matchLocal := reLocal.FindAllStringSubmatch(string(localContent), -1)
-
-	//Insert the rules in map for good run time in search
-	localRulesMap := make(map[string]bool)
-	for _, match := range matchLocal {
-		localRulesMap[match[1]] = true
+		fmt.Printf("%s\n", err)
+		os.Exit(1)
 	}
 
-	// Compare the rules and check if missing rules in our list of rules
-	missingInLocal := []string{}
-	for _, rule := range matchesGitleaks {
-		if _, found := localRulesMap[rule[1]]; !found {
-			missingInLocal = append(missingInLocal, rule[1])
+	regexOurRules := regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
+	matchOurRules := regexOurRules.FindAllStringSubmatch(string(ourRules), -1)
+
+	MapOurRules := make(map[string]bool)
+	for _, match := range matchOurRules {
+		MapOurRules[match[1]] = true
+	}
+
+	missingRules := []string{}
+	for _, rule := range matchesGitleaksRules {
+		if _, found := MapOurRules[rule[1]]; !found {
+			missingRules = append(missingRules, rule[1])
 		}
 	}
 
-	if len(missingInLocal) > 0 {
-		fmt.Printf("%d differences between our rules and the rules in the new version in 'gitleaks' were found: \n \n", len(missingInLocal))
-		for index, rule := range missingInLocal {
+	if len(missingRules) > 0 {
+		fmt.Printf("%d differences between our rules and the rules in the new version in 'gitleaks' were found: \n\n", len(missingRules))
+		for index, rule := range missingRules {
 			fmt.Printf("%d %s \n", index+1, rule)
 		}
+
+		fmt.Printf("\nLink to Gitleaks main.go file of version: %s:\n", latestGitleaksRelease)
+		fmt.Printf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go\n\n", latestGitleaksRelease)
+
 		os.Exit(1)
 	} else {
 		fmt.Printf("No differences found.")
@@ -68,24 +70,24 @@ type Release struct {
 	TagName string `json:"tag_name"`
 }
 
-func fetchLatestRelease() (Release, error) {
+func fetchGitleaksLatestRelease() (string, error) {
 	var release Release
 
-	resp, err := http.Get("https://api.github.com/repos/zricethezav/gitleaks/releases/latest")
+	response, err := http.Get("https://api.github.com/repos/zricethezav/gitleaks/releases/latest")
 	if err != nil {
-		return release, fmt.Errorf("failed to get latest release: %w", err)
+		return "", fmt.Errorf("failed to get latest release: %w", err)
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	decoder := json.NewDecoder(resp.Body)
+	decoder := json.NewDecoder(response.Body)
 	if err := decoder.Decode(&release); err != nil {
-		return release, fmt.Errorf("failed to decode latest release JSON: %w", err)
+		return "", fmt.Errorf("failed to decode latest release JSON: %w", err)
 	}
 
-	return release, nil
+	return release.TagName, nil
 }
 
-func fetchRemoteContent(url string) ([]byte, error) {
+func fetchGitleaksRules(url string) ([]byte, error) {
 	response, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch remote file: %w", err)
@@ -100,10 +102,10 @@ func fetchRemoteContent(url string) ([]byte, error) {
 	return content, nil
 }
 
-func fetchLocalContent(filePath string) ([]byte, error) {
+func fetchOurRules(filePath string) ([]byte, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read our file content: %w", err)
 	}
 	return content, nil
 }
