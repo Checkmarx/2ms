@@ -96,7 +96,6 @@ jobs:
 We've built `2ms` command line interface to be as self-descriptive as possible. This is the help message that you will see if you executed `2ms` without args:
 
 <!-- command-line:start -->
-
 ```
 2ms Secrets Detection: A tool to detect secrets in public websites and communication services.
 
@@ -130,6 +129,7 @@ Flags:
 
 Use "2ms [command] --help" for more information about a command.
 ```
+<!-- command-line:end -->
 
 ## Custom Regex Rules
 
@@ -147,10 +147,6 @@ username=admin
 ```
 
 [![asciicast](https://asciinema.org/a/607198.svg)](https://asciinema.org/a/607198)
-
-
-
-<!-- command-line:end -->
 
 ## Plugins
 
