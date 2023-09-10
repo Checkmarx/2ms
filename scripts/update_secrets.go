@@ -1,3 +1,4 @@
+// Scripts to check if all the rules that exist in the latest version of "gitleaks" are included in our list of rules (in secret.go file)
 package main
 
 import (
@@ -9,8 +10,10 @@ import (
 	"regexp"
 )
 
-//Scripts to Check if all the rules that exist in
-// the latest version "gitleaks" are included in our list of rules (in secret.go file)
+var (
+	regexGitleaksRules = regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
+	regex2msRules      = regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
+)
 
 func main() {
 
@@ -20,40 +23,37 @@ func main() {
 		os.Exit(1)
 	}
 
-	rawURLGitleaksrules := fmt.Sprintf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go", latestGitleaksRelease)
-	gitleaksRules, err := fetchGitleaksRules(rawURLGitleaksrules)
+	gitleaksRules, err := fetchGitleaksRules(latestGitleaksRelease)
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		os.Exit(1)
 	}
-	regexGitleaksRules := regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
 	matchesGitleaksRules := regexGitleaksRules.FindAllStringSubmatch(string(gitleaksRules), -1)
 
-	ourRules, err := fetchOurRules("secrets/secrets.go")
+	ourRules, err := fetchOurRules()
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		os.Exit(1)
 	}
 
-	regexOurRules := regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
-	matchOurRules := regexOurRules.FindAllStringSubmatch(string(ourRules), -1)
+	match2msRules := regex2msRules.FindAllStringSubmatch(string(ourRules), -1)
 
-	MapOurRules := make(map[string]bool)
-	for _, match := range matchOurRules {
-		MapOurRules[match[1]] = true
+	map2msRules := make(map[string]bool)
+	for _, match := range match2msRules {
+		map2msRules[match[1]] = true
 	}
 
-	missingRules := []string{}
+	missingRulesIn2ms := []string{}
 	for _, rule := range matchesGitleaksRules {
-		if _, found := MapOurRules[rule[1]]; !found {
-			missingRules = append(missingRules, rule[1])
+		if _, found := map2msRules[rule[1]]; !found {
+			missingRulesIn2ms = append(missingRulesIn2ms, rule[1])
 		}
 	}
 
-	if len(missingRules) > 0 {
-		fmt.Printf("%d differences between our rules and the rules in the new version in 'gitleaks' were found: \n\n", len(missingRules))
-		for index, rule := range missingRules {
-			fmt.Printf("%d %s \n", index+1, rule)
+	if len(missingRulesIn2ms) > 0 {
+		fmt.Printf("%d rules exist in the latest version of Gitleaks but missing on 2ms: \n\n", len(missingRulesIn2ms))
+		for _, rule := range missingRulesIn2ms {
+			fmt.Printf("%s \n", rule)
 		}
 
 		fmt.Printf("\nLink to Gitleaks main.go file of version: %s:\n", latestGitleaksRelease)
@@ -87,8 +87,9 @@ func fetchGitleaksLatestRelease() (string, error) {
 	return release.TagName, nil
 }
 
-func fetchGitleaksRules(url string) ([]byte, error) {
-	response, err := http.Get(url)
+func fetchGitleaksRules(version string) ([]byte, error) {
+	rawURLGitleaksRules := fmt.Sprintf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go", version)
+	response, err := http.Get(rawURLGitleaksRules)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch remote file: %w", err)
 	}
@@ -102,8 +103,8 @@ func fetchGitleaksRules(url string) ([]byte, error) {
 	return content, nil
 }
 
-func fetchOurRules(filePath string) ([]byte, error) {
-	content, err := os.ReadFile(filePath)
+func fetchOurRules() ([]byte, error) {
+	content, err := os.ReadFile("secrets/secrets.go")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read our file content: %w", err)
 	}
