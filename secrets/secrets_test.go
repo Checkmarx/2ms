@@ -11,7 +11,7 @@ import (
 )
 
 func TestLoadAllRules(t *testing.T) {
-	rules, _ := loadAllRules()
+	rules := loadAllRules()
 
 	if len(rules) <= 1 {
 		t.Error("no rules were loaded")
@@ -20,10 +20,7 @@ func TestLoadAllRules(t *testing.T) {
 
 func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 	ruleIDMap := make(map[string]bool)
-	allRules, err := loadAllRules()
-	if err != nil {
-		t.Error(err)
-	}
+	allRules := loadAllRules()
 
 	for _, rule := range allRules {
 		if _, ok := ruleIDMap[rule.Rule.RuleID]; ok {
@@ -34,53 +31,85 @@ func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 	}
 }
 
-func TestInit(t *testing.T) {
-	allRules, err := loadAllRules()
-	if err != nil {
-		t.Error(err)
-	}
+func Test_Init_SelectRules(t *testing.T) {
+	allRules := loadAllRules()
 	rulesCount := len(allRules)
 
 	tests := []struct {
-		name        string
-		includeList []string
-		excludeList []string
-		expectedErr error
-		expectedLen int
+		name         string
+		selectedList []string
+		ignoreList   []string
+		expectedErr  error
+		expectedLen  int
 	}{
 		{
-			name:        "include and exclude flags used together",
-			includeList: []string{"tag1"},
-			excludeList: []string{"tag2"},
-			expectedErr: fmt.Errorf("cannot use both include and exclude flags"),
-			expectedLen: 0,
+			name:         "selected flag used for one rule",
+			selectedList: []string{allRules[0].Rule.RuleID},
+			ignoreList:   []string{},
+			expectedErr:  nil,
+			expectedLen:  1,
 		},
 		{
-			name:        "non existent include flag",
-			includeList: []string{"non-existent-tag-name"},
-			excludeList: []string{},
-			expectedErr: fmt.Errorf("no rules were selected"),
-			expectedLen: 0,
+			name:         "selected flag used for multiple rules",
+			selectedList: []string{allRules[0].Rule.RuleID, allRules[1].Rule.RuleID},
+			ignoreList:   []string{},
+			expectedErr:  nil,
+			expectedLen:  2,
 		},
 		{
-			name:        "non existent exclude flag",
-			includeList: []string{},
-			excludeList: []string{"non-existent-tag-name"},
-			expectedErr: nil,
-			expectedLen: rulesCount,
+			name:         "ignore flag used for one rule",
+			selectedList: []string{},
+			ignoreList:   []string{allRules[0].Rule.RuleID},
+			expectedErr:  nil,
+			expectedLen:  rulesCount - 1,
 		},
 		{
-			name:        "no flags",
-			includeList: []string{},
-			excludeList: []string{},
-			expectedErr: nil,
-			expectedLen: rulesCount,
+			name:         "ignore flag used for multiple rules",
+			selectedList: []string{},
+			ignoreList:   []string{allRules[0].Rule.RuleID, allRules[1].Rule.RuleID},
+			expectedErr:  nil,
+			expectedLen:  rulesCount - 2,
+		},
+		{
+			name:         "selected and ignore flags used together for different rules",
+			selectedList: []string{allRules[0].Rule.RuleID},
+			ignoreList:   []string{allRules[1].Rule.RuleID},
+			expectedErr:  nil,
+			expectedLen:  1,
+		},
+		{
+			name:         "selected and ignore flags used together for the same rule",
+			selectedList: []string{allRules[0].Rule.RuleID},
+			ignoreList:   []string{allRules[0].Rule.RuleID},
+			expectedErr:  fmt.Errorf("no rules were selected"),
+			expectedLen:  0,
+		},
+		{
+			name:         "non existent select flag",
+			selectedList: []string{"non-existent-tag-name"},
+			ignoreList:   []string{},
+			expectedErr:  fmt.Errorf("no rules were selected"),
+			expectedLen:  0,
+		},
+		{
+			name:         "non existent ignore flag",
+			selectedList: []string{},
+			ignoreList:   []string{"non-existent-tag-name"},
+			expectedErr:  nil,
+			expectedLen:  rulesCount,
+		},
+		{
+			name:         "no flags",
+			selectedList: []string{},
+			ignoreList:   []string{},
+			expectedErr:  nil,
+			expectedLen:  rulesCount,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			secrets, err := Init(tt.includeList, tt.excludeList)
+			secrets, err := Init(tt.selectedList, tt.ignoreList)
 
 			if err != nil {
 				if tt.expectedErr == nil {
@@ -88,7 +117,7 @@ func TestInit(t *testing.T) {
 				} else if err.Error() == tt.expectedErr.Error() {
 					return
 				} else {
-					t.Errorf("expected error %s, but got %s", tt.expectedErr, err)
+					t.Errorf("expected error '%s', but got '%s'", tt.expectedErr, err)
 				}
 			} else if tt.expectedErr != nil {
 				t.Errorf("expected error %s, but got none", tt.expectedErr)
@@ -99,6 +128,14 @@ func TestInit(t *testing.T) {
 			}
 		})
 	}
+}
+
+func rulesToMap(rules []Rule) map[string]config.Rule {
+	rulesMap := make(map[string]config.Rule)
+	for _, rule := range rules {
+		rulesMap[rule.Rule.RuleID] = rule.Rule
+	}
+	return rulesMap
 }
 
 func TestSelectRules(t *testing.T) {
@@ -158,7 +195,7 @@ func TestSelectRules(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := selectRules(tc.allRules, tc.tags)
+			result := rulesToMap(selectRules(tc.allRules, tc.tags))
 
 			if len(result) != len(tc.expectedResult) {
 				t.Errorf("Expected %d rules to be applied, but got %d", len(tc.expectedResult), len(result))
@@ -177,7 +214,7 @@ func TestSelectRules(t *testing.T) {
 	}
 }
 
-func TestExcludeRules(t *testing.T) {
+func TestIgnoreRules(t *testing.T) {
 	tests := []struct {
 		name           string
 		allRules       []Rule
@@ -194,7 +231,7 @@ func TestExcludeRules(t *testing.T) {
 			expectedResult: createRules("rule1", "rule2"),
 		},
 		{
-			name: "Exclude non-existing tag",
+			name: "Ignore non-existing tag",
 			allRules: []Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
@@ -203,7 +240,7 @@ func TestExcludeRules(t *testing.T) {
 			expectedResult: createRules("rule1", "rule2"),
 		},
 		{
-			name: "Exclude one rule ID",
+			name: "Ignore one rule ID",
 			allRules: []Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
@@ -212,7 +249,7 @@ func TestExcludeRules(t *testing.T) {
 			expectedResult: createRules("rule2"),
 		},
 		{
-			name: "Exclude one tag",
+			name: "Ignore one tag",
 			allRules: []Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
@@ -221,7 +258,7 @@ func TestExcludeRules(t *testing.T) {
 			expectedResult: map[string]config.Rule{},
 		},
 		{
-			name: "Exclude all tags",
+			name: "Ignore all tags",
 			allRules: []Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
@@ -233,7 +270,7 @@ func TestExcludeRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotResult := excludeRules(tt.allRules, tt.tags)
+			gotResult := rulesToMap(ignoreRules(tt.allRules, tt.tags))
 
 			if len(gotResult) != len(tt.expectedResult) {
 				t.Errorf("expected %d rules, but got %d", len(tt.expectedResult), len(gotResult))
@@ -246,7 +283,7 @@ func TestExcludeRules(t *testing.T) {
 					}
 				} else {
 					if _, ok := gotResult[rule.Rule.RuleID]; ok {
-						t.Errorf("expected rule %s to be excluded, but it was not", rule.Rule.RuleID)
+						t.Errorf("expected rule %s to be ignored, but it was not", rule.Rule.RuleID)
 					}
 				}
 			}

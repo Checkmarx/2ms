@@ -13,4 +13,4 @@ jobs:
         with:
           go-version: "^1.20"
       - name: Check Gitleaks new rules
-        run: go run scripts/check_new_rules.go
+        run: go run .ci/check_new_rules.go
