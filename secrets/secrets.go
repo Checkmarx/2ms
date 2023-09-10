@@ -184,40 +184,6 @@ func isRuleMatch(rule Rule, tags []string) bool {
 	return false
 }
 
-func getRules(allRules []Rule, tags []string) map[string]config.Rule {
-	rulesToBeApplied := make(map[string]config.Rule)
-
-	if isAllFilter(tags) {
-		// ensure rules have unique ids
-		for _, rule := range allRules {
-			// required to be empty when not running via cli. otherwise rule will be ignored
-			rule.Rule.Keywords = []string{}
-			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
-		}
-	} else {
-		for _, rule := range allRules {
-			rule.Rule.Keywords = []string{}
-			for _, userTag := range tags {
-				for _, ruleTag := range rule.Tags {
-					if strings.EqualFold(ruleTag, userTag) {
-						rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
-					}
-				}
-			}
-		}
-	}
-	return rulesToBeApplied
-}
-
-func isAllFilter(rulesFilter []string) bool {
-	for _, filter := range rulesFilter {
-		if strings.EqualFold(filter, "all") {
-			return true
-		}
-	}
-	return false
-}
-
 func loadAllRules() ([]Rule, error) {
 	var allRules []Rule
 	allRules = make([]Rule, 0)
