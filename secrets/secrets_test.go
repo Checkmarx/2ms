@@ -365,6 +365,31 @@ func TestSecrets(t *testing.T) {
 		ShouldFind bool
 	}{
 		{
+			Content:    "",
+			Name:       "empty",
+			ShouldFind: false,
+		},
+		{
+			Content:    "mongodb+srv://radar:mytoken@io.dbb.mongodb.net/?retryWrites=true&w=majority",
+			Name:       "Authenticated URL",
+			ShouldFind: true,
+		},
+		{
+			Content:    "--output=https://elastic:bF21iC0bfTVXo3qhpJqTGs78@c22f5bc9787c4c268d3b069ad866bdc2.eu-central-1.aws.cloud.es.io:9243/tfs",
+			Name:       "Authenticated URL",
+			ShouldFind: true,
+		},
+		{
+			Content:    "https://abc:123@google.com",
+			Name:       "Basic Authenticated URL",
+			ShouldFind: true,
+		},
+		{
+			Content:    "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",
+			Name:       "GitHub Personal Access Token",
+			ShouldFind: true,
+		},
+		{
 			Content: "AKCp8jRRiQSAbghbuZmHKZcaKGEqbAASGH2SAb3rxXJQsSq9dGga8gFXe6aHpcRmzuHxN6oaT",
 			Name:    "JFROG Secret without keyword",
 			// gitleaks is using "keywords" to identify the next literal after the keyword is a secret,

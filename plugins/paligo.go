@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/checkmarx/2ms/lib"
@@ -54,8 +55,12 @@ func (p *PaligoPlugin) GetName() string {
 	return "paligo"
 }
 
-func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
-	p.Channels = channels
+func (p *PaligoPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+	p.Channels = Channels{
+		Items:     items,
+		Errors:    errors,
+		WaitGroup: &sync.WaitGroup{},
+	}
 
 	command := &cobra.Command{
 		Use: fmt.Sprintf("%s --%s %s --%s %s --%s %s",
@@ -73,6 +78,8 @@ func (p *PaligoPlugin) DefineCommand(channels Channels) (*cobra.Command, error) 
 			}
 			log.Info().Msg("Paligo plugin started")
 			p.getItems()
+			p.WaitGroup.Wait()
+			close(items)
 		},
 	}
 

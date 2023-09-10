@@ -27,5 +27,5 @@ type Channels struct {
 
 type IPlugin interface {
 	GetName() string
-	DefineCommand(channels Channels) (*cobra.Command, error)
+	DefineCommand(items chan Item, errors chan error) (*cobra.Command, error)
 }
