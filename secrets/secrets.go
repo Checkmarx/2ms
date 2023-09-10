@@ -52,26 +52,27 @@ const TagWebhook = "webhook"
 
 const customRegexRuleIdFormat = "custom-regex-%d"
 
-func Init(includeList, excludeList []string) (*Secrets, error) {
-	if len(includeList) > 0 && len(excludeList) > 0 {
-		return nil, fmt.Errorf("cannot use both include and exclude flags")
+func Init(selectedList, ignoreList []string) (*Secrets, error) {
+	if len(selectedList) > 0 && len(ignoreList) > 0 {
+		log.Warn().Msgf("Both 'rule' and 'ignoreRule' flags were provided.")
 	}
 
-	allRules := loadAllRules()
-	rulesToBeApplied := make(map[string]config.Rule)
-	if len(includeList) > 0 {
-		rulesToBeApplied = selectRules(allRules, includeList)
-	} else if len(excludeList) > 0 {
-		rulesToBeApplied = excludeRules(allRules, excludeList)
-	} else {
-		for _, rule := range allRules {
-			// required to be empty when not running via cli. otherwise rule will be ignored
-			rule.Rule.Keywords = []string{}
-			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
-		}
+	selectedRules := loadAllRules()
+	if len(selectedList) > 0 {
+		selectedRules = selectRules(selectedRules, selectedList)
 	}
-	if len(rulesToBeApplied) == 0 {
+	if len(ignoreList) > 0 {
+		selectedRules = ignoreRules(selectedRules, ignoreList)
+	}
+	if len(selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
+	}
+
+	rulesToBeApplied := make(map[string]config.Rule)
+	for _, rule := range selectedRules {
+		// required to be empty when not running via cli. otherwise rule will be ignored
+		rule.Rule.Keywords = []string{}
+		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 	}
 
 	config := config.Config{
@@ -144,30 +145,26 @@ func isSecretIgnored(secret *reporting.Secret, ignoredIds *[]string) bool {
 	return false
 }
 
-func selectRules(allRules []Rule, tags []string) map[string]config.Rule {
-	rulesToBeApplied := make(map[string]config.Rule)
+func selectRules(allRules []Rule, tags []string) []Rule {
+	selectedRules := []Rule{}
 
 	for _, rule := range allRules {
 		if isRuleMatch(rule, tags) {
-			// required to be empty when not running via cli. otherwise rule will be ignored
-			rule.Rule.Keywords = []string{}
-			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+			selectedRules = append(selectedRules, rule)
 		}
 	}
-	return rulesToBeApplied
+	return selectedRules
 }
 
-func excludeRules(allRules []Rule, tags []string) map[string]config.Rule {
-	rulesToBeApplied := make(map[string]config.Rule)
+func ignoreRules(allRules []Rule, tags []string) []Rule {
+	selectedRules := []Rule{}
 
 	for _, rule := range allRules {
 		if !isRuleMatch(rule, tags) {
-			// required to be empty when not running via cli. otherwise rule will be ignored
-			rule.Rule.Keywords = []string{}
-			rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+			selectedRules = append(selectedRules, rule)
 		}
 	}
-	return rulesToBeApplied
+	return selectedRules
 }
 
 func isRuleMatch(rule Rule, tags []string) bool {
