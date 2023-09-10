@@ -57,7 +57,7 @@ func Init(includeList, excludeList []string) (*Secrets, error) {
 		return nil, fmt.Errorf("cannot use both include and exclude flags")
 	}
 
-	allRules, _ := loadAllRules()
+	allRules := loadAllRules()
 	rulesToBeApplied := make(map[string]config.Rule)
 	if len(includeList) > 0 {
 		rulesToBeApplied = selectRules(allRules, includeList)
@@ -184,7 +184,7 @@ func isRuleMatch(rule Rule, tags []string) bool {
 	return false
 }
 
-func loadAllRules() ([]Rule, error) {
+func loadAllRules() []Rule {
 	var allRules []Rule
 	allRules = make([]Rule, 0)
 
@@ -346,7 +346,7 @@ func loadAllRules() ([]Rule, error) {
 	allRules = append(allRules, Rule{Rule: *rules.ZendeskSecretKey(), Tags: []string{TagSecretKey}})
 	allRules = append(allRules, Rule{Rule: *internalRules.AuthenticatedURL(), Tags: []string{TagSensitiveUrl}})
 
-	return allRules, nil
+	return allRules
 }
 
 var RulesCommand = &cobra.Command{
@@ -355,10 +355,7 @@ var RulesCommand = &cobra.Command{
 	Long:  `List all rules`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		rules, err := loadAllRules()
-		if err != nil {
-			return err
-		}
+		rules := loadAllRules()
 
 		tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
@@ -367,7 +364,7 @@ var RulesCommand = &cobra.Command{
 		for _, rule := range rules {
 			fmt.Fprintf(tab, "%s\t%s\t%s\n", rule.Rule.RuleID, rule.Rule.Description, strings.Join(rule.Tags, ","))
 		}
-		if err = tab.Flush(); err != nil {
+		if err := tab.Flush(); err != nil {
 			return err
 		}
 
