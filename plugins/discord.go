@@ -38,7 +38,7 @@ func (p *DiscordPlugin) GetName() string {
 	return "discord"
 }
 
-func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error) {
+func (p *DiscordPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
 	var discordCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s --%s TOKEN --%s SERVER", p.GetName(), tokenFlag, serversFlag),
 		Short: "Scan Discord server",
@@ -63,11 +63,14 @@ func (p *DiscordPlugin) DefineCommand(channels Channels) (*cobra.Command, error)
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
 		err := p.initialize(cmd)
 		if err != nil {
-			channels.Errors <- fmt.Errorf("discord plugin initialization failed: %w", err)
+			errors <- fmt.Errorf("discord plugin initialization failed: %w", err)
 			return
 		}
 
-		p.getItems(channels.Items, channels.Errors, channels.WaitGroup)
+		wg := &sync.WaitGroup{}
+		p.getItems(items, errors, wg)
+		wg.Wait()
+		close(items)
 	}
 
 	return discordCmd, nil
