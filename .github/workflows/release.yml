@@ -3,7 +3,7 @@ name: Release
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [ master ]
 
 jobs:
   test:
@@ -49,6 +49,9 @@ jobs:
 
       - name: Go Mod Tidy
         run: go mod tidy
+
+      - name: Run 2ms Scan
+        run: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo --config /repo/.2ms.yml
 
       - name: Compile for Linux amd64
         env:
