@@ -24,6 +24,9 @@ jobs:
       - name: Go Linter
         run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.52.0 golangci-lint run -v -E gofmt --timeout=5m
 
+      - name: Run 2ms Scan
+        run: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo --config /repo/.2ms.yml
+
       - name: Unit Tests
         run: go test ./...
 
@@ -49,9 +52,6 @@ jobs:
 
       - name: Go Mod Tidy
         run: go mod tidy
-
-      - name: Run 2ms Scan
-        run: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo --config /repo/.2ms.yml
 
       - name: Compile for Linux amd64
         env:
