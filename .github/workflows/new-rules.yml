@@ -1,7 +1,6 @@
 name: New Rules from Gitleaks
 
 on:
-  pull_request:
   schedule:
     - cron: "0 2 * * 6" # At 02:00 on Saturday
 
