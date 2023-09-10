@@ -331,6 +331,34 @@ test-float: 123.456
 		assert.Equal(t, 123.456, testFloat)
 	})
 
+	t.Run("BindFlags_FromYAML_StringArrayVar", func(t *testing.T) {
+		assertClearEnv(t)
+		defer clearEnvVars(t)
+
+		yamlConfig := []byte(`
+regex:
+  - test\=
+  - array\=
+  - flag\=
+another-regex: [test\=, array\=, flag\=]
+`)
+
+		cmd := &cobra.Command{}
+		v := getViper()
+		v.SetConfigType("yaml")
+		assert.NoError(t, v.ReadConfig(bytes.NewBuffer(yamlConfig)))
+
+		var testArray []string
+		cmd.Flags().StringArrayVar(&testArray, "regex", []string{}, "Test array flag")
+		cmd.Flags().StringArrayVar(&testArray, "another-regex", []string{}, "Test array flag")
+
+		err := lib.BindFlags(cmd, v, envVarPrefix)
+		assert.NoError(t, err)
+
+		assert.Equal(t, []string{"test\\=", "array\\=", "flag\\="}, testArray)
+		assert.Equal(t, []string{"test\\=", "array\\=", "flag\\="}, testArray)
+	})
+
 	t.Run("BindFlags_FromYAML_SubCMD", func(t *testing.T) {
 		assertClearEnv(t)
 		defer clearEnvVars(t)

@@ -66,13 +66,10 @@ func bindEnvVarIntoViper(v *viper.Viper, fullFlagName, envPrefix string) {
 func applyViperFlagToCommand(flag *pflag.Flag, val interface{}, cmd *cobra.Command) {
 	switch t := val.(type) {
 	case []interface{}:
-		var paramSlice []string
 		for _, param := range t {
-			paramSlice = append(paramSlice, param.(string))
-		}
-		valStr := strings.Join(paramSlice, ",")
-		if err := flag.Value.Set(valStr); err != nil {
-			log.Err(err).Msg("Failed to set Viper flags")
+			if err := flag.Value.Set(param.(string)); err != nil {
+				log.Err(err).Msg("Failed to set Viper flags")
+			}
 		}
 	default:
 		newVal := fmt.Sprintf("%v", val)
