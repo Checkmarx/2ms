@@ -3,7 +3,7 @@ name: Release
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [ master ]
 
 jobs:
   test:
@@ -17,12 +17,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Required for 2ms to have visibility to all commit history
 
       - uses: actions/setup-go@v4
         with:
           go-version: "^1.20"
       - name: Go Linter
         run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.52.0 golangci-lint run -v -E gofmt --timeout=5m
+
+      - name: Run 2ms Scan
+        run: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo --config /repo/.2ms.yml
 
       - name: Unit Tests
         run: go test ./...
