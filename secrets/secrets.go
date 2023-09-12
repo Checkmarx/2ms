@@ -57,7 +57,7 @@ func Init(selectedList, ignoreList []string) (*Secrets, error) {
 		log.Warn().Msgf("Both 'rule' and 'ignoreRule' flags were provided.")
 	}
 
-	selectedRules := loadAllRules()
+	selectedRules := loadDefaultRules()
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
 	}
@@ -181,7 +181,7 @@ func isRuleMatch(rule Rule, tags []string) bool {
 	return false
 }
 
-func loadAllRules() []Rule {
+func loadDefaultRules() []Rule {
 	var allRules []Rule
 	allRules = make([]Rule, 0)
 
@@ -352,7 +352,7 @@ var RulesCommand = &cobra.Command{
 	Long:  `List all rules`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		rules := loadAllRules()
+		rules := loadDefaultRules()
 
 		tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 

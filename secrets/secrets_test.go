@@ -11,7 +11,7 @@ import (
 )
 
 func TestLoadAllRules(t *testing.T) {
-	rules := loadAllRules()
+	rules := loadDefaultRules()
 
 	if len(rules) <= 1 {
 		t.Error("no rules were loaded")
@@ -20,7 +20,7 @@ func TestLoadAllRules(t *testing.T) {
 
 func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 	ruleIDMap := make(map[string]bool)
-	allRules := loadAllRules()
+	allRules := loadDefaultRules()
 
 	for _, rule := range allRules {
 		if _, ok := ruleIDMap[rule.Rule.RuleID]; ok {
@@ -32,7 +32,7 @@ func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 }
 
 func Test_Init_SelectRules(t *testing.T) {
-	allRules := loadAllRules()
+	allRules := loadDefaultRules()
 	rulesCount := len(allRules)
 
 	tests := []struct {
