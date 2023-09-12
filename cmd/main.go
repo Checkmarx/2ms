@@ -36,6 +36,7 @@ const (
 	ruleFlagName            = "rule"
 	ignoreRuleFlagName      = "ignore-rule"
 	ignoreFlagName          = "ignore-result"
+	specialRulesFlagName    = "add-special-rule"
 )
 
 var (
@@ -46,6 +47,7 @@ var (
 	ruleVar            []string
 	ignoreRuleVar      []string
 	ignoreVar          []string
+	specialRulesVar    []string
 )
 
 var rootCmd = &cobra.Command{
@@ -120,8 +122,9 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&ruleVar, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreRuleVar, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
+	rootCmd.PersistentFlags().StringSliceVar(&specialRulesVar, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
 
-	rootCmd.AddCommand(secrets.GetRulesCommand(&ruleVar, &ignoreRuleVar))
+	rootCmd.AddCommand(secrets.GetRulesCommand(&ruleVar, &ignoreRuleVar, &specialRulesVar))
 
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
@@ -159,7 +162,7 @@ func validateFormat(stdout string, reportPath []string) {
 
 func preRun(cmd *cobra.Command, args []string) {
 	validateFormat(stdoutFormatVar, reportPathVar)
-	secrets, err := secrets.Init(ruleVar, ignoreRuleVar)
+	secrets, err := secrets.Init(ruleVar, ignoreRuleVar, specialRulesVar)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}

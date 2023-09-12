@@ -7,7 +7,7 @@ import (
 )
 
 func TestLoadAllRules(t *testing.T) {
-	rules := loadDefaultRules()
+	rules := getDefaultRules()
 
 	if len(*rules) <= 1 {
 		t.Error("no rules were loaded")
@@ -16,7 +16,7 @@ func TestLoadAllRules(t *testing.T) {
 
 func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 	ruleIDMap := make(map[string]bool)
-	allRules := loadDefaultRules()
+	allRules := getDefaultRules()
 
 	for _, rule := range *allRules {
 		if _, ok := ruleIDMap[rule.Rule.RuleID]; ok {
@@ -28,13 +28,15 @@ func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 }
 
 func Test_FilterRules_SelectRules(t *testing.T) {
-	allRules := *FilterRules([]string{}, []string{})
+	specialRule := HardcodedPassword()
+	allRules := *getDefaultRules()
 	rulesCount := len(allRules)
 
 	tests := []struct {
 		name         string
 		selectedList []string
 		ignoreList   []string
+		specialList  []string
 		expectedLen  int
 	}{
 		{
@@ -91,11 +93,32 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 			ignoreList:   []string{},
 			expectedLen:  rulesCount,
 		},
+		{
+			name:         "add special rule",
+			selectedList: []string{},
+			ignoreList:   []string{},
+			specialList:  []string{specialRule.RuleID},
+			expectedLen:  rulesCount + 1,
+		},
+		{
+			name:         "select regular rule and special rule",
+			selectedList: []string{allRules[0].Rule.RuleID},
+			ignoreList:   []string{},
+			specialList:  []string{specialRule.RuleID},
+			expectedLen:  2,
+		},
+		{
+			name:         "select regular rule and ignore it- should keep it",
+			selectedList: []string{"non-existent-tag-name"},
+			ignoreList:   []string{specialRule.RuleID},
+			specialList:  []string{specialRule.RuleID},
+			expectedLen:  1,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			secrets := *FilterRules(tt.selectedList, tt.ignoreList)
+			secrets := *FilterRules(tt.selectedList, tt.ignoreList, tt.specialList)
 
 			if len(secrets) != tt.expectedLen {
 				t.Errorf("expected %d rules, but got %d", tt.expectedLen, len(secrets))
