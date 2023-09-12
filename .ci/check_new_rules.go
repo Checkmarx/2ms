@@ -104,7 +104,7 @@ func fetchGitleaksRules(version string) ([]byte, error) {
 }
 
 func fetchOurRules() ([]byte, error) {
-	content, err := os.ReadFile("secrets/secrets.go")
+	content, err := os.ReadFile("secrets/rules/rules.go")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read our file content: %w", err)
 	}

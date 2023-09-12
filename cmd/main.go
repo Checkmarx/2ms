@@ -121,7 +121,7 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreRuleVar, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
 
-	rootCmd.AddCommand(secrets.RulesCommand)
+	rootCmd.AddCommand(secrets.GetRulesCommand(&ruleVar, &ignoreRuleVar))
 
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
