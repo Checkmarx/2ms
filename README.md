@@ -131,7 +131,18 @@ Flags:
 
 Use "2ms [command] --help" for more information about a command.
 ```
+
 <!-- command-line:end -->
+
+## Special Rules
+
+Special rules are rules that are not part of the default ruleset, usually because they are too noisy or too specific. You can use the `--add-special-rule` flag to add special rules by rule ID.
+
+For example:
+
+```
+2ms git . --add-special-rule hardcoded-password
+```
 
 ## Custom Regex Rules
 
