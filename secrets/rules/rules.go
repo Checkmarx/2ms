@@ -27,7 +27,7 @@ const TagPublicSecret = "public-secret"
 const TagSensitiveUrl = "sensitive-url"
 const TagWebhook = "webhook"
 
-func loadDefaultRules() *[]Rule {
+func getDefaultRules() *[]Rule {
 	allRules := make([]Rule, 0)
 
 	allRules = append(allRules, Rule{Rule: *rules.AdafruitAPIKey(), Tags: []string{TagApiKey}})
@@ -191,6 +191,14 @@ func loadDefaultRules() *[]Rule {
 	return &allRules
 }
 
+func getSpecialRules() *[]Rule {
+	specialRules := []Rule{
+		{Rule: *HardcodedPassword(), Tags: []string{TagPassword}},
+	}
+
+	return &specialRules
+}
+
 func isRuleMatch(rule Rule, tags []string) bool {
 	for _, tag := range tags {
 		if strings.EqualFold(rule.Rule.RuleID, tag) {
@@ -227,17 +235,27 @@ func ignoreRules(allRules *[]Rule, tags []string) *[]Rule {
 	return &selectedRules
 }
 
-func FilterRules(selectedList, ignoreList []string) *[]Rule {
+func FilterRules(selectedList, ignoreList, specialList []string) *[]Rule {
 	if len(selectedList) > 0 && len(ignoreList) > 0 {
 		log.Warn().Msgf("Both 'rule' and 'ignoreRule' flags were provided.")
 	}
 
-	selectedRules := loadDefaultRules()
+	selectedRules := getDefaultRules()
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
 	}
 	if len(ignoreList) > 0 {
 		selectedRules = ignoreRules(selectedRules, ignoreList)
+	}
+	if len(specialList) > 0 {
+		specialRules := getSpecialRules()
+		for _, rule := range *specialRules {
+			for _, id := range specialList {
+				if strings.EqualFold(rule.Rule.RuleID, id) {
+					*selectedRules = append(*selectedRules, rule)
+				}
+			}
+		}
 	}
 
 	return selectedRules
