@@ -116,16 +116,18 @@ Additional Commands:
   rules       List all rules
 
 Flags:
-      --config string           config file path
-  -h, --help                    help for 2ms
-      --ignore-result strings   ignore specific result by id
-      --ignore-rule strings     ignore rules by name or tag
-      --log-level string        log level (trace, debug, info, warn, error, fatal) (default "info")
-      --regex stringArray       custom regexes to apply to the scan, must be valid Go regex
-      --report-path strings     path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
-      --rule strings            select rules by name or tag to apply to this scan
-      --stdout-format string    stdout output format, available formats are: json, yaml, sarif (default "yaml")
-  -v, --version                 version for 2ms
+      --add-special-rule strings   special (non-default) rules to apply.
+                                   This list is not affected by the --rule and --ignore-rule flags.
+      --config string              config file path
+  -h, --help                       help for 2ms
+      --ignore-result strings      ignore specific result by id
+      --ignore-rule strings        ignore rules by name or tag
+      --log-level string           log level (trace, debug, info, warn, error, fatal) (default "info")
+      --regex stringArray          custom regexes to apply to the scan, must be valid Go regex
+      --report-path strings        path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
+      --rule strings               select rules by name or tag to apply to this scan
+      --stdout-format string       stdout output format, available formats are: json, yaml, sarif (default "yaml")
+  -v, --version                    version for 2ms
 
 Use "2ms [command] --help" for more information about a command.
 ```
