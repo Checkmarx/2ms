@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
-	github.com/gitleaks/go-gitdiff v0.8.0
+	github.com/gitleaks/go-gitdiff v0.9.0
 	github.com/rs/zerolog v1.29.0
 	github.com/slack-go/slack v0.12.2
 	github.com/spf13/cobra v1.6.1
