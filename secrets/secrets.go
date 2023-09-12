@@ -26,12 +26,8 @@ type Secrets struct {
 
 const customRegexRuleIdFormat = "custom-regex-%d"
 
-func Init(selectedList, ignoreList []string) (*Secrets, error) {
-	if len(selectedList) > 0 && len(ignoreList) > 0 {
-		log.Warn().Msgf("Both 'rule' and 'ignoreRule' flags were provided.")
-	}
-
-	selectedRules := rules.FilterRules(selectedList, ignoreList)
+func Init(selectedList, ignoreList, specialList []string) (*Secrets, error) {
+	selectedRules := rules.FilterRules(selectedList, ignoreList, specialList)
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
 	}
@@ -113,14 +109,14 @@ func isSecretIgnored(secret *reporting.Secret, ignoredIds *[]string) bool {
 	return false
 }
 
-func GetRulesCommand(selectedList, ignoreList *[]string) *cobra.Command {
+func GetRulesCommand(selectedList, ignoreList, specialList *[]string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "rules",
 		Short: "List all rules",
 		Long:  `List all rules`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			rules := rules.FilterRules(*selectedList, *ignoreList)
+			rules := rules.FilterRules(*selectedList, *ignoreList, *specialList)
 
 			tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
