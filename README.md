@@ -40,7 +40,7 @@ If you wish to compile the project from its source use the following commands
 ```bash
 git clone https://github.com/checkmarx/2ms.git
 cd 2ms
-go build -o dist/2ms main.go 
+go build -o dist/2ms main.go
 ./dist/2ms
 ```
 
@@ -49,7 +49,7 @@ go build -o dist/2ms main.go
 We publish container image releases of `2ms` to [checkmarx/2ms](https://hub.docker.com/r/checkmarx/2ms) . To run `2ms` from a docker container use the following command:
 
 ```
-docker run checkmarx/2ms 
+docker run checkmarx/2ms
 ```
 
 You may also mount a local directory with the `-v <local-dir-path>:<container-dir-path>` argument. For instance:
@@ -71,7 +71,7 @@ on:
   pull_request:
     workflow_dispatch:
     push:
-      branches: [ main ]
+      branches: [main]
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -85,7 +85,7 @@ jobs:
       # ...
 
       - name: Run 2ms Scan
-        run: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo 
+        run: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo
 ```
 
 - In this example we've pinned the version to `2.8.1`. Make sure to check out if there's a newer version
@@ -96,6 +96,7 @@ jobs:
 We've built `2ms` command line interface to be as self-descriptive as possible. This is the help message that you will see if you executed `2ms` without args:
 
 <!-- command-line:start -->
+
 ```
 2ms Secrets Detection: A tool to detect secrets in public websites and communication services.
 
@@ -144,6 +145,12 @@ For example:
 2ms git . --add-special-rule hardcoded-password
 ```
 
+### List of Special Rules
+
+| Rule ID              | Description                                                                                        |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| `hardcoded-password` | Detects strings that assigned to variables that contain the word `password`, `access`, `key`, etc. |
+
 ## Custom Regex Rules
 
 You may specify one or more custom regex rules with the optional argument `--regex`. The value provided will be parsed as a regular expression and will be matched against the target items.
@@ -151,8 +158,8 @@ You may specify one or more custom regex rules with the optional argument `--reg
 my-file.txt
 
 ```
-password=1234567                                                                                        
-username=admin                                                                                          
+password=1234567
+username=admin
 ```
 
 ```
@@ -174,12 +181,12 @@ scans a [Confluence](https://www.atlassian.com/software/confluence) instance
 ```
 
 | Flag         | Value  | Default                        | Description                                                                      |
-|--------------|--------|--------------------------------|----------------------------------------------------------------------------------|
-| `--url`      | string | -                              | Confluence instance URL in the form of `https://<company id>.atlassian.net/wiki` | 
+| ------------ | ------ | ------------------------------ | -------------------------------------------------------------------------------- |
+| `--url`      | string | -                              | Confluence instance URL in the form of `https://<company id>.atlassian.net/wiki` |
 | `--history`  | -      | not scanning history revisions | Scans pages history revisions                                                    |
-| `--spaces`   | string | all spaces                     | The names or IDs of the Confluence spaces to scan                                |                      
-| `--token`    | string | -                              | The Confluence API token for authentication                                      |                                    
-| `--username` | string | -                              | Confluence user name or email for authentication                                 | 
+| `--spaces`   | string | all spaces                     | The names or IDs of the Confluence spaces to scan                                |
+| `--token`    | string | -                              | The Confluence API token for authentication                                      |
+| `--username` | string | -                              | Confluence user name or email for authentication                                 |
 
 For example:
 
@@ -196,36 +203,36 @@ For example:
 Scans [Paligo](https://paligo.net/) content management system instance.
 
 | Flag         | Value  | Default                         | Description                                      |
-|--------------|--------|---------------------------------|--------------------------------------------------|
-| `--instance` | string | -                               | Instance name                                    | 
-| `--token`    | string | -                               | API token for authentication                     |                                    
-| `--username` | string | -                               | Confluence user name or email for authentication | 
+| ------------ | ------ | ------------------------------- | ------------------------------------------------ |
+| `--instance` | string | -                               | Instance name                                    |
+| `--token`    | string | -                               | API token for authentication                     |
+| `--username` | string | -                               | Confluence user name or email for authentication |
 | `--folder`   | string | scanning all instance's folders | Folder ID                                        |
-| `--auth`     | string | -                               | Base64 auth header encoded username:password     |                      
+| `--auth`     | string | -                               | Base64 auth header encoded username:password     |
 
 ### Discord
 
 Scans [Discord](https://discord.com/) chat application history.
 
 | Flag               | Value    | Default                          | Description                                                                                            |
-|--------------------|----------|----------------------------------|--------------------------------------------------------------------------------------------------------|
-| `--token`          | string   | -                                | Discord token                                                                                          | 
-| `--channel`        | strings  | all channels will be scanned     | Discord channel IDs to scan                                                                            |                                    
-| `--messages-count` | int      | 0 = all messages will be scanned | Confluence user name or email for authentication                                                       | 
+| ------------------ | -------- | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `--token`          | string   | -                                | Discord token                                                                                          |
+| `--channel`        | strings  | all channels will be scanned     | Discord channel IDs to scan                                                                            |
+| `--messages-count` | int      | 0 = all messages will be scanned | Confluence user name or email for authentication                                                       |
 | `--duration`       | duration | 14 days                          | The time interval to scan from the current time. For example, 24h for 24 hours or 336h0m0s for 14 days |
-| `--server`         | strings  | -                                | Discord servers IDs to scan                                                                            |                      
+| `--server`         | strings  | -                                | Discord servers IDs to scan                                                                            |
 
 ### Slack
 
 Scans [Slack](https://slack.com/) chat application history.
 
 | Flag               | Value    | Default                          | Description                                                                                            |
-|--------------------|----------|----------------------------------|--------------------------------------------------------------------------------------------------------|
-| `--token`          | string   | -                                | Slack token                                                                                            | 
-| `--channel`        | strings  | all channels will be scanned     | Slack channel IDs to scan                                                                              |                                    
-| `--messages-count` | int      | 0 = all messages will be scanned | Confluence user name or email for authentication                                                       | 
+| ------------------ | -------- | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `--token`          | string   | -                                | Slack token                                                                                            |
+| `--channel`        | strings  | all channels will be scanned     | Slack channel IDs to scan                                                                              |
+| `--messages-count` | int      | 0 = all messages will be scanned | Confluence user name or email for authentication                                                       |
 | `--duration`       | duration | 14 days                          | The time interval to scan from the current time. For example, 24h for 24 hours or 336h0m0s for 14 days |
-| `--team`           | string   | -                                | Slack team name or ID                                                                                  |                      
+| `--team`           | string   | -                                | Slack team name or ID                                                                                  |
 
 ### Git Repository
 
@@ -236,8 +243,8 @@ Scans a local git repository
 ```
 
 | Flag             | Value | Default                                | Description                                              |
-|------------------|-------|----------------------------------------|----------------------------------------------------------|
-| `--all-branches` | -     | false - only current checked in branch | scan all branches                                        | 
+| ---------------- | ----- | -------------------------------------- | -------------------------------------------------------- |
+| `--all-branches` | -     | false - only current checked in branch | scan all branches                                        |
 | `--depth`        | int   | no limit                               | limit the number of historical commits to scan from HEAD |
 
 For example
@@ -257,11 +264,10 @@ Scans a local repository
 ```
 
 | Flag               | Value   | Default | Description                                            |
-|--------------------|---------|---------|--------------------------------------------------------|
-| `--path`           | string  | -       | Local directory path                                   | 
-| `--project-name`   | string  | -       | Project name to differentiate between filesystem scans | 
+| ------------------ | ------- | ------- | ------------------------------------------------------ |
+| `--path`           | string  | -       | Local directory path                                   |
+| `--project-name`   | string  | -       | Project name to differentiate between filesystem scans |
 | `--ignore-pattern` | strings | -       | Patterns to ignore                                     |
-
 
 ## Configuration File
 
