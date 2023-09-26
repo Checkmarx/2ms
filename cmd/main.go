@@ -29,14 +29,15 @@ const (
 	outputFormatRegexpPattern = `^(ya?ml|json|sarif)$`
 	configFileFlag            = "config"
 
-	logLevelFlagName        = "log-level"
-	reportPathFlagName      = "report-path"
-	stdoutFormatFlagName    = "stdout-format"
-	customRegexRuleFlagName = "regex"
-	ruleFlagName            = "rule"
-	ignoreRuleFlagName      = "ignore-rule"
-	ignoreFlagName          = "ignore-result"
-	specialRulesFlagName    = "add-special-rule"
+	logLevelFlagName           = "log-level"
+	reportPathFlagName         = "report-path"
+	stdoutFormatFlagName       = "stdout-format"
+	customRegexRuleFlagName    = "regex"
+	ruleFlagName               = "rule"
+	ignoreRuleFlagName         = "ignore-rule"
+	ignoreFlagName             = "ignore-result"
+	specialRulesFlagName       = "add-special-rule"
+	maxTargetMegabytesFlagName = "max-target-megabytes"
 )
 
 var (
@@ -44,10 +45,8 @@ var (
 	reportPathVar      []string
 	stdoutFormatVar    string
 	customRegexRuleVar []string
-	ruleVar            []string
-	ignoreRuleVar      []string
 	ignoreVar          []string
-	specialRulesVar    []string
+	secretsConfigVar   secrets.SecretsConfig
 )
 
 var rootCmd = &cobra.Command{
@@ -118,12 +117,13 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
-	rootCmd.PersistentFlags().StringSliceVar(&ruleVar, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
-	rootCmd.PersistentFlags().StringSliceVar(&ignoreRuleVar, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
+	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.SelectedList, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
+	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.IgnoreList, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
-	rootCmd.PersistentFlags().StringSliceVar(&specialRulesVar, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
+	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.SpecialList, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
+	rootCmd.PersistentFlags().IntVar(&secretsConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped")
 
-	rootCmd.AddCommand(secrets.GetRulesCommand(&ruleVar, &ignoreRuleVar, &specialRulesVar))
+	rootCmd.AddCommand(secrets.GetRulesCommand(&secretsConfigVar))
 
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
@@ -161,7 +161,7 @@ func validateFormat(stdout string, reportPath []string) {
 
 func preRun(cmd *cobra.Command, args []string) {
 	validateFormat(stdoutFormatVar, reportPathVar)
-	secrets, err := secrets.Init(ruleVar, ignoreRuleVar, specialRulesVar)
+	secrets, err := secrets.Init(secretsConfigVar)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
