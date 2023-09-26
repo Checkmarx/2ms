@@ -121,7 +121,7 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.IgnoreList, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
 	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.SpecialList, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
-	rootCmd.PersistentFlags().IntVar(&secretsConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped")
+	rootCmd.PersistentFlags().IntVar(&secretsConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
 
 	rootCmd.AddCommand(secrets.GetRulesCommand(&secretsConfigVar))
 

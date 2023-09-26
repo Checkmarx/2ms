@@ -124,6 +124,8 @@ Flags:
       --ignore-result strings      ignore specific result by id
       --ignore-rule strings        ignore rules by name or tag
       --log-level string           log level (trace, debug, info, warn, error, fatal) (default "info")
+      --max-target-megabytes int   files larger than this will be skipped.
+                                   Omit or set to 0 to disable this check.
       --regex stringArray          custom regexes to apply to the scan, must be valid Go regex
       --report-path strings        path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
       --rule strings               select rules by name or tag to apply to this scan
