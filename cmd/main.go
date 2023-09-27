@@ -42,7 +42,7 @@ var (
 	includeRuleVar     []string
 	excludeRuleVar     []string
 	ignoreVar          []string
-	ignoreOnExitVar    string
+	ignoreOnExitVar    = ignoreOnExitNone
 )
 
 var rootCmd = &cobra.Command{
@@ -119,7 +119,7 @@ func Execute() error {
 	rootCmd.PersistentFlags().StringSliceVar(&excludeRuleVar, excludeRuleFlagName, []string{}, "exclude rules by name or tag to apply to the scan (removes from list, starts from all)")
 	rootCmd.MarkFlagsMutuallyExclusive(includeRuleFlagName, excludeRuleFlagName)
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
-	rootCmd.PersistentFlags().StringVar(&ignoreOnExitVar, ignoreOnExitFlagName, "none", "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
+	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 
 	rootCmd.AddCommand(secrets.RulesCommand)
 
@@ -167,10 +167,6 @@ func validateFormat(stdout string, reportPath []string) error {
 }
 
 func preRun(cmd *cobra.Command, args []string) error {
-	if err := InitShouldIgnoreArg(ignoreOnExitVar); err != nil {
-		return err
-	}
-
 	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
 		return err
 	}
@@ -246,25 +242,15 @@ func postRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func InitShouldIgnoreArg(arg string) error {
-	validArgs := []string{"none", "all", "results", "errors"}
-	for _, validArg := range validArgs {
-		if strings.EqualFold(validArg, arg) {
-			ignoreOnExitVar = strings.ToLower(arg)
-			return nil
-		}
-	}
-	return fmt.Errorf("unknown argument for --ignore-on-exit: %s\nvalid arguments:\n  %s", arg, strings.Join(validArgs, "\n  "))
-}
-
 func ShowError() bool {
-	if strings.EqualFold(ignoreOnExitVar, "none") {
+	switch ignoreOnExitVar {
+	case ignoreOnExitNone:
 		return true
-	} else if strings.EqualFold(ignoreOnExitVar, "all") {
+	case ignoreOnExitAll:
 		return false
-	} else if strings.EqualFold(ignoreOnExitVar, showErrorKind) {
+	case ignoreOnExit(showErrorKind):
 		return false
-	} else {
+	default:
 		return true
 	}
 }
