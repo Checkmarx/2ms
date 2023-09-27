@@ -51,7 +51,6 @@ const envPrefix = "2MS"
 
 var configFilePath string
 var vConfig = viper.New()
-var showErrorKind = "errors"
 
 var allPlugins = []plugins.IPlugin{
 	&plugins.ConfluencePlugin{},
@@ -109,7 +108,7 @@ func Execute() error {
 	}
 
 	if report.TotalSecretsFound > 0 {
-		showErrorKind = "results"
+		// TODO: handle IsNeedReturnErrorCodeFor("results")
 		return fmt.Errorf("")
 	}
 
@@ -190,17 +189,4 @@ func postRun(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func ShowError() bool {
-	switch ignoreOnExitVar {
-	case ignoreOnExitNone:
-		return true
-	case ignoreOnExitAll:
-		return false
-	case ignoreOnExit(showErrorKind):
-		return false
-	default:
-		return true
-	}
 }

@@ -22,7 +22,8 @@ func main() {
 	go listenForInterrupt(stopChan)
 
 	if err := cmd.Execute(); err != nil {
-		if cmd.ShowError() {
+		if cmd.IsNeedReturnErrorCodeFor("errors") {
+			// TODO: use log and not fmt.Println
 			fmt.Println(err)
 			os.Exit(1)
 		}
