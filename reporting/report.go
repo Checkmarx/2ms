@@ -41,10 +41,10 @@ func Init() *Report {
 
 func (r *Report) ShowReport(format string, cfg *config.Config) error {
 	output, err := r.getOutput(format, cfg)
-
 	if err != nil {
 		return err
 	}
+
 	fmt.Print(output)
 	return nil
 }

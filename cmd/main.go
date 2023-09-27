@@ -12,6 +12,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// TODO: don't use fmt.println, use log
+// TODO: don't use log.Fatal, return error instead
+
 var Version = "0.0.0"
 
 const (
@@ -153,23 +156,13 @@ func preRun(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
-	go func() {
-		for err := range channels.Errors {
-			fmt.Println(err.Error())
-		}
-	}()
+	listenForErrors(channels.Errors)
 
 	return nil
 }
 
 func postRun(cmd *cobra.Command, args []string) error {
 	channels.WaitGroup.Wait()
-
-	if len(channels.Errors) != 0 {
-		errorInChan := <-channels.Errors
-		close(channels.Errors)
-		return errorInChan
-	}
 
 	cfg := config.LoadConfig("2ms", Version)
 

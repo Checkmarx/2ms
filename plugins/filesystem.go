@@ -34,17 +34,13 @@ func (p *FileSystemPlugin) DefineCommand(items chan Item, errors chan error) (*c
 		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), flagFolder),
 		Short: "Scan local folder",
 		Long:  "Scan local folder for sensitive information",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Folder plugin started")
+
 			wg := &sync.WaitGroup{}
-
-			if err := p.getFiles(items, errors, wg); err != nil {
-				return err
-			}
-
+			p.getFiles(items, errors, wg)
 			wg.Wait()
 			close(items)
-			return nil
 		},
 	}
 
@@ -63,11 +59,12 @@ func (p *FileSystemPlugin) DefineCommand(items chan Item, errors chan error) (*c
 	return cmd, nil
 }
 
-func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) error {
+func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	fileList := make([]string, 0)
+	// TODO: we can trigger file handling in parallel, instead of collecting all files first
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			log.Fatal().Err(err).Msg("error while walking through the directory")
 		}
 		for _, ignoredFolder := range ignoredFolders {
 			if fInfo.Name() == ignoredFolder && fInfo.IsDir() {
@@ -96,11 +93,10 @@ func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 	})
 
 	if err != nil {
-		return err
+		log.Fatal().Err(err).Msg("error while walking through the directory")
 	}
 
 	p.getItems(items, errs, wg, fileList)
-	return nil
 }
 
 func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup, fileList []string) {
