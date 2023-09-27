@@ -8,12 +8,11 @@ import (
 
 	"github.com/checkmarx/2ms/lib"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 func initialize() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
 	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
 	if err != nil {
 		cobra.CheckErr(err)
@@ -21,22 +20,23 @@ func initialize() {
 	cobra.CheckErr(lib.LoadConfig(vConfig, configFilePath))
 	cobra.CheckErr(lib.BindFlags(rootCmd, vConfig, envPrefix))
 
+	logLevel := zerolog.InfoLevel
 	switch strings.ToLower(logLevelVar) {
 	case "trace":
-		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+		logLevel = zerolog.TraceLevel
 	case "debug":
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		logLevel = zerolog.DebugLevel
 	case "info":
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		logLevel = zerolog.InfoLevel
 	case "warn":
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		logLevel = zerolog.WarnLevel
 	case "err", "error":
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+		logLevel = zerolog.ErrorLevel
 	case "fatal":
-		zerolog.SetGlobalLevel(zerolog.FatalLevel)
-	default:
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		logLevel = zerolog.FatalLevel
 	}
+	zerolog.SetGlobalLevel(logLevel)
+	log.Logger = log.Logger.Level(logLevel)
 }
 
 func validateFormat(stdout string, reportPath []string) error {

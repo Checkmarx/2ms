@@ -1,0 +1,16 @@
+name: New Rules from Gitleaks
+
+on:
+  schedule:
+    - cron: "0 2 * * 6" # At 02:00 on Saturday
+
+jobs:
+  update_secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "^1.20"
+      - name: Check Gitleaks new rules
+        run: go run .ci/check_new_rules.go

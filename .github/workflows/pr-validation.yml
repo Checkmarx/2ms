@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Required for 2ms to have visibility to all commit history
 
       - uses: actions/setup-go@v4
         with:
@@ -29,6 +31,9 @@ jobs:
 
       - name: Go Linter
         run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.52.0 golangci-lint run -v -E gofmt --timeout=5m --out-format github-actions
+
+      - name: Run 2ms Scan
+        run: go run . git . --config .2ms.yml
 
       - name: Go Test
         run: go test -v ./...

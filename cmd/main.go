@@ -23,9 +23,10 @@ const (
 	reportPathFlagName      = "report-path"
 	stdoutFormatFlagName    = "stdout-format"
 	customRegexRuleFlagName = "regex"
-	includeRuleFlagName     = "include-rule"
-	excludeRuleFlagName     = "exclude-rule"
+	ruleFlagName            = "rule"
+	ignoreRuleFlagName      = "ignore-rule"
 	ignoreFlagName          = "ignore-result"
+	specialRulesFlagName    = "add-special-rule"
 	ignoreOnExitFlagName    = "ignore-on-exit"
 )
 
@@ -34,9 +35,10 @@ var (
 	reportPathVar      []string
 	stdoutFormatVar    string
 	customRegexRuleVar []string
-	includeRuleVar     []string
-	excludeRuleVar     []string
+	ruleVar            []string
+	ignoreRuleVar      []string
 	ignoreVar          []string
+	specialRulesVar    []string
 	ignoreOnExitVar    = ignoreOnExitNone
 )
 
@@ -81,13 +83,13 @@ func Execute() error {
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
-	rootCmd.PersistentFlags().StringSliceVar(&includeRuleVar, includeRuleFlagName, []string{}, "include rules by name or tag to apply to the scan (adds to list, starts from empty)")
-	rootCmd.PersistentFlags().StringSliceVar(&excludeRuleVar, excludeRuleFlagName, []string{}, "exclude rules by name or tag to apply to the scan (removes from list, starts from all)")
-	rootCmd.MarkFlagsMutuallyExclusive(includeRuleFlagName, excludeRuleFlagName)
+	rootCmd.PersistentFlags().StringSliceVar(&ruleVar, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
+	rootCmd.PersistentFlags().StringSliceVar(&ignoreRuleVar, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
+	rootCmd.PersistentFlags().StringSliceVar(&specialRulesVar, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
 	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 
-	rootCmd.AddCommand(secrets.RulesCommand)
+	rootCmd.AddCommand(secrets.GetRulesCommand(&ruleVar, &ignoreRuleVar, &specialRulesVar))
 
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
@@ -116,7 +118,7 @@ func preRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	secrets, err := secrets.Init(includeRuleVar, excludeRuleVar)
+	secrets, err := secrets.Init(ruleVar, ignoreRuleVar, specialRulesVar)
 	if err != nil {
 		return err
 	}
