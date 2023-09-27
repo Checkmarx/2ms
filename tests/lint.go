@@ -15,6 +15,7 @@ func walkGoFiles() <-chan string {
 		".vscode",
 		"vendor",
 		"tests",
+		".ci",
 	}
 
 	ch := make(chan string)
