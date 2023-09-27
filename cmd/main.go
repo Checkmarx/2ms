@@ -12,9 +12,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// TODO: don't use fmt.println, use log
-// TODO: don't use log.Fatal, return error instead
-
 var Version = "0.0.0"
 
 const (
@@ -110,11 +107,7 @@ func Execute() error {
 		return err
 	}
 
-	if report.TotalSecretsFound > 0 {
-		// TODO: handle IsNeedReturnErrorCodeFor("results")
-		return fmt.Errorf("")
-	}
-
+	Exit(report.TotalSecretsFound, nil)
 	return nil
 }
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 
@@ -22,11 +21,7 @@ func main() {
 	go listenForInterrupt(stopChan)
 
 	if err := cmd.Execute(); err != nil {
-		if cmd.IsNeedReturnErrorCodeFor("errors") {
-			// TODO: use log and not fmt.Println
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		cmd.Exit(0, err)
 	}
 }
 

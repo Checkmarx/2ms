@@ -32,7 +32,7 @@ func TestExitHandler_IsNeedReturnErrorCode(t *testing.T) {
 	for idx, testCase := range onErrorsTests {
 		t.Run(fmt.Sprintf("Print test case %d", idx), func(t *testing.T) {
 			ignoreOnExitVar = testCase.userInput
-			result := IsNeedReturnErrorCodeFor("errors")
+			result := isNeedReturnErrorCodeFor("errors")
 			if result != testCase.expectedResult {
 				t.Errorf("Expected %v, got %v", testCase.expectedResult, result)
 			}
@@ -64,7 +64,7 @@ func TestExitHandler_IsNeedReturnErrorCode(t *testing.T) {
 	for idx, testCase := range onResultsTests {
 		t.Run(fmt.Sprintf("Print test case %d", idx), func(t *testing.T) {
 			ignoreOnExitVar = testCase.userInput
-			result := IsNeedReturnErrorCodeFor("results")
+			result := isNeedReturnErrorCodeFor("results")
 			if result != testCase.expectedResult {
 				t.Errorf("Expected %v, got %v", testCase.expectedResult, result)
 			}

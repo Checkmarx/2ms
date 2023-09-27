@@ -1,13 +1,15 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-
-	"github.com/rs/zerolog/log"
 )
 
-func IsNeedReturnErrorCodeFor(kind ignoreOnExit) bool {
+const (
+	errorCode   = 1
+	resultsCode = 2
+)
+
+func isNeedReturnErrorCodeFor(kind ignoreOnExit) bool {
 	if ignoreOnExitVar == ignoreOnExitNone {
 		return true
 	}
@@ -23,17 +25,29 @@ func IsNeedReturnErrorCodeFor(kind ignoreOnExit) bool {
 	return false
 }
 
+func exitCodeIfError(err error) int {
+	if err != nil && isNeedReturnErrorCodeFor("errors") {
+		return errorCode
+	}
+
+	return 0
+}
+
+func exitCodeIfResults(resultsCount int) int {
+	if resultsCount > 0 && isNeedReturnErrorCodeFor("results") {
+		return resultsCode
+	}
+
+	return 0
+}
+
+func Exit(resultsCount int, err error) {
+	os.Exit(exitCodeIfError(err) + exitCodeIfResults(resultsCount))
+}
+
 func listenForErrors(errors chan error) {
 	go func() {
-		for err := range errors {
-			// TODO: consider it should be also a generic function to be used on errorChan, on error, and on results
-			if IsNeedReturnErrorCodeFor("errors") {
-				fmt.Println(err.Error())
-				os.Exit(1)
-			}
-
-			log.Error().Err(err).Msg("error while scanning")
-			os.Exit(0)
-		}
+		err := <-errors
+		Exit(0, err)
 	}()
 }
