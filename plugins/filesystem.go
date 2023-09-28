@@ -115,6 +115,7 @@ func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.W
 }
 
 func (p *FileSystemPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, error) {
+	log.Debug().Str("file", filePath).Msg("reading file")
 	b, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
