@@ -15,38 +15,42 @@ func Test_Init(t *testing.T) {
 	specialRule := rules.HardcodedPassword()
 
 	tests := []struct {
-		name         string
-		selectedList []string
-		ignoreList   []string
-		specialList  []string
-		expectedErr  error
+		name          string
+		secretsConfig SecretsConfig
+		expectedErr   error
 	}{
 		{
-			name:         "selected and ignore flags used together for the same rule",
-			selectedList: []string{allRules[0].Rule.RuleID},
-			ignoreList:   []string{allRules[0].Rule.RuleID},
-			specialList:  []string{},
-			expectedErr:  fmt.Errorf("no rules were selected"),
+			name: "selected and ignore flags used together for the same rule",
+			secretsConfig: SecretsConfig{
+				SelectedList: []string{allRules[0].Rule.RuleID},
+				IgnoreList:   []string{allRules[0].Rule.RuleID},
+				SpecialList:  []string{},
+			},
+			expectedErr: fmt.Errorf("no rules were selected"),
 		},
 		{
-			name:         "non existent select flag",
-			selectedList: []string{"non-existent-tag-name"},
-			ignoreList:   []string{},
-			specialList:  []string{"non-existent-tag-name"},
-			expectedErr:  fmt.Errorf("no rules were selected"),
+			name: "non existent select flag",
+			secretsConfig: SecretsConfig{
+				SelectedList: []string{"non-existent-tag-name"},
+				IgnoreList:   []string{},
+				SpecialList:  []string{"non-existent-tag-name"},
+			},
+			expectedErr: fmt.Errorf("no rules were selected"),
 		},
 		{
-			name:         "exiting special rule",
-			selectedList: []string{"non-existent-tag-name"},
-			ignoreList:   []string{},
-			specialList:  []string{specialRule.RuleID},
-			expectedErr:  nil,
+			name: "exiting special rule",
+			secretsConfig: SecretsConfig{
+				SelectedList: []string{"non-existent-tag-name"},
+				IgnoreList:   []string{},
+				SpecialList:  []string{specialRule.RuleID},
+			},
+			expectedErr: nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := Init(test.selectedList, test.ignoreList, test.specialList)
+			_, err := Init(test.secretsConfig)
 			if err == nil && test.expectedErr != nil {
 				t.Errorf("expected error, got nil")
 			}
@@ -107,7 +111,7 @@ func TestSecrets(t *testing.T) {
 		},
 	}
 
-	detector, err := Init([]string{}, []string{}, []string{})
+	detector, err := Init(SecretsConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}

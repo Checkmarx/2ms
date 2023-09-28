@@ -26,8 +26,16 @@ type Secrets struct {
 
 const customRegexRuleIdFormat = "custom-regex-%d"
 
-func Init(selectedList, ignoreList, specialList []string) (*Secrets, error) {
-	selectedRules := rules.FilterRules(selectedList, ignoreList, specialList)
+type SecretsConfig struct {
+	SelectedList []string
+	IgnoreList   []string
+	SpecialList  []string
+
+	MaxTargetMegabytes int
+}
+
+func Init(secretsConfig SecretsConfig) (*Secrets, error) {
+	selectedRules := rules.FilterRules(secretsConfig.SelectedList, secretsConfig.IgnoreList, secretsConfig.SpecialList)
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
 	}
@@ -39,11 +47,10 @@ func Init(selectedList, ignoreList, specialList []string) (*Secrets, error) {
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 	}
 
-	config := config.Config{
+	detector := detect.NewDetector(config.Config{
 		Rules: rulesToBeApplied,
-	}
-
-	detector := detect.NewDetector(config)
+	})
+	detector.MaxTargetMegaBytes = secretsConfig.MaxTargetMegabytes
 
 	return &Secrets{
 		rules:    rulesToBeApplied,
@@ -109,14 +116,14 @@ func isSecretIgnored(secret *reporting.Secret, ignoredIds *[]string) bool {
 	return false
 }
 
-func GetRulesCommand(selectedList, ignoreList, specialList *[]string) *cobra.Command {
+func GetRulesCommand(secretsConfig *SecretsConfig) *cobra.Command {
 	return &cobra.Command{
 		Use:   "rules",
 		Short: "List all rules",
 		Long:  `List all rules`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			rules := rules.FilterRules(*selectedList, *ignoreList, *specialList)
+			rules := rules.FilterRules(secretsConfig.SelectedList, secretsConfig.IgnoreList, secretsConfig.SpecialList)
 
 			tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
