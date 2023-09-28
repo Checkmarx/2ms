@@ -316,7 +316,7 @@ docker run -v $(pwd)/.2ms.yml:/app/.2ms.yml checkmarx/2ms confluence --url https
 
 ## Contributing
 
-`2ms` is extendable with the concept of plugins. We designed it like this so anyone can easily contribute, improve and extend `2ms`
+`2ms` is extendable with the concept of plugins. We designed it like this so anyone can easily contribute, improve and extend `2ms`. Read more about contributing in our [CONTRIBUTING.md](CONTRIBUTING.md) file.
 
 ## Contact
 
