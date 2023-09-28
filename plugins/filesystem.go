@@ -63,7 +63,7 @@ func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
-			log.Fatal().Err(err).Msg("error while walking through the directory")
+			return err
 		}
 		for _, ignoredFolder := range ignoredFolders {
 			if fInfo.Name() == ignoredFolder && fInfo.IsDir() {
@@ -92,7 +92,8 @@ func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 	})
 
 	if err != nil {
-		log.Fatal().Err(err).Msg("error while walking through the directory")
+		errs <- fmt.Errorf("error while walking through the directory: %w", err)
+		return
 	}
 
 	p.getItems(items, errs, wg, fileList)

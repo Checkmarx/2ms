@@ -117,20 +117,23 @@ Additional Commands:
   rules       List all rules
 
 Flags:
-      --add-special-rule strings   special (non-default) rules to apply.
-                                   This list is not affected by the --rule and --ignore-rule flags.
-      --config string              config file path
-  -h, --help                       help for 2ms
-      --ignore-result strings      ignore specific result by id
-      --ignore-rule strings        ignore rules by name or tag
-      --log-level string           log level (trace, debug, info, warn, error, fatal) (default "info")
-      --max-target-megabytes int   files larger than this will be skipped.
-                                   Omit or set to 0 to disable this check.
-      --regex stringArray          custom regexes to apply to the scan, must be valid Go regex
-      --report-path strings        path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
-      --rule strings               select rules by name or tag to apply to this scan
-      --stdout-format string       stdout output format, available formats are: json, yaml, sarif (default "yaml")
-  -v, --version                    version for 2ms
+      --add-special-rule strings      special (non-default) rules to apply.
+                                      This list is not affected by the --rule and --ignore-rule flags.
+      --config string                 config file path
+  -h, --help                          help for 2ms
+      --ignore-on-exit ignoreOnExit   defines which kind of non-zero exits code should be ignored
+                                      accepts: all, results, errors, none
+                                      example: if 'results' is set, only engine errors will make 2ms exit code different from 0 (default none)
+      --ignore-result strings         ignore specific result by id
+      --ignore-rule strings           ignore rules by name or tag
+      --log-level string              log level (trace, debug, info, warn, error, fatal) (default "info")
+      --max-target-megabytes int      files larger than this will be skipped.
+                                      Omit or set to 0 to disable this check.
+      --regex stringArray             custom regexes to apply to the scan, must be valid Go regex
+      --report-path strings           path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
+      --rule strings                  select rules by name or tag to apply to this scan
+      --stdout-format string          stdout output format, available formats are: json, yaml, sarif (default "yaml")
+  -v, --version                       version for 2ms
 
 Use "2ms [command] --help" for more information about a command.
 ```
@@ -315,7 +318,7 @@ docker run -v $(pwd)/.2ms.yml:/app/.2ms.yml checkmarx/2ms confluence --url https
 
 ## Contributing
 
-`2ms` is extendable with the concept of plugins. We designed it like this so anyone can easily contribute, improve and extend `2ms`
+`2ms` is extendable with the concept of plugins. We designed it like this so anyone can easily contribute, improve and extend `2ms`. Read more about contributing in our [CONTRIBUTING.md](CONTRIBUTING.md) file.
 
 ## Contact
 

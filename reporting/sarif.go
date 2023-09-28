@@ -3,12 +3,11 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/checkmarx/2ms/config"
 )
 
-func writeSarif(report Report, cfg *config.Config) string {
+func writeSarif(report Report, cfg *config.Config) (string, error) {
 	sarif := Sarif{
 		Schema:  "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
 		Version: "2.1.0",
@@ -17,10 +16,10 @@ func writeSarif(report Report, cfg *config.Config) string {
 
 	sarifReport, err := json.MarshalIndent(sarif, "", " ")
 	if err != nil {
-		log.Fatalf("failed to create Sarif report with error: %v", err)
+		return "", fmt.Errorf("failed to create Sarif report with error: %v", err)
 	}
 
-	return string(sarifReport)
+	return string(sarifReport), nil
 }
 
 func getRuns(report Report, cfg *config.Config) []Runs {
