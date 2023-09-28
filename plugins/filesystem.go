@@ -61,7 +61,6 @@ func (p *FileSystemPlugin) DefineCommand(items chan Item, errors chan error) (*c
 
 func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	fileList := make([]string, 0)
-	// TODO: we can trigger file handling in parallel, instead of collecting all files first
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
 			return err
