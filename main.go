@@ -6,7 +6,6 @@ import (
 
 	"github.com/checkmarx/2ms/cmd"
 	"github.com/checkmarx/2ms/lib"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -20,10 +19,11 @@ func main() {
 	stopChan := make(chan os.Signal, 1)
 	signal.Notify(stopChan, os.Interrupt)
 	go listenForInterrupt(stopChan)
-	cmd.Execute()
+
+	cmd.Exit(cmd.Execute())
 }
 
 func listenForInterrupt(stopScan chan os.Signal) {
 	<-stopScan
-	log.Fatal().Msg("Interrupt signal received. Exiting...")
+	log.Fatal().Msg("Interrupt signal received. Exiting...") // lint:ignore We want to exit immediately
 }

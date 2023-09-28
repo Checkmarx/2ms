@@ -2,14 +2,14 @@ package reporting
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 )
 
-func writeJson(report Report) string {
+func writeJson(report Report) (string, error) {
 	jsonReport, err := json.MarshalIndent(report, "", " ")
 	if err != nil {
-		log.Fatalf("failed to create Json report with error: %v", err)
+		return "", fmt.Errorf("failed to create Json report with error: %v", err)
 	}
 
-	return string(jsonReport)
+	return string(jsonReport), nil
 }

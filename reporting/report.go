@@ -1,12 +1,12 @@
 package reporting
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/checkmarx/2ms/config"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -39,9 +39,14 @@ func Init() *Report {
 	}
 }
 
-func (r *Report) ShowReport(format string, cfg *config.Config) {
-	output := r.getOutput(format, cfg)
-	fmt.Print(output)
+func (r *Report) ShowReport(format string, cfg *config.Config) error {
+	output, err := r.getOutput(format, cfg)
+	if err != nil {
+		return err
+	}
+
+	log.Info().Msg("\n" + output)
+	return nil
 }
 
 func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
@@ -53,7 +58,10 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 
 		fileExtension := filepath.Ext(path)
 		format := strings.TrimPrefix(fileExtension, ".")
-		output := r.getOutput(format, cfg)
+		output, err := r.getOutput(format, cfg)
+		if err != nil {
+			return err
+		}
 
 		_, err = file.WriteString(output)
 		if err != nil {
@@ -63,15 +71,17 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 	return nil
 }
 
-func (r *Report) getOutput(format string, cfg *config.Config) string {
+func (r *Report) getOutput(format string, cfg *config.Config) (string, error) {
 	var output string
+	var err error
+
 	switch format {
 	case jsonFormat:
-		output = writeJson(*r)
+		output, err = writeJson(*r)
 	case longYamlFormat, shortYamlFormat:
-		output = writeYaml(*r)
+		output, err = writeYaml(*r)
 	case sarifFormat:
-		output = writeSarif(*r, cfg)
+		output, err = writeSarif(*r, cfg)
 	}
-	return output
+	return output, err
 }

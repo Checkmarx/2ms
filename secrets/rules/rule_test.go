@@ -15,6 +15,7 @@ func Test2msRules(t *testing.T) {
 		validate func() *config.Rule
 	}{
 		{name: "AuthenticatedURL", validate: rules.AuthenticatedURL},
+		{name: "HardcodedPassword", validate: rules.HardcodedPassword},
 	}
 
 	for _, tRule := range testsRules {
