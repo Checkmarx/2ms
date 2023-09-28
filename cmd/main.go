@@ -8,6 +8,7 @@ import (
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -173,7 +174,7 @@ func postRun(cmd *cobra.Command, args []string) error {
 			}
 		}
 	} else {
-		fmt.Println("Scan completed with empty content")
+		log.Info().Msg("Scan completed with empty content")
 	}
 
 	return nil
