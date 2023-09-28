@@ -2,21 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-
-	"github.com/checkmarx/2ms/config"
-	"github.com/checkmarx/2ms/lib"
-
 	"sync"
 
+	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
 	"github.com/checkmarx/2ms/secrets"
-
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -37,6 +28,7 @@ const (
 	ignoreRuleFlagName      = "ignore-rule"
 	ignoreFlagName          = "ignore-result"
 	specialRulesFlagName    = "add-special-rule"
+	ignoreOnExitFlagName    = "ignore-on-exit"
 )
 
 var (
@@ -48,6 +40,7 @@ var (
 	ignoreRuleVar      []string
 	ignoreVar          []string
 	specialRulesVar    []string
+	ignoreOnExitVar    = ignoreOnExitNone
 )
 
 var rootCmd = &cobra.Command{
@@ -80,34 +73,7 @@ var channels = plugins.Channels{
 var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
 
-func initialize() {
-	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
-	if err != nil {
-		cobra.CheckErr(err)
-	}
-	cobra.CheckErr(lib.LoadConfig(vConfig, configFilePath))
-	cobra.CheckErr(lib.BindFlags(rootCmd, vConfig, envPrefix))
-
-	logLevel := zerolog.InfoLevel
-	switch strings.ToLower(logLevelVar) {
-	case "trace":
-		logLevel = zerolog.TraceLevel
-	case "debug":
-		logLevel = zerolog.DebugLevel
-	case "info":
-		logLevel = zerolog.InfoLevel
-	case "warn":
-		logLevel = zerolog.WarnLevel
-	case "err", "error":
-		logLevel = zerolog.ErrorLevel
-	case "fatal":
-		logLevel = zerolog.FatalLevel
-	}
-	zerolog.SetGlobalLevel(logLevel)
-	log.Logger = log.Logger.Level(logLevel)
-}
-
-func Execute() {
+func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
 	vConfig.AutomaticEnv()
 
@@ -122,6 +88,7 @@ func Execute() {
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreRuleVar, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
 	rootCmd.PersistentFlags().StringSliceVar(&specialRulesVar, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
+	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 
 	rootCmd.AddCommand(secrets.GetRulesCommand(&ruleVar, &ignoreRuleVar, &specialRulesVar))
 
@@ -131,43 +98,35 @@ func Execute() {
 	for _, plugin := range allPlugins {
 		subCommand, err := plugin.DefineCommand(channels.Items, channels.Errors)
 		if err != nil {
-			log.Fatal().Msg(fmt.Sprintf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error()))
+			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
 		subCommand.GroupID = group
-		subCommand.PreRun = preRun
-		subCommand.PostRun = postRun
+		subCommand.PreRunE = preRun
+		subCommand.PostRunE = postRun
 		rootCmd.AddCommand(subCommand)
 	}
 
+	listenForErrors(channels.Errors)
+
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatal().Msg(err.Error())
+		return 0, err
 	}
+
+	return report.TotalSecretsFound, nil
 }
 
-func validateFormat(stdout string, reportPath []string) {
-	r := regexp.MustCompile(outputFormatRegexpPattern)
-	if !(r.MatchString(stdout)) {
-		log.Fatal().Msgf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
+func preRun(cmd *cobra.Command, args []string) error {
+	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
+		return err
 	}
 
-	for _, path := range reportPath {
-		fileExtension := filepath.Ext(path)
-		format := strings.TrimPrefix(fileExtension, ".")
-		if !(r.MatchString(format)) {
-			log.Fatal().Msgf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, format)
-		}
-	}
-}
-
-func preRun(cmd *cobra.Command, args []string) {
-	validateFormat(stdoutFormatVar, reportPathVar)
 	secrets, err := secrets.Init(ruleVar, ignoreRuleVar, specialRulesVar)
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		return err
 	}
 
 	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
-		log.Fatal().Msg(err.Error())
+		return err
 	}
 
 	channels.WaitGroup.Add(1)
@@ -190,39 +149,32 @@ func preRun(cmd *cobra.Command, args []string) {
 		for secret := range secretsChan {
 			report.TotalSecretsFound++
 			report.Results[secret.ID] = append(report.Results[secret.ID], secret)
+
 		}
 	}()
 
-	go func() {
-		for err := range channels.Errors {
-			log.Fatal().Msg(err.Error())
-		}
-	}()
+	return nil
 }
 
-func postRun(cmd *cobra.Command, args []string) {
+func postRun(cmd *cobra.Command, args []string) error {
 	channels.WaitGroup.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
 
-	// -------------------------------------
-	// Show Report
 	if report.TotalItemsScanned > 0 {
-		report.ShowReport(stdoutFormatVar, cfg)
+		if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
+			return err
+		}
+
 		if len(reportPathVar) > 0 {
 			err := report.WriteFile(reportPathVar, cfg)
 			if err != nil {
-				log.Error().Msgf("Failed to create report file with error: %s", err)
+				return fmt.Errorf("failed to create report file with error: %s", err)
 			}
 		}
 	} else {
-		log.Error().Msg("Scan completed with empty content")
-		os.Exit(0)
+		log.Info().Msg("Scan completed with empty content")
 	}
 
-	if report.TotalSecretsFound > 0 {
-		os.Exit(1)
-	} else {
-		os.Exit(0)
-	}
+	return nil
 }

@@ -8,6 +8,8 @@ import (
 	"regexp"
 )
 
+var ignoreComment = regexp.MustCompile(`//\s*lint:ignore`)
+
 func walkGoFiles() <-chan string {
 	ignoredDirs := []string{
 		".git",
@@ -50,7 +52,7 @@ func walkGoFiles() <-chan string {
 
 var forbiddenPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`fmt\.Print`),
-	// regexp.MustCompile(`log\.Fatal`),
+	regexp.MustCompile(`log\.Fatal\(\)`),
 }
 
 var ignoreFiles = regexp.MustCompile(`_test\.go$`)
@@ -71,7 +73,7 @@ func lintFile(path string) error {
 	for scanner.Scan() {
 		lineText := scanner.Text()
 		for _, forbiddenPattern := range forbiddenPatterns {
-			if forbiddenPattern.MatchString(lineText) {
+			if forbiddenPattern.MatchString(lineText) && !ignoreComment.MatchString(lineText) {
 				return fmt.Errorf("%s:%d: forbidden pattern found: %s", path, line, forbiddenPattern.String())
 			}
 		}
