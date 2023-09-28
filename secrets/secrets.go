@@ -240,7 +240,6 @@ func loadAllRules() []Rule {
 	allRules = append(allRules, Rule{Rule: *rules.FrameIO(), Tags: []string{TagApiToken}})
 	allRules = append(allRules, Rule{Rule: *rules.FreshbooksAccessToken(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.GCPAPIKey(), Tags: []string{TagApiKey}})
-	allRules = append(allRules, Rule{Rule: *rules.GCPServiceAccount(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.GenericCredential(), Tags: []string{TagApiKey}})
 	allRules = append(allRules, Rule{Rule: *rules.GitHubPat(), Tags: []string{TagAccessToken}})
 	allRules = append(allRules, Rule{Rule: *rules.GitHubFineGrainedPat(), Tags: []string{TagAccessToken}})

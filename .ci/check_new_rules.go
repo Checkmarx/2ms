@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	regexGitleaksRules = regexp.MustCompile(`configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
+	regexGitleaksRules = regexp.MustCompile(`^[^/\n\r]configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
 	regex2msRules      = regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
 )
 
@@ -61,7 +61,7 @@ func main() {
 
 		os.Exit(1)
 	} else {
-		fmt.Printf("No differences found.")
+		fmt.Println("No differences found.")
 		os.Exit(0)
 	}
 }
