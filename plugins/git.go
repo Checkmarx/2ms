@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/checkmarx/2ms/lib"
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -68,13 +69,17 @@ func (p *GitPlugin) buildScanOptions() string {
 }
 
 func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan error) {
-	fileChan, err := git.GitLog(path, scanOptions)
+	gitLog, err := git.NewGitLogCmd(path, scanOptions)
 	if err != nil {
 		errChan <- fmt.Errorf("error while scanning git repository: %w", err)
 	}
-	log.Debug().Msgf("scanned git repository: %s", path)
+	defer gitLog.Wait()
+	log.Debug().Msgf("scanning git repository: %s", path)
 
-	for file := range fileChan {
+	p.WaitGroup.Add(1)
+	go lib.BindChannels[error](gitLog.ErrCh(), errChan, p.WaitGroup)
+
+	for file := range gitLog.DiffFilesCh() {
 		log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
 		if file.IsBinary || file.IsDelete {
 			continue
