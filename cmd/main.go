@@ -73,7 +73,7 @@ var channels = plugins.Channels{
 var report = reporting.Init()
 var secretsChan = make(chan reporting.Secret)
 
-func Execute() error {
+func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
 	vConfig.AutomaticEnv()
 
@@ -98,7 +98,7 @@ func Execute() error {
 	for _, plugin := range allPlugins {
 		subCommand, err := plugin.DefineCommand(channels.Items, channels.Errors)
 		if err != nil {
-			return fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
+			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
 		subCommand.GroupID = group
 		subCommand.PreRunE = preRun
@@ -106,12 +106,13 @@ func Execute() error {
 		rootCmd.AddCommand(subCommand)
 	}
 
+	listenForErrors(channels.Errors)
+
 	if err := rootCmd.Execute(); err != nil {
-		return err
+		return 0, err
 	}
 
-	Exit(report.TotalSecretsFound, nil)
-	return nil
+	return report.TotalSecretsFound, nil
 }
 
 func preRun(cmd *cobra.Command, args []string) error {
@@ -151,8 +152,6 @@ func preRun(cmd *cobra.Command, args []string) error {
 
 		}
 	}()
-
-	listenForErrors(channels.Errors)
 
 	return nil
 }

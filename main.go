@@ -20,9 +20,7 @@ func main() {
 	signal.Notify(stopChan, os.Interrupt)
 	go listenForInterrupt(stopChan)
 
-	if err := cmd.Execute(); err != nil {
-		cmd.Exit(0, err)
-	}
+	cmd.Exit(cmd.Execute())
 }
 
 func listenForInterrupt(stopScan chan os.Signal) {
