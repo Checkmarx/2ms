@@ -1,12 +1,12 @@
 package reporting
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/checkmarx/2ms/config"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -41,7 +41,7 @@ func Init() *Report {
 
 func (r *Report) ShowReport(format string, cfg *config.Config) {
 	output := r.getOutput(format, cfg)
-	fmt.Print(output)
+	log.Info().Msg(output)
 }
 
 func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
