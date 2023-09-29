@@ -69,17 +69,10 @@ func (p *GitPlugin) buildScanOptions() string {
 }
 
 func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan error) {
-	gitLog, err := git.NewGitLogCmd(path, scanOptions)
-	if err != nil {
-		errChan <- fmt.Errorf("error while scanning git repository: %w", err)
-	}
-	defer gitLog.Wait()
-	log.Debug().Msgf("scanning git repository: %s", path)
+	diffs, close := p.readGitLog(path, scanOptions, errChan)
+	defer close()
 
-	p.WaitGroup.Add(1)
-	go lib.BindChannels[error](gitLog.ErrCh(), errChan, p.WaitGroup)
-
-	for file := range gitLog.DiffFilesCh() {
+	for file := range diffs {
 		log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
 		if file.IsBinary || file.IsDelete {
 			continue
@@ -100,6 +93,25 @@ func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan Item
 			}
 		}
 	}
+}
+
+func (p *GitPlugin) readGitLog(path string, scanOptions string, errChan chan error) (<-chan *gitdiff.File, func()) {
+	gitLog, err := git.NewGitLogCmd(path, scanOptions)
+	if err != nil {
+		errChan <- fmt.Errorf("error while scanning git repository: %w", err)
+	}
+	wait := func() {
+		err := gitLog.Wait()
+		if err != nil {
+			errChan <- fmt.Errorf("error while waiting for git log to finish: %w", err)
+		}
+	}
+	log.Debug().Msgf("scanning git repository: %s", path)
+
+	p.WaitGroup.Add(1)
+	go lib.BindChannels[error](gitLog.ErrCh(), errChan, p.WaitGroup)
+
+	return gitLog.DiffFilesCh(), wait
 }
 
 func validGitRepoArgs(cmd *cobra.Command, args []string) error {
