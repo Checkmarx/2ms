@@ -91,6 +91,27 @@ jobs:
 - In this example we've pinned the version to `2.8.1`. Make sure to check out if there's a newer version
 - 💡 Take a look at [2ms GitHub Actions pipeline](https://github.com/Checkmarx/2ms/blob/master/.github/workflows/release.yml) as 2ms scans itself using 2ms.
 
+
+### Azure DevOps Pipeline
+
+To use 2ms in Azure DevOps Pipeline, create a new pipeline ([see this tutorial](https://learn.microsoft.com/en-us/azure/devops/pipelines/create-first-pipeline) for getting started with Azure DevOps Pipelines). Next, specify in your pipeline `yml` file `azure-pipelines.yml` to run `2ms`:
+
+```yaml
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- script: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo
+  displayName: Run 2ms
+
+```
+
+- In this example we've pinned the version to `2.8.1`. Make sure to check out if there's a newer version
+
+
 # Command Line Interface
 
 We've built `2ms` command line interface to be as self-descriptive as possible. This is the help message that you will see if you executed `2ms` without args:
