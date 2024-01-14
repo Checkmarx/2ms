@@ -30,6 +30,7 @@ const (
 	specialRulesFlagName       = "add-special-rule"
 	ignoreOnExitFlagName       = "ignore-on-exit"
 	maxTargetMegabytesFlagName = "max-target-megabytes"
+	excludedFilesFlagName      = "exclude"
 )
 
 var (
@@ -40,6 +41,7 @@ var (
 	ignoreVar          []string
 	ignoreOnExitVar    = ignoreOnExitNone
 	secretsConfigVar   secrets.SecretsConfig
+	excludedFilesVar   []string
 )
 
 var rootCmd = &cobra.Command{
@@ -89,6 +91,7 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.SpecialList, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
 	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 	rootCmd.PersistentFlags().IntVar(&secretsConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
+	rootCmd.PersistentFlags().StringSliceVar(&excludedFilesVar, excludedFilesFlagName, []string{}, "files or folders to exclude. files/folders from the given list won't be checked")
 
 	rootCmd.AddCommand(secrets.GetRulesCommand(&secretsConfigVar))
 
@@ -137,7 +140,7 @@ func preRun(cmd *cobra.Command, args []string) error {
 		for item := range channels.Items {
 			report.TotalItemsScanned++
 			wgItems.Add(1)
-			go secrets.Detect(item, secretsChan, wgItems, ignoreVar)
+			go secrets.Detect(item, secretsChan, wgItems, ignoreVar, excludedFilesVar)
 		}
 		wgItems.Wait()
 		close(secretsChan)
