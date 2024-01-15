@@ -126,7 +126,7 @@ func TestSecrets(t *testing.T) {
 			secretsChan := make(chan reporting.Secret, 1)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
-			detector.Detect(plugins.Item{Content: secret.Content}, secretsChan, wg, nil)
+			detector.Detect(plugins.Item{Content: secret.Content}, secretsChan, wg, nil, nil)
 			close(secretsChan)
 
 			s := <-secretsChan
