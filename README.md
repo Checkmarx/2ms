@@ -141,6 +141,7 @@ Flags:
       --add-special-rule strings      special (non-default) rules to apply.
                                       This list is not affected by the --rule and --ignore-rule flags.
       --config string                 config file path
+      --exclude strings               files or folders to exclude. files/folders from the given list won't be checked
   -h, --help                          help for 2ms
       --ignore-on-exit ignoreOnExit   defines which kind of non-zero exits code should be ignored
                                       accepts: all, results, errors, none
