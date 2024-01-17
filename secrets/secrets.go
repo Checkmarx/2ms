@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -59,8 +58,9 @@ func Init(secretsConfig SecretsConfig) (*Secrets, error) {
 	}, nil
 }
 
-func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret, wg *sync.WaitGroup, ignoredIds []string, excludedFiles []string) {
+func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret, wg *sync.WaitGroup, ignoredIds []string) {
 	defer wg.Done()
+
 	fragment := detect.Fragment{
 		Raw: item.Content,
 	}
@@ -76,7 +76,7 @@ func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret
 			EndColumn:   value.EndColumn,
 			Value:       value.Secret,
 		}
-		if !isSecretIDIgnored(&secret, &ignoredIds) && !isFileNameExcluded(&secret, &excludedFiles) {
+		if !isSecretIgnored(&secret, &ignoredIds) {
 			secretsChannel <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -107,18 +107,9 @@ func getFindingId(item plugins.Item, finding report.Finding) string {
 	return fmt.Sprintf("%x", sha)
 }
 
-func isSecretIDIgnored(secret *reporting.Secret, ignoredIds *[]string) bool {
+func isSecretIgnored(secret *reporting.Secret, ignoredIds *[]string) bool {
 	for _, ignoredId := range *ignoredIds {
 		if secret.ID == ignoredId {
-			return true
-		}
-	}
-	return false
-}
-
-func isFileNameExcluded(secret *reporting.Secret, excludedFileNames *[]string) bool {
-	for _, excludedFileName := range *excludedFileNames {
-		if filepath.Base(secret.Source) == excludedFileName || filepath.Dir(secret.Source) == excludedFileName {
 			return true
 		}
 	}
