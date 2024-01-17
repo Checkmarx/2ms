@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/checkmarx/2ms/config"
@@ -136,10 +137,13 @@ func preRun(cmd *cobra.Command, args []string) error {
 		defer channels.WaitGroup.Done()
 
 		wgItems := &sync.WaitGroup{}
+		excludedFileNames := resolveGlobExpression(excludedPathsVar)
 		for item := range channels.Items {
-			report.TotalItemsScanned++
-			wgItems.Add(1)
-			go secrets.Detect(item, secretsChan, wgItems, ignoreVar, excludedPathsVar)
+			if !excludedFileNames[item.Source] {
+				report.TotalItemsScanned++
+				wgItems.Add(1)
+				go secrets.Detect(item, secretsChan, wgItems, ignoreVar)
+			}
 		}
 		wgItems.Wait()
 		close(secretsChan)
@@ -156,6 +160,17 @@ func preRun(cmd *cobra.Command, args []string) error {
 	}()
 
 	return nil
+}
+
+func resolveGlobExpression(excludedFileNames []string) map[string]bool {
+	var matchedFileNames = make(map[string]bool)
+	for _, filename := range excludedFileNames {
+		matched, _ := filepath.Glob(filename)
+		for _, value := range matched {
+			matchedFileNames[value] = true
+		}
+	}
+	return matchedFileNames
 }
 
 func postRun(cmd *cobra.Command, args []string) error {
