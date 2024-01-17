@@ -165,9 +165,13 @@ func preRun(cmd *cobra.Command, args []string) error {
 func resolveGlobExpression(excludedFileNames []string) map[string]bool {
 	var matchedFileNames = make(map[string]bool)
 	for _, filename := range excludedFileNames {
-		matched, _ := filepath.Glob(filename)
-		for _, value := range matched {
-			matchedFileNames[value] = true
+		matched, err := filepath.Glob(filename)
+		if err != nil {
+			log.Error().Msgf("failed to get exclude path %s: %s", filename, err)
+		} else {
+			for _, value := range matched {
+				matchedFileNames[value] = true
+			}
 		}
 	}
 	return matchedFileNames
