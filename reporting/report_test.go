@@ -23,9 +23,9 @@ JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 4Xgur9w/aLZrLM3DSatR+kL+cVTyDTtgCt9Dc8k48Q==
 -----END RSA PRIVATE KEY-----`)
 
-	results := map[string][]Secret{}
+	results := map[string][]*Secret{}
 	report := Report{len(results), 1, results}
-	secret := Secret{Source: "bla", StartLine: 0, StartColumn: 0, EndLine: 0, EndColumn: 0, Value: secretValue}
+	secret := &Secret{Source: "bla", StartLine: 0, StartColumn: 0, EndLine: 0, EndColumn: 0, Value: secretValue}
 	source := "directory\\rawStringAsFile.txt"
 
 	report.Results[source] = append(report.Results[source], secret)
@@ -36,6 +36,6 @@ JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 	}
 
 	if !reflect.DeepEqual(report.Results, results) {
-		t.Errorf("got %q want %q", key, results)
+		t.Errorf("got %+v want %+v", key, results)
 	}
 }

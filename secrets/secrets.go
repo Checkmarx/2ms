@@ -58,7 +58,7 @@ func Init(secretsConfig SecretsConfig) (*Secrets, error) {
 	}, nil
 }
 
-func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret, wg *sync.WaitGroup, ignoredIds []string) {
+func (s *Secrets) Detect(item plugins.Item, secretsChannel chan *reporting.Secret, wg *sync.WaitGroup, ignoredIds []string) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
@@ -66,7 +66,7 @@ func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
-		secret := reporting.Secret{
+		secret := &reporting.Secret{
 			ID:          itemId,
 			Source:      item.Source,
 			RuleID:      value.RuleID,
@@ -76,7 +76,7 @@ func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret
 			EndColumn:   value.EndColumn,
 			Value:       value.Secret,
 		}
-		if !isSecretIgnored(&secret, &ignoredIds) {
+		if !isSecretIgnored(secret, &ignoredIds) {
 			secretsChannel <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
