@@ -74,7 +74,7 @@ func getResults(report Report) []Results {
 	return results
 }
 
-func getLocation(secret Secret) []Locations {
+func getLocation(secret *Secret) []Locations {
 	return []Locations{
 		{
 			PhysicalLocation: PhysicalLocation{
