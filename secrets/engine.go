@@ -19,7 +19,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
-type Secrets struct {
+type Engine struct {
 	rules    map[string]config.Rule
 	detector detect.Detector
 }
@@ -34,7 +34,7 @@ type SecretsConfig struct {
 	MaxTargetMegabytes int
 }
 
-func Init(secretsConfig SecretsConfig) (*Secrets, error) {
+func Init(secretsConfig SecretsConfig) (*Engine, error) {
 	selectedRules := rules.FilterRules(secretsConfig.SelectedList, secretsConfig.IgnoreList, secretsConfig.SpecialList)
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
@@ -52,13 +52,13 @@ func Init(secretsConfig SecretsConfig) (*Secrets, error) {
 	})
 	detector.MaxTargetMegaBytes = secretsConfig.MaxTargetMegabytes
 
-	return &Secrets{
+	return &Engine{
 		rules:    rulesToBeApplied,
 		detector: *detector,
 	}, nil
 }
 
-func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret, wg *sync.WaitGroup, ignoredIds []string) {
+func (s *Engine) Detect(item plugins.Item, secretsChannel chan *reporting.Secret, wg *sync.WaitGroup, ignoredIds []string) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
@@ -66,7 +66,7 @@ func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
-		secret := reporting.Secret{
+		secret := &reporting.Secret{
 			ID:          itemId,
 			Source:      item.Source,
 			RuleID:      value.RuleID,
@@ -76,7 +76,7 @@ func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret
 			EndColumn:   value.EndColumn,
 			Value:       value.Secret,
 		}
-		if !isSecretIgnored(&secret, &ignoredIds) {
+		if !isSecretIgnored(secret, &ignoredIds) {
 			secretsChannel <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -84,7 +84,7 @@ func (s *Secrets) Detect(item plugins.Item, secretsChannel chan reporting.Secret
 	}
 }
 
-func (s *Secrets) AddRegexRules(patterns []string) error {
+func (s *Engine) AddRegexRules(patterns []string) error {
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
