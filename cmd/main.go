@@ -120,17 +120,17 @@ func preRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	secrets, err := secrets.Init(secretsConfigVar)
+	engine, err := secrets.Init(secretsConfigVar)
 	if err != nil {
 		return err
 	}
 
-	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
+	if err := engine.AddRegexRules(customRegexRuleVar); err != nil {
 		return err
 	}
 
 	channels.WaitGroup.Add(1)
-	go processItems(secrets)
+	go processItems(engine)
 
 	channels.WaitGroup.Add(1)
 	go processSecrets()

@@ -6,14 +6,14 @@ import (
 	"github.com/checkmarx/2ms/secrets"
 )
 
-func processItems(detector *secrets.Secrets) {
+func processItems(engine *secrets.Engine) {
 	defer channels.WaitGroup.Done()
 
 	wgItems := &sync.WaitGroup{}
 	for item := range channels.Items {
 		report.TotalItemsScanned++
 		wgItems.Add(1)
-		go detector.Detect(item, secretsChan, wgItems, ignoreVar)
+		go engine.Detect(item, secretsChan, wgItems, ignoreVar)
 	}
 	wgItems.Wait()
 	close(secretsChan)
