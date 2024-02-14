@@ -133,28 +133,10 @@ func preRun(cmd *cobra.Command, args []string) error {
 	}
 
 	channels.WaitGroup.Add(1)
-	go func() {
-		defer channels.WaitGroup.Done()
-
-		wgItems := &sync.WaitGroup{}
-		for item := range channels.Items {
-			report.TotalItemsScanned++
-			wgItems.Add(1)
-			go secrets.Detect(item, secretsChan, wgItems, ignoreVar)
-		}
-		wgItems.Wait()
-		close(secretsChan)
-	}()
+	go processItems(secrets)
 
 	channels.WaitGroup.Add(1)
-	go func() {
-		defer channels.WaitGroup.Done()
-		for secret := range secretsChan {
-			report.TotalSecretsFound++
-			report.Results[secret.ID] = append(report.Results[secret.ID], secret)
-
-		}
-	}()
+	go processSecrets()
 
 	return nil
 }
