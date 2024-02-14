@@ -130,10 +130,11 @@ func TestSecrets(t *testing.T) {
 			close(secretsChan)
 
 			s := <-secretsChan
-			if s.Value == "" && secret.ShouldFind {
+
+			if s == nil && secret.ShouldFind {
 				t.Errorf("secret \"%s\" not found", secret.Name)
 			}
-			if s.Value != "" && !secret.ShouldFind {
+			if s != nil && !secret.ShouldFind {
 				t.Errorf("should not find")
 			}
 		})

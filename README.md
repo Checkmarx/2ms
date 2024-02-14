@@ -91,26 +91,23 @@ jobs:
 - In this example we've pinned the version to `2.8.1`. Make sure to check out if there's a newer version
 - 💡 Take a look at [2ms GitHub Actions pipeline](https://github.com/Checkmarx/2ms/blob/master/.github/workflows/release.yml) as 2ms scans itself using 2ms.
 
-
 ### Azure DevOps Pipeline
 
 To use 2ms in Azure DevOps Pipeline, create a new pipeline ([see this tutorial](https://learn.microsoft.com/en-us/azure/devops/pipelines/create-first-pipeline) for getting started with Azure DevOps Pipelines). Next, specify in your pipeline `yml` file `azure-pipelines.yml` to run `2ms`:
 
 ```yaml
 trigger:
-- master
+  - master
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo
-  displayName: Run 2ms
-
+  - script: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo
+    displayName: Run 2ms
 ```
 
 - In this example we've pinned the version to `2.8.1`. Make sure to check out if there's a newer version
-
 
 # Command Line Interface
 
@@ -248,6 +245,14 @@ Scans [Discord](https://discord.com/) chat application history.
 | `--duration`       | duration | 14 days                          | The time interval to scan from the current time. For example, 24h for 24 hours or 336h0m0s for 14 days |
 | `--server`         | strings  | -                                | Discord servers IDs to scan                                                                            |
 
+[How to get a Discord token](https://www.geeksforgeeks.org/how-to-get-discord-token/).
+
+Example:
+
+```
+2ms discord --token <YOUR_TOKEN> --server 1097814317077897307 --duration 9999h
+```
+
 ### Slack
 
 Scans [Slack](https://slack.com/) chat application history.
@@ -294,6 +299,12 @@ Scans a local repository
 | `--path`           | string  | -       | Local directory path                                   |
 | `--project-name`   | string  | -       | Project name to differentiate between filesystem scans |
 | `--ignore-pattern` | strings | -       | Patterns to ignore                                     |
+
+Example:
+
+```
+2ms filesystem --path .
+```
 
 ## Configuration File
 
