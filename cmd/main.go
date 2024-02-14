@@ -70,7 +70,7 @@ var channels = plugins.Channels{
 }
 
 var report = reporting.Init()
-var secretsChan = make(chan reporting.Secret)
+var secretsChan = make(chan *reporting.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
@@ -120,38 +120,20 @@ func preRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	secrets, err := secrets.Init(secretsConfigVar)
+	engine, err := secrets.Init(secretsConfigVar)
 	if err != nil {
 		return err
 	}
 
-	if err := secrets.AddRegexRules(customRegexRuleVar); err != nil {
+	if err := engine.AddRegexRules(customRegexRuleVar); err != nil {
 		return err
 	}
 
 	channels.WaitGroup.Add(1)
-	go func() {
-		defer channels.WaitGroup.Done()
-
-		wgItems := &sync.WaitGroup{}
-		for item := range channels.Items {
-			report.TotalItemsScanned++
-			wgItems.Add(1)
-			go secrets.Detect(item, secretsChan, wgItems, ignoreVar)
-		}
-		wgItems.Wait()
-		close(secretsChan)
-	}()
+	go processItems(engine)
 
 	channels.WaitGroup.Add(1)
-	go func() {
-		defer channels.WaitGroup.Done()
-		for secret := range secretsChan {
-			report.TotalSecretsFound++
-			report.Results[secret.ID] = append(report.Results[secret.ID], secret)
-
-		}
-	}()
+	go processSecrets()
 
 	return nil
 }

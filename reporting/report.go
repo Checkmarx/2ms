@@ -17,9 +17,9 @@ const (
 )
 
 type Report struct {
-	TotalItemsScanned int                 `json:"totalItemsScanned"`
-	TotalSecretsFound int                 `json:"totalSecretsFound"`
-	Results           map[string][]Secret `json:"results"`
+	TotalItemsScanned int                  `json:"totalItemsScanned"`
+	TotalSecretsFound int                  `json:"totalSecretsFound"`
+	Results           map[string][]*Secret `json:"results"`
 }
 
 type Secret struct {
@@ -35,7 +35,7 @@ type Secret struct {
 
 func Init() *Report {
 	return &Report{
-		Results: make(map[string][]Secret),
+		Results: make(map[string][]*Secret),
 	}
 }
 

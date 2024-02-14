@@ -123,17 +123,18 @@ func TestSecrets(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
-			secretsChan := make(chan reporting.Secret, 1)
+			secretsChan := make(chan *reporting.Secret, 1)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
 			detector.Detect(plugins.Item{Content: secret.Content}, secretsChan, wg, nil)
 			close(secretsChan)
 
 			s := <-secretsChan
-			if s.Value == "" && secret.ShouldFind {
+
+			if s == nil && secret.ShouldFind {
 				t.Errorf("secret \"%s\" not found", secret.Name)
 			}
-			if s.Value != "" && !secret.ShouldFind {
+			if s != nil && !secret.ShouldFind {
 				t.Errorf("should not find")
 			}
 		})
