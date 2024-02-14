@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/checkmarx/2ms/config"
+	"github.com/checkmarx/2ms/secrets"
 	"github.com/rs/zerolog/log"
 )
 
@@ -17,25 +18,14 @@ const (
 )
 
 type Report struct {
-	TotalItemsScanned int                  `json:"totalItemsScanned"`
-	TotalSecretsFound int                  `json:"totalSecretsFound"`
-	Results           map[string][]*Secret `json:"results"`
-}
-
-type Secret struct {
-	ID          string `json:"id"`
-	Source      string `json:"source"`
-	RuleID      string `json:"ruleId"`
-	StartLine   int    `json:"startLine"`
-	EndLine     int    `json:"endLine"`
-	StartColumn int    `json:"startColumn"`
-	EndColumn   int    `json:"endColumn"`
-	Value       string `json:"value"`
+	TotalItemsScanned int                          `json:"totalItemsScanned"`
+	TotalSecretsFound int                          `json:"totalSecretsFound"`
+	Results           map[string][]*secrets.Secret `json:"results"`
 }
 
 func Init() *Report {
 	return &Report{
-		Results: make(map[string][]*Secret),
+		Results: make(map[string][]*secrets.Secret),
 	}
 }
 
