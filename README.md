@@ -151,7 +151,7 @@ Flags:
       --report-path strings           path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
       --rule strings                  select rules by name or tag to apply to this scan
       --stdout-format string          stdout output format, available formats are: json, yaml, sarif (default "yaml")
-      --validate                      Validate the secrets found
+      --validate                      trigger additional validation to check if discovered secrets are active or revoked
   -v, --version                       version for 2ms
 
 Use "2ms [command] --help" for more information about a command.
@@ -161,7 +161,7 @@ Use "2ms [command] --help" for more information about a command.
 
 ## Validity Check
 
-From the help message: `--validate                      Validate the secrets found`.
+From the help message: `--validate    trigger additional validation to check if discovered secrets are active or revoked`.
 
 The `--validate` flag will check the validity of the secrets found. For example, if it is a Github token, it will check if the token is valid by making a request to the Github API. We will use the less intrusive method to check the validity of the secret.
 
