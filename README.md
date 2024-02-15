@@ -169,7 +169,7 @@ The result of the validation can be:
 
 - `valid` - The secret is valid
 - `revoked` - The secret is revoked
-- `unknown` - We are not checking the validity of the secret
+- `unknown` - We failed to check, or we are not checking the validity of the secret at all
 
 If the `--validate` flag is not provided, the validation field will be omitted from the output, or its value will be an empty string.
 
