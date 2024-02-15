@@ -72,7 +72,8 @@ var channels = plugins.Channels{
 }
 
 var report = reporting.Init()
-var secretsChan = make(chan *reporting.Secret)
+var secretsChan = make(chan *secrets.Secret)
+var validationChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
@@ -137,6 +138,11 @@ func preRun(cmd *cobra.Command, args []string) error {
 
 	channels.WaitGroup.Add(1)
 	go processSecrets()
+
+	if validateVar {
+		channels.WaitGroup.Add(1)
+		go processValidation()
+	}
 
 	return nil
 }
