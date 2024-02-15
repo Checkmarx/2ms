@@ -70,7 +70,7 @@ var channels = plugins.Channels{
 }
 
 var report = reporting.Init()
-var secretsChan = make(chan *reporting.Secret)
+var secretsChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
