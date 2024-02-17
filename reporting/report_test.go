@@ -1,9 +1,12 @@
 package reporting
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
+	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/secrets"
 )
 
@@ -40,4 +43,17 @@ JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 	if !reflect.DeepEqual(report.Results, results) {
 		t.Errorf("got %+v want %+v", key, results)
 	}
+}
+
+func TestWriteReportInNonExistingDir(t *testing.T) {
+	report := Init()
+
+	tempDir := os.TempDir()
+	resultFile := filepath.Join(tempDir, "test_temp_dir", "sub_dir", "report.yaml")
+	err := report.WriteFile([]string{resultFile}, &config.Config{Name: "report", Version: "5"})
+	if err != nil {
+		t.Error(err)
+	}
+
+	os.RemoveAll(filepath.Join(tempDir, "test_temp_dir"))
 }
