@@ -33,12 +33,15 @@ type validationFunc = func(*Secret) ValidationResult
 var ruleIDToFunction = map[string]validationFunc{
 	"github-fine-grained-pat": validateGithub,
 	"github-pat":              validateGithub,
+	"alibaba":                 validateAlibaba,
 }
 
 func (s *Secret) Validate(wg *sync.WaitGroup) {
 	defer wg.Done()
 	if f, ok := ruleIDToFunction[s.RuleID]; ok {
 		s.Validation = f(s)
+	} else if allPaired[s.RuleID] {
+		pairedSecrets[s.Source] = append(pairedSecrets[s.Source], s)
 	} else {
 		s.Validation = Unknown
 	}
@@ -65,4 +68,9 @@ func validateGithub(s *Secret) ValidationResult {
 		return Valid
 	}
 	return Revoked
+}
+
+func validateAlibaba(s *Secret) ValidationResult {
+	// https://www.alibabacloud.com/help/en/sls/developer-reference/accesskey-pair
+	return Unknown
 }
