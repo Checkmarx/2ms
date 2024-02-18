@@ -7,6 +7,8 @@
 
 **Too many secrets (`2ms`)** is a command line tool written in Go language and built over [gitleaks](https://github.com/gitleaks/gitleaks). `2ms` is capable of finding secrets such as login credentials, API keys, SSH keys and more hidden in code, content systems, chat applications and more.
 
+You can see the list of rules that `2ms` uses to detect secrets in [docs/list-of-rules.md](docs/list-of-rules.md)
+
 # Installation
 
 ### Download Precompiled Binaries
