@@ -23,7 +23,7 @@ echo "" >>output.txt
 update_readme "output.txt" "command-line" "README.md"
 rm output.txt
 
-go run . rules | awk '{FS = "   *"}{print "| " $1 " | " $2 " | " $3 " |";}' >output.txt
+go run . rules | awk 'BEGIN{FS = "   *"}{print "| " $1 " | " $2 " | " $3 " | " $4 " |";}' >output.txt
 update_readme "output.txt" "table" "./docs/list-of-rules.md"
 rm output.txt
 

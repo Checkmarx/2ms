@@ -35,6 +35,11 @@ var ruleIDToFunction = map[string]validationFunc{
 	"github-pat":              validateGithub,
 }
 
+func isCanValidateRule(ruleID string) bool {
+	_, ok := ruleIDToFunction[ruleID]
+	return ok
+}
+
 func (s *Secret) Validate(wg *sync.WaitGroup) {
 	defer wg.Done()
 	if f, ok := ruleIDToFunction[s.RuleID]; ok {

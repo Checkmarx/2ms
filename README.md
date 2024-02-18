@@ -167,6 +167,8 @@ From the help message: `--validate    trigger additional validation to check if 
 
 The `--validate` flag will check the validity of the secrets found. For example, if it is a Github token, it will check if the token is valid by making a request to the Github API. We will use the less intrusive method to check the validity of the secret.
 
+The list of services that support the Validity Check feature can be found in the [List of Rules](docs/list-of-rules.md) document.
+
 The result of the validation can be:
 
 - `valid` - The secret is valid
