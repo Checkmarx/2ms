@@ -25,7 +25,7 @@ type Engine struct {
 
 const customRegexRuleIdFormat = "custom-regex-%d"
 
-type SecretsConfig struct {
+type EngineConfig struct {
 	SelectedList []string
 	IgnoreList   []string
 	SpecialList  []string
@@ -33,7 +33,7 @@ type SecretsConfig struct {
 	MaxTargetMegabytes int
 }
 
-func Init(secretsConfig SecretsConfig) (*Engine, error) {
+func Init(secretsConfig EngineConfig) (*Engine, error) {
 	selectedRules := rules.FilterRules(secretsConfig.SelectedList, secretsConfig.IgnoreList, secretsConfig.SpecialList)
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
@@ -115,7 +115,7 @@ func isSecretIgnored(secret *Secret, ignoredIds *[]string) bool {
 	return false
 }
 
-func GetRulesCommand(secretsConfig *SecretsConfig) *cobra.Command {
+func GetRulesCommand(secretsConfig *EngineConfig) *cobra.Command {
 	return &cobra.Command{
 		Use:   "rules",
 		Short: "List all rules",

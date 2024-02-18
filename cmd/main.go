@@ -40,7 +40,7 @@ var (
 	customRegexRuleVar []string
 	ignoreVar          []string
 	ignoreOnExitVar    = ignoreOnExitNone
-	secretsConfigVar   secrets.SecretsConfig
+	secretsConfigVar   secrets.EngineConfig
 	validateVar        bool
 )
 
