@@ -40,7 +40,7 @@ var (
 	customRegexRuleVar []string
 	ignoreVar          []string
 	ignoreOnExitVar    = ignoreOnExitNone
-	secretsConfigVar   secrets.SecretsConfig
+	secretsConfigVar   secrets.EngineConfig
 	validateVar        bool
 )
 
@@ -141,7 +141,7 @@ func preRun(cmd *cobra.Command, args []string) error {
 
 	if validateVar {
 		channels.WaitGroup.Add(1)
-		go processValidation()
+		go processValidation(engine)
 	}
 
 	return nil

@@ -32,13 +32,15 @@ func processSecrets() {
 	close(validationChan)
 }
 
-func processValidation() {
+func processValidation(engine *secrets.Engine) {
 	defer channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}
 	for secret := range validationChan {
 		wgValidation.Add(1)
-		go secret.Validate(wgValidation)
+		go engine.RegisterForValidation(secret, wgValidation)
 	}
+	engine.Validate()
+
 	wgValidation.Wait()
 }

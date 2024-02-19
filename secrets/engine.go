@@ -19,13 +19,14 @@ import (
 )
 
 type Engine struct {
-	rules    map[string]config.Rule
-	detector detect.Detector
+	rules     map[string]config.Rule
+	detector  detect.Detector
+	validator Validator
 }
 
 const customRegexRuleIdFormat = "custom-regex-%d"
 
-type SecretsConfig struct {
+type EngineConfig struct {
 	SelectedList []string
 	IgnoreList   []string
 	SpecialList  []string
@@ -33,7 +34,7 @@ type SecretsConfig struct {
 	MaxTargetMegabytes int
 }
 
-func Init(secretsConfig SecretsConfig) (*Engine, error) {
+func Init(secretsConfig EngineConfig) (*Engine, error) {
 	selectedRules := rules.FilterRules(secretsConfig.SelectedList, secretsConfig.IgnoreList, secretsConfig.SpecialList)
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
@@ -52,8 +53,9 @@ func Init(secretsConfig SecretsConfig) (*Engine, error) {
 	detector.MaxTargetMegaBytes = secretsConfig.MaxTargetMegabytes
 
 	return &Engine{
-		rules:    rulesToBeApplied,
-		detector: *detector,
+		rules:     rulesToBeApplied,
+		detector:  *detector,
+		validator: *NewValidator(),
 	}, nil
 }
 
@@ -100,6 +102,15 @@ func (s *Engine) AddRegexRules(patterns []string) error {
 	return nil
 }
 
+func (s *Engine) RegisterForValidation(secret *Secret, wg *sync.WaitGroup) {
+	defer wg.Done()
+	s.validator.RegisterForValidation(secret)
+}
+
+func (s *Engine) Validate() {
+	s.validator.Validate()
+}
+
 func getFindingId(item plugins.Item, finding report.Finding) string {
 	idParts := []string{item.ID, finding.RuleID, finding.Secret}
 	sha := sha1.Sum([]byte(strings.Join(idParts, "-")))
@@ -115,7 +126,7 @@ func isSecretIgnored(secret *Secret, ignoredIds *[]string) bool {
 	return false
 }
 
-func GetRulesCommand(secretsConfig *SecretsConfig) *cobra.Command {
+func GetRulesCommand(secretsConfig *EngineConfig) *cobra.Command {
 	canValidateDisplay := map[bool]string{
 		true:  "V",
 		false: "",

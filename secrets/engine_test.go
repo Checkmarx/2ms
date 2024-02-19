@@ -15,12 +15,12 @@ func Test_Init(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		secretsConfig SecretsConfig
+		secretsConfig EngineConfig
 		expectedErr   error
 	}{
 		{
 			name: "selected and ignore flags used together for the same rule",
-			secretsConfig: SecretsConfig{
+			secretsConfig: EngineConfig{
 				SelectedList: []string{allRules[0].Rule.RuleID},
 				IgnoreList:   []string{allRules[0].Rule.RuleID},
 				SpecialList:  []string{},
@@ -29,7 +29,7 @@ func Test_Init(t *testing.T) {
 		},
 		{
 			name: "non existent select flag",
-			secretsConfig: SecretsConfig{
+			secretsConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},
 				SpecialList:  []string{"non-existent-tag-name"},
@@ -38,7 +38,7 @@ func Test_Init(t *testing.T) {
 		},
 		{
 			name: "exiting special rule",
-			secretsConfig: SecretsConfig{
+			secretsConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},
 				SpecialList:  []string{specialRule.RuleID},
@@ -110,7 +110,7 @@ func TestSecrets(t *testing.T) {
 		},
 	}
 
-	detector, err := Init(SecretsConfig{})
+	detector, err := Init(EngineConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
