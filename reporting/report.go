@@ -41,7 +41,7 @@ func (r *Report) ShowReport(format string, cfg *config.Config) error {
 
 func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 	for _, path := range reportPath {
-		err := os.MkdirAll(filepath.Dir(path), 0766)
+		err := os.MkdirAll(filepath.Dir(path), 0750)
 		if err != nil {
 			return err
 		}
