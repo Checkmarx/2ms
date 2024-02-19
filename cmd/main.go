@@ -30,6 +30,7 @@ const (
 	specialRulesFlagName       = "add-special-rule"
 	ignoreOnExitFlagName       = "ignore-on-exit"
 	maxTargetMegabytesFlagName = "max-target-megabytes"
+	validate                   = "validate"
 )
 
 var (
@@ -40,6 +41,7 @@ var (
 	ignoreVar          []string
 	ignoreOnExitVar    = ignoreOnExitNone
 	secretsConfigVar   secrets.SecretsConfig
+	validateVar        bool
 )
 
 var rootCmd = &cobra.Command{
@@ -71,6 +73,7 @@ var channels = plugins.Channels{
 
 var report = reporting.Init()
 var secretsChan = make(chan *secrets.Secret)
+var validationChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
@@ -89,6 +92,7 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.SpecialList, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
 	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 	rootCmd.PersistentFlags().IntVar(&secretsConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
+	rootCmd.PersistentFlags().BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are active or revoked")
 
 	rootCmd.AddCommand(secrets.GetRulesCommand(&secretsConfigVar))
 
@@ -134,6 +138,11 @@ func preRun(cmd *cobra.Command, args []string) error {
 
 	channels.WaitGroup.Add(1)
 	go processSecrets()
+
+	if validateVar {
+		channels.WaitGroup.Add(1)
+		go processValidation()
+	}
 
 	return nil
 }
