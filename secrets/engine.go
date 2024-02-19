@@ -116,6 +116,11 @@ func isSecretIgnored(secret *Secret, ignoredIds *[]string) bool {
 }
 
 func GetRulesCommand(secretsConfig *SecretsConfig) *cobra.Command {
+	canValidateDisplay := map[bool]string{
+		true:  "V",
+		false: "",
+	}
+
 	return &cobra.Command{
 		Use:   "rules",
 		Short: "List all rules",
@@ -126,10 +131,17 @@ func GetRulesCommand(secretsConfig *SecretsConfig) *cobra.Command {
 
 			tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
-			fmt.Fprintln(tab, "Name\tDescription\tTags")
-			fmt.Fprintln(tab, "----\t----\t----")
+			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
+			fmt.Fprintln(tab, "----\t----\t----\t----")
 			for _, rule := range *rules {
-				fmt.Fprintf(tab, "%s\t%s\t%s\n", rule.Rule.RuleID, rule.Rule.Description, strings.Join(rule.Tags, ","))
+				fmt.Fprintf(
+					tab,
+					"%s\t%s\t%s\t%s\n",
+					rule.Rule.RuleID,
+					rule.Rule.Description,
+					strings.Join(rule.Tags, ","),
+					canValidateDisplay[isCanValidateRule(rule.Rule.RuleID)],
+				)
 			}
 			if err := tab.Flush(); err != nil {
 				return err
