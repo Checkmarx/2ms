@@ -41,11 +41,11 @@ func (r *Report) ShowReport(format string, cfg *config.Config) error {
 
 func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 	for _, path := range reportPath {
-		err := os.MkdirAll(filepath.Dir(path), 0600)
+		err := os.MkdirAll(filepath.Dir(path), 0766)
 		if err != nil {
 			return err
 		}
-		
+
 		file, err := os.Create(path)
 		if err != nil {
 			return err
