@@ -40,7 +40,7 @@ func processValidation(engine *secrets.Engine) {
 		wgValidation.Add(1)
 		go engine.RegisterForValidation(secret, wgValidation)
 	}
-	engine.Validate()
-
 	wgValidation.Wait()
+
+	engine.Validate()
 }
