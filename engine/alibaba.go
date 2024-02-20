@@ -11,19 +11,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/rs/zerolog/log"
 )
 
 // https://www.alibabacloud.com/help/en/sdk/alibaba-cloud-api-overview
 // https://www.alibabacloud.com/help/en/sdk/product-overview/rpc-mechanism#sectiondiv-y9b-x9s-wvp
 
-func validateAlibaba(secrets pairsByRuleId) {
+func validateAlibaba(secretsPairs pairsByRuleId) {
 
-	accessKeys := secrets["alibaba-access-key-id"]
-	secretKeys := secrets["alibaba-secret-key"]
+	accessKeys := secretsPairs["alibaba-access-key-id"]
+	secretKeys := secretsPairs["alibaba-secret-key"]
 
 	for _, accessKey := range accessKeys {
-		accessKey.ValidationStatus = Unknown
+		accessKey.ValidationStatus = secrets.UnknownResult
 
 		for _, secretKey := range secretKeys {
 			status, err := alibabaRequest(accessKey.Value, secretKey.Value)
@@ -32,17 +33,17 @@ func validateAlibaba(secrets pairsByRuleId) {
 			}
 
 			secretKey.ValidationStatus = status
-			if accessKey.ValidationStatus.CompareTo(status) == second {
+			if accessKey.ValidationStatus.CompareTo(status) > 0 {
 				accessKey.ValidationStatus = status
 			}
 		}
 	}
 }
 
-func alibabaRequest(accessKey, secretKey string) (validationResult, error) {
+func alibabaRequest(accessKey, secretKey string) (secrets.ValidationResult, error) {
 	req, err := http.NewRequest("GET", "https://ecs.aliyuncs.com/", nil)
 	if err != nil {
-		return Unknown, err
+		return secrets.UnknownResult, err
 	}
 
 	// Workaround for gitleaks returns the key ends with "
@@ -70,20 +71,20 @@ func alibabaRequest(accessKey, secretKey string) (validationResult, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return Unknown, err
+		return secrets.UnknownResult, err
 	}
 	log.Debug().Str("service", "alibaba").Int("status_code", resp.StatusCode)
 
 	// If the access key is invalid, the response will be 404
 	// If the secret key is invalid, the response will be 400 along with other signautre Errors
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
-		return Revoked, nil
+		return secrets.RevokedResult, nil
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		return Valid, nil
+		return secrets.ValidResult, nil
 	}
 
 	err = fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	return Unknown, err
+	return secrets.UnknownResult, err
 }

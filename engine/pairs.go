@@ -2,9 +2,11 @@ package engine
 
 import (
 	"sync"
+
+	"github.com/checkmarx/2ms/lib/secrets"
 )
 
-type pairsByRuleId map[string][]*Secret
+type pairsByRuleId map[string][]*secrets.Secret
 type pairsBySource map[string]pairsByRuleId
 type pairsByGeneralKey map[string]pairsBySource
 
@@ -16,7 +18,7 @@ func newPairsCollector() *pairsCollector {
 	return &pairsCollector{pairs: make(pairsByGeneralKey)}
 }
 
-func (p *pairsCollector) addIfNeeded(secret *Secret) bool {
+func (p *pairsCollector) addIfNeeded(secret *secrets.Secret) bool {
 	generalKey, ok := ruleToGeneralKey[secret.RuleID]
 	if !ok {
 		return false
@@ -29,7 +31,7 @@ func (p *pairsCollector) addIfNeeded(secret *Secret) bool {
 		p.pairs[generalKey][secret.Source] = make(pairsByRuleId)
 	}
 	if _, ok := p.pairs[generalKey][secret.Source][secret.RuleID]; !ok {
-		p.pairs[generalKey][secret.Source][secret.RuleID] = make([]*Secret, 0)
+		p.pairs[generalKey][secret.Source][secret.RuleID] = make([]*secrets.Secret, 0)
 	}
 
 	p.pairs[generalKey][secret.Source][secret.RuleID] = append(p.pairs[generalKey][secret.Source][secret.RuleID], secret)

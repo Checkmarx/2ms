@@ -7,6 +7,7 @@ import (
 	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/reporting"
+	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -72,8 +73,8 @@ var channels = plugins.Channels{
 }
 
 var report = reporting.Init()
-var secretsChan = make(chan *engine.Secret)
-var validationChan = make(chan *engine.Secret)
+var secretsChan = make(chan *secrets.Secret)
+var validationChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)

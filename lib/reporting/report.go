@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/lib/config"
+	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,14 +18,14 @@ const (
 )
 
 type Report struct {
-	TotalItemsScanned int                         `json:"totalItemsScanned"`
-	TotalSecretsFound int                         `json:"totalSecretsFound"`
-	Results           map[string][]*engine.Secret `json:"results"`
+	TotalItemsScanned int                          `json:"totalItemsScanned"`
+	TotalSecretsFound int                          `json:"totalSecretsFound"`
+	Results           map[string][]*secrets.Secret `json:"results"`
 }
 
 func Init() *Report {
 	return &Report{
-		Results: make(map[string][]*engine.Secret),
+		Results: make(map[string][]*secrets.Secret),
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/engine/rules"
+	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -59,7 +60,7 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (s *Engine) Detect(item plugins.Item, secretsChannel chan *Secret, wg *sync.WaitGroup, ignoredIds []string) {
+func (s *Engine) Detect(item plugins.Item, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, ignoredIds []string) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
@@ -67,7 +68,7 @@ func (s *Engine) Detect(item plugins.Item, secretsChannel chan *Secret, wg *sync
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
-		secret := &Secret{
+		secret := &secrets.Secret{
 			ID:          itemId,
 			Source:      item.Source,
 			RuleID:      value.RuleID,
@@ -102,7 +103,7 @@ func (s *Engine) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func (s *Engine) RegisterForValidation(secret *Secret, wg *sync.WaitGroup) {
+func (s *Engine) RegisterForValidation(secret *secrets.Secret, wg *sync.WaitGroup) {
 	defer wg.Done()
 	s.validator.RegisterForValidation(secret)
 }
@@ -117,7 +118,7 @@ func getFindingId(item plugins.Item, finding report.Finding) string {
 	return fmt.Sprintf("%x", sha)
 }
 
-func isSecretIgnored(secret *Secret, ignoredIds *[]string) bool {
+func isSecretIgnored(secret *secrets.Secret, ignoredIds *[]string) bool {
 	for _, ignoredId := range *ignoredIds {
 		if secret.ID == ignoredId {
 			return true

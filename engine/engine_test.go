@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/checkmarx/2ms/engine/rules"
+	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
 )
 
@@ -61,7 +62,7 @@ func Test_Init(t *testing.T) {
 }
 
 func TestSecrets(t *testing.T) {
-	secrets := []struct {
+	secretsCases := []struct {
 		Content    string
 		Name       string
 		ShouldFind bool
@@ -115,14 +116,14 @@ func TestSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, secret := range secrets {
+	for _, secret := range secretsCases {
 		name := secret.Name
 		if name == "" {
 			name = secret.Content
 		}
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
-			secretsChan := make(chan *Secret, 1)
+			secretsChan := make(chan *secrets.Secret, 1)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
 			detector.Detect(plugins.Item{Content: secret.Content}, secretsChan, wg, nil)

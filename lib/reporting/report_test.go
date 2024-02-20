@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/lib/config"
+	"github.com/checkmarx/2ms/lib/secrets"
 )
 
 func TestAddSecretToFile(t *testing.T) {
@@ -28,9 +28,9 @@ JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 4Xgur9w/aLZrLM3DSatR+kL+cVTyDTtgCt9Dc8k48Q==
 -----END RSA PRIVATE KEY-----`)
 
-	results := map[string][]*engine.Secret{}
+	results := map[string][]*secrets.Secret{}
 	report := Report{len(results), 1, results}
-	secret := &engine.Secret{Source: "bla", StartLine: 0, StartColumn: 0, EndLine: 0, EndColumn: 0, Value: secretValue}
+	secret := &secrets.Secret{Source: "bla", StartLine: 0, StartColumn: 0, EndLine: 0, EndColumn: 0, Value: secretValue}
 	source := "directory\\rawStringAsFile.txt"
 
 	report.Results[source] = append(report.Results[source], secret)
