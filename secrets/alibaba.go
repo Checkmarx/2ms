@@ -46,6 +46,7 @@ func alibabaRequest(accessKey, secretKey string) (validationResult, error) {
 	}
 
 	// Workaround for gitleaks returns the key ends with "
+	// https://github.com/gitleaks/gitleaks/pull/1350
 	accessKey = strings.TrimSuffix(accessKey, "\"")
 	secretKey = strings.TrimSuffix(secretKey, "\"")
 
