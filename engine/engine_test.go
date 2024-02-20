@@ -1,12 +1,12 @@
-package secrets
+package engine
 
 import (
 	"fmt"
 	"sync"
 	"testing"
 
+	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/plugins"
-	"github.com/checkmarx/2ms/secrets/rules"
 )
 
 func Test_Init(t *testing.T) {

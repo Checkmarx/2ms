@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/checkmarx/2ms/config"
-	"github.com/checkmarx/2ms/secrets"
+	"github.com/checkmarx/2ms/engine"
 )
 
 func writeSarif(report Report, cfg *config.Config) (string, error) {
@@ -75,7 +75,7 @@ func getResults(report Report) []Results {
 	return results
 }
 
-func getLocation(secret *secrets.Secret) []Locations {
+func getLocation(secret *engine.Secret) []Locations {
 	return []Locations{
 		{
 			PhysicalLocation: PhysicalLocation{

@@ -1,4 +1,4 @@
-package secrets
+package engine
 
 // TODO: rename package to engine and move secrets into subpackage
 // Then move the validators into a subpackage too

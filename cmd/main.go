@@ -5,9 +5,10 @@ import (
 	"sync"
 
 	"github.com/checkmarx/2ms/config"
+	"github.com/checkmarx/2ms/engine"
+	secrets "github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/checkmarx/2ms/reporting"
-	"github.com/checkmarx/2ms/secrets"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -40,7 +41,7 @@ var (
 	customRegexRuleVar []string
 	ignoreVar          []string
 	ignoreOnExitVar    = ignoreOnExitNone
-	engineConfigVar    secrets.EngineConfig
+	engineConfigVar    engine.EngineConfig
 	validateVar        bool
 )
 
@@ -72,8 +73,8 @@ var channels = plugins.Channels{
 }
 
 var report = reporting.Init()
-var secretsChan = make(chan *secrets.Secret)
-var validationChan = make(chan *secrets.Secret)
+var secretsChan = make(chan *engine.Secret)
+var validationChan = make(chan *engine.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)

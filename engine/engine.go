@@ -1,4 +1,4 @@
-package secrets
+package engine
 
 import (
 	"crypto/sha1"
@@ -9,8 +9,8 @@ import (
 	"sync"
 	"text/tabwriter"
 
+	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/plugins"
-	"github.com/checkmarx/2ms/secrets/rules"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
