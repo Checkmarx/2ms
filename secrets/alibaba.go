@@ -4,7 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"io"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -24,29 +24,21 @@ func validateAlibaba(secrets pairsByRuleId) {
 
 	for _, accessKey := range accessKeys {
 		for _, secretKey := range secretKeys {
-			statusCode, err := alibabaRequest(accessKey.Value, secretKey.Value)
+			status, err := alibabaRequest(accessKey.Value, secretKey.Value)
 			if err != nil {
 				log.Warn().Err(err).Str("service", "alibaba").Msg("Failed to validate secret")
-				accessKey.ValidationStatus = Unknown
-				secretKey.ValidationStatus = Unknown
-				continue
 			}
+			accessKey.ValidationStatus = status
+			secretKey.ValidationStatus = status
 
-			if statusCode == http.StatusOK {
-				accessKey.ValidationStatus = Valid
-				secretKey.ValidationStatus = Valid
-			} else {
-				accessKey.ValidationStatus = Revoked
-				secretKey.ValidationStatus = Revoked
-			}
 		}
 	}
 }
 
-func alibabaRequest(accessKey, secretKey string) (int, error) {
+func alibabaRequest(accessKey, secretKey string) (validationResult, error) {
 	req, err := http.NewRequest("GET", "https://ecs.aliyuncs.com/", nil)
 	if err != nil {
-		return 0, err
+		return Unknown, err
 	}
 
 	// Workaround for gitleaks returns the key ends with "
@@ -73,19 +65,20 @@ func alibabaRequest(accessKey, secretKey string) (int, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, err
+		return Unknown, err
+	}
+	log.Debug().Str("service", "alibaba").Int("status_code", resp.StatusCode)
+
+	// If the access key is invalid, the response will be 404
+	// If the secret key is invalid, the response will be 400 along with other signautre Errors
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
+		return Revoked, nil
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
-		body, _ := io.ReadAll(resp.Body)
-		log.Panic().
-			Str("access_key", accessKey).
-			Str("service", "alibaba").
-			Int("status_code", resp.StatusCode).
-			Msgf("Failed to validate secret %s", body)
+	if resp.StatusCode == http.StatusOK {
+		return Valid, nil
 	}
 
-	log.Debug().Str("service", "alibaba").Int("status_code", resp.StatusCode).Msg("Validated secret")
-	return resp.StatusCode, nil
+	err = fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	return Unknown, err
 }
