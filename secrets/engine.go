@@ -25,7 +25,7 @@ type Engine struct {
 
 const customRegexRuleIdFormat = "custom-regex-%d"
 
-type SecretsConfig struct {
+type EngineConfig struct {
 	SelectedList []string
 	IgnoreList   []string
 	SpecialList  []string
@@ -33,8 +33,8 @@ type SecretsConfig struct {
 	MaxTargetMegabytes int
 }
 
-func Init(secretsConfig SecretsConfig) (*Engine, error) {
-	selectedRules := rules.FilterRules(secretsConfig.SelectedList, secretsConfig.IgnoreList, secretsConfig.SpecialList)
+func Init(engineConfig EngineConfig) (*Engine, error) {
+	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
 	}
@@ -49,7 +49,7 @@ func Init(secretsConfig SecretsConfig) (*Engine, error) {
 	detector := detect.NewDetector(config.Config{
 		Rules: rulesToBeApplied,
 	})
-	detector.MaxTargetMegaBytes = secretsConfig.MaxTargetMegabytes
+	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
 	return &Engine{
 		rules:    rulesToBeApplied,
@@ -115,7 +115,7 @@ func isSecretIgnored(secret *Secret, ignoredIds *[]string) bool {
 	return false
 }
 
-func GetRulesCommand(secretsConfig *SecretsConfig) *cobra.Command {
+func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 	canValidateDisplay := map[bool]string{
 		true:  "V",
 		false: "",
@@ -127,7 +127,7 @@ func GetRulesCommand(secretsConfig *SecretsConfig) *cobra.Command {
 		Long:  `List all rules`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			rules := rules.FilterRules(secretsConfig.SelectedList, secretsConfig.IgnoreList, secretsConfig.SpecialList)
+			rules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
 
 			tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
