@@ -13,7 +13,7 @@ type Secret struct {
 	StartColumn      int              `json:"startColumn"`
 	EndColumn        int              `json:"endColumn"`
 	Value            string           `json:"value"`
-	ValidationStatus ValidationResult `json:"validationStatus,omitempty"`
+	ValidationStatus validationResult `json:"validationStatus,omitempty"`
 }
 
 func isCanValidateRule(ruleID string) bool {

@@ -8,22 +8,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type ValidationResult string
+type validationResult string
 
 const (
-	Valid   ValidationResult = "Valid"
-	Revoked ValidationResult = "Revoked"
-	Unknown ValidationResult = "Unknown"
+	Valid   validationResult = "Valid"
+	Revoked validationResult = "Revoked"
+	Unknown validationResult = "Unknown"
 )
 
-type validationFunc = func(*Secret) ValidationResult
+type validationFunc = func(*Secret) validationResult
 
 var ruleIDToFunction = map[string]validationFunc{
 	"github-fine-grained-pat": validateGithub,
 	"github-pat":              validateGithub,
 }
 
-func validateGithub(s *Secret) ValidationResult {
+func validateGithub(s *Secret) validationResult {
 	const githubURL = "https://api.github.com/"
 
 	req, err := http.NewRequest("GET", githubURL, nil)
