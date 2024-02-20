@@ -6,9 +6,8 @@ import (
 
 	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/engine"
-	secrets "github.com/checkmarx/2ms/engine"
+	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/plugins"
-	"github.com/checkmarx/2ms/reporting"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -95,7 +94,7 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().IntVar(&engineConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
 	rootCmd.PersistentFlags().BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are active or revoked")
 
-	rootCmd.AddCommand(secrets.GetRulesCommand(&engineConfigVar))
+	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
 
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
@@ -125,7 +124,7 @@ func preRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	engine, err := secrets.Init(engineConfigVar)
+	engine, err := engine.Init(engineConfigVar)
 	if err != nil {
 		return err
 	}
