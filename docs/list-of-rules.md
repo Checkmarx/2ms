@@ -11,8 +11,8 @@ Here is a complete list of all the rules that are currently implemented.
 | age secret key | Age secret key | secret-key |  |
 | airtable-api-key | Airtable API Key | api-key |  |
 | algolia-api-key | Algolia API Key | api-key |  |
-| alibaba-access-key-id | Alibaba AccessKey ID | access-key,access-id |  |
-| alibaba-secret-key | Alibaba Secret Key | secret-key |  |
+| alibaba-access-key-id | Alibaba AccessKey ID | access-key,access-id | V |
+| alibaba-secret-key | Alibaba Secret Key | secret-key | V |
 | asana-client-id | Asana Client ID | client-id |  |
 | asana-client-secret | Asana Client Secret | client-secret |  |
 | atlassian-api-token | Atlassian API token | api-token |  |
