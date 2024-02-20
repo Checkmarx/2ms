@@ -66,9 +66,9 @@ func (v *Validator) Validate() {
 	wg := &sync.WaitGroup{}
 	for generalKey, bySource := range v.pairsCollector.pairs {
 		for _, byRule := range bySource {
-			// test all pairs per source
 			wg.Add(1)
 			v.pairsCollector.validate(generalKey, byRule, wg)
 		}
 	}
+	wg.Wait()
 }
