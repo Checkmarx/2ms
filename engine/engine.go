@@ -10,6 +10,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/engine/rules"
+	"github.com/checkmarx/2ms/engine/validation"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog/log"
@@ -22,7 +23,7 @@ import (
 type Engine struct {
 	rules     map[string]config.Rule
 	detector  detect.Detector
-	validator Validator
+	validator validation.Validator
 }
 
 const customRegexRuleIdFormat = "custom-regex-%d"
@@ -56,7 +57,7 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	return &Engine{
 		rules:     rulesToBeApplied,
 		detector:  *detector,
-		validator: *NewValidator(),
+		validator: *validation.NewValidator(),
 	}, nil
 }
 
@@ -152,7 +153,7 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 					rule.Rule.RuleID,
 					rule.Rule.Description,
 					strings.Join(rule.Tags, ","),
-					canValidateDisplay[isCanValidateRule(rule.Rule.RuleID)],
+					canValidateDisplay[validation.IsCanValidateRule(rule.Rule.RuleID)],
 				)
 			}
 			if err := tab.Flush(); err != nil {
