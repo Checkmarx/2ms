@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/engine"
+	"github.com/checkmarx/2ms/lib/config"
 	"github.com/rs/zerolog/log"
 )
 

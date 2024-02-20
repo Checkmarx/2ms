@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/checkmarx/2ms/config"
 	"github.com/checkmarx/2ms/engine"
+	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog/log"
