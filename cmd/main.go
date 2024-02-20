@@ -40,7 +40,7 @@ var (
 	customRegexRuleVar []string
 	ignoreVar          []string
 	ignoreOnExitVar    = ignoreOnExitNone
-	secretsConfigVar   secrets.EngineConfig
+	engineConfigVar    secrets.EngineConfig
 	validateVar        bool
 )
 
@@ -86,15 +86,15 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
-	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.SelectedList, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
-	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.IgnoreList, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
+	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.SelectedList, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
+	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.IgnoreList, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
 	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
-	rootCmd.PersistentFlags().StringSliceVar(&secretsConfigVar.SpecialList, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
+	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.SpecialList, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
 	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
-	rootCmd.PersistentFlags().IntVar(&secretsConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
+	rootCmd.PersistentFlags().IntVar(&engineConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
 	rootCmd.PersistentFlags().BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are active or revoked")
 
-	rootCmd.AddCommand(secrets.GetRulesCommand(&secretsConfigVar))
+	rootCmd.AddCommand(secrets.GetRulesCommand(&engineConfigVar))
 
 	group := "Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
@@ -124,7 +124,7 @@ func preRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	engine, err := secrets.Init(secretsConfigVar)
+	engine, err := secrets.Init(engineConfigVar)
 	if err != nil {
 		return err
 	}

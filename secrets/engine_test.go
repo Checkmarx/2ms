@@ -14,13 +14,13 @@ func Test_Init(t *testing.T) {
 	specialRule := rules.HardcodedPassword()
 
 	tests := []struct {
-		name          string
-		secretsConfig EngineConfig
-		expectedErr   error
+		name         string
+		engineConfig EngineConfig
+		expectedErr  error
 	}{
 		{
 			name: "selected and ignore flags used together for the same rule",
-			secretsConfig: EngineConfig{
+			engineConfig: EngineConfig{
 				SelectedList: []string{allRules[0].Rule.RuleID},
 				IgnoreList:   []string{allRules[0].Rule.RuleID},
 				SpecialList:  []string{},
@@ -29,7 +29,7 @@ func Test_Init(t *testing.T) {
 		},
 		{
 			name: "non existent select flag",
-			secretsConfig: EngineConfig{
+			engineConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},
 				SpecialList:  []string{"non-existent-tag-name"},
@@ -38,7 +38,7 @@ func Test_Init(t *testing.T) {
 		},
 		{
 			name: "exiting special rule",
-			secretsConfig: EngineConfig{
+			engineConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},
 				SpecialList:  []string{specialRule.RuleID},
@@ -49,7 +49,7 @@ func Test_Init(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := Init(test.secretsConfig)
+			_, err := Init(test.engineConfig)
 			if err == nil && test.expectedErr != nil {
 				t.Errorf("expected error, got nil")
 			}
