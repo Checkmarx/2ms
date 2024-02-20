@@ -7,6 +7,8 @@
 
 **Too many secrets (`2ms`)** is a command line tool written in Go language and built over [gitleaks](https://github.com/gitleaks/gitleaks). `2ms` is capable of finding secrets such as login credentials, API keys, SSH keys and more hidden in code, content systems, chat applications and more.
 
+You can see the list of rules that `2ms` uses to detect secrets in [docs/list-of-rules.md](docs/list-of-rules.md)
+
 # Installation
 
 ### Download Precompiled Binaries
@@ -151,12 +153,29 @@ Flags:
       --report-path strings           path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
       --rule strings                  select rules by name or tag to apply to this scan
       --stdout-format string          stdout output format, available formats are: json, yaml, sarif (default "yaml")
+      --validate                      trigger additional validation to check if discovered secrets are active or revoked
   -v, --version                       version for 2ms
 
 Use "2ms [command] --help" for more information about a command.
 ```
 
 <!-- command-line:end -->
+
+## Validity Check
+
+From the help message: `--validate    trigger additional validation to check if discovered secrets are active or revoked`.
+
+The `--validate` flag will check the validity of the secrets found. For example, if it is a Github token, it will check if the token is valid by making a request to the Github API. We will use the less intrusive method to check the validity of the secret.
+
+The list of services that support the Validity Check feature can be found in the [List of Rules](docs/list-of-rules.md) document.
+
+The result of the validation can be:
+
+- `valid` - The secret is valid
+- `revoked` - The secret is revoked
+- `unknown` - We failed to check, or we are not checking the validity of the secret at all
+
+If the `--validate` flag is not provided, the validation field will be omitted from the output, or its value will be an empty string.
 
 ## Special Rules
 

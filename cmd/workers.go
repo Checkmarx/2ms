@@ -24,6 +24,21 @@ func processSecrets() {
 
 	for secret := range secretsChan {
 		report.TotalSecretsFound++
+		if validateVar {
+			validationChan <- secret
+		}
 		report.Results[secret.ID] = append(report.Results[secret.ID], secret)
 	}
+	close(validationChan)
+}
+
+func processValidation() {
+	defer channels.WaitGroup.Done()
+
+	wgValidation := &sync.WaitGroup{}
+	for secret := range validationChan {
+		wgValidation.Add(1)
+		go secret.Validate(wgValidation)
+	}
+	wgValidation.Wait()
 }
