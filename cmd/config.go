@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/checkmarx/2ms/lib"
+	"github.com/checkmarx/2ms/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -17,8 +17,8 @@ func initialize() {
 	if err != nil {
 		cobra.CheckErr(err)
 	}
-	cobra.CheckErr(lib.LoadConfig(vConfig, configFilePath))
-	cobra.CheckErr(lib.BindFlags(rootCmd, vConfig, envPrefix))
+	cobra.CheckErr(utils.LoadConfig(vConfig, configFilePath))
+	cobra.CheckErr(utils.BindFlags(rootCmd, vConfig, envPrefix))
 
 	logLevel := zerolog.InfoLevel
 	switch strings.ToLower(logLevelVar) {

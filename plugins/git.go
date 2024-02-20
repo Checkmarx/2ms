@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/checkmarx/2ms/lib"
+	"github.com/checkmarx/2ms/lib/utils"
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -109,7 +109,7 @@ func (p *GitPlugin) readGitLog(path string, scanOptions string, errChan chan err
 	log.Debug().Msgf("scanning git repository: %s", path)
 
 	p.WaitGroup.Add(1)
-	go lib.BindChannels[error](gitLog.ErrCh(), errChan, p.WaitGroup)
+	go utils.BindChannels[error](gitLog.ErrCh(), errChan, p.WaitGroup)
 
 	return gitLog.DiffFilesCh(), wait
 }
