@@ -9,4 +9,4 @@ jobs:
     name: Lint PR Titles
     runs-on: ubuntu-latest
     steps:
-      - uses: Weburz/pr-lint-action@ec1ad6afd2210cb4f73b28a369d579b9c263e888
+      - uses: Weburz/pr-lint-action@2ecff97b8e96423f024b159426f8ca78e3f00a77
