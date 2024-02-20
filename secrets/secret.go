@@ -1,5 +1,8 @@
 package secrets
 
+// TODO: rename package to engine and move secrets into subpackage
+// Then move the validators into a subpackage too
+
 import (
 	"sync"
 )
