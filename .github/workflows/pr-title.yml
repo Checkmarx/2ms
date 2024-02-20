@@ -5,14 +5,8 @@ on:
     types: [opened, edited, synchronize, reopened]
 
 jobs:
-  validate:
+  pr-lint:
+    name: Lint PR Titles
     runs-on: ubuntu-latest
     steps:
-      - name: install commitlint
-        run: npm install -g @commitlint/cli @commitlint/config-conventional
-      - name: config commitlint
-        run: |
-          echo "module.exports = {extends: ['@commitlint/config-conventional']}" > commitlint.config.js
-      - name: validate PR title
-        run: |
-          echo ${{ github.event.pull_request.title }} | commitlint
+      - uses: Weburz/pr-lint-action@ec1ad6afd2210cb4f73b28a369d579b9c263e888
