@@ -16,6 +16,30 @@ const (
 	Unknown validationResult = "Unknown"
 )
 
+type compared int
+
+const (
+	first  compared = -1
+	second compared = 1
+	equal  compared = 0
+)
+
+func (v validationResult) CompareTo(other validationResult) compared {
+	if v == other {
+		return equal
+	}
+	if v == Unknown {
+		return second
+	}
+	if other == Unknown {
+		return first
+	}
+	if v == Revoked {
+		return second
+	}
+	return first
+}
+
 type validationFunc = func(*Secret) validationResult
 
 var ruleIDToFunction = map[string]validationFunc{

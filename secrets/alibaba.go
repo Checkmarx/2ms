@@ -23,14 +23,18 @@ func validateAlibaba(secrets pairsByRuleId) {
 	secretKeys := secrets["alibaba-secret-key"]
 
 	for _, accessKey := range accessKeys {
+		accessKey.ValidationStatus = Unknown
+
 		for _, secretKey := range secretKeys {
 			status, err := alibabaRequest(accessKey.Value, secretKey.Value)
 			if err != nil {
 				log.Warn().Err(err).Str("service", "alibaba").Msg("Failed to validate secret")
 			}
-			accessKey.ValidationStatus = status
-			secretKey.ValidationStatus = status
 
+			secretKey.ValidationStatus = status
+			if accessKey.ValidationStatus.CompareTo(status) == second {
+				accessKey.ValidationStatus = status
+			}
 		}
 	}
 }
