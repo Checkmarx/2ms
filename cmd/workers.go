@@ -3,10 +3,10 @@ package cmd
 import (
 	"sync"
 
-	"github.com/checkmarx/2ms/secrets"
+	"github.com/checkmarx/2ms/engine"
 )
 
-func processItems(engine *secrets.Engine) {
+func processItems(engine *engine.Engine) {
 	defer channels.WaitGroup.Done()
 
 	wgItems := &sync.WaitGroup{}
@@ -32,7 +32,7 @@ func processSecrets() {
 	close(validationChan)
 }
 
-func processValidation(engine *secrets.Engine) {
+func processValidation(engine *engine.Engine) {
 	defer channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}

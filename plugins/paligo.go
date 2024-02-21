@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/checkmarx/2ms/lib"
+	"github.com/checkmarx/2ms/lib/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"golang.org/x/time/rate"
@@ -48,7 +48,7 @@ func (p *PaligoPlugin) GetAuthorizationHeader() string {
 	if p.auth != "" {
 		return fmt.Sprintf("Basic %s", p.auth)
 	}
-	return lib.CreateBasicAuthCredentials(p)
+	return utils.CreateBasicAuthCredentials(p)
 }
 
 func (p *PaligoPlugin) GetName() string {
@@ -259,7 +259,7 @@ type Document struct {
 
 type PaligoClient struct {
 	Instance string
-	auth     lib.IAuthorizationHeader
+	auth     utils.IAuthorizationHeader
 
 	foldersLimiter   *rate.Limiter
 	documentsLimiter *rate.Limiter
@@ -291,7 +291,7 @@ func (p *PaligoClient) request(endpoint string, lim *rate.Limiter) ([]byte, erro
 	}
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/api/v2/%s", p.Instance, endpoint)
-	body, response, err := lib.HttpRequest("GET", url, p.auth, lib.RetrySettings{})
+	body, response, err := utils.HttpRequest("GET", url, p.auth, utils.RetrySettings{})
 	if err != nil {
 		if err := reserveRateLimit(response, lim, err); err != nil {
 			return nil, err
@@ -341,7 +341,7 @@ func (p *PaligoClient) showDocument(documentId int) (*Document, error) {
 	return document, err
 }
 
-func newPaligoApi(instance string, auth lib.IAuthorizationHeader) *PaligoClient {
+func newPaligoApi(instance string, auth utils.IAuthorizationHeader) *PaligoClient {
 	return &PaligoClient{
 		Instance: instance,
 		auth:     auth,

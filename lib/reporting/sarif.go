@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/checkmarx/2ms/config"
-	"github.com/checkmarx/2ms/secrets"
+	"github.com/checkmarx/2ms/lib/config"
+	"github.com/checkmarx/2ms/lib/secrets"
 )
 
 func writeSarif(report Report, cfg *config.Config) (string, error) {
