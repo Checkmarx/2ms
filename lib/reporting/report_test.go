@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/checkmarx/2ms/config"
-	"github.com/checkmarx/2ms/secrets"
+	"github.com/checkmarx/2ms/lib/config"
+	"github.com/checkmarx/2ms/lib/secrets"
 )
 
 func TestAddSecretToFile(t *testing.T) {

@@ -1,4 +1,4 @@
-package lib_test
+package utils_test
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/checkmarx/2ms/lib"
+	"github.com/checkmarx/2ms/lib/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +34,7 @@ func TestBindFlags(t *testing.T) {
 		cmd.PersistentFlags().BoolVar(&testBool, "test-bool", false, "Test bool flag")
 		cmd.PersistentFlags().Float64Var(&testFloat64, "test-float64", 0.0, "Test float64 flag")
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Empty(t, testString)
@@ -72,7 +72,7 @@ func TestBindFlags(t *testing.T) {
 		err = setEnv("PREFIX_TEST_FLOAT64", "1.23")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, envVarPrefix)
+		err = utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "test-string-value", testString)
@@ -97,7 +97,7 @@ func TestBindFlags(t *testing.T) {
 		err := setEnv("PREFIX_TEST_STRING", "test-string-value")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, envVarPrefix)
+		err = utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "test-string-value", testString)
@@ -127,7 +127,7 @@ func TestBindFlags(t *testing.T) {
 		err = setEnv("PREFIX_SUBCOMMAND_TEST_INT", "456")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, envVarPrefix)
+		err = utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "test-string-value", testString)
@@ -156,7 +156,7 @@ func TestBindFlags(t *testing.T) {
 		err := setEnv("PREFIX_TEST_ARRAY_COMMAS", strings.Join(arr, ","))
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, envVarPrefix)
+		err = utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		// assert.Equal(t, testArraySpaces, arr)
@@ -179,7 +179,7 @@ func TestBindFlags(t *testing.T) {
 
 		v.Set("unknown-key", "unknown-value")
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 
 		assert.EqualError(t, err, "unknown configuration key: 'unknown-key'\nShowing help for '' command")
 	})
@@ -200,7 +200,7 @@ func TestBindFlags(t *testing.T) {
 		err := setEnv("prefix_test_string", "test-string-value")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, envVarPrefix)
+		err = utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "test-string-value", testString)
@@ -222,7 +222,7 @@ func TestBindFlags(t *testing.T) {
 		err := setEnv("prefix_teststring", "test-string-value")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, envVarPrefix)
+		err = utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "test-string-value", testString)
@@ -276,7 +276,7 @@ func TestBindFlags(t *testing.T) {
 		err = setEnv("prefix_cmd2_test_string_persistent", "test-string-persistent-value-cmd2")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(rootCmd, v, envVarPrefix)
+		err = utils.BindFlags(rootCmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "test-string-value", testStringRoot)
@@ -321,7 +321,7 @@ test-float: 123.456
 		cmd.Flags().StringSliceVar(&testArray, "test-array", []string{}, "Test array flag")
 		cmd.PersistentFlags().Float64Var(&testFloat, "test-float", 0, "Test float flag")
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "test-string-value", testString)
@@ -352,7 +352,7 @@ another-regex: [test\=, array\=, flag\=]
 		cmd.Flags().StringArrayVar(&testArray, "regex", []string{}, "Test array flag")
 		cmd.Flags().StringArrayVar(&testArray, "another-regex", []string{}, "Test array flag")
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, []string{"test\\=", "array\\=", "flag\\="}, testArray)
@@ -392,7 +392,7 @@ subCommand:
 		subCmd.Flags().IntVar(&testInt, "test-int", 0, "Test int flag")
 		subCmd.PersistentFlags().BoolVar(&testBool, "test-bool", false, "Test bool flag")
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "global-string-value", globalString)
@@ -438,7 +438,7 @@ subCommand:
 		err = setEnv("PREFIX_SUBCOMMAND_TEST_STRING", "test-string-value-from-env")
 		assert.NoError(t, err)
 
-		err = lib.BindFlags(cmd, v, envVarPrefix)
+		err = utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "global-string-value-from-env", globalString)
@@ -481,7 +481,7 @@ subCommand:
 		subCmd.PersistentFlags().StringVar(&firstString, "first-string", "", "Test string flag")
 		subSubCmd.Flags().StringVar(&secondString, "second-string", "", "Test string flag")
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "global-string-value", globalString)
@@ -517,7 +517,7 @@ subCommand:
 		cmd.PersistentFlags().StringVar(&testStringRoot, "test-string", "", "Test string flag")
 		subCmd.PersistentFlags().StringVar(&testStringSub, "test-string", "", "Test string flag")
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "global-string-value", testStringRoot)
@@ -553,7 +553,7 @@ subCommand:
 
 		cmd.AddCommand(subCmd)
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "global-string-value", testStringRoot)
@@ -585,7 +585,7 @@ subCommand:
 		globalString := cmd.PersistentFlags().String("global-string", "", "Global string flag")
 		testString := subCmd.PersistentFlags().String("test-string", "", "Test string flag")
 
-		err := lib.BindFlags(cmd, v, envVarPrefix)
+		err := utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "global-string-value", *globalString)
@@ -667,9 +667,9 @@ subcommand:
 		if err != nil {
 			cobra.CheckErr(err)
 		}
-		err = lib.LoadConfig(v, configFilePath)
+		err = utils.LoadConfig(v, configFilePath)
 		assert.NoError(t, err)
-		err = lib.BindFlags(cmd, v, envVarPrefix)
+		err = utils.BindFlags(cmd, v, envVarPrefix)
 		assert.NoError(t, err)
 	})
 

@@ -9,7 +9,7 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/checkmarx/2ms/reporting"
+	"github.com/checkmarx/2ms/lib/reporting"
 )
 
 type cli struct {
