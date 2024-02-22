@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/checkmarx/2ms/lib"
+	"github.com/checkmarx/2ms/lib/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
@@ -45,7 +45,7 @@ func (p *ConfluencePlugin) GetAuthorizationHeader() string {
 	if p.Username == "" || p.Token == "" {
 		return ""
 	}
-	return lib.CreateBasicAuthCredentials(p)
+	return utils.CreateBasicAuthCredentials(p)
 }
 
 func isValidURL(cmd *cobra.Command, args []string) error {
@@ -168,7 +168,7 @@ func (p *ConfluencePlugin) getSpaces() ([]ConfluenceSpaceResult, error) {
 
 func (p *ConfluencePlugin) getSpacesRequest(start int) (*ConfluenceSpaceResponse, error) {
 	url := fmt.Sprintf("%s/rest/api/space?start=%d", p.URL, start)
-	body, _, err := lib.HttpRequest(http.MethodGet, url, p, lib.RetrySettings{})
+	body, _, err := utils.HttpRequest(http.MethodGet, url, p, utils.RetrySettings{})
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
@@ -209,7 +209,7 @@ func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult) (*ConfluencePag
 
 func (p *ConfluencePlugin) getPagesRequest(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error) {
 	url := fmt.Sprintf("%s/rest/api/space/%s/content?start=%d", p.URL, space.Key, start)
-	body, _, err := lib.HttpRequest(http.MethodGet, url, p, lib.RetrySettings{})
+	body, _, err := utils.HttpRequest(http.MethodGet, url, p, utils.RetrySettings{})
 
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
@@ -256,7 +256,7 @@ func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceRes
 		url = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage,version,history.previousVersion", p.URL, page.ID, version)
 	}
 
-	request, _, err := lib.HttpRequest(http.MethodGet, url, p, lib.RetrySettings{MaxRetries: 3, ErrorCodes: []int{500}})
+	request, _, err := utils.HttpRequest(http.MethodGet, url, p, utils.RetrySettings{MaxRetries: 3, ErrorCodes: []int{500}})
 	if err != nil {
 		return nil, 0, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
