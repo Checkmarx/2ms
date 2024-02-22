@@ -3,7 +3,7 @@ package rules_test
 import (
 	"testing"
 
-	"github.com/checkmarx/2ms/secrets/rules"
+	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 

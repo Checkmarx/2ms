@@ -6,32 +6,32 @@ import (
 
 func TestValidationResultCompareTo(t *testing.T) {
 	testCases := []struct {
-		first   validationResult
-		second  validationResult
+		first   ValidationResult
+		second  ValidationResult
 		want    compared
 		message string
 	}{
 		{
-			first:   Valid,
-			second:  Valid,
+			first:   ValidResult,
+			second:  ValidResult,
 			want:    equal,
 			message: "Valid should be equal to Valid",
 		},
 		{
-			first:   Revoked,
-			second:  Valid,
+			first:   RevokedResult,
+			second:  ValidResult,
 			want:    second,
 			message: "Valid should be greater than Revoked",
 		},
 		{
-			first:   Valid,
-			second:  Unknown,
+			first:   ValidResult,
+			second:  UnknownResult,
 			want:    first,
 			message: "Valid should be greater than Unknown",
 		},
 		{
-			first:   Unknown,
-			second:  Revoked,
+			first:   UnknownResult,
+			second:  RevokedResult,
 			want:    second,
 			message: "Revoked should be greater than Unknown",
 		},
