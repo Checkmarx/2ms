@@ -75,12 +75,17 @@ Here is a complete list of all the rules that are currently implemented.
 | grafana-cloud-api-token | Found a Grafana cloud API token, risking unauthorized access to cloud-based monitoring services and data exposure. | api-token |  |
 | grafana-service-account-token | Discovered a Grafana service account token, posing a risk of compromised monitoring services and data integrity. | access-token |  |
 | hashicorp-tf-api-token | Uncovered a HashiCorp Terraform user/org API token, which may lead to unauthorized infrastructure management and security breaches. | api-token |  |
+| hashicorp-tf-password | Identified a HashiCorp Terraform password field, risking unauthorized infrastructure configuration and security breaches. | password |  |
 | heroku-api-key | Detected a Heroku API Key, potentially compromising cloud application deployments and operational security. | api-key |  |
 | hubspot-api-key | Found a HubSpot API Token, posing a risk to CRM data integrity and unauthorized marketing operations. | api-token,api-key |  |
+| huggingface-access-token | Discovered a Hugging Face Access token, which could lead to unauthorized access to AI models and sensitive data. | access-token |  |
+| huggingface-organization-api-token | Uncovered a Hugging Face Organization API token, potentially compromising AI organization accounts and associated data. | api-token |  |
+| infracost-api-token | Detected an Infracost API Token, risking unauthorized access to cloud cost estimation tools and financial data. | api-token |  |
 | intercom-api-key | Identified an Intercom API Token, which could compromise customer communication channels and data privacy. | api-token,api-key |  |
 | jfrog-api-key | Found a JFrog API Key, posing a risk of unauthorized access to software artifact repositories and build pipelines. | api-key |  |
 | jfrog-identity-token | Discovered a JFrog Identity Token, potentially compromising access to JFrog services and sensitive software artifacts. | access-token |  |
 | jwt | Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data. | access-token |  |
+| jwt-base64 | Detected a Base64-encoded JSON Web Token, posing a risk of exposing encoded authentication and data exchange information. | access-token |  |
 | kraken-access-token | Identified a Kraken Access Token, potentially compromising cryptocurrency trading accounts and financial security. | access-token |  |
 | kucoin-access-token | Found a Kucoin Access Token, risking unauthorized access to cryptocurrency exchange services and transactions. | access-token |  |
 | kucoin-secret-key | Discovered a Kucoin Secret Key, which could lead to compromised cryptocurrency operations and financial data breaches. | secret-key |  |
@@ -121,6 +126,7 @@ Here is a complete list of all the rules that are currently implemented.
 | rapidapi-access-token | Uncovered a RapidAPI Access Token, which could lead to unauthorized access to various APIs and data services. | access-token |  |
 | readme-api-token | Detected a Readme API token, risking unauthorized documentation management and content exposure. | api-token |  |
 | rubygems-api-token | Identified a Rubygem API token, potentially compromising Ruby library distribution and package management. | api-token |  |
+| scalingo-api-token | Found a Scalingo API token, posing a risk to cloud platform services and application deployment security. | api-token |  |
 | sendbird-access-id | Discovered a Sendbird Access ID, which could compromise chat and messaging platform integrations. | access-id |  |
 | sendbird-access-token | Uncovered a Sendbird Access Token, potentially risking unauthorized access to communication services and user data. | access-token |  |
 | sendgrid-api-token | Detected a SendGrid API token, posing a risk of unauthorized email service operations and data exposure. | api-token |  |
