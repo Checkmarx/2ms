@@ -11,9 +11,8 @@ import (
 )
 
 var (
-	// regexGitleaksRules = regexp.MustCompile(`^[^/\n\r]\s*rules\.([a-zA-Z0-9_]+)\(`)
 	regexGitleaksRules = regexp.MustCompile(`(?m)^[^/\n\r]\s*rules\.([a-zA-Z0-9_]+)\(`)
-	regex2msRules      = regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
+	regex2msRules      = regexp.MustCompile(`(?m)^[^/\n\r]\s*{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
 )
 
 func main() {
@@ -44,6 +43,10 @@ func main() {
 		os.Exit(1)
 	}
 	match2msRules := regex2msRules.FindAllStringSubmatch(string(ourRules), -1)
+	if len(match2msRules) == 0 {
+		fmt.Println("No rules found in 2ms.")
+		os.Exit(1)
+	}
 	fmt.Printf("Total rules in 2ms: %d\n", len(match2msRules))
 
 	map2msRules := make(map[string]bool)
