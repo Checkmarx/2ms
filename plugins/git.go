@@ -10,7 +10,7 @@ import (
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/zricethezav/gitleaks/v8/detect/git"
+	git "github.com/zricethezav/gitleaks/v8/sources"
 )
 
 const (
