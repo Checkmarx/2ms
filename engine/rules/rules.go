@@ -247,7 +247,7 @@ func ignoreRules(allRules *[]Rule, tags []string) *[]Rule {
 
 func FilterRules(selectedList, ignoreList, specialList []string) *[]Rule {
 	if len(selectedList) > 0 && len(ignoreList) > 0 {
-		log.Warn().Msgf("Both 'rule' and 'ignoreRule' flags were provided.")
+		log.Warn().Msgf("Both 'rule' and 'ignoreRule' flags were provided, I will first take all in 'rule' and then remove all in 'ignoreRule' from the list.")
 	}
 
 	selectedRules := getDefaultRules()
