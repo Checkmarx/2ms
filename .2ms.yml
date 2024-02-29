@@ -16,3 +16,5 @@ ignore-result:
   - a3a83b7224e7e98e3cca6bd2cd138dbca831e06d
   - ba1f0517b77a5b451d1d55078218cd23d96b686e
   - c5748512948b492f5c07849ae2e69e7e831d36d3
+  - 5e73b4b73bf4a59b11f37066829af01478879067 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358
+  - 255853e2044119bf502261713e2f892265d4b5c1 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358
