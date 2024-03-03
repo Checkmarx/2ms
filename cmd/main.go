@@ -76,11 +76,7 @@ var report = reporting.Init()
 var secretsChan = make(chan *secrets.Secret)
 var validationChan = make(chan *secrets.Secret)
 
-func Execute() (int, error) {
-	vConfig.SetEnvPrefix(envPrefix)
-	vConfig.AutomaticEnv()
-
-	cobra.OnInitialize(initialize)
+func buildCommand() (*cobra.Command, error) {
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
@@ -97,18 +93,32 @@ func Execute() (int, error) {
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
 
-	group := "Scan Commands"
+	group := "Scan golang Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
 		subCommand, err := plugin.DefineCommand(channels.Items, channels.Errors)
 		if err != nil {
-			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
+			return nil, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
 		subCommand.GroupID = group
 		subCommand.PreRunE = preRun
 		subCommand.PostRunE = postRun
 		rootCmd.AddCommand(subCommand)
+	}
+
+	return rootCmd, nil
+}
+
+func Execute() (int, error) {
+	vConfig.SetEnvPrefix(envPrefix)
+	vConfig.AutomaticEnv()
+
+	cobra.OnInitialize(initialize)
+	var err error
+	rootCmd, err = buildCommand()
+	if err != nil {
+		return 0, err
 	}
 
 	listenForErrors(channels.Errors)
