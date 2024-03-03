@@ -64,7 +64,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan Item, errors chan error) (*c
 		Long:  "Scan Confluence server for sensitive information",
 		Args:  cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := p.initialize(cmd, args[0])
+			err := p.initialize(args[0])
 			if err != nil {
 				errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
 			}
@@ -84,7 +84,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan Item, errors chan error) (*c
 	return confluenceCmd, nil
 }
 
-func (p *ConfluencePlugin) initialize(cmd *cobra.Command, urlArg string) error {
+func (p *ConfluencePlugin) initialize(urlArg string) error {
 
 	p.URL = strings.TrimRight(urlArg, "/")
 
