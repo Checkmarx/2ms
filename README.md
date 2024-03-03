@@ -137,7 +137,7 @@ We've built the `2ms` command line interface to be as self-descriptive as possib
 Usage:
   2ms [command]
 
-Commands
+Scan Commands
   confluence  Scan Confluence server
   discord     Scan Discord server
   filesystem  Scan local folder
