@@ -69,7 +69,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan Item, errors chan error) (*c
 				errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
 			}
 			wg := &sync.WaitGroup{}
-			p.getItems(items, errors, wg)
+			p.scanConfluence(items, errors, wg)
 			wg.Wait()
 			close(items)
 		},
@@ -96,7 +96,7 @@ func (p *ConfluencePlugin) initialize(urlArg string) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup) {
+func (p *ConfluencePlugin) scanConfluence(items chan Item, errs chan error, wg *sync.WaitGroup) {
 	spaces, err := p.getSpaces()
 	if err != nil {
 		errs <- err
@@ -104,11 +104,11 @@ func (p *ConfluencePlugin) getItems(items chan Item, errs chan error, wg *sync.W
 
 	for _, space := range spaces {
 		wg.Add(1)
-		go p.getSpaceItems(items, errs, wg, space)
+		go p.loopSpaces(items, errs, wg, space)
 	}
 }
 
-func (p *ConfluencePlugin) getSpaceItems(items chan Item, errs chan error, wg *sync.WaitGroup, space ConfluenceSpaceResult) {
+func (p *ConfluencePlugin) loopSpaces(items chan Item, errs chan error, wg *sync.WaitGroup, space ConfluenceSpaceResult) {
 	defer wg.Done()
 
 	pages, err := p.getPages(space)
@@ -121,7 +121,7 @@ func (p *ConfluencePlugin) getSpaceItems(items chan Item, errs chan error, wg *s
 		wg.Add(1)
 		p.Limit <- struct{}{}
 		go func(page ConfluencePage) {
-			p.getPageItems(items, errs, wg, page, space)
+			p.pageVersionsToItem(items, errs, wg, page, space)
 			<-p.Limit
 		}(page)
 	}
@@ -224,19 +224,18 @@ func (p *ConfluencePlugin) getPagesRequest(space ConfluenceSpaceResult, start in
 	return &response.Results, nil
 }
 
-func (p *ConfluencePlugin) getPageItems(items chan Item, errs chan error, wg *sync.WaitGroup, page ConfluencePage, space ConfluenceSpaceResult) {
+func (p *ConfluencePlugin) pageVersionsToItem(items chan Item, errs chan error, wg *sync.WaitGroup, page ConfluencePage, space ConfluenceSpaceResult) {
 	defer wg.Done()
 
-	actualPage, previousVersion, err := p.getItem(page, space, 0)
+	actualPage, previousVersion, err := p.convertPageToItem(page, space, 0)
 	if err != nil {
 		errs <- err
 		return
 	}
 	items <- *actualPage
 
-	// If older versions exist & run history is true
 	for previousVersion > 0 && p.History {
-		actualPage, previousVersion, err = p.getItem(page, space, previousVersion)
+		actualPage, previousVersion, err = p.convertPageToItem(page, space, previousVersion)
 		if err != nil {
 			errs <- err
 			return
@@ -245,7 +244,7 @@ func (p *ConfluencePlugin) getPageItems(items chan Item, errs chan error, wg *sy
 	}
 }
 
-func (p *ConfluencePlugin) getItem(page ConfluencePage, space ConfluenceSpaceResult, version int) (*Item, int, error) {
+func (p *ConfluencePlugin) convertPageToItem(page ConfluencePage, space ConfluenceSpaceResult, version int) (*Item, int, error) {
 	var url string
 
 	// If no version given get the latest, else get the specified version
