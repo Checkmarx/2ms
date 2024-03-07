@@ -2,7 +2,11 @@ package tests
 
 import "testing"
 
-func TestCLI(t *testing.T) {
+func TestFilesystemIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping e2e test")
+	}
+
 	executable, err := createCLI(t.TempDir())
 	if err != nil {
 		t.Fatalf("failed to build CLI: %s", err)

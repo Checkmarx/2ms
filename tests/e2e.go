@@ -1,5 +1,7 @@
 package tests
 
+// TODO: add confluence test
+
 import (
 	"encoding/json"
 	"fmt"
