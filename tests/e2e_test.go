@@ -14,12 +14,12 @@ func TestFilesystemIntegration(t *testing.T) {
 
 	projectDir := t.TempDir()
 
-	t.Run("found_one_secret", func(t *testing.T) {
+	t.Run("one secret found", func(t *testing.T) {
 		if err := generateProject(projectDir); err != nil {
 			t.Fatalf("failed to generate project: %s", err)
 		}
 
-		if err := executable.run(projectDir); err == nil {
+		if err := executable.run("filesystem", "--path", projectDir); err == nil {
 			t.Error("expected error, got nil")
 		}
 

@@ -54,8 +54,10 @@ func generateProject(outputDir string) error {
 	return nil
 }
 
-func (c *cli) run(projectDir string, args ...string) error {
-	argsWithDefault := append([]string{"filesystem", "--path", projectDir, "--report-path", c.resultsPath}, args...)
+func (c *cli) run(command string, args ...string) error {
+	argsWithDefault := append([]string{command}, args...)
+	argsWithDefault = append(argsWithDefault, "--report-path", c.resultsPath)
+
 	cmd := exec.Command(c.executable, argsWithDefault...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
