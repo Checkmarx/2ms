@@ -35,7 +35,7 @@ type ConfluencePlugin struct {
 	History bool
 	client  IConfluenceClient
 
-	itemsChan  chan Item
+	itemsChan  chan ISourceItem
 	errorsChan chan error
 }
 
@@ -52,7 +52,7 @@ func isValidURL(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	p.itemsChan = items
 	p.errorsChan = errors
 
@@ -152,9 +152,9 @@ func (p *ConfluencePlugin) scanPageVersion(page ConfluencePage, space Confluence
 	return pageContent.History.PreviousVersion.Number
 }
 
-func convertPageToItem(pageContent *ConfluencePageContent, itemID string) Item {
-	return Item{
-		Content: pageContent.Body.Storage.Value,
+func convertPageToItem(pageContent *ConfluencePageContent, itemID string) ISourceItem {
+	return &item{
+		Content: &pageContent.Body.Storage.Value,
 		ID:      itemID,
 		Source:  pageContent.Links["base"] + pageContent.Links["webui"],
 	}
