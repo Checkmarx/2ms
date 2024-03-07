@@ -34,6 +34,9 @@ type ConfluencePlugin struct {
 	Spaces  []string
 	History bool
 	client  IConfluenceClient
+
+	itemsChan  chan Item
+	errorsChan chan error
 }
 
 func (p *ConfluencePlugin) GetName() string {
@@ -50,6 +53,9 @@ func isValidURL(cmd *cobra.Command, args []string) error {
 }
 
 func (p *ConfluencePlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+	p.itemsChan = items
+	p.errorsChan = errors
+
 	var confluenceCmd = &cobra.Command{
 		Use:     fmt.Sprintf("%s <URL>", p.GetName()),
 		Short:   "Scan Confluence server",
@@ -62,7 +68,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan Item, errors chan error) (*c
 				errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
 			}
 			wg := &sync.WaitGroup{}
-			p.scanConfluence(items, errors, wg)
+			p.scanConfluence(wg)
 			wg.Wait()
 			close(items)
 		},
@@ -90,24 +96,24 @@ func (p *ConfluencePlugin) initialize(urlArg string) error {
 	return nil
 }
 
-func (p *ConfluencePlugin) scanConfluence(items chan Item, errs chan error, wg *sync.WaitGroup) {
+func (p *ConfluencePlugin) scanConfluence(wg *sync.WaitGroup) {
 	spaces, err := p.getSpaces()
 	if err != nil {
-		errs <- err
+		p.errorsChan <- err
 	}
 
 	for _, space := range spaces {
 		wg.Add(1)
-		go p.scanConfluenceSpace(items, errs, wg, space)
+		go p.scanConfluenceSpace(wg, space)
 	}
 }
 
-func (p *ConfluencePlugin) scanConfluenceSpace(items chan Item, errs chan error, wg *sync.WaitGroup, space ConfluenceSpaceResult) {
+func (p *ConfluencePlugin) scanConfluenceSpace(wg *sync.WaitGroup, space ConfluenceSpaceResult) {
 	defer wg.Done()
 
 	pages, err := p.getPages(space)
 	if err != nil {
-		errs <- err
+		p.errorsChan <- err
 		return
 	}
 
@@ -115,9 +121,42 @@ func (p *ConfluencePlugin) scanConfluenceSpace(items chan Item, errs chan error,
 		wg.Add(1)
 		p.Limit <- struct{}{}
 		go func(page ConfluencePage) {
-			p.pageVersionsToItem(items, errs, wg, page, space)
+			p.scanPageAllVersions(wg, page, space)
 			<-p.Limit
 		}(page)
+	}
+}
+
+func (p *ConfluencePlugin) scanPageAllVersions(wg *sync.WaitGroup, page ConfluencePage, space ConfluenceSpaceResult) {
+	defer wg.Done()
+
+	previousVersion := p.scanPageVersion(page, space, 0)
+	if !p.History {
+		return
+	}
+
+	for previousVersion > 0 {
+		previousVersion = p.scanPageVersion(page, space, previousVersion)
+	}
+}
+
+func (p *ConfluencePlugin) scanPageVersion(page ConfluencePage, space ConfluenceSpaceResult, version int) int {
+	pageContent, err := p.client.getPageContentRequest(page, version)
+	if err != nil {
+		p.errorsChan <- err
+		return 0
+	}
+	itemID := fmt.Sprintf("%s-%s-%s", p.GetName(), space.Key, page.ID)
+	p.itemsChan <- convertPageToItem(pageContent, itemID)
+
+	return pageContent.History.PreviousVersion.Number
+}
+
+func convertPageToItem(pageContent *ConfluencePageContent, itemID string) Item {
+	return Item{
+		Content: pageContent.Body.Storage.Value,
+		ID:      itemID,
+		Source:  pageContent.Links["base"] + pageContent.Links["webui"],
 	}
 }
 
@@ -183,40 +222,6 @@ func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult) (*ConfluencePag
 	log.Info().Msgf(" Space - %s have %d pages", space.Name, len(totalPages.Pages))
 
 	return totalPages, nil
-}
-
-func (p *ConfluencePlugin) pageVersionsToItem(items chan Item, errs chan error, wg *sync.WaitGroup, page ConfluencePage, space ConfluenceSpaceResult) {
-	defer wg.Done()
-
-	actualPage, previousVersion, err := p.convertPageToItem(page, space, 0)
-	if err != nil {
-		errs <- err
-		return
-	}
-	items <- *actualPage
-
-	for previousVersion > 0 && p.History {
-		actualPage, previousVersion, err = p.convertPageToItem(page, space, previousVersion)
-		if err != nil {
-			errs <- err
-			return
-		}
-		items <- *actualPage
-	}
-}
-
-func (p *ConfluencePlugin) convertPageToItem(page ConfluencePage, space ConfluenceSpaceResult, version int) (*Item, int, error) {
-	pageContent, err := p.client.getPageContentRequest(page, version)
-	if err != nil {
-		return nil, 0, fmt.Errorf("unexpected error creating an http request %w", err)
-	}
-
-	item := &Item{
-		Content: pageContent.Body.Storage.Value,
-		ID:      fmt.Sprintf("%s-%s-%s", p.GetName(), space.Key, page.ID),
-		Source:  pageContent.Links["base"] + pageContent.Links["webui"],
-	}
-	return item, pageContent.History.PreviousVersion.Number, nil
 }
 
 /*
