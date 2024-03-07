@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	regexGitleaksRules = regexp.MustCompile(`^[^/\n\r]configRules\s*=\s*append\(configRules,\s*rules\.([a-zA-Z0-9_]+)\(`)
-	regex2msRules      = regexp.MustCompile(`allRules\s*=\s*append\(allRules,\s*Rule{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
+	regexGitleaksRules = regexp.MustCompile(`(?m)^[^/\n\r]\s*rules\.([a-zA-Z0-9_]+)\(`)
+	regex2msRules      = regexp.MustCompile(`(?m)^[^/\n\r]\s*{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
 )
 
 func main() {
@@ -22,21 +22,32 @@ func main() {
 		fmt.Printf("%s\n", err)
 		os.Exit(1)
 	}
+	fmt.Printf("Latest Gitleaks release: %s\n", latestGitleaksRelease)
 
 	gitleaksRules, err := fetchGitleaksRules(latestGitleaksRelease)
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		os.Exit(1)
 	}
+
 	matchesGitleaksRules := regexGitleaksRules.FindAllStringSubmatch(string(gitleaksRules), -1)
+	if len(matchesGitleaksRules) == 0 {
+		fmt.Println("No rules found in the latest version of Gitleaks.")
+		os.Exit(1)
+	}
+	fmt.Printf("Total rules in the latest version of Gitleaks: %d\n", len(matchesGitleaksRules))
 
 	ourRules, err := fetchOurRules()
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		os.Exit(1)
 	}
-
 	match2msRules := regex2msRules.FindAllStringSubmatch(string(ourRules), -1)
+	if len(match2msRules) == 0 {
+		fmt.Println("No rules found in 2ms.")
+		os.Exit(1)
+	}
+	fmt.Printf("Total rules in 2ms: %d\n", len(match2msRules))
 
 	map2msRules := make(map[string]bool)
 	for _, match := range match2msRules {
@@ -57,7 +68,7 @@ func main() {
 		}
 
 		fmt.Printf("\nLink to Gitleaks main.go file of version: %s:\n", latestGitleaksRelease)
-		fmt.Printf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go\n\n", latestGitleaksRelease)
+		fmt.Println(getGitleaksRulesRawURL(latestGitleaksRelease))
 
 		os.Exit(1)
 	} else {
@@ -88,7 +99,7 @@ func fetchGitleaksLatestRelease() (string, error) {
 }
 
 func fetchGitleaksRules(version string) ([]byte, error) {
-	rawURLGitleaksRules := fmt.Sprintf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go", version)
+	rawURLGitleaksRules := getGitleaksRulesRawURL(version)
 	response, err := http.Get(rawURLGitleaksRules)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch remote file: %w", err)
@@ -103,8 +114,12 @@ func fetchGitleaksRules(version string) ([]byte, error) {
 	return content, nil
 }
 
+func getGitleaksRulesRawURL(version string) string {
+	return fmt.Sprintf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go", version)
+}
+
 func fetchOurRules() ([]byte, error) {
-	content, err := os.ReadFile("secrets/rules/rules.go")
+	content, err := os.ReadFile("engine/rules/rules.go")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read our file content: %w", err)
 	}
