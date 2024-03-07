@@ -61,7 +61,7 @@ func (p *DiscordPlugin) DefineCommand(items chan Item, errors chan error) (*cobr
 	flags.IntVar(&p.Count, messagesCountFlag, 0, "The number of messages to scan. If not provided, all messages will be scanned until the fromDate flag value.")
 
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
-		err := p.initialize(cmd)
+		err := p.initialize()
 		if err != nil {
 			errors <- fmt.Errorf("discord plugin initialization failed: %w", err)
 			return
@@ -76,7 +76,7 @@ func (p *DiscordPlugin) DefineCommand(items chan Item, errors chan error) (*cobr
 	return discordCmd, nil
 }
 
-func (p *DiscordPlugin) initialize(cmd *cobra.Command) error {
+func (p *DiscordPlugin) initialize() error {
 	if len(p.Channels) == 0 {
 		log.Warn().Msg("discord channels not provided. Will scan all channels")
 	}

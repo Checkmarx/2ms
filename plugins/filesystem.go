@@ -104,7 +104,7 @@ func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.W
 		wg.Add(1)
 		go func(filePath string) {
 			defer wg.Done()
-			actualFile, err := p.getItem(wg, filePath)
+			actualFile, err := p.getItem(filePath)
 			if err != nil {
 				errs <- err
 				return
@@ -114,7 +114,7 @@ func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.W
 	}
 }
 
-func (p *FileSystemPlugin) getItem(wg *sync.WaitGroup, filePath string) (*Item, error) {
+func (p *FileSystemPlugin) getItem(filePath string) (*Item, error) {
 	log.Debug().Str("file", filePath).Msg("reading file")
 	b, err := os.ReadFile(filePath)
 	if err != nil {
