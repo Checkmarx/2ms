@@ -50,7 +50,7 @@ jobs:
       - run: make build
       - name: Run docker and check its output
         run:
-          if docker run -v "$(pwd)":/repo -t checkmarx/2ms:latest git /repo | grep -A 5 "totalitemsscanned:"; then
+          if docker run -v "$(pwd)":/repo -t checkmarx/2ms:latest git /repo --report-path /output/results.json | grep -A 5 "totalitemsscanned:"; then
           echo "Docker ran as expected";
           else
           echo "Docker did not run as expected";
