@@ -55,7 +55,7 @@ func (p *PaligoPlugin) GetName() string {
 	return "paligo"
 }
 
-func (p *PaligoPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+func (p *PaligoPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	p.Channels = Channels{
 		Items:     items,
 		Errors:    errors,
@@ -174,20 +174,20 @@ func (p *PaligoPlugin) processFolders(foldersToProcess []PaligoItem) chan Paligo
 	return itemsChan
 }
 
-func (p *PaligoPlugin) handleComponent(item PaligoItem) {
+func (p *PaligoPlugin) handleComponent(paligoItem PaligoItem) {
 
-	log.Info().Msgf("Getting component %s", item.Name)
-	document, err := p.paligoApi.showDocument(item.ID)
+	log.Info().Msgf("Getting component %s", paligoItem.Name)
+	document, err := p.paligoApi.showDocument(paligoItem.ID)
 	if err != nil {
-		log.Error().Err(err).Msgf("error while getting document '%s'", item.Name)
-		p.Channels.Errors <- fmt.Errorf("error while getting document '%s': %w", item.Name, err)
+		log.Error().Err(err).Msgf("error while getting document '%s'", paligoItem.Name)
+		p.Channels.Errors <- fmt.Errorf("error while getting document '%s': %w", paligoItem.Name, err)
 		return
 	}
 
 	url := fmt.Sprintf("https://%s.paligoapp.com/document/edit/%d", p.paligoApi.Instance, document.ID)
 
-	p.Items <- Item{
-		Content: document.Content,
+	p.Items <- item{
+		Content: &document.Content,
 		ID:      fmt.Sprintf("%s-%s-%d", p.GetName(), p.paligoApi.Instance, document.ID),
 		Source:  url,
 	}
