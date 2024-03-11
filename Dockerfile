@@ -16,11 +16,7 @@ FROM alpine:3.18
 
 RUN apk add --no-cache git=2.40.1-r0
 
-RUN addgroup -S 2ms && adduser -S 2ms -G 2ms
-USER 2ms
-
 RUN git config --global --add safe.directory /repo
 
 COPY --from=builder /app/2ms /2ms
 ENTRYPOINT ["/2ms"]
-
