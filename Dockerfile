@@ -3,7 +3,7 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM golang:1.20.5-alpine3.18 AS builder
+FROM golang:1.22.1-alpine3.19 AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM alpine:3.18
+FROM alpine:3.19
 
 RUN apk add --no-cache git=2.40.1-r0
 
