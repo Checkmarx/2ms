@@ -16,7 +16,7 @@ RUN go build -o /app/2ms .
 # Runtime image
 FROM alpine:3.19
 
-RUN apk add --no-cache git=2.40.1-r0
+RUN apk add --no-cache git=2.43.0-r0
 
 RUN git config --global --add safe.directory /repo
 
