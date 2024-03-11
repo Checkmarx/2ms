@@ -66,7 +66,7 @@ jobs:
       - name: Run KICS scan
         uses: checkmarx/kics-github-action@master
         with:
-          path: Dockerfile
+          path: .
           output_path: kics-results
           output_formats: json,sarif
           enable_comments: ${{ github.event_name == 'pull_request'}}
