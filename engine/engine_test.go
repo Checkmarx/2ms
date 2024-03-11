@@ -126,7 +126,7 @@ func TestSecrets(t *testing.T) {
 			secretsChan := make(chan *secrets.Secret, 1)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
-			detector.Detect(plugins.Item{Content: secret.Content}, secretsChan, wg, nil)
+			detector.Detect(item{content: &secret.Content}, secretsChan, wg, nil)
 			close(secretsChan)
 
 			s := <-secretsChan
@@ -139,5 +139,20 @@ func TestSecrets(t *testing.T) {
 			}
 		})
 	}
+}
 
+type item struct {
+	content *string
+}
+
+var _ plugins.ISourceItem = (*item)(nil)
+
+func (i item) GetContent() *string {
+	return i.content
+}
+func (i item) GetID() string {
+	return "test"
+}
+func (i item) GetSource() string {
+	return "test"
 }

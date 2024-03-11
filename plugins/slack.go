@@ -39,7 +39,7 @@ var (
 	messagesCountArg    int
 )
 
-func (p *SlackPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+func (p *SlackPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	p.Channels = Channels{
 		Items:     items,
 		Errors:    errors,
@@ -130,8 +130,8 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 					log.Warn().Msgf("Error while getting permalink for message %s: %s", message.Timestamp, err)
 					url = fmt.Sprintf("Channel: %s; Message: %s", channel.Name, message.Timestamp)
 				}
-				p.Items <- Item{
-					Content: message.Text,
+				p.Items <- item{
+					Content: &message.Text,
 					ID:      fmt.Sprintf("%s-%s-%s", p.GetName(), channel.ID, message.Timestamp),
 					Source:  url,
 				}
