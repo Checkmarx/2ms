@@ -1,6 +1,6 @@
 # kics-scan disable=b03a748a-542d-44f4-bb86-9199ab4fd2d5,fd54f200-402c-4333-a5a4-36ef6709af2f
 # disable kics Healthcheck result
-# and "Missing User Instruction" since 2ms container is stopped afer scan
+# and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
 FROM golang:1.20.5-alpine3.18 AS builder
