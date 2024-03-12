@@ -48,10 +48,9 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 		rule.Rule.Keywords = []string{}
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 	}
+	cfg.Rules = rulesToBeApplied
 
-	detector := detect.NewDetector(config.Config{
-		Rules: rulesToBeApplied,
-	})
+	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
 	return &Engine{
@@ -65,7 +64,8 @@ func (s *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 	defer wg.Done()
 
 	fragment := detect.Fragment{
-		Raw: *item.GetContent(),
+		Raw:      *item.GetContent(),
+		FilePath: item.GetSource(),
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
