@@ -43,11 +43,11 @@ func createCLI(outputDir string) (cli, error) {
 		nil
 }
 
-func generateProject(outputDir string) error {
+func generateFileWithSecret(outputDir string, filename string) error {
 	token := "g" + "hp" + "_ixOl" + "iEFNK4O" + "brYB506" + "8oXFd" + "9JUF" + "iRy0RU" + "KNl"
 	content := "bla bla bla\nGitHubToken: " + token + "\nbla bla bla"
 
-	if err := os.WriteFile(path.Join(outputDir, "secret.txt"), []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path.Join(outputDir, filename), []byte(content), 0644); err != nil {
 		return err
 	}
 
