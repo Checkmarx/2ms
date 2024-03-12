@@ -10,6 +10,8 @@ import (
 	"github.com/checkmarx/2ms/plugins"
 )
 
+var github_token = "ghp_vF93MdvGWEQkB7t" + "5csik0Vdsy2q99P3Nje1s"
+
 func Test_Init(t *testing.T) {
 	allRules := *rules.FilterRules([]string{}, []string{}, []string{})
 	specialRule := rules.HardcodedPassword()
@@ -63,9 +65,8 @@ func Test_Init(t *testing.T) {
 
 func TestDetector(t *testing.T) {
 	t.Run("ignore go.sum file", func(t *testing.T) {
-		token := "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"
 		i := item{
-			content: &token,
+			content: &github_token,
 			source:  "path/to/go.sum",
 		}
 
@@ -114,7 +115,7 @@ func TestSecrets(t *testing.T) {
 			ShouldFind: true,
 		},
 		{
-			Content:    "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",
+			Content:    github_token,
 			Name:       "GitHub Personal Access Token",
 			ShouldFind: true,
 		},
