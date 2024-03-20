@@ -150,7 +150,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.RapidAPIAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.ReadMe(), Tags: []string{TagApiToken}},
 		{Rule: *rules.RubyGemsAPIToken(), Tags: []string{TagApiToken}},
-		{Rule: *rules.ScalingoAPIToken(), Tags: []string{TagApiToken}},
+		// {Rule: *rules.ScalingoAPIToken(), Tags: []string{TagApiToken}}, https://github.com/Checkmarx/2ms/issues/226
 		{Rule: *rules.SendbirdAccessID(), Tags: []string{TagAccessId}},
 		{Rule: *rules.SendbirdAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.SendGridAPIToken(), Tags: []string{TagApiToken}},
