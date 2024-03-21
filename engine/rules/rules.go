@@ -175,7 +175,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.StripeAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.SquareAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.SquareSpaceAccessToken(), Tags: []string{TagAccessToken}},
-		{Rule: *rules.SumoLogicAccessID(), Tags: []string{TagAccessId}},
+		// {Rule: *rules.SumoLogicAccessID(), Tags: []string{TagAccessId}}, https://github.com/Checkmarx/2ms/issues/226
 		{Rule: *rules.SumoLogicAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.Snyk(), Tags: []string{TagApiKey}},
 		{Rule: *rules.TeamsWebhook(), Tags: []string{TagWebhook}},
