@@ -97,7 +97,7 @@ func Execute() (int, error) {
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
 
-	group := "Commands"
+	group := "Scan Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
