@@ -252,13 +252,13 @@ This command is used to scan a [Confluence](https://www.atlassian.com/software/c
 2ms confluence <URL> [flags]
 ```
 
-| Flag         |Config   |Required| Type  | Default                        | Description                                                                      |
-| ------------ |----------| ------|----- | ------------------------------ | -------------------------------------------------------------------------------- |
-| `<url>`      ||v|string | -                              | Confluence instance URL, in the following format: `https://<company id>.atlassian.net/wiki` |
-| `--history`  || |-      | Doesn't scan history revisions | Scans pages history revisions                                                    |
-| `--spaces`   ||| string | all spaces                     | The names or IDs of the Confluence spaces to scan                                |
-| `--token`    | |v|string | -                              | The Confluence API token for authentication                                      |
-| `--username` | |v|string | -                              | Confluence user name or email for authentication                                 |
+| Flag         | Type  | Default                        | Description                                                                      |
+| ------------ | ----- | ------------------------------ | -------------------------------------------------------------------------------- |
+| `<url>`      | string | -                              | Confluence instance URL, in the following format: `https://<company id>.atlassian.net/wiki` |
+| `--history`  | -      | Doesn't scan history revisions | Scans pages history revisions                                                    |
+| `--spaces`   | string | all spaces                     | The names or IDs of the Confluence spaces to scan                                |
+| `--token`    | string | -                              | The Confluence API token for authentication                                      |
+| `--username` | string | -                              | Confluence user name or email for authentication                                 |
 
 For example:
 
@@ -357,28 +357,27 @@ Example:
 
 ## Global Flags
 
-| Flag | Config |Type| Default|Description |
-|--|--|--|--|--|
-|--add-special-rule  |  | string |  | Add special (non-default) rules to apply. This list is not affected by the --rule and --ignore-rule flags. SEE BELOW|  
-|--config |  | string |  |Path to the config file|
-|-h, --help|  | string  |  | Help for 2ms commands |
-|--ignore-on-exit  |  |  |None  |Defines which kind of non-zero exits code should be ignored. Options are: all, results, errors, none. For example, if 'results' is set, only engine errors will make 2ms exit code different from 0.|
-|--ignore-result  |  |strings  |  |Ignore specific result by ID  |
-|--ignore-rule  | |strings  |  |Ignore rules by name or tag.|
-|--log-level  |  |string  |info |Type of log to return. Options are: trace, debug, info, warn, error, fatal|
-|--max-target-megabytes  |  |int  |  |Files larger than than the specified threshold will be skipped. Omit or set to 0 to disable this check.|
-|--regex  |  |stringArray  |  |Custom regexes to apply to the scan.  Must be valid Go regex.|
-|--report-path  |  |strings  |  |Path to generate report files.The output format will be determined by the file extension (.json, .yaml, .sarif)|
-|--rule|  |strings  |  |Select rules by name or tag to apply to this scan.|
-|--stdout-format  |  |string  |yaml  |Stdout output format, available formats are: json, yaml, sarif|
-|--validate |  |  |  | Trigger additional validation to check if discovered secrets are active or revoked. SEE BELOW   |
-|-v, --version |  |  |  | Version of 2ms that is running. |
+The following table describes the global flags that can be used together with any of the scan commands.
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+|--add-special-rule | string |  | Add special (non-default) rules to apply. This list is not affected by the --rule and --ignore-rule flags. SEE BELOW |
+|--config | string |  | Path to the config file |
+|-h, --help | string |  | Help for 2ms commands |
+|--ignore-on-exit |  | None | Defines which kind of non-zero exits code should be ignored. Options are: all, results, errors, none. For example, if 'results' is set, only engine errors will make 2ms exit code different from 0. |
+|--ignore-result | strings |  | Ignore specific result by ID |
+|--ignore-rule | strings |  | Ignore rules by name or tag. |
+|--log-level | string | info | Type of log to return. Options are: trace, debug, info, warn, error, fatal |
+|--max-target-megabytes | int |  | Files larger than than the specified threshold will be skipped. Omit or set to 0 to disable this check. |
+|--regex | stringArray |  | Custom regexes to apply to the scan. Must be valid Go regex. |
+|--report-path | strings |  | Path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif) |
+|--rule | strings |  | Select rules by name or tag to apply to this scan. |
+|--stdout-format | string | yaml | Stdout output format, available formats are: json, yaml, sarif |
+|--validate |  |  | Trigger additional validation to check if discovered secrets are active or revoked. SEE BELOW |
+|-v, --version |  |  | Version of 2ms that is running. |
 
 ### Validity Check
 
-From the help message: `--validate    trigger additional validation to check if discovered secrets are active or revoked`.
-
-The `--validate` flag will check the validity of the secrets found. For example, if it is a Github token, it will check if the token is valid by making a request to the Github API. We will use the less intrusive method to check the validity of the secret.
+Adding the `--validate` flag checks the validity of the secrets found. For example, if a Github token is found, it will check if the token is valid by making a request to the Github API. We will use the least intrusive method possible to check the validity of the secret.
 
 The list of services that support the Validity Check feature can be found in the [List of Rules](docs/list-of-rules.md) document.
 
@@ -392,7 +391,7 @@ If the `--validate` flag is not provided, the validation field will be omitted f
 
 ### Special Rules
 
-Special rules are rules that are not part of the default ruleset, usually because they are too noisy or too specific. You can use the `--add-special-rule` flag to add special rules by rule ID.
+Special rules are rules that are configured in 2ms but are not run as part of the default ruleset, usually because they are too noisy or too specific. You can use the `--add-special-rule` flag to add special rules by rule ID.
 
 For example:
 
@@ -404,7 +403,7 @@ For example:
 
 | Rule ID              | Description                                                                                        |
 | -------------------- | -------------------------------------------------------------------------------------------------- |
-| `hardcoded-password` | Detects strings that assigned to variables that contain the word `password`, `access`, `key`, etc. |
+| `hardcoded-password` | Detects strings that are assigned to variables that contain the word `password`, `access`, `key`, etc. |
 
 ## Custom Regex Rules
 
