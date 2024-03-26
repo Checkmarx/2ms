@@ -5,33 +5,34 @@
 
 ![2ms Mascot](https://github.com/Checkmarx/2ms/assets/1287098/3a543045-9c6a-4a35-9bf8-f41919e7b03e)
 
-**Too many secrets (`2ms`)** is an open source CLI tool, powered by Checkmarx, that enables you to identify sensitive data such as secrets, authentication keys and passwords that are stored in your system in unencrypted text. This tool supports scanning of internal communication platforms (Slack, Discord), content management (Confluence, Paligo) and source code storage locations (Git repo, local directory) . 
-This application is written in Go language and is based on the framework provided by [gitleaks](https://github.com/gitleaks/gitleaks). 
+**Too many secrets (`2ms`)** is an open source CLI tool, powered by Checkmarx, that enables you to identify sensitive data such as secrets, authentication keys and passwords that are stored in your system in unencrypted text. This tool supports scanning of internal communication platforms (Slack, Discord), content management (Confluence, Paligo) and source code storage locations (Git repo, local directory).  
+This application is written in Go language and is based on the framework provided by [gitleaks](https://github.com/gitleaks/gitleaks).
 
 The tool checks the content using a series of rules that are designed to identify a wide range of sensitive items such as AWS access token, Bitbucket Client ID, GitHub PAT etc. For a complete list of rules, see [docs/list-of-rules.md](docs/list-of-rules.md).
 
 # Installation
+
 The following sections explain how to install 2ms using the following methods:
 
- - Download and Install Precompiled Binaries
- - Compile from Source Code
- - Run From Docker Container
+- [Download and Install Precompiled Binaries](#download-and-install-precompiled-binaries)
+- [Compile from Source Code](#compile-from-source-code)
+- [Run From Docker Container](#run-from-docker-container)
 
 ## Download and Install Precompiled Binaries
 
-You can download 2ms precompiled binaries for amd64 architecture from our [releases page](https://github.com/Checkmarx/2ms/releases).
+You can download 2ms precompiled binaries for amd64 architecture from our [releases page](https://github.com/Checkmarx/2ms/releases).  
 The following links can be used to download the "latest" version, for each supported OS.
 
 - [Download for Windows](https://github.com/checkmarx/2ms/releases/latest/download/windows-amd64.zip)
 - [Download for MacOS](https://github.com/checkmarx/2ms/releases/latest/download/macos-amd64.zip)
 - [Download for Linux](https://github.com/checkmarx/2ms/releases/latest/download/linux-amd64.zip)
 
-
 ### Install Globally
 
-Install 2ms globally on your local machine by placing the compiled binary on your path. For example, on Linux you can place `2ms` binary in `/usr/local/bin/` or create a symbolic link. 
+Install 2ms globally on your local machine by placing the compiled binary on your path. For example, on Linux you can place `2ms` binary in `/usr/local/bin/` or create a symbolic link.
 
 **Example:**
+
 ```
 cd /opt
 mkdir 2ms
@@ -56,26 +57,31 @@ go build -o dist/2ms main.go
 
 ## Run From Docker Container
 
-We publish container image releases of `2ms` to [checkmarx/2ms](https://hub.docker.com/r/checkmarx/2ms) . 
+We publish container image releases of `2ms` to [checkmarx/2ms](https://hub.docker.com/r/checkmarx/2ms) .
 To run `2ms` from a docker container use the following command:
+
 ```
 docker run checkmarx/2ms
 ```
+
 ### Mounting a Local Directory
+
 You can also mount a local directory by using the`-v` flag with the following syntax `-v <local-dir-path>:<container-dir-path>`
 
 **Example:**
-```
+
+```bash
 docker run -v /home/user/workspace/git-repo:/repo checkmarx/2ms git /repo
 ```
 
 - For `git` command, you need to mount your git repository to `/repo` inside the container
 
 ## CI/CD Integrations
+
 ### GitHub Actions
 
-The following is a template for creating a GitHub Action that runs 2ms from a Docker image to scan your GitHub repo.
-Note: Make sure that in the `actions/checkout` step you access the full history by setting the depth as follows`fetch-depth: 0`
+The following is a template for creating a GitHub Action that runs 2ms from a Docker image to scan your GitHub repo.  
+**Note:** Make sure that in the `actions/checkout` step you access the full history by setting the depth as follows `fetch-depth: 0`
 
 ```yaml
 name: Pipeline Example With 2MS
@@ -103,7 +109,9 @@ jobs:
 
 - This example uses version to `2.8.1` of 2ms. Make sure to check for the latest version.
 - 💡 Take a look at [2ms GitHub Actions pipeline](https://github.com/Checkmarx/2ms/blob/master/.github/workflows/release.yml) as 2ms scans itself using 2ms.
+
 ### Azure DevOps Pipeline
+
 To use 2ms in Azure DevOps Pipeline, create a new pipeline ([see this tutorial](https://learn.microsoft.com/en-us/azure/devops/pipelines/create-first-pipeline) for getting started with Azure DevOps Pipelines). Then, use the following template to create a `yml` file `azure-pipelines.yml` to run `2ms`:
 
 ```yaml
@@ -119,19 +127,27 @@ steps:
 ```
 
 - This example uses version to `2.8.1` of 2ms. Make sure to check for the latest version.
+
 # Running 2ms Scans
+
 ## Overview
-2ms has dedicated commands for scanning each of the supported platforms. To run a scan, you need to enter the command for the platform that you are scanning, along with all of the arguments that are relevant for that platform. The scan command arguments are used for authentication as well as to provide details about the locations that will be scanned. These arguments differ for each platform. In addition, you can add global flags to customize the scan configuration.
+
+2ms has dedicated commands for scanning each of the supported platforms. To run a scan, you need to enter the command for the platform that you are scanning, along with all of the arguments that are relevant for that platform. The scan command arguments are used for authentication as well as to provide details about the locations that will be scanned. These arguments differ for each platform. In addition, you can add global flags to customize the scan configuration.  
 The fundamental structure of a scan command is:
 
-    2ms \<scan command>\[scan command arguments]\[global flags]
+```text
+2ms <scan command> [scan command arguments] [global flags]
+```
+
 Scan command arguments and global flags can be passed either as flags in the scan command or via a config file.
+
 ### Command Line Help
+
 We've built the `2ms` command line interface to be as self-descriptive as possible. This is the help message that is shown when you execute `2ms` without args:
 
 <!-- command-line:start -->
 
-```
+```text
 2ms Secrets Detection: A tool to detect secrets in public websites and communication services.
 
 Usage:
@@ -174,9 +190,11 @@ Use "2ms [command] --help" for more information about a command.
 ```
 
 <!-- command-line:end -->
+
 ### Configuration File
 
 You can pass `--config [path to config file]` argument to specify a configuration file. The configuration file format can be YAML or JSON.
+
 **Example:**
 
 ```yaml
@@ -210,19 +228,26 @@ ignore-result:
 ```
 
 Command: The `--spaces` flag is provided in the CLI command (outside of config file):
+
 **Example:**
+
 ```yaml
-docker run -v $(pwd)/.2ms.yml:/app/.2ms.yml checkmarx/2ms confluence --url https://checkmarx.atlassian.net/wiki --spaces secrets --config /app/.2ms.yml
+docker run -v $(pwd)/.2ms.yml:/app/.2ms.yml checkmarx/2ms \
+    confluence --url https://checkmarx.atlassian.net/wiki \
+    --spaces secrets --config /app/.2ms.yml
 ```
+
 [![asciicast](https://asciinema.org/a/n8RHL4v6vI87uiUPZ9I7CgfYy.svg)](https://asciinema.org/a/n8RHL4v6vI87uiUPZ9I7CgfYy)
 
 ## Scan Commands
+
 The following sections describe the arguments used for scanning each of the supported platforms.
+
 ### Confluence
 
 This command is used to scan a [Confluence](https://www.atlassian.com/software/confluence) instance.
 
-```
+```text
 2ms confluence <URL> [flags]
 ```
 
@@ -236,7 +261,7 @@ This command is used to scan a [Confluence](https://www.atlassian.com/software/c
 
 For example:
 
-```
+```bash
 2ms confluence https://checkmarx.atlassian.net/wiki --spaces secrets
 ```
 
@@ -272,7 +297,7 @@ Scans [Discord](https://discord.com/) chat application history.
 
 Example:
 
-```
+```bash
 2ms discord --token <YOUR_TOKEN> --server 1097814317077897307 --duration 9999h
 ```
 
@@ -292,7 +317,7 @@ Scans [Slack](https://slack.com/) chat application history.
 
 Scans a local git repository
 
-```
+```text
 2ms git <Git Repo Local Path> [flags]
 ```
 
@@ -303,7 +328,7 @@ Scans a local git repository
 
 For example
 
-```
+```bash
 git clone https://github.com/my-account/my-repo.git
 cd my-repo
 2ms git .
@@ -313,7 +338,7 @@ cd my-repo
 
 Scans a local repository
 
-```
+```bash
 2ms filesystem --path PATH [flags]
 ```
 
@@ -325,10 +350,12 @@ Scans a local repository
 
 Example:
 
-```
+```bash
 2ms filesystem --path .
 ```
+
 ## Global Flags
+
 | Flag | Config |Type| Default|Description |
 |--|--|--|--|--|
 |--add-special-rule  |  | string |  | Add special (non-default) rules to apply. This list is not affected by the --rule and --ignore-rule flags. SEE BELOW|  
@@ -337,7 +364,7 @@ Example:
 |--ignore-on-exit  |  |  |None  |Defines which kind of non-zero exits code should be ignored. Options are: all, results, errors, none. For example, if 'results' is set, only engine errors will make 2ms exit code different from 0.|
 |--ignore-result  |  |strings  |  |Ignore specific result by ID  |
 |--ignore-rule  | |strings  |  |Ignore rules by name or tag.|
-|--log-level  |  |string  |info |Type of log to return. Options are: trace, debug, info, warn, error, fatal| 
+|--log-level  |  |string  |info |Type of log to return. Options are: trace, debug, info, warn, error, fatal|
 |--max-target-megabytes  |  |int  |  |Files larger than than the specified threshold will be skipped. Omit or set to 0 to disable this check.|
 |--regex  |  |stringArray  |  |Custom regexes to apply to the scan.  Must be valid Go regex.|
 |--report-path  |  |strings  |  |Path to generate report files.The output format will be determined by the file extension (.json, .yaml, .sarif)|
@@ -368,7 +395,7 @@ Special rules are rules that are not part of the default ruleset, usually becaus
 
 For example:
 
-```
+```bash
 2ms git . --add-special-rule hardcoded-password
 ```
 
@@ -384,12 +411,12 @@ You may specify one or more custom regex rules with the optional argument `--reg
 
 my-file.txt
 
-```
+```bash
 password=1234567
 username=admin
 ```
 
-```
+```bash
 2ms filesystem --path . --regex username= --regex password=
 ```
 
