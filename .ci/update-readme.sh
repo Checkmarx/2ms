@@ -16,7 +16,7 @@ update_readme() {
 help_message=$(go run .)
 
 echo "" >output.txt
-echo '```' >>output.txt
+echo '```text' >>output.txt
 echo "$help_message" >>output.txt
 echo '```' >>output.txt
 echo "" >>output.txt
