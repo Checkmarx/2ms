@@ -61,6 +61,32 @@ func Test_Init(t *testing.T) {
 	}
 }
 
+func TestDetector(t *testing.T) {
+	t.Run("ignore go.sum file", func(t *testing.T) {
+		token := "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"
+		i := item{
+			content: &token,
+			source:  "path/to/go.sum",
+		}
+
+		detector, err := Init(EngineConfig{})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		secretsChan := make(chan *secrets.Secret, 1)
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+		detector.Detect(i, secretsChan, wg, nil)
+		close(secretsChan)
+
+		s := <-secretsChan
+		if s != nil {
+			t.Error("expected nil, got secret")
+		}
+	})
+}
+
 func TestSecrets(t *testing.T) {
 	secretsCases := []struct {
 		Content    string
@@ -126,7 +152,7 @@ func TestSecrets(t *testing.T) {
 			secretsChan := make(chan *secrets.Secret, 1)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
-			detector.Detect(plugins.Item{Content: secret.Content}, secretsChan, wg, nil)
+			detector.Detect(item{content: &secret.Content}, secretsChan, wg, nil)
 			close(secretsChan)
 
 			s := <-secretsChan
@@ -139,5 +165,28 @@ func TestSecrets(t *testing.T) {
 			}
 		})
 	}
+}
 
+type item struct {
+	content *string
+	id      string
+	source  string
+}
+
+var _ plugins.ISourceItem = (*item)(nil)
+
+func (i item) GetContent() *string {
+	return i.content
+}
+func (i item) GetID() string {
+	if i.id != "" {
+		return i.id
+	}
+	return "test"
+}
+func (i item) GetSource() string {
+	if i.source != "" {
+		return i.source
+	}
+	return "test"
 }

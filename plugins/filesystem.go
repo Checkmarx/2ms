@@ -29,7 +29,7 @@ func (p *FileSystemPlugin) GetName() string {
 	return "filesystem"
 }
 
-func (p *FileSystemPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	var cmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s --%s PATH", p.GetName(), flagFolder),
 		Short: "Scan local folder",
@@ -59,7 +59,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan Item, errors chan error) (*c
 	return cmd, nil
 }
 
-func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.WaitGroup) {
+func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error, wg *sync.WaitGroup) {
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
@@ -99,7 +99,7 @@ func (p *FileSystemPlugin) getFiles(items chan Item, errs chan error, wg *sync.W
 	p.getItems(items, errs, wg, fileList)
 }
 
-func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.WaitGroup, fileList []string) {
+func (p *FileSystemPlugin) getItems(items chan ISourceItem, errs chan error, wg *sync.WaitGroup, fileList []string) {
 	for _, filePath := range fileList {
 		wg.Add(1)
 		go func(filePath string) {
@@ -114,17 +114,18 @@ func (p *FileSystemPlugin) getItems(items chan Item, errs chan error, wg *sync.W
 	}
 }
 
-func (p *FileSystemPlugin) getItem(filePath string) (*Item, error) {
+func (p *FileSystemPlugin) getItem(filePath string) (*item, error) {
 	log.Debug().Str("file", filePath).Msg("reading file")
 	b, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	content := &Item{
-		Content: string(b),
+	content := string(b)
+	item := &item{
+		Content: &content,
 		ID:      fmt.Sprintf("%s-%s-%s", p.GetName(), p.ProjectName, filePath),
 		Source:  filePath,
 	}
-	return content, nil
+	return item, nil
 }

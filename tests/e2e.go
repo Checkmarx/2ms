@@ -1,5 +1,7 @@
 package tests
 
+// TODO: add confluence test
+
 import (
 	"encoding/json"
 	"fmt"
@@ -41,19 +43,21 @@ func createCLI(outputDir string) (cli, error) {
 		nil
 }
 
-func generateProject(outputDir string) error {
+func generateFileWithSecret(outputDir string, filename string) error {
 	token := "g" + "hp" + "_ixOl" + "iEFNK4O" + "brYB506" + "8oXFd" + "9JUF" + "iRy0RU" + "KNl"
 	content := "bla bla bla\nGitHubToken: " + token + "\nbla bla bla"
 
-	if err := os.WriteFile(path.Join(outputDir, "secret.txt"), []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path.Join(outputDir, filename), []byte(content), 0644); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *cli) run(projectDir string, args ...string) error {
-	argsWithDefault := append([]string{"filesystem", "--path", projectDir, "--report-path", c.resultsPath}, args...)
+func (c *cli) run(command string, args ...string) error {
+	argsWithDefault := append([]string{command}, args...)
+	argsWithDefault = append(argsWithDefault, "--report-path", c.resultsPath)
+
 	cmd := exec.Command(c.executable, argsWithDefault...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

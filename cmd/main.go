@@ -67,7 +67,7 @@ var allPlugins = []plugins.IPlugin{
 }
 
 var channels = plugins.Channels{
-	Items:     make(chan plugins.Item),
+	Items:     make(chan plugins.ISourceItem),
 	Errors:    make(chan error),
 	WaitGroup: &sync.WaitGroup{},
 }

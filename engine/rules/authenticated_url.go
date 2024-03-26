@@ -7,7 +7,7 @@ import (
 )
 
 func AuthenticatedURL() *config.Rule {
-	regex, _ := regexp.Compile(`:\/\/(.+:.+)?@`)
+	regex, _ := regexp.Compile(`:\/\/(\w+:\S+)?@\S+\.\S+`)
 	rule := config.Rule{
 		Description: "Identify username:password inside URLS",
 		RuleID:      "authenticated-url",
@@ -25,6 +25,9 @@ func AuthenticatedURL() *config.Rule {
 	fPositives := []string{
 		"https://google.com",
 		"https://google.com?user=abc&password=123",
+		`<img src="https://img.shields.io/static/v1?label=Threads&message=Follow&color=101010&link=https://threads.net/@mathrunet" alt="Follow on Threads" />`,
+		`my [Linkedin](https://www.linkedin.com/in/rodriguesjeffdev/) or email: rodriguesjeff.dev@gmail.com`,
+		`[![Gmail Badge](https://img.shields.io/badge/-VaibhavHariramani-d54b3d?style=flat-circle&labelColor=d54b3d&logo=gmail&logoColor=white&link=mailto:vaibhav.hariramani01@gmail.com)](mailto:vaibhav.hariramani01@gmail.com)`,
 	}
 
 	return validate(rule, tPositives, fPositives)

@@ -30,7 +30,7 @@ type DiscordPlugin struct {
 	Session          *discordgo.Session
 
 	errChan   chan error
-	itemChan  chan Item
+	itemChan  chan ISourceItem
 	waitGroup *sync.WaitGroup
 }
 
@@ -38,7 +38,7 @@ func (p *DiscordPlugin) GetName() string {
 	return "discord"
 }
 
-func (p *DiscordPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+func (p *DiscordPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	var discordCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s --%s TOKEN --%s SERVER", p.GetName(), tokenFlag, serversFlag),
 		Short: "Scan Discord server",
@@ -88,7 +88,7 @@ func (p *DiscordPlugin) initialize() error {
 	return nil
 }
 
-func (p *DiscordPlugin) getItems(itemsChan chan Item, errChan chan error, wg *sync.WaitGroup) {
+func (p *DiscordPlugin) getItems(itemsChan chan ISourceItem, errChan chan error, wg *sync.WaitGroup) {
 	p.errChan = errChan
 	p.itemChan = itemsChan
 	p.waitGroup = wg
@@ -276,11 +276,11 @@ func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]
 	return append(messages, threadMessages...), nil
 }
 
-func convertMessagesToItems(pluginName, guildId string, messages *[]*discordgo.Message) *[]Item {
-	items := []Item{}
+func convertMessagesToItems(pluginName, guildId string, messages *[]*discordgo.Message) *[]ISourceItem {
+	items := []ISourceItem{}
 	for _, message := range *messages {
-		items = append(items, Item{
-			Content: message.Content,
+		items = append(items, item{
+			Content: &message.Content,
 			ID:      fmt.Sprintf("%s-%s-%s-%s", pluginName, guildId, message.ChannelID, message.ID),
 			Source:  fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guildId, message.ChannelID, message.ID),
 		})

@@ -1,6 +1,6 @@
 module github.com/checkmarx/2ms
 
-go 1.20
+go 1.22
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
