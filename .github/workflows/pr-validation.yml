@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Required for 2ms to have visibility to all commit history
-
+        
       - uses: actions/setup-go@v5
         with:
           go-version: "^1.22"
@@ -61,11 +61,13 @@ jobs:
       - name: Run KICS scan
         uses: checkmarx/kics-github-action@master
         with:
-          path: Dockerfile
+          path: .
           output_path: kics-results
           output_formats: json,sarif
           enable_comments: ${{ github.event_name == 'pull_request'}}
           fail_on: high,medium
+          enable_jobs_summary: true
+          exclude_queries: 555ab8f9-2001-455e-a077-f2d0f41e2fb9 # https://github.com/Checkmarx/kics/issues/6971
       - name: Show KICS results
         if: failure()
         run: cat kics-results/results.json
