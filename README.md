@@ -15,8 +15,9 @@ The tool checks the content using a series of rules that are designed to identif
 The following sections explain how to install 2ms using the following methods:
 
 - [Download and Install Precompiled Binaries](#download-and-install-precompiled-binaries)
-- [Compile from Source Code](#compile-from-source-code)
+- [Compile from Source](#compile-from-source)
 - [Run From Docker Container](#run-from-docker-container)
+- [CI/CD Integrations](#cicd-integrations)
 
 ## Download and Install Precompiled Binaries
 
