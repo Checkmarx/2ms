@@ -15,7 +15,7 @@ func TestIntegration(t *testing.T) {
 	t.Run("filesystem: one secret found", func(t *testing.T) {
 		projectDir := t.TempDir()
 
-		if err := generateProject(projectDir); err != nil {
+		if err := generateFileWithSecret(projectDir, "secret.txt"); err != nil {
 			t.Fatalf("failed to generate project: %s", err)
 		}
 
@@ -53,6 +53,27 @@ func TestIntegration(t *testing.T) {
 					t.Errorf("expected validation status, got empty")
 				}
 			}
+		}
+	})
+
+	t.Run("filesystem: ignore go.sum file", func(t *testing.T) {
+		projectDir := t.TempDir()
+
+		if err := generateFileWithSecret(projectDir, "go.sum"); err != nil {
+			t.Fatalf("failed to generate project: %s", err)
+		}
+
+		if err := executable.run("filesystem", "--path", projectDir); err != nil {
+			t.Errorf("expected no error, got %s", err)
+		}
+
+		report, err := executable.getReport()
+		if err != nil {
+			t.Fatalf("failed to get report: %s", err)
+		}
+
+		if len(report.Results) != 0 {
+			t.Errorf("expected no results, got %d", len(report.Results))
 		}
 	})
 }

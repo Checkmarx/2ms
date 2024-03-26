@@ -31,7 +31,7 @@ func (p *GitPlugin) GetName() string {
 	return "git"
 }
 
-func (p *GitPlugin) DefineCommand(items chan Item, errors chan error) (*cobra.Command, error) {
+func (p *GitPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	p.Channels = Channels{
 		Items:     items,
 		Errors:    errors,
@@ -68,7 +68,7 @@ func (p *GitPlugin) buildScanOptions() string {
 	return strings.Join(options, " ")
 }
 
-func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan Item, errChan chan error) {
+func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan ISourceItem, errChan chan error) {
 	diffs, close := p.readGitLog(path, scanOptions, errChan)
 	defer close()
 
@@ -86,8 +86,8 @@ func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan Item
 			}
 		}
 		if fileChanges != "" {
-			itemsChan <- Item{
-				Content: fileChanges,
+			itemsChan <- item{
+				Content: &fileChanges,
 				ID:      fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName),
 				Source:  fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
 			}

@@ -126,7 +126,6 @@ Here is a complete list of all the rules that are currently implemented.
 | rapidapi-access-token | Uncovered a RapidAPI Access Token, which could lead to unauthorized access to various APIs and data services. | access-token |  |
 | readme-api-token | Detected a Readme API token, risking unauthorized documentation management and content exposure. | api-token |  |
 | rubygems-api-token | Identified a Rubygem API token, potentially compromising Ruby library distribution and package management. | api-token |  |
-| scalingo-api-token | Found a Scalingo API token, posing a risk to cloud platform services and application deployment security. | api-token |  |
 | sendbird-access-id | Discovered a Sendbird Access ID, which could compromise chat and messaging platform integrations. | access-id |  |
 | sendbird-access-token | Uncovered a Sendbird Access Token, potentially risking unauthorized access to communication services and user data. | access-token |  |
 | sendgrid-api-token | Detected a SendGrid API token, posing a risk of unauthorized email service operations and data exposure. | api-token |  |
@@ -151,7 +150,6 @@ Here is a complete list of all the rules that are currently implemented.
 | stripe-access-token | Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data. | access-token |  |
 | square-access-token | Detected a Square Access Token, risking unauthorized payment processing and financial transaction exposure. | access-token |  |
 | squarespace-access-token | Identified a Squarespace Access Token, which may compromise website management and content control on Squarespace. | access-token |  |
-| sumologic-access-id | Discovered a SumoLogic Access ID, potentially compromising log management services and data analytics integrity. | access-id |  |
 | sumologic-access-token | Uncovered a SumoLogic Access Token, which could lead to unauthorized access to log data and analytics insights. | access-token |  |
 | snyk-api-token | Uncovered a Snyk API token, potentially compromising software vulnerability scanning and code security. | api-key |  |
 | microsoft-teams-webhook | Uncovered a Microsoft Teams Webhook, which could lead to unauthorized access to team collaboration tools and data leaks. | webhook |  |

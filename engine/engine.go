@@ -48,10 +48,9 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 		rule.Rule.Keywords = []string{}
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 	}
+	cfg.Rules = rulesToBeApplied
 
-	detector := detect.NewDetector(config.Config{
-		Rules: rulesToBeApplied,
-	})
+	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
 	return &Engine{
@@ -61,17 +60,18 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (s *Engine) Detect(item plugins.Item, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, ignoredIds []string) {
+func (s *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, ignoredIds []string) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
-		Raw: item.Content,
+		Raw:      *item.GetContent(),
+		FilePath: item.GetSource(),
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
 		secret := &secrets.Secret{
 			ID:          itemId,
-			Source:      item.Source,
+			Source:      item.GetSource(),
 			RuleID:      value.RuleID,
 			StartLine:   value.StartLine,
 			StartColumn: value.StartColumn,
@@ -113,8 +113,8 @@ func (s *Engine) Validate() {
 	s.validator.Validate()
 }
 
-func getFindingId(item plugins.Item, finding report.Finding) string {
-	idParts := []string{item.ID, finding.RuleID, finding.Secret}
+func getFindingId(item plugins.ISourceItem, finding report.Finding) string {
+	idParts := []string{item.GetID(), finding.RuleID, finding.Secret}
 	sha := sha1.Sum([]byte(strings.Join(idParts, "-")))
 	return fmt.Sprintf("%x", sha)
 }
