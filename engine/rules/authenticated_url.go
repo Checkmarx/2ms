@@ -14,6 +14,9 @@ func AuthenticatedURL() *config.Rule {
 		Regex:       regex,
 		Keywords:    []string{"://"},
 		SecretGroup: 1,
+		Allowlist: config.Allowlist{
+			StopWords: []string{"password"},
+		},
 	}
 
 	tPositives := []string{
@@ -30,6 +33,7 @@ func AuthenticatedURL() *config.Rule {
 		`[![Gmail Badge](https://img.shields.io/badge/-VaibhavHariramani-d54b3d?style=flat-circle&labelColor=d54b3d&logo=gmail&logoColor=white&link=mailto:vaibhav.hariramani01@gmail.com)](mailto:vaibhav.hariramani01@gmail.com)`,
 		`https://situmops:$(github_token)@github.com/$(Build.Repository.Name).git`,
 		`'$cmd "unilinks://@@malformed.invalid.url/path?"$cmdSuffix',`,
+		`Uri.parse('http://login:password@192.168.0.1:8888'),`,
 	}
 
 	return validate(rule, tPositives, fPositives)
