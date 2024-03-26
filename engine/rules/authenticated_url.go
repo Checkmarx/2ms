@@ -7,7 +7,7 @@ import (
 )
 
 func AuthenticatedURL() *config.Rule {
-	regex, _ := regexp.Compile(`:\/\/(\w+:\w\S+)?@\S+\.\S+`)
+	regex, _ := regexp.Compile(`:\/\/(\w+:\w\S+)@\S+\.\S+`)
 	rule := config.Rule{
 		Description: "Identify username:password inside URLS",
 		RuleID:      "authenticated-url",
@@ -29,6 +29,7 @@ func AuthenticatedURL() *config.Rule {
 		`my [Linkedin](https://www.linkedin.com/in/rodriguesjeffdev/) or email: rodriguesjeff.dev@gmail.com`,
 		`[![Gmail Badge](https://img.shields.io/badge/-VaibhavHariramani-d54b3d?style=flat-circle&labelColor=d54b3d&logo=gmail&logoColor=white&link=mailto:vaibhav.hariramani01@gmail.com)](mailto:vaibhav.hariramani01@gmail.com)`,
 		`https://situmops:$(github_token)@github.com/$(Build.Repository.Name).git`,
+		`'$cmd "unilinks://@@malformed.invalid.url/path?"$cmdSuffix',`,
 	}
 
 	return validate(rule, tPositives, fPositives)
