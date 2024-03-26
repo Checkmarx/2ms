@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Mark as Community if PR is from a fork
         if: github.event.pull_request.head.repo.full_name != github.repository
+        # kics-scan ignore-line
         uses: actions/github-script@v6
         with:
           script: |

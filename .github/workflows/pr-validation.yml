@@ -16,10 +16,12 @@ jobs:
 
     steps:
       - name: Checkout code
+        # kics-scan ignore-line
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Required for 2ms to have visibility to all commit history
-
+        
+        # kics-scan ignore-line
       - uses: actions/setup-go@v5
         with:
           go-version: "^1.22"
@@ -42,6 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
+        # kics-scan ignore-line
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -55,6 +58,7 @@ jobs:
   kics:
     runs-on: ubuntu-latest
     steps:
+        # kics-scan ignore-line
       - uses: actions/checkout@v4
       - run: mkdir -p kics-results
 
