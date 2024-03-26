@@ -8,9 +8,7 @@ jobs:
   update_secrets:
     runs-on: ubuntu-latest
     steps:
-      # kics-scan ignore-line
       - uses: actions/checkout@v4
-      # kics-scan ignore-line
       - uses: actions/setup-go@v5
         with:
           go-version: "^1.22"

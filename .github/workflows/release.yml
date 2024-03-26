@@ -16,12 +16,10 @@ jobs:
       notes: ${{ steps.semantic_release_info.outputs.notes }}
     steps:
       - name: Checkout code
-        # kics-scan ignore-line
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Required for 2ms to have visibility to all commit history
 
-        # kics-scan ignore-line
       - uses: actions/setup-go@v5
         with:
           go-version: "^1.22"
@@ -45,10 +43,8 @@ jobs:
     if: ${{ needs.test.outputs.git_tag }}
     steps:
       - name: Checkout code
-        # kics-scan ignore-line
         uses: actions/checkout@v4
 
-        # kics-scan ignore-line
       - uses: actions/setup-go@v5
         with:
           go-version: "^1.22"
