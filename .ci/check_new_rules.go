@@ -84,7 +84,7 @@ type Release struct {
 func fetchGitleaksLatestRelease() (string, error) {
 	var release Release
 
-	response, err := http.Get("https://api.github.com/repos/zricethezav/gitleaks/releases/latest")
+	response, err := http.Get("https://api.github.com/repos/Checkmarx/gitleaks/releases/latest")
 	if err != nil {
 		return "", fmt.Errorf("failed to get latest release: %w", err)
 	}
@@ -115,7 +115,7 @@ func fetchGitleaksRules(version string) ([]byte, error) {
 }
 
 func getGitleaksRulesRawURL(version string) string {
-	return fmt.Sprintf("https://raw.githubusercontent.com/zricethezav/gitleaks/%s/cmd/generate/config/main.go", version)
+	return fmt.Sprintf("https://raw.githubusercontent.com/Checkmarx/gitleaks/%s/cmd/generate/config/main.go", version)
 }
 
 func fetchOurRules() ([]byte, error) {
