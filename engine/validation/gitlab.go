@@ -8,10 +8,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func validateGithub(s *secrets.Secret) secrets.ValidationResult {
-	const githubURL = "https://api.github.com/"
+func validateGitlab(s *secrets.Secret) secrets.ValidationResult {
+	const gitlabURL = "https://gitlab.com/api/v4/user"
 
-	resp, err := sendValidationRequest(githubURL, fmt.Sprintf("token %s", s.Value))
+	resp, err := sendValidationRequest(gitlabURL, fmt.Sprintf("Bearer %s", s.Value))
 
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to validate secret")

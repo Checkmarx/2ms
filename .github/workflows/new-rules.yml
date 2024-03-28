@@ -1,6 +1,7 @@
 name: New Rules from Gitleaks
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 2 * * 6" # At 02:00 on Saturday
 
