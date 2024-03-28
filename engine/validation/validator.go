@@ -12,6 +12,7 @@ var ruleIDToFunction = map[string]validationFunc{
 	"github-fine-grained-pat": validateGithub,
 	"github-pat":              validateGithub,
 	"gitlab-pat":              validateGitlab,
+	"gcp-api-key":             validateGCP,
 }
 
 type Validator struct {
