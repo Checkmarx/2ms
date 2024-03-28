@@ -16,6 +16,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
+replace github.com/zricethezav/gitleaks/v8 => github.com/Checkmarx/gitleaks/v8 v8.18.3
+
 require (
 	github.com/BobuSumisu/aho-corasick v1.0.3 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
