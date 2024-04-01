@@ -3,6 +3,7 @@ package validation
 import (
 	"sync"
 
+	"github.com/checkmarx/2ms/engine/extra"
 	"github.com/checkmarx/2ms/lib/secrets"
 )
 
@@ -55,8 +56,8 @@ func IsCanValidateRule(ruleID string) bool {
 	return false
 }
 
-func addExtraToSecret(secret *secrets.Secret, extra string) {
-	if extra == "" {
+func addExtraToSecret(secret *secrets.Secret, extraData string) {
+	if extraData == "" {
 		return
 	}
 
@@ -64,5 +65,5 @@ func addExtraToSecret(secret *secrets.Secret, extra string) {
 		secret.ExtraDetails = make(map[string]interface{})
 	}
 
-	secret.ExtraDetails["validationDetails"] = extra
+	extra.UpdateExtraField(secret, "validationDetails", extraData)
 }
