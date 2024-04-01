@@ -43,12 +43,15 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}
 
 	rulesToBeApplied := make(map[string]config.Rule)
+	keywords := []string{}
 	for _, rule := range *selectedRules {
-		// required to be empty when not running via cli. otherwise rule will be ignored
-		rule.Rule.Keywords = []string{}
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		for _, keyword := range rule.Rule.Keywords {
+			keywords = append(keywords, strings.ToLower(keyword))
+		}
 	}
 	cfg.Rules = rulesToBeApplied
+	cfg.Keywords = keywords
 
 	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
