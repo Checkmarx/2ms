@@ -10,9 +10,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type ErrorResponse struct {
+type errorResponse struct {
 	Error struct {
 		Message string `json:"message"`
+		Details []struct {
+			Type     string `json:"@type"`
+			Metadata struct {
+				Consumer string `json:"consumer"`
+			} `json:"metadata,omitempty"`
+		} `json:"details"`
 	} `json:"error"`
 }
 
@@ -54,14 +60,20 @@ func checkGCPErrorResponse(resp *http.Response) (secrets.ValidationResult, strin
 	}
 
 	// Unmarshal the response body into the ErrorResponse struct
-	var errorResponse ErrorResponse
+	var errorResponse errorResponse
 	err = json.Unmarshal(bodyBytes, &errorResponse)
 	if err != nil {
 		return secrets.UnknownResult, "", err
 	}
 
 	if strings.Contains(errorResponse.Error.Message, "YouTube Data API v3 has not been used in project") {
-		return secrets.ValidResult, "", nil
+		extra := ""
+		for _, detail := range errorResponse.Error.Details {
+			if detail.Type == "type.googleapis.com/google.rpc.ErrorInfo" {
+				extra = detail.Metadata.Consumer
+			}
+		}
+		return secrets.ValidResult, extra, nil
 	}
 
 	return secrets.UnknownResult, "", nil
