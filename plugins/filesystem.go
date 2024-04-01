@@ -53,7 +53,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", flagFolder, err)
 	}
 
-	flags.StringSliceVar(&p.Ignored, flagIgnored, []string{}, "Patterns to ignore")
+	flags.StringSliceVar(&p.Ignored, flagIgnored, []string{}, "Pattern of a folder/file name to ignore")
 	flags.StringVar(&p.ProjectName, flagProjectName, "", "Project name to differentiate between filesystem scans")
 
 	return cmd, nil
