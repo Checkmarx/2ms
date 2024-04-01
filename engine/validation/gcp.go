@@ -2,6 +2,7 @@ package validation
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 
@@ -47,17 +48,14 @@ func checkGCPErrorResponse(resp *http.Response) (secrets.ValidationResult, error
 		return secrets.RevokedResult, nil
 	}
 
-	// Read the response body
-	body := make([]byte, resp.ContentLength)
-	count, err := resp.Body.Read(body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return secrets.UnknownResult, err
 	}
-	defer resp.Body.Close()
 
 	// Unmarshal the response body into the ErrorResponse struct
 	var errorResponse ErrorResponse
-	err = json.Unmarshal(body[:count], &errorResponse)
+	err = json.Unmarshal(bodyBytes, &errorResponse)
 	if err != nil {
 		return secrets.UnknownResult, err
 	}
