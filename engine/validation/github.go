@@ -8,18 +8,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func validateGithub(s *secrets.Secret) secrets.ValidationResult {
+func validateGithub(s *secrets.Secret) (secrets.ValidationResult, string) {
 	const githubURL = "https://api.github.com/"
 
 	resp, err := sendValidationRequest(githubURL, fmt.Sprintf("token %s", s.Value))
 
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to validate secret")
-		return secrets.UnknownResult
+		return secrets.UnknownResult, ""
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		return secrets.ValidResult
+		return secrets.ValidResult, ""
 	}
-	return secrets.RevokedResult
+	return secrets.RevokedResult, ""
 }
