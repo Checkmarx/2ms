@@ -59,14 +59,14 @@ Here is a complete list of all the rules that are currently implemented.
 | flutterwave-encryption-key | Uncovered a Flutterwave Encryption Key, which may compromise payment processing and sensitive financial information. | encryption-key |  |
 | frameio-api-token | Found a Frame.io API token, potentially compromising video collaboration and project management. | api-token |  |
 | freshbooks-access-token | Discovered a Freshbooks Access Token, posing a risk to accounting software access and sensitive financial data exposure. | access-token |  |
-| gcp-api-key | Uncovered a GCP API key, which could lead to unauthorized access to Google Cloud services and data breaches. | api-key |  |
+| gcp-api-key | Uncovered a GCP API key, which could lead to unauthorized access to Google Cloud services and data breaches. | api-key | V |
 | generic-api-key | Detected a Generic API Key, potentially exposing access to various services and sensitive operations. | api-key |  |
 | github-pat | Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure. | access-token | V |
 | github-fine-grained-pat | Found a GitHub Fine-Grained Personal Access Token, risking unauthorized repository access and code manipulation. | access-token | V |
 | github-oauth | Discovered a GitHub OAuth Access Token, posing a risk of compromised GitHub account integrations and data leaks. | access-token |  |
 | github-app-token | Identified a GitHub App Token, which may compromise GitHub application integrations and source code security. | access-token |  |
 | github-refresh-token | Detected a GitHub Refresh Token, which could allow prolonged unauthorized access to GitHub services. | refresh-token |  |
-| gitlab-pat | Identified a GitLab Personal Access Token, risking unauthorized access to GitLab repositories and codebase exposure. | access-token |  |
+| gitlab-pat | Identified a GitLab Personal Access Token, risking unauthorized access to GitLab repositories and codebase exposure. | access-token | V |
 | gitlab-ptt | Found a GitLab Pipeline Trigger Token, potentially compromising continuous integration workflows and project security. | trigger-token |  |
 | gitlab-rrt | Discovered a GitLab Runner Registration Token, posing a risk to CI/CD pipeline integrity and unauthorized access. | registration-token |  |
 | gitter-access-token | Uncovered a Gitter Access Token, which may lead to unauthorized access to chat and communication services. | access-token |  |
