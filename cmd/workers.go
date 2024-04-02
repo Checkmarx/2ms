@@ -43,6 +43,7 @@ func processSecretsExtras() {
 		wgExtras.Add(1)
 		go extra.AddExtraToSecret(secret, wgExtras)
 	}
+	wgExtras.Wait()
 }
 
 func processValidation(engine *engine.Engine) {
