@@ -26,7 +26,8 @@ jobs:
           registry: checkmarx.jfrog.io
           username: ${{ secrets.JFROG_USER }}
           password: ${{ secrets.JFROG_PASSWORD }}
-        
+
+
       - uses: actions/setup-go@v5
         with:
           go-version: "^1.22"
