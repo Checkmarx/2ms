@@ -91,7 +91,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			EndColumn:   value.EndColumn,
 			Value:       value.Secret,
 		}
-		if !isSecretIgnored(secret, &e.ignoredIds) {
+		if !isSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
 			secretsChannel <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -131,7 +131,12 @@ func getFindingId(item plugins.ISourceItem, finding report.Finding) string {
 	return fmt.Sprintf("%x", sha)
 }
 
-func isSecretIgnored(secret *secrets.Secret, ignoredIds *[]string) bool {
+func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string) bool {
+	for _, allowedValue := range *allowedValues {
+		if secret.Value == allowedValue {
+			return true
+		}
+	}
 	for _, ignoredId := range *ignoredIds {
 		if secret.ID == ignoredId {
 			return true
