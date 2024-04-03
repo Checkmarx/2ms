@@ -3,7 +3,7 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM checkmarx.jfrog.io/docker/chainguard/go:1.22.1-r1--1ebe124fc23465 AS builder
+FROM cgr.dev/chainguard/go:latest AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM checkmarx.jfrog.io/docker/chainguard/busybox-jq-yq-bash-curl-awscli-git:1.36.1-r4--4993ffaa08557e
+FROM cgr.dev/chainguard/git:latest
 
 RUN git config --global --add safe.directory /repo
 

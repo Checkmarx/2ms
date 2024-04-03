@@ -20,14 +20,6 @@ jobs:
         with:
           fetch-depth: 0 # Required for 2ms to have visibility to all commit history
 
-      - name: Login to JFrog Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: checkmarx.jfrog.io
-          username: ${{ secrets.JFROG_USER }}
-          password: ${{ secrets.JFROG_PASSWORD }}
-
-
       - uses: actions/setup-go@v5
         with:
           go-version: "^1.22"
