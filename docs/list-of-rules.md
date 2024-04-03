@@ -113,8 +113,6 @@ Here is a complete list of all the rules that are currently implemented.
 | okta-access-token | Identified an Okta Access Token, which may compromise identity management services and user authentication data. | access-token |  |
 | openai-api-key | Found an OpenAI API Key, posing a risk of unauthorized access to AI services and data manipulation. | api-key |  |
 | plaid-client-id | Uncovered a Plaid Client ID, which could lead to unauthorized financial service integrations and data breaches. | client-id |  |
-| plaid-secret-key | Detected a Plaid Secret key, risking unauthorized access to financial accounts and sensitive transaction data. | secret-key |  |
-| plaid-api-token | Discovered a Plaid API Token, potentially compromising financial data aggregation and banking services. | api-token |  |
 | planetscale-password | Discovered a PlanetScale password, which could lead to unauthorized database operations and data breaches. | password |  |
 | planetscale-api-token | Identified a PlanetScale API token, potentially compromising database management and operations. | api-token |  |
 | planetscale-oauth-token | Found a PlanetScale OAuth token, posing a risk to database access control and sensitive data integrity. | access-token |  |

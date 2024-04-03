@@ -137,8 +137,8 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.OktaAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.OpenAI(), Tags: []string{TagApiKey}},
 		{Rule: *rules.PlaidAccessID(), Tags: []string{TagClientId}},
-		{Rule: *rules.PlaidSecretKey(), Tags: []string{TagSecretKey}},
-		{Rule: *rules.PlaidAccessToken(), Tags: []string{TagApiToken}},
+		// {Rule: *rules.PlaidSecretKey(), Tags: []string{TagSecretKey}}, https://github.com/Checkmarx/2ms/issues/226
+		// {Rule: *rules.PlaidAccessToken(), Tags: []string{TagApiToken}}, https://github.com/Checkmarx/2ms/issues/226
 		{Rule: *rules.PlanetScalePassword(), Tags: []string{TagPassword}},
 		{Rule: *rules.PlanetScaleAPIToken(), Tags: []string{TagApiToken}},
 		{Rule: *rules.PlanetScaleOAuthToken(), Tags: []string{TagAccessToken}},
