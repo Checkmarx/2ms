@@ -170,6 +170,7 @@ Additional Commands:
 Flags:
       --add-special-rule strings      special (non-default) rules to apply.
                                       This list is not affected by the --rule and --ignore-rule flags.
+      --allowed-values strings        allowed secrets values to ignore
       --config string                 config file path
   -h, --help                          help for 2ms
       --ignore-on-exit ignoreOnExit   defines which kind of non-zero exits code should be ignored

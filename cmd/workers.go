@@ -14,7 +14,7 @@ func processItems(engine *engine.Engine) {
 	for item := range channels.Items {
 		report.TotalItemsScanned++
 		wgItems.Add(1)
-		go engine.Detect(item, secretsChan, wgItems, ignoreVar)
+		go engine.Detect(item, secretsChan, wgItems)
 	}
 	wgItems.Wait()
 	close(secretsChan)
