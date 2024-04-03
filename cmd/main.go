@@ -28,6 +28,7 @@ const (
 	ruleFlagName               = "rule"
 	ignoreRuleFlagName         = "ignore-rule"
 	ignoreFlagName             = "ignore-result"
+	allowedValuesFlagName      = "allowed-values"
 	specialRulesFlagName       = "add-special-rule"
 	ignoreOnExitFlagName       = "ignore-on-exit"
 	maxTargetMegabytesFlagName = "max-target-megabytes"
@@ -39,7 +40,6 @@ var (
 	reportPathVar      []string
 	stdoutFormatVar    string
 	customRegexRuleVar []string
-	ignoreVar          []string
 	ignoreOnExitVar    = ignoreOnExitNone
 	engineConfigVar    engine.EngineConfig
 	validateVar        bool
@@ -90,7 +90,8 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
 	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.SelectedList, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
 	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.IgnoreList, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
-	rootCmd.PersistentFlags().StringSliceVar(&ignoreVar, ignoreFlagName, []string{}, "ignore specific result by id")
+	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.IgnoredIds, ignoreFlagName, []string{}, "ignore specific result by id")
+	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.AllowedValues, allowedValuesFlagName, []string{}, "allowed secrets values to ignore")
 	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.SpecialList, specialRulesFlagName, []string{}, "special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
 	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 	rootCmd.PersistentFlags().IntVar(&engineConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
