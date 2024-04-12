@@ -14,10 +14,10 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM cgr.dev/chainguard/git@sha256:a63f65075e5dfb6b040ace5d7a0982b79ed572f196de9d33b69f2a3c5b9665f9
+FROM cgr.dev/chainguard/bash:latest
 
-RUN git config --global --add safe.directory /repo
+#RUN git config --global --add safe.directory /repo
 
-COPY --from=builder /app/2ms /2ms
+COPY --from=builder /app/2ms .
 
-ENTRYPOINT ["/2ms"]
+ENTRYPOINT [ "./2ms" ]
