@@ -14,9 +14,10 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM cgr.dev/chainguard/bash@sha256:d99fd064eb2893d8fc50a81fad92cc49dceffac291974c64b2491a635a022d9c
+FROM cgr.dev/chainguard/wolfi-base@sha256:6bc98699de679ce5e9d1d53b9d06b99acde93584bf539690d61ec538916b1e74
 
-#RUN git config --global --add safe.directory /repo
+RUN apk add bash git
+RUN git config --global --add safe.directory /repo
 
 COPY --from=builder /app/2ms .
 
