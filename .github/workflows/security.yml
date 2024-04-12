@@ -20,11 +20,11 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+        uses: securego/gosec@26e57d6b340778c2983cd61775bc7e8bb41d002a # v2.19.0
         with:
           args: "-no-fail -fmt sarif -out results.sarif -exclude-dir=.ci -exclude-dir=tests ./..."
       - name: Upload Gosec Results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@4355270be187e1b672a7a1c7c7bae5afdc1ab94a #v3.24.10
         with:
           sarif_file: results.sarif
 
