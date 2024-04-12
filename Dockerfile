@@ -3,7 +3,7 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM cgr.dev/chainguard/go:sha256:a06a462f22445088e8bbb4478dedf83228af0db9003cd4f4cde5981694bc3d3d AS builder 
+FROM cgr.dev/chainguard/go@sha256:a06a462f22445088e8bbb4478dedf83228af0db9003cd4f4cde5981694bc3d3d AS builder 
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM cgr.dev/chainguard/git:sha256:a63f65075e5dfb6b040ace5d7a0982b79ed572f196de9d33b69f2a3c5b9665f9
+FROM cgr.dev/chainguard/git@sha256:a63f65075e5dfb6b040ace5d7a0982b79ed572f196de9d33b69f2a3c5b9665f9
 
 RUN git config --global --add safe.directory /repo
 
