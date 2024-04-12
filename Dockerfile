@@ -14,7 +14,7 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM cgr.dev/chainguard/bash:latest
+FROM cgr.dev/chainguard/bash@sha256:d99fd064eb2893d8fc50a81fad92cc49dceffac291974c64b2491a635a022d9c
 
 #RUN git config --global --add safe.directory /repo
 
