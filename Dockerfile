@@ -3,7 +3,7 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM golang:1.22.1-alpine3.19 AS builder
+FROM cgr.dev/chainguard/go@sha256:a06a462f22445088e8bbb4478dedf83228af0db9003cd4f4cde5981694bc3d3d AS builder 
 
 WORKDIR /app
 
@@ -14,11 +14,10 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM alpine:3.19
+FROM cgr.dev/chainguard/wolfi-base@sha256:6bc98699de679ce5e9d1d53b9d06b99acde93584bf539690d61ec538916b1e74
 
-RUN apk add --no-cache git=2.43.0-r0
+RUN apk add --no-cache bash=5.2.21-r1 git=2.44.0-r0 && git config --global --add safe.directory /repo
 
-RUN git config --global --add safe.directory /repo
+COPY --from=builder /app/2ms .
 
-COPY --from=builder /app/2ms /2ms
-ENTRYPOINT ["/2ms"]
+ENTRYPOINT [ "./2ms" ]
