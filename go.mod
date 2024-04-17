@@ -55,6 +55,6 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
-//transitive dependency not applied 
+//transitive dependency not applied but also reported as not used by go mod why
 
 replace golang.org/x/net => golang.org/x/net v0.24.0
