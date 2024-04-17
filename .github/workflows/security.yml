@@ -57,7 +57,7 @@ jobs:
           echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
           sudo apt-get update && sudo apt-get install -y trivy
           trivy image checkmarx/2ms:scanme --exit-code 1 \
-          --ignore-unfixed --vuln-type os,library --no-progress --secret-config ./ignore-secret-config.yaml --severity CRITICAL,HIGH,MEDIUM,LOW --vex ./ignore.openvex
+          --ignore-unfixed --vuln-type os,library --no-progress --secret-config --severity CRITICAL,HIGH,MEDIUM,LOW --vex ./ignore.openvex
   
   secret-scanning:
     runs-on: ubuntu-latest
@@ -66,6 +66,6 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
-          
+
       - name: Run 2ms Scan
         run: docker run -v $(pwd):/repo checkmarx/2ms:latest git /repo --config /repo/.2ms.yml
