@@ -57,7 +57,7 @@ jobs:
           echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
           sudo apt-get update && sudo apt-get install -y trivy
           trivy image checkmarx/2ms:scanme --exit-code 1 \
-          --ignore-unfixed --vuln-type os,library --no-progress --secret-config --severity CRITICAL,HIGH,MEDIUM,LOW --vex ./ignore.openvex
+          --ignore-unfixed --vuln-type os,library --no-progress --severity CRITICAL,HIGH,MEDIUM,LOW --vex ./ignore.openvex
   
   secret-scanning:
     runs-on: ubuntu-latest
