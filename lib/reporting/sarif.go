@@ -68,6 +68,9 @@ func getResults(report Report) []Results {
 				},
 				RuleId:    secret.RuleID,
 				Locations: getLocation(secret),
+				Properties: Properties{
+					"validationStatus": secret.ValidationStatus,
+				},
 			}
 			results = append(results, r)
 		}
@@ -144,12 +147,15 @@ type Locations struct {
 }
 
 type Results struct {
-	Message   Message     `json:"message"`
-	RuleId    string      `json:"ruleId"`
-	Locations []Locations `json:"locations"`
+	Message    Message     `json:"message"`
+	RuleId     string      `json:"ruleId"`
+	Locations  []Locations `json:"locations"`
+	Properties Properties  `json:"properties,omitempty"`
 }
 
 type Runs struct {
 	Tool    Tool      `json:"tool"`
 	Results []Results `json:"results"`
 }
+
+type Properties map[string]interface{}
