@@ -9,7 +9,7 @@ require (
 	github.com/slack-go/slack v0.12.2
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.18.2
+	github.com/spf13/viper v1.18.2-0.20240419203757-d539b7a2462e
 	github.com/stretchr/testify v1.9.0
 	github.com/zricethezav/gitleaks/v8 v8.18.2
 	golang.org/x/time v0.5.0
