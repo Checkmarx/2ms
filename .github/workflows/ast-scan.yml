@@ -6,7 +6,9 @@ on:
   push:
     branches:
       - main
-
+  schedule:
+    - cron: '30 9 * * 0'
+    
 jobs:
   cx-scan:
     runs-on: ubuntu-latest
