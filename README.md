@@ -185,7 +185,7 @@ Flags:
       --report-path strings           path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
       --rule strings                  select rules by name or tag to apply to this scan
       --stdout-format string          stdout output format, available formats are: json, yaml, sarif (default "yaml")
-      --validate                      trigger additional validation to check if discovered secrets are active or invalid
+      --validate                      trigger additional validation to check if discovered secrets are valid or invalid
   -v, --version                       version for 2ms
 
 Use "2ms [command] --help" for more information about a command.
@@ -373,7 +373,7 @@ The following table describes the global flags that can be used together with an
 |--report-path | strings |  | Path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif) |
 |--rule | strings |  | Select rules by name or tag to apply to this scan. |
 |--stdout-format | string | yaml | Stdout output format, available formats are: json, yaml, sarif |
-|--validate |  |  | Trigger additional validation to check if discovered secrets are active or invalid. SEE BELOW |
+|--validate |  |  | Trigger additional validation to check if discovered secrets are valid or invalid. SEE BELOW |
 |-v, --version |  |  | Version of 2ms that is running. |
 
 ### Validity Check
