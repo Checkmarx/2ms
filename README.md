@@ -185,7 +185,7 @@ Flags:
       --report-path strings           path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
       --rule strings                  select rules by name or tag to apply to this scan
       --stdout-format string          stdout output format, available formats are: json, yaml, sarif (default "yaml")
-      --validate                      trigger additional validation to check if discovered secrets are active or invalid
+      --validate                      trigger additional validation to check if discovered secrets are active or revoked
   -v, --version                       version for 2ms
 
 Use "2ms [command] --help" for more information about a command.
@@ -373,7 +373,7 @@ The following table describes the global flags that can be used together with an
 |--report-path | strings |  | Path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif) |
 |--rule | strings |  | Select rules by name or tag to apply to this scan. |
 |--stdout-format | string | yaml | Stdout output format, available formats are: json, yaml, sarif |
-|--validate |  |  | Trigger additional validation to check if discovered secrets are active or invalid. SEE BELOW |
+|--validate |  |  | Trigger additional validation to check if discovered secrets are active or revoked. SEE BELOW |
 |-v, --version |  |  | Version of 2ms that is running. |
 
 ### Validity Check
@@ -385,7 +385,7 @@ The list of services that support the Validity Check feature can be found in the
 The result of the validation can be:
 
 - `valid` - The secret is valid
-- `invalid` - The secret is invalid
+- `revoked` - The secret is revoked
 - `unknown` - We failed to check, or we are not checking the validity of the secret at all
 
 If the `--validate` flag is not provided, the validation field will be omitted from the output, or its value will be an empty string.
