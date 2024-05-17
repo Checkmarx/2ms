@@ -4,7 +4,7 @@ type ValidationResult string
 
 const (
 	ValidResult   ValidationResult = "Valid"
-	RevokedResult ValidationResult = "Revoked"
+	InvalidResult ValidationResult = "Invalid"
 	UnknownResult ValidationResult = "Unknown"
 )
 
@@ -26,7 +26,7 @@ func (v ValidationResult) CompareTo(other ValidationResult) compared {
 	if other == UnknownResult {
 		return first
 	}
-	if v == RevokedResult {
+	if v == InvalidResult {
 		return second
 	}
 	return first

@@ -21,5 +21,5 @@ func validateGithub(s *secrets.Secret) (secrets.ValidationResult, string) {
 	if resp.StatusCode == http.StatusOK {
 		return secrets.ValidResult, ""
 	}
-	return secrets.RevokedResult, ""
+	return secrets.InvalidResult, ""
 }

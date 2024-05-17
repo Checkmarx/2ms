@@ -39,5 +39,5 @@ func validateGitlab(s *secrets.Secret) (secrets.ValidationResult, string) {
 
 		return secrets.ValidResult, user.WebURL
 	}
-	return secrets.RevokedResult, ""
+	return secrets.InvalidResult, ""
 }
