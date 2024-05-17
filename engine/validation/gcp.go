@@ -51,7 +51,7 @@ func checkGCPErrorResponse(resp *http.Response) (secrets.ValidationResult, strin
 	}
 
 	if resp.StatusCode != http.StatusForbidden {
-		return secrets.RevokedResult, "", nil
+		return secrets.InvalidResult, "", nil
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)

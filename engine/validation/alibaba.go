@@ -78,7 +78,7 @@ func alibabaRequest(accessKey, secretKey string) (secrets.ValidationResult, erro
 	// If the access key is invalid, the response will be 404
 	// If the secret key is invalid, the response will be 400 along with other signautre Errors
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
-		return secrets.RevokedResult, nil
+		return secrets.InvalidResult, nil
 	}
 
 	if resp.StatusCode == http.StatusOK {
