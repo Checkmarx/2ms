@@ -106,7 +106,9 @@ func Execute() (int, error) {
 			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
 		subCommand.GroupID = group
-		subCommand.PreRunE = preRun
+		subCommand.PreRunE = func(cmd *cobra.Command, args []string) error {
+			return preRun(plugin.GetName(), cmd, args)
+		}
 		subCommand.PostRunE = postRun
 		rootCmd.AddCommand(subCommand)
 	}
@@ -120,7 +122,7 @@ func Execute() (int, error) {
 	return report.TotalSecretsFound, nil
 }
 
-func preRun(cmd *cobra.Command, args []string) error {
+func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
 		return err
 	}
@@ -135,7 +137,7 @@ func preRun(cmd *cobra.Command, args []string) error {
 	}
 
 	channels.WaitGroup.Add(1)
-	go processItems(engine)
+	go processItems(engine, pluginName)
 
 	channels.WaitGroup.Add(1)
 	go processSecrets()

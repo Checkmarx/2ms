@@ -6,14 +6,14 @@ import (
 	"github.com/checkmarx/2ms/engine"
 )
 
-func processItems(engine *engine.Engine) {
+func processItems(engine *engine.Engine, pluginName string) {
 	defer channels.WaitGroup.Done()
 
 	wgItems := &sync.WaitGroup{}
 	for item := range channels.Items {
 		report.TotalItemsScanned++
 		wgItems.Add(1)
-		go engine.Detect(item, secretsChan, wgItems, ignoreVar)
+		go engine.Detect(item, secretsChan, wgItems, ignoreVar, pluginName)
 	}
 	wgItems.Wait()
 	close(secretsChan)

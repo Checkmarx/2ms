@@ -60,7 +60,7 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (s *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, ignoredIds []string) {
+func (s *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, ignoredIds []string, pluginName string) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
@@ -69,13 +69,21 @@ func (s *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 	}
 	for _, value := range s.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
+		var startLine, endLine int
+		if pluginName == "filesystem" {
+			startLine = value.StartLine + 1
+			endLine = value.EndLine + 1
+		} else {
+			startLine = value.StartLine
+			endLine = value.EndLine
+		}
 		secret := &secrets.Secret{
 			ID:          itemId,
 			Source:      item.GetSource(),
 			RuleID:      value.RuleID,
-			StartLine:   value.StartLine,
+			StartLine:   startLine,
 			StartColumn: value.StartColumn,
-			EndLine:     value.EndLine,
+			EndLine:     endLine,
 			EndColumn:   value.EndColumn,
 			Value:       value.Secret,
 		}
