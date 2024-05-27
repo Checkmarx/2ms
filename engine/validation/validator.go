@@ -3,14 +3,17 @@ package validation
 import (
 	"sync"
 
+	"github.com/checkmarx/2ms/engine/extra"
 	"github.com/checkmarx/2ms/lib/secrets"
 )
 
-type validationFunc = func(*secrets.Secret) secrets.ValidationResult
+type validationFunc = func(*secrets.Secret) (secrets.ValidationResult, string)
 
 var ruleIDToFunction = map[string]validationFunc{
 	"github-fine-grained-pat": validateGithub,
 	"github-pat":              validateGithub,
+	"gitlab-pat":              validateGitlab,
+	"gcp-api-key":             validateGCP,
 }
 
 type Validator struct {
@@ -23,7 +26,9 @@ func NewValidator() *Validator {
 
 func (v *Validator) RegisterForValidation(secret *secrets.Secret) {
 	if validate, ok := ruleIDToFunction[secret.RuleID]; ok {
-		secret.ValidationStatus = validate(secret)
+		status, extra := validate(secret)
+		secret.ValidationStatus = status
+		addExtraToSecret(secret, extra)
 	} else if !v.pairsCollector.addIfNeeded(secret) {
 		secret.ValidationStatus = secrets.UnknownResult
 	}
@@ -49,4 +54,16 @@ func IsCanValidateRule(ruleID string) bool {
 	}
 
 	return false
+}
+
+func addExtraToSecret(secret *secrets.Secret, extraData string) {
+	if extraData == "" {
+		return
+	}
+
+	if secret.ExtraDetails == nil {
+		secret.ExtraDetails = make(map[string]interface{})
+	}
+
+	extra.UpdateExtraField(secret, "validationDetails", extraData)
 }

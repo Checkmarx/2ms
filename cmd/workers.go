@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/checkmarx/2ms/engine"
+	"github.com/checkmarx/2ms/engine/extra"
 )
 
 func processItems(engine *engine.Engine, pluginName string) {
@@ -13,7 +14,7 @@ func processItems(engine *engine.Engine, pluginName string) {
 	for item := range channels.Items {
 		report.TotalItemsScanned++
 		wgItems.Add(1)
-		go engine.Detect(item, secretsChan, wgItems, ignoreVar, pluginName)
+		go engine.Detect(item, secretsChan, wgItems, pluginName)
 	}
 	wgItems.Wait()
 	close(secretsChan)
@@ -24,12 +25,25 @@ func processSecrets() {
 
 	for secret := range secretsChan {
 		report.TotalSecretsFound++
+		secretsExtrasChan <- secret
 		if validateVar {
 			validationChan <- secret
 		}
 		report.Results[secret.ID] = append(report.Results[secret.ID], secret)
 	}
+	close(secretsExtrasChan)
 	close(validationChan)
+}
+
+func processSecretsExtras() {
+	defer channels.WaitGroup.Done()
+
+	wgExtras := &sync.WaitGroup{}
+	for secret := range secretsExtrasChan {
+		wgExtras.Add(1)
+		go extra.AddExtraToSecret(secret, wgExtras)
+	}
+	wgExtras.Wait()
 }
 
 func processValidation(engine *engine.Engine) {

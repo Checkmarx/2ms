@@ -59,14 +59,14 @@ Here is a complete list of all the rules that are currently implemented.
 | flutterwave-encryption-key | Uncovered a Flutterwave Encryption Key, which may compromise payment processing and sensitive financial information. | encryption-key |  |
 | frameio-api-token | Found a Frame.io API token, potentially compromising video collaboration and project management. | api-token |  |
 | freshbooks-access-token | Discovered a Freshbooks Access Token, posing a risk to accounting software access and sensitive financial data exposure. | access-token |  |
-| gcp-api-key | Uncovered a GCP API key, which could lead to unauthorized access to Google Cloud services and data breaches. | api-key |  |
+| gcp-api-key | Uncovered a GCP API key, which could lead to unauthorized access to Google Cloud services and data breaches. | api-key | V |
 | generic-api-key | Detected a Generic API Key, potentially exposing access to various services and sensitive operations. | api-key |  |
 | github-pat | Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure. | access-token | V |
 | github-fine-grained-pat | Found a GitHub Fine-Grained Personal Access Token, risking unauthorized repository access and code manipulation. | access-token | V |
 | github-oauth | Discovered a GitHub OAuth Access Token, posing a risk of compromised GitHub account integrations and data leaks. | access-token |  |
 | github-app-token | Identified a GitHub App Token, which may compromise GitHub application integrations and source code security. | access-token |  |
 | github-refresh-token | Detected a GitHub Refresh Token, which could allow prolonged unauthorized access to GitHub services. | refresh-token |  |
-| gitlab-pat | Identified a GitLab Personal Access Token, risking unauthorized access to GitLab repositories and codebase exposure. | access-token |  |
+| gitlab-pat | Identified a GitLab Personal Access Token, risking unauthorized access to GitLab repositories and codebase exposure. | access-token | V |
 | gitlab-ptt | Found a GitLab Pipeline Trigger Token, potentially compromising continuous integration workflows and project security. | trigger-token |  |
 | gitlab-rrt | Discovered a GitLab Runner Registration Token, posing a risk to CI/CD pipeline integrity and unauthorized access. | registration-token |  |
 | gitter-access-token | Uncovered a Gitter Access Token, which may lead to unauthorized access to chat and communication services. | access-token |  |
@@ -113,8 +113,6 @@ Here is a complete list of all the rules that are currently implemented.
 | okta-access-token | Identified an Okta Access Token, which may compromise identity management services and user authentication data. | access-token |  |
 | openai-api-key | Found an OpenAI API Key, posing a risk of unauthorized access to AI services and data manipulation. | api-key |  |
 | plaid-client-id | Uncovered a Plaid Client ID, which could lead to unauthorized financial service integrations and data breaches. | client-id |  |
-| plaid-secret-key | Detected a Plaid Secret key, risking unauthorized access to financial accounts and sensitive transaction data. | secret-key |  |
-| plaid-api-token | Discovered a Plaid API Token, potentially compromising financial data aggregation and banking services. | api-token |  |
 | planetscale-password | Discovered a PlanetScale password, which could lead to unauthorized database operations and data breaches. | password |  |
 | planetscale-api-token | Identified a PlanetScale API token, potentially compromising database management and operations. | api-token |  |
 | planetscale-oauth-token | Found a PlanetScale OAuth token, posing a risk to database access control and sensitive data integrity. | access-token |  |
@@ -126,7 +124,6 @@ Here is a complete list of all the rules that are currently implemented.
 | rapidapi-access-token | Uncovered a RapidAPI Access Token, which could lead to unauthorized access to various APIs and data services. | access-token |  |
 | readme-api-token | Detected a Readme API token, risking unauthorized documentation management and content exposure. | api-token |  |
 | rubygems-api-token | Identified a Rubygem API token, potentially compromising Ruby library distribution and package management. | api-token |  |
-| scalingo-api-token | Found a Scalingo API token, posing a risk to cloud platform services and application deployment security. | api-token |  |
 | sendbird-access-id | Discovered a Sendbird Access ID, which could compromise chat and messaging platform integrations. | access-id |  |
 | sendbird-access-token | Uncovered a Sendbird Access Token, potentially risking unauthorized access to communication services and user data. | access-token |  |
 | sendgrid-api-token | Detected a SendGrid API token, posing a risk of unauthorized email service operations and data exposure. | api-token |  |
@@ -151,7 +148,6 @@ Here is a complete list of all the rules that are currently implemented.
 | stripe-access-token | Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data. | access-token |  |
 | square-access-token | Detected a Square Access Token, risking unauthorized payment processing and financial transaction exposure. | access-token |  |
 | squarespace-access-token | Identified a Squarespace Access Token, which may compromise website management and content control on Squarespace. | access-token |  |
-| sumologic-access-id | Discovered a SumoLogic Access ID, potentially compromising log management services and data analytics integrity. | access-id |  |
 | sumologic-access-token | Uncovered a SumoLogic Access Token, which could lead to unauthorized access to log data and analytics insights. | access-token |  |
 | snyk-api-token | Uncovered a Snyk API token, potentially compromising software vulnerability scanning and code security. | api-key |  |
 | microsoft-teams-webhook | Uncovered a Microsoft Teams Webhook, which could lead to unauthorized access to team collaboration tools and data leaks. | webhook |  |

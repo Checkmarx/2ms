@@ -18,22 +18,54 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+        uses: securego/gosec@26e57d6b340778c2983cd61775bc7e8bb41d002a # v2.19.0
         with:
           args: "-no-fail -fmt sarif -out results.sarif -exclude-dir=.ci -exclude-dir=tests ./..."
+
       - name: Upload Gosec Results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@4355270be187e1b672a7a1c7c7bae5afdc1ab94a #v3.24.10
         with:
           sarif_file: results.sarif
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb #v3.3.0
+  
+
+  trivy-scanning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Build and load (not push)
+        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
+        with:
+          load: true
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: |
+            checkmarx/2ms:scanme
+
+      - name: Install trivy and Run it
+        run: |
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update && sudo apt-get install -y trivy
+          trivy image checkmarx/2ms:scanme --exit-code 1 \
+          --ignore-unfixed --vuln-type os,library --no-progress --severity CRITICAL,HIGH,MEDIUM,LOW --vex ./ignore.openvex
+  
   secret-scanning:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
+
       - name: Run 2ms Scan
         run: docker run -v $(pwd):/repo checkmarx/2ms:latest git /repo --config /repo/.2ms.yml

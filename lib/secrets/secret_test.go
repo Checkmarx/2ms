@@ -18,10 +18,10 @@ func TestValidationResultCompareTo(t *testing.T) {
 			message: "Valid should be equal to Valid",
 		},
 		{
-			first:   RevokedResult,
+			first:   InvalidResult,
 			second:  ValidResult,
 			want:    second,
-			message: "Valid should be greater than Revoked",
+			message: "Valid should be greater than Invalid",
 		},
 		{
 			first:   ValidResult,
@@ -31,9 +31,9 @@ func TestValidationResultCompareTo(t *testing.T) {
 		},
 		{
 			first:   UnknownResult,
-			second:  RevokedResult,
+			second:  InvalidResult,
 			want:    second,
-			message: "Revoked should be greater than Unknown",
+			message: "Invalid should be greater than Unknown",
 		},
 	}
 

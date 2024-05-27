@@ -4,7 +4,7 @@ type ValidationResult string
 
 const (
 	ValidResult   ValidationResult = "Valid"
-	RevokedResult ValidationResult = "Revoked"
+	InvalidResult ValidationResult = "Invalid"
 	UnknownResult ValidationResult = "Unknown"
 )
 
@@ -26,20 +26,21 @@ func (v ValidationResult) CompareTo(other ValidationResult) compared {
 	if other == UnknownResult {
 		return first
 	}
-	if v == RevokedResult {
+	if v == InvalidResult {
 		return second
 	}
 	return first
 }
 
 type Secret struct {
-	ID               string           `json:"id"`
-	Source           string           `json:"source"`
-	RuleID           string           `json:"ruleId"`
-	StartLine        int              `json:"startLine"`
-	EndLine          int              `json:"endLine"`
-	StartColumn      int              `json:"startColumn"`
-	EndColumn        int              `json:"endColumn"`
-	Value            string           `json:"value"`
-	ValidationStatus ValidationResult `json:"validationStatus,omitempty"`
+	ID               string                 `json:"id"`
+	Source           string                 `json:"source"`
+	RuleID           string                 `json:"ruleId"`
+	StartLine        int                    `json:"startLine"`
+	EndLine          int                    `json:"endLine"`
+	StartColumn      int                    `json:"startColumn"`
+	EndColumn        int                    `json:"endColumn"`
+	Value            string                 `json:"value"`
+	ValidationStatus ValidationResult       `json:"validationStatus,omitempty"`
+	ExtraDetails     map[string]interface{} `json:"extraDetails,omitempty"`
 }

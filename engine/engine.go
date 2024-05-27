@@ -24,6 +24,9 @@ type Engine struct {
 	rules     map[string]config.Rule
 	detector  detect.Detector
 	validator validation.Validator
+
+	ignoredIds    []string
+	allowedValues []string
 }
 
 const customRegexRuleIdFormat = "custom-regex-%d"
@@ -34,6 +37,9 @@ type EngineConfig struct {
 	SpecialList  []string
 
 	MaxTargetMegabytes int
+
+	IgnoredIds    []string
+	AllowedValues []string
 }
 
 func Init(engineConfig EngineConfig) (*Engine, error) {
@@ -43,12 +49,15 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}
 
 	rulesToBeApplied := make(map[string]config.Rule)
+	keywords := []string{}
 	for _, rule := range *selectedRules {
-		// required to be empty when not running via cli. otherwise rule will be ignored
-		rule.Rule.Keywords = []string{}
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		for _, keyword := range rule.Rule.Keywords {
+			keywords = append(keywords, strings.ToLower(keyword))
+		}
 	}
 	cfg.Rules = rulesToBeApplied
+	cfg.Keywords = keywords
 
 	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
@@ -57,17 +66,20 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 		rules:     rulesToBeApplied,
 		detector:  *detector,
 		validator: *validation.NewValidator(),
+
+		ignoredIds:    engineConfig.IgnoredIds,
+		allowedValues: engineConfig.AllowedValues,
 	}, nil
 }
 
-func (s *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, ignoredIds []string, pluginName string) {
+func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, pluginName string) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
-	for _, value := range s.detector.Detect(fragment) {
+	for _, value := range e.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
 		var startLine, endLine int
 		if pluginName == "filesystem" {
@@ -87,7 +99,7 @@ func (s *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			EndColumn:   value.EndColumn,
 			Value:       value.Secret,
 		}
-		if !isSecretIgnored(secret, &ignoredIds) {
+		if !isSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
 			secretsChannel <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -95,7 +107,7 @@ func (s *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 	}
 }
 
-func (s *Engine) AddRegexRules(patterns []string) error {
+func (e *Engine) AddRegexRules(patterns []string) error {
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
@@ -107,7 +119,7 @@ func (s *Engine) AddRegexRules(patterns []string) error {
 			Regex:       regex,
 			Keywords:    []string{},
 		}
-		s.rules[rule.RuleID] = rule
+		e.rules[rule.RuleID] = rule
 	}
 	return nil
 }
@@ -127,7 +139,12 @@ func getFindingId(item plugins.ISourceItem, finding report.Finding) string {
 	return fmt.Sprintf("%x", sha)
 }
 
-func isSecretIgnored(secret *secrets.Secret, ignoredIds *[]string) bool {
+func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string) bool {
+	for _, allowedValue := range *allowedValues {
+		if secret.Value == allowedValue {
+			return true
+		}
+	}
 	for _, ignoredId := range *ignoredIds {
 		if secret.ID == ignoredId {
 			return true

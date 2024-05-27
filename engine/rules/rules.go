@@ -137,8 +137,8 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.OktaAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.OpenAI(), Tags: []string{TagApiKey}},
 		{Rule: *rules.PlaidAccessID(), Tags: []string{TagClientId}},
-		{Rule: *rules.PlaidSecretKey(), Tags: []string{TagSecretKey}},
-		{Rule: *rules.PlaidAccessToken(), Tags: []string{TagApiToken}},
+		// {Rule: *rules.PlaidSecretKey(), Tags: []string{TagSecretKey}}, https://github.com/Checkmarx/2ms/issues/226
+		// {Rule: *rules.PlaidAccessToken(), Tags: []string{TagApiToken}}, https://github.com/Checkmarx/2ms/issues/226
 		{Rule: *rules.PlanetScalePassword(), Tags: []string{TagPassword}},
 		{Rule: *rules.PlanetScaleAPIToken(), Tags: []string{TagApiToken}},
 		{Rule: *rules.PlanetScaleOAuthToken(), Tags: []string{TagAccessToken}},
@@ -175,7 +175,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.StripeAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.SquareAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.SquareSpaceAccessToken(), Tags: []string{TagAccessToken}},
-		{Rule: *rules.SumoLogicAccessID(), Tags: []string{TagAccessId}},
+		// {Rule: *rules.SumoLogicAccessID(), Tags: []string{TagAccessId}}, https://github.com/Checkmarx/2ms/issues/226
 		{Rule: *rules.SumoLogicAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.Snyk(), Tags: []string{TagApiKey}},
 		{Rule: *rules.TeamsWebhook(), Tags: []string{TagWebhook}},
