@@ -10,6 +10,8 @@ import (
 	"github.com/checkmarx/2ms/plugins"
 )
 
+var fsPlugin = &plugins.FileSystemPlugin{}
+
 func Test_Init(t *testing.T) {
 	allRules := *rules.FilterRules([]string{}, []string{}, []string{})
 	specialRule := rules.HardcodedPassword()
@@ -77,7 +79,7 @@ func TestDetector(t *testing.T) {
 		secretsChan := make(chan *secrets.Secret, 1)
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
-		detector.Detect(i, secretsChan, wg, nil)
+		detector.Detect(i, secretsChan, wg, nil, fsPlugin.GetName())
 		close(secretsChan)
 
 		s := <-secretsChan
@@ -152,7 +154,7 @@ func TestSecrets(t *testing.T) {
 			secretsChan := make(chan *secrets.Secret, 1)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
-			detector.Detect(item{content: &secret.Content}, secretsChan, wg, nil)
+			detector.Detect(item{content: &secret.Content}, secretsChan, wg, nil, fsPlugin.GetName())
 			close(secretsChan)
 
 			s := <-secretsChan
