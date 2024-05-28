@@ -34,6 +34,8 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("confluence: secrets found with validation", func(t *testing.T) {
+		t.Skip("Skipping confluence test (confluence page is currently private)")
+
 		if err := executable.run("confluence", "https://checkmarx.atlassian.net/wiki", "--spaces", "secrets", "--validate"); err == nil {
 			t.Error("expected error (secrets found), got nil")
 		}
