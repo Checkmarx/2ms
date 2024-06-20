@@ -108,7 +108,7 @@ jobs:
         run: docker run -v $(pwd):/repo checkmarx/2ms:2.8.1 git /repo
 ```
 
-- This example uses version to `2.8.1` of 2ms. Make sure to check for the latest version.
+- This example uses version `2.8.1` of 2ms. Make sure to check for the latest version.
 - 💡 Take a look at [2ms GitHub Actions pipeline](https://github.com/Checkmarx/2ms/blob/master/.github/workflows/release.yml) as 2ms scans itself using 2ms.
 
 ### Azure DevOps Pipeline
