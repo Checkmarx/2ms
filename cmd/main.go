@@ -78,6 +78,7 @@ var secretsExtrasChan = make(chan *secrets.Secret)
 var validationChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
+	// Hello World
 	vConfig.SetEnvPrefix(envPrefix)
 	vConfig.AutomaticEnv()
 
