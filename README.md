@@ -263,11 +263,18 @@ This command is used to scan a [Confluence](https://www.atlassian.com/software/c
 
 For example:
 
-```bash
-2ms confluence https://checkmarx.atlassian.net/wiki --spaces secrets
-```
+- To scan public spaces:
 
-- 💡 [The `secrets` Confluence site](https://checkmarx.atlassian.net/wiki/spaces/secrets) purposely created with plain example secrets as a test subject for this demo
+    ```bash
+    2ms confluence https://checkmarx.atlassian.net/wiki --spaces secrets
+    ```
+    💡 [The `secrets` Confluence site](https://checkmarx.atlassian.net/wiki/spaces/secrets) purposely created with plain example secrets as a test subject for this demo
+
+- To scan private spaces, authentication is required
+    ```bash
+    2ms confluence <URL> --username <USERNAME> --token <API_TOKEN> --spaces <SPACES>
+    ```
+    [How to get a cofluence API token](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/).
 
 [![asciicast](https://asciinema.org/a/607179.svg)](https://asciinema.org/a/607179)
 
@@ -279,7 +286,7 @@ Scans [Paligo](https://paligo.net/) content management system instance.
 | ------------ | ------ | ------------------------------- | ------------------------------------------------ |
 | `--instance` | string | -                               | Instance name                                    |
 | `--token`    | string | -                               | API token for authentication                     |
-| `--username` | string | -                               | Confluence user name or email for authentication |
+| `--username` | string | -                               | Paligo username |
 | `--folder`   | string | scanning all instance's folders | Folder ID                                        |
 | `--auth`     | string | -                               | Base64 auth header encoded username:password     |
 
@@ -291,7 +298,7 @@ Scans [Discord](https://discord.com/) chat application history.
 | ------------------ | -------- | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `--token`          | string   | -                                | Discord token                                                                                          |
 | `--channel`        | strings  | all channels will be scanned     | Discord channel IDs to scan                                                                            |
-| `--messages-count` | int      | 0 = all messages will be scanned | Confluence user name or email for authentication                                                       |
+| `--messages-count` | int      | 0 = all messages will be scanned | The number of messages to scan                                                       |
 | `--duration`       | duration | 14 days                          | The time interval to scan from the current time. For example, 24h for 24 hours or 336h0m0s for 14 days |
 | `--server`         | strings  | -                                | Discord servers IDs to scan                                                                            |
 
@@ -311,7 +318,7 @@ Scans [Slack](https://slack.com/) chat application history.
 | ------------------ | -------- | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `--token`          | string   | -                                | Slack token                                                                                            |
 | `--channel`        | strings  | all channels will be scanned     | Slack channel IDs to scan                                                                              |
-| `--messages-count` | int      | 0 = all messages will be scanned | Confluence user name or email for authentication                                                       |
+| `--messages-count` | int      | 0 = all messages will be scanned | The number of messages to scan                                                       |
 | `--duration`       | duration | 14 days                          | The time interval to scan from the current time. For example, 24h for 24 hours or 336h0m0s for 14 days |
 | `--team`           | string   | -                                | Slack team name or ID                                                                                  |
 
