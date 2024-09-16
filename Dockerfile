@@ -14,7 +14,7 @@ COPY . .
 RUN go build -o /app/2ms .
 
 # Runtime image
-FROM cgr.dev/chainguard/wolfi-base@sha256:6bc98699de679ce5e9d1d53b9d06b99acde93584bf539690d61ec538916b1e74
+FROM cgr.dev/chainguard/git@sha256:02660563e96b553d6aeb4093e3fcc3e91b2ad3a86e05c65b233f37f035e5044e
 
 RUN apk add --no-cache bash=5.2.21-r1 git=2.45.1-r0 glibc=2.39-r5 glibc-locale-posix=2.39-r5 ld-linux==2.39-r5 libcrypt1=2.39-r5 && git config --global --add safe.directory /repo
 
