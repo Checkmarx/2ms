@@ -274,7 +274,7 @@ For example:
     ```bash
     2ms confluence <URL> --username <USERNAME> --token <API_TOKEN> --spaces <SPACES>
     ```
-    [How to get a cofluence API token](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/).
+    [How to get a Confluence API token](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/).
 
 [![asciicast](https://asciinema.org/a/607179.svg)](https://asciinema.org/a/607179)
 
