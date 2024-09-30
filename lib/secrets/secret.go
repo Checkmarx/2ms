@@ -38,7 +38,7 @@ type Secret struct {
 	RuleID           string                 `json:"ruleId"`
 	StartLine        int                    `json:"startLine"`
 	EndLine          int                    `json:"endLine"`
-	Line             string                 `json:"line"`
+	LineContent      string                 `json:"lineContent"`
 	StartColumn      int                    `json:"startColumn"`
 	EndColumn        int                    `json:"endColumn"`
 	Value            string                 `json:"value"`
