@@ -92,6 +92,7 @@ func getLocation(secret *secrets.Secret) []Locations {
 					EndColumn:   secret.EndColumn,
 					Snippet: Snippet{
 						Text: secret.Value,
+						Line: secret.Line,
 					},
 				},
 			},
@@ -135,6 +136,7 @@ type Region struct {
 
 type Snippet struct {
 	Text string `json:"text"`
+	Line string `json:"line"`
 }
 
 type PhysicalLocation struct {
