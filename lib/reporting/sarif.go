@@ -3,9 +3,9 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/secrets"
+	"strings"
 )
 
 func writeSarif(report Report, cfg *config.Config) (string, error) {
@@ -93,7 +93,7 @@ func getLocation(secret *secrets.Secret) []Locations {
 					Snippet: Snippet{
 						Text: secret.Value,
 						Properties: Properties{
-							"lineContent": secret.LineContent,
+							"lineContent": strings.TrimSpace(secret.LineContent),
 						},
 					},
 				},
