@@ -98,6 +98,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			EndLine:     endLine,
 			EndColumn:   value.EndColumn,
 			Value:       value.Secret,
+			LineContent: value.Line,
 		}
 		if !isSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
 			secretsChannel <- secret
