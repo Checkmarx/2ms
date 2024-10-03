@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 
@@ -159,11 +160,10 @@ func TestSecrets(t *testing.T) {
 
 			s := <-secretsChan
 
-			if s == nil && secret.ShouldFind {
-				t.Errorf("secret \"%s\" not found", secret.Name)
-			}
-			if s != nil && !secret.ShouldFind {
-				t.Errorf("should not find")
+			if secret.ShouldFind {
+				assert.Equal(t, s.LineContent, secret.Content)
+			} else {
+				assert.Nil(t, s)
 			}
 		})
 	}
