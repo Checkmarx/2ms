@@ -34,7 +34,7 @@ func validate(r config.Rule, truePositives []string, falsePositives []string) *c
 				Str("rule", r.RuleID).
 				Str("value", tp).
 				Str("regex", r.Regex.String()).
-				Msg("Failed to Validate. True positive was not detected by regex.")
+				Msg("Failed to Validate. True positive was not detected by regex.") // lint:ignore This Fatal happens in a test
 		}
 	}
 	for _, fp := range falsePositives {
@@ -43,7 +43,7 @@ func validate(r config.Rule, truePositives []string, falsePositives []string) *c
 				Str("rule", r.RuleID).
 				Str("value", fp).
 				Str("regex", r.Regex.String()).
-				Msg("Failed to Validate. False positive was detected by regex.")
+				Msg("Failed to Validate. False positive was detected by regex.") // lint:ignore This Fatal happens in a test
 		}
 	}
 	return &r
