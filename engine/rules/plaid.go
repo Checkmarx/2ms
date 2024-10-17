@@ -22,6 +22,7 @@ func PlaidAccessID() *config.Rule {
 	// validate
 	tps := []string{
 		generateSampleSecret("plaid", secrets.NewSecret(alphaNumeric("24"))),
+		"plaid_api_token = \"advm5ddxkh5h4xltv1h5dm5m\"",
 	}
 	return validate(r, tps, nil)
 }
