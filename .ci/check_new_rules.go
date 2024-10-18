@@ -12,7 +12,7 @@ import (
 
 var (
 	regexGitleaksRules = regexp.MustCompile(`(?m)^[^/\n\r]\s*rules\.([a-zA-Z0-9_]+)\(`)
-	regex2msRules      = regexp.MustCompile(`(?m)^[^/\n\r]\s*(?:// )?{Rule:\s*\*rules\.([a-zA-Z0-9_]+)\(\),`)
+	regex2msRules      = regexp.MustCompile(`(?m)^[^/\n\r]\s*(?:// )?{Rule:\s*\*(?:rules\.)?([a-zA-Z0-9_]+)\(\),`)
 )
 
 func main() {

@@ -136,7 +136,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.NytimesAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.OktaAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.OpenAI(), Tags: []string{TagApiKey}},
-		{Rule: *rules.PlaidAccessID(), Tags: []string{TagClientId}},
+		{Rule: *PlaidAccessID(), Tags: []string{TagClientId}},
 		// {Rule: *rules.PlaidSecretKey(), Tags: []string{TagSecretKey}}, https://github.com/Checkmarx/2ms/issues/226
 		// {Rule: *rules.PlaidAccessToken(), Tags: []string{TagApiToken}}, https://github.com/Checkmarx/2ms/issues/226
 		{Rule: *rules.PlanetScalePassword(), Tags: []string{TagPassword}},
@@ -190,7 +190,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.TwitterBearerToken(), Tags: []string{TagApiToken}},
 		{Rule: *rules.Typeform(), Tags: []string{TagApiToken}},
 		{Rule: *rules.VaultBatchToken(), Tags: []string{TagApiToken}},
-		{Rule: *rules.VaultServiceToken(), Tags: []string{TagApiToken}},
+		{Rule: *VaultServiceToken(), Tags: []string{TagApiToken}},
 		{Rule: *rules.YandexAPIKey(), Tags: []string{TagApiKey}},
 		{Rule: *rules.YandexAWSAccessToken(), Tags: []string{TagAccessToken}},
 		{Rule: *rules.YandexAccessToken(), Tags: []string{TagAccessToken}},
