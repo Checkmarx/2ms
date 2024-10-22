@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -311,7 +312,36 @@ func TestGetOutputSarif(t *testing.T) {
 			}
 			var gotReport Sarif
 			err = json.Unmarshal([]byte(got), &gotReport)
+			SortSarifReports(&gotReport, &Sarif{Runs: tt.want})
 			assert.Equal(t, tt.want, gotReport.Runs)
 		})
 	}
+}
+
+// SortProject Sorts two sarif reports
+func SortSarifReports(run1, run2 *Sarif) {
+	// Sort Rules
+	SortRules(run1.Runs[0].Tool.Driver.Rules, run2.Runs[0].Tool.Driver.Rules)
+	SortResults(run1.Runs[0].Results, run2.Runs[0].Results)
+
+}
+
+func SortRules(rules1, rules2 []*SarifRule) {
+	// Sort both slices
+	sort.Slice(rules1, func(i, j int) bool {
+		return rules1[i].ID < rules1[j].ID
+	})
+	sort.Slice(rules2, func(i, j int) bool {
+		return rules2[i].ID < rules2[j].ID
+	})
+}
+
+func SortResults(results1, results2 []Results) {
+	// Sort both slices
+	sort.Slice(results1, func(i, j int) bool {
+		return results1[i].Message.Text < results1[j].Message.Text
+	})
+	sort.Slice(results2, func(i, j int) bool {
+		return results2[i].Message.Text < results2[j].Message.Text
+	})
 }
