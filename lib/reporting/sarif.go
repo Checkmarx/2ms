@@ -53,8 +53,8 @@ func getRules(report Report) []*SarifRule {
 			if _, exists := uniqueRulesMap[secret.RuleID]; !exists {
 				uniqueRulesMap[secret.RuleID] = &SarifRule{
 					ID: secret.RuleID,
-					FullDescription: &MultiformatMessageString{
-						Text: &secret.RuleDescription,
+					FullDescription: &Message{
+						Text: secret.RuleDescription,
 					},
 				}
 				reportRules = append(reportRules, uniqueRulesMap[secret.RuleID])
@@ -143,12 +143,8 @@ type Tool struct {
 }
 
 type SarifRule struct {
-	ID              string                    `json:"id"`
-	FullDescription *MultiformatMessageString `json:"fullDescription,omitempty"`
-}
-
-type MultiformatMessageString struct {
-	Text *string `json:"text,omitempty"`
+	ID              string   `json:"id"`
+	FullDescription *Message `json:"fullDescription,omitempty"`
 }
 
 type Message struct {
