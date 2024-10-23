@@ -43,5 +43,6 @@ type Secret struct {
 	EndColumn        int                    `json:"endColumn"`
 	Value            string                 `json:"value"`
 	ValidationStatus ValidationResult       `json:"validationStatus,omitempty"`
+	RuleDescription  string                 `json:"ruleDescription,omitempty"`
 	ExtraDetails     map[string]interface{} `json:"extraDetails,omitempty"`
 }
