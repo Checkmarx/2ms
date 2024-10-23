@@ -312,6 +312,7 @@ func TestGetOutputSarif(t *testing.T) {
 			}
 			var gotReport Sarif
 			err = json.Unmarshal([]byte(got), &gotReport)
+			assert.Nil(t, err)
 			SortSarifReports(&gotReport, &Sarif{Runs: tt.want})
 			assert.Equal(t, tt.want, gotReport.Runs)
 		})
