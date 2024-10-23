@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// test input results
 var (
 	ruleID1 = "ruleID1"
 	ruleID2 = "ruleID2"
@@ -30,10 +31,11 @@ var (
 		ValidationStatus: secrets.ValidResult,
 		RuleDescription:  "Rule Description",
 	}
+	// this result has a different rule than result1
 	result2 = &secrets.Secret{
 		ID:               "ID2",
 		Source:           "file2",
-		RuleID:           "ruleID1",
+		RuleID:           ruleID2,
 		StartLine:        10,
 		EndLine:          10,
 		LineContent:      "line content2",
@@ -41,13 +43,13 @@ var (
 		EndColumn:        160,
 		Value:            "value 2",
 		ValidationStatus: secrets.InvalidResult,
-		RuleDescription:  "Rule Description",
+		RuleDescription:  "Rule Description2",
 	}
-	// this result has a different rule than 1 and 2
+	// this result has the same rule as result1
 	result3 = &secrets.Secret{
 		ID:               "ID3",
 		Source:           "file3",
-		RuleID:           ruleID2,
+		RuleID:           ruleID1,
 		StartLine:        16,
 		EndLine:          16,
 		LineContent:      "line content3",
@@ -55,7 +57,115 @@ var (
 		EndColumn:        130,
 		Value:            "value 3",
 		ValidationStatus: secrets.UnknownResult,
-		RuleDescription:  "Rule Description2",
+		RuleDescription:  "Rule Description",
+	}
+)
+
+// test expected outputs
+var (
+	// sarif rules
+	rule1Sarif = &SarifRule{
+		ID: ruleID1,
+		FullDescription: &Message{
+			Text: result1.RuleDescription,
+		},
+	}
+	rule2Sarif = &SarifRule{
+		ID: ruleID2,
+		FullDescription: &Message{
+			Text: result2.RuleDescription,
+		},
+	}
+	// sarif results
+	result1Sarif = Results{
+		Message: Message{
+			Text: messageText(result1.RuleID, result1.Source),
+		},
+		RuleId: ruleID1,
+		Locations: []Locations{
+			{
+				PhysicalLocation: PhysicalLocation{
+					ArtifactLocation: ArtifactLocation{
+						URI: result1.Source,
+					},
+					Region: Region{
+						StartLine:   result1.StartLine,
+						StartColumn: result1.StartColumn,
+						EndLine:     result1.EndLine,
+						EndColumn:   result1.EndColumn,
+						Snippet: Snippet{
+							Text: result1.Value,
+							Properties: Properties{
+								"lineContent": strings.TrimSpace(result1.LineContent),
+							},
+						},
+					},
+				},
+			},
+		},
+		Properties: Properties{
+			"validationStatus": string(result1.ValidationStatus),
+		},
+	}
+	result2Sarif = Results{
+		Message: Message{
+			Text: messageText(result2.RuleID, result2.Source),
+		},
+		RuleId: ruleID2,
+		Locations: []Locations{
+			{
+				PhysicalLocation: PhysicalLocation{
+					ArtifactLocation: ArtifactLocation{
+						URI: result2.Source,
+					},
+					Region: Region{
+						StartLine:   result2.StartLine,
+						StartColumn: result2.StartColumn,
+						EndLine:     result2.EndLine,
+						EndColumn:   result2.EndColumn,
+						Snippet: Snippet{
+							Text: result2.Value,
+							Properties: Properties{
+								"lineContent": strings.TrimSpace(result2.LineContent),
+							},
+						},
+					},
+				},
+			},
+		},
+		Properties: Properties{
+			"validationStatus": string(result2.ValidationStatus),
+		},
+	}
+	result3Sarif = Results{
+		Message: Message{
+			Text: messageText(result3.RuleID, result3.Source),
+		},
+		RuleId: ruleID1,
+		Locations: []Locations{
+			{
+				PhysicalLocation: PhysicalLocation{
+					ArtifactLocation: ArtifactLocation{
+						URI: result3.Source,
+					},
+					Region: Region{
+						StartLine:   result3.StartLine,
+						StartColumn: result3.StartColumn,
+						EndLine:     result3.EndLine,
+						EndColumn:   result3.EndColumn,
+						Snippet: Snippet{
+							Text: result3.Value,
+							Properties: Properties{
+								"lineContent": strings.TrimSpace(result3.LineContent),
+							},
+						},
+					},
+				},
+			},
+		},
+		Properties: Properties{
+			"validationStatus": string(result3.ValidationStatus),
+		},
 	}
 )
 
@@ -121,6 +231,35 @@ func TestGetOutputSarif(t *testing.T) {
 				TotalSecretsFound: 2,
 				Results: map[string][]*secrets.Secret{
 					"secret1": {result1},
+					"secret3": {result3},
+				},
+			},
+			wantErr: false,
+			want: []Runs{
+				{
+					Tool: Tool{
+						Driver: Driver{
+							Name:            "report",
+							SemanticVersion: "1",
+							Rules: []*SarifRule{
+								rule1Sarif,
+							},
+						},
+					},
+					Results: []Results{
+						result1Sarif,
+						result3Sarif,
+					},
+				},
+			},
+		},
+		{
+			name: "two_results_two_rules_want_two_rules_in_report",
+			arg: Report{
+				TotalItemsScanned: 2,
+				TotalSecretsFound: 2,
+				Results: map[string][]*secrets.Secret{
+					"secret1": {result1},
 					"secret2": {result2},
 				},
 			},
@@ -132,171 +271,14 @@ func TestGetOutputSarif(t *testing.T) {
 							Name:            "report",
 							SemanticVersion: "1",
 							Rules: []*SarifRule{
-								{ID: "ruleID1",
-									FullDescription: &Message{
-										Text: result1.RuleDescription,
-									},
-								},
+								rule1Sarif,
+								rule2Sarif,
 							},
 						},
 					},
 					Results: []Results{
-						{
-							Message: Message{
-								Text: messageText(result1.RuleID, result1.Source),
-							},
-							RuleId: ruleID1,
-							Locations: []Locations{
-								{
-									PhysicalLocation: PhysicalLocation{
-										ArtifactLocation: ArtifactLocation{
-											URI: result1.Source,
-										},
-										Region: Region{
-											StartLine:   result1.StartLine,
-											StartColumn: result1.StartColumn,
-											EndLine:     result1.EndLine,
-											EndColumn:   result1.EndColumn,
-											Snippet: Snippet{
-												Text: result1.Value,
-												Properties: Properties{
-													"lineContent": strings.TrimSpace(result1.LineContent),
-												},
-											},
-										},
-									},
-								},
-							},
-							Properties: Properties{
-								"validationStatus": string(result1.ValidationStatus),
-							},
-						},
-						{
-							Message: Message{
-								Text: messageText(result2.RuleID, result2.Source),
-							},
-							RuleId: ruleID1,
-							Locations: []Locations{
-								{
-									PhysicalLocation: PhysicalLocation{
-										ArtifactLocation: ArtifactLocation{
-											URI: result2.Source,
-										},
-										Region: Region{
-											StartLine:   result2.StartLine,
-											StartColumn: result2.StartColumn,
-											EndLine:     result2.EndLine,
-											EndColumn:   result2.EndColumn,
-											Snippet: Snippet{
-												Text: result2.Value,
-												Properties: Properties{
-													"lineContent": strings.TrimSpace(result2.LineContent),
-												},
-											},
-										},
-									},
-								},
-							},
-							Properties: Properties{
-								"validationStatus": string(result2.ValidationStatus),
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "two_results_same_rule_want_two_rules_in_report",
-			arg: Report{
-				TotalItemsScanned: 2,
-				TotalSecretsFound: 2,
-				Results: map[string][]*secrets.Secret{
-					"secret1": {result1},
-					"secret2": {result3},
-				},
-			},
-			wantErr: false,
-			want: []Runs{
-				{
-					Tool: Tool{
-						Driver: Driver{
-							Name:            "report",
-							SemanticVersion: "1",
-							Rules: []*SarifRule{
-								{ID: ruleID1,
-									FullDescription: &Message{
-										Text: result1.RuleDescription,
-									},
-								},
-								{ID: ruleID2,
-									FullDescription: &Message{
-										Text: result3.RuleDescription,
-									},
-								},
-							},
-						},
-					},
-					Results: []Results{
-						{
-							Message: Message{
-								Text: messageText(result1.RuleID, result1.Source),
-							},
-							RuleId: ruleID1,
-							Locations: []Locations{
-								{
-									PhysicalLocation: PhysicalLocation{
-										ArtifactLocation: ArtifactLocation{
-											URI: result1.Source,
-										},
-										Region: Region{
-											StartLine:   result1.StartLine,
-											StartColumn: result1.StartColumn,
-											EndLine:     result1.EndLine,
-											EndColumn:   result1.EndColumn,
-											Snippet: Snippet{
-												Text: result1.Value,
-												Properties: Properties{
-													"lineContent": strings.TrimSpace(result1.LineContent),
-												},
-											},
-										},
-									},
-								},
-							},
-							Properties: Properties{
-								"validationStatus": string(result1.ValidationStatus),
-							},
-						},
-						{
-							Message: Message{
-								Text: messageText(result3.RuleID, result3.Source),
-							},
-							RuleId: ruleID2,
-							Locations: []Locations{
-								{
-									PhysicalLocation: PhysicalLocation{
-										ArtifactLocation: ArtifactLocation{
-											URI: result3.Source,
-										},
-										Region: Region{
-											StartLine:   result3.StartLine,
-											StartColumn: result3.StartColumn,
-											EndLine:     result3.EndLine,
-											EndColumn:   result3.EndColumn,
-											Snippet: Snippet{
-												Text: result3.Value,
-												Properties: Properties{
-													"lineContent": strings.TrimSpace(result3.LineContent),
-												},
-											},
-										},
-									},
-								},
-							},
-							Properties: Properties{
-								"validationStatus": string(result3.ValidationStatus),
-							},
-						},
+						result1Sarif,
+						result2Sarif,
 					},
 				},
 			},
