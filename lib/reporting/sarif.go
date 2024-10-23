@@ -3,9 +3,10 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/secrets"
-	"strings"
 )
 
 func writeSarif(report Report, cfg *config.Config) (string, error) {
@@ -26,21 +27,41 @@ func writeSarif(report Report, cfg *config.Config) (string, error) {
 func getRuns(report Report, cfg *config.Config) []Runs {
 	return []Runs{
 		{
-			Tool:    getTool(cfg),
+			Tool:    getTool(report, cfg),
 			Results: getResults(report),
 		},
 	}
 }
 
-func getTool(cfg *config.Config) Tool {
+func getTool(report Report, cfg *config.Config) Tool {
 	tool := Tool{
 		Driver: Driver{
 			Name:            cfg.Name,
 			SemanticVersion: cfg.Version,
+			Rules:           getRules(report),
 		},
 	}
 
 	return tool
+}
+
+func getRules(report Report) []*SarifRule {
+	uniqueRulesMap := make(map[string]*SarifRule)
+	var reportRules []*SarifRule
+	for _, reportSecrets := range report.Results {
+		for _, secret := range reportSecrets {
+			if _, exists := uniqueRulesMap[secret.RuleID]; !exists {
+				uniqueRulesMap[secret.RuleID] = &SarifRule{
+					ID: secret.RuleID,
+					FullDescription: &Message{
+						Text: secret.RuleDescription,
+					},
+				}
+				reportRules = append(reportRules, uniqueRulesMap[secret.RuleID])
+			}
+		}
+	}
+	return reportRules
 }
 
 func hasNoResults(report Report) bool {
@@ -112,12 +133,18 @@ type ShortDescription struct {
 }
 
 type Driver struct {
-	Name            string `json:"name"`
-	SemanticVersion string `json:"semanticVersion"`
+	Name            string       `json:"name"`
+	SemanticVersion string       `json:"semanticVersion"`
+	Rules           []*SarifRule `json:"rules,omitempty"`
 }
 
 type Tool struct {
 	Driver Driver `json:"driver"`
+}
+
+type SarifRule struct {
+	ID              string   `json:"id"`
+	FullDescription *Message `json:"fullDescription,omitempty"`
 }
 
 type Message struct {
