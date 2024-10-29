@@ -3,20 +3,24 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM cgr.dev/chainguard/go@sha256:1e17e06119fc26b78a9a2208aeab6209f9ef90b6a19f3fc69d4cc581e70d09bf AS builder 
+FROM cgr.dev/chainguard/go@sha256:ef5ed415d03d60169f72db591ac2f7fc3f8dd8de388956dd9355793601544463 AS builder
 
-WORKDIR /app
+#Copy go mod and sum files
+COPY go.mod .
+COPY go.sum .
 
-COPY go.mod go.sum ./
+# Get dependencies - will also be cached if we won't change mod/sum
 RUN go mod download
 
+# COPY the source code as the last step
 COPY . .
-RUN go build -o /app/2ms .
+
+RUN GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -a -installsuffix cgo -o /app/2ms .
 
 # Runtime image
-FROM cgr.dev/chainguard/git@sha256:02660563e96b553d6aeb4093e3fcc3e91b2ad3a86e05c65b233f37f035e5044e
+FROM cgr.dev/chainguard/git@sha256:0663e8c8a5c6fcad6cc2c08e7668d7b46f7aee025a923cee19f69475e187752a
 
-RUN apk add --no-cache bash=5.2.21-r1 git=2.45.1-r0 git-lfs=3.5.1-r8 libcurl-openssl4=8.10.0-r0 glibc=2.39-r5 glibc-locale-posix=2.39-r5 ld-linux==2.39-r5 libcrypt1=2.39-r5 libcrypto3=3.3.2-r2 libssl3=3.3.2-r2 && git config --global --add safe.directory /repo
+USER 65532
 
 COPY --from=builder /app/2ms .
 
