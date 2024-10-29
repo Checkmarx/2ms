@@ -24,6 +24,8 @@ FROM cgr.dev/chainguard/git@sha256:0663e8c8a5c6fcad6cc2c08e7668d7b46f7aee025a923
 
 WORKDIR /app
 
+RUN chown -R 65532:65532 /app
+
 USER 65532
 
 COPY --from=builder /app/2ms /app/2ms
