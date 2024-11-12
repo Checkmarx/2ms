@@ -73,6 +73,12 @@ func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan ISou
 	defer close()
 
 	for file := range diffs {
+		if file.PatchHeader == nil {
+			// While parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value.
+			// This scenario is unlikely, but it causes the scan to never complete.
+			file.PatchHeader = &gitdiff.PatchHeader{}
+		}
+
 		log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
 		if file.IsBinary || file.IsDelete {
 			continue
