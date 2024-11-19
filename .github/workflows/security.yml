@@ -32,7 +32,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb #v3.3.0
-  
 
   trivy-scanning:
     runs-on: ubuntu-latest
@@ -48,17 +47,23 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
           push: false
-          tags: |
-            checkmarx/2ms:scanme
+          tags: checkmarx/2ms:scanme
 
-      - name: Install trivy and Run it
-        run: |
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update && sudo apt-get install -y trivy
-          trivy image checkmarx/2ms:scanme --exit-code 1 \
-          --ignore-unfixed --vuln-type os,library --no-progress --severity CRITICAL,HIGH,MEDIUM,LOW --vex ./ignore.openvex
-  
+      - name: Run Trivy Scan
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
+        with:
+          image-ref: checkmarx/2ms:scanme
+          vuln-type: os,library
+          format: table
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          trivy-config: trivy.yaml
+          exit-code: '1'
+        env:
+          TRIVY_SKIP_DB_UPDATE: true
+          TRIVY_SKIP_JAVA_DB_UPDATE: true
+
+
   secret-scanning:
     runs-on: ubuntu-latest
     steps:
