@@ -3,7 +3,7 @@ name: Release
 on:
   workflow_dispatch:
   push:
-    # branches: [master]
+    branches: [master]
 
 jobs:
   test:
@@ -40,7 +40,7 @@ jobs:
     name: Build and Release
     runs-on: ubuntu-latest
     needs: test
-    # if: ${{ needs.test.outputs.git_tag }}
+    if: ${{ needs.test.outputs.git_tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -111,15 +111,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # - name: Creating Release
-      #   uses: softprops/action-gh-release@975c1b265e11dd76618af1c374e7981f9a6ff44a
-      #   with:
-      #     tag_name: ${{ needs.test.outputs.git_tag }}
-      #     name: ${{ needs.test.outputs.git_tag }}
-      #     body: ${{ needs.test.outputs.notes }}
-      #     target_commitish: ${{ steps.commit_and_push.outputs.latest_commit_hash }}
-      #     files: |
-      #       dist/*.zip
+      - name: Creating Release
+        uses: softprops/action-gh-release@975c1b265e11dd76618af1c374e7981f9a6ff44a
+        with:
+          tag_name: ${{ needs.test.outputs.git_tag }}
+          name: ${{ needs.test.outputs.git_tag }}
+          body: ${{ needs.test.outputs.notes }}
+          target_commitish: ${{ steps.commit_and_push.outputs.latest_commit_hash }}
+          files: |
+            dist/*.zip
 
       - name: Build and push
         uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
@@ -128,7 +128,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            checkmarx/2ms:testrelease
+            checkmarx/2ms:latest
+            checkmarx/2ms:${{ needs.test.outputs.version }}
 
       - name: Update Docker repo description
         uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae # v4.0.0
