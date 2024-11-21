@@ -131,7 +131,8 @@ func (e *Engine) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func (s *Engine) RegisterForValidation(secret *secrets.Secret) {
+func (s *Engine) RegisterForValidation(secret *secrets.Secret, wg *sync.WaitGroup) {
+	defer wg.Done()
 	s.validator.RegisterForValidation(secret)
 }
 

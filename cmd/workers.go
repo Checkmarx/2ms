@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/checkmarx/2ms/lib/secrets"
 	"sync"
 
 	"github.com/checkmarx/2ms/engine"
@@ -29,13 +30,13 @@ func processSecrets() {
 		if validateVar {
 			validationChan <- secret
 		} else {
-			cvssScoreChan <- secret
+			cvssScoreWithoutValidationChan <- secret
 		}
 		report.Results[secret.ID] = append(report.Results[secret.ID], secret)
 	}
 	close(secretsExtrasChan)
 	close(validationChan)
-	close(cvssScoreChan)
+	close(cvssScoreWithoutValidationChan)
 }
 
 func processSecretsExtras() {
@@ -49,30 +50,29 @@ func processSecretsExtras() {
 	wgExtras.Wait()
 }
 
-func processValidation(engine *engine.Engine) {
+func processValidationAndScoreWithValidation(engine *engine.Engine) {
 	defer channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}
 	for secret := range validationChan {
-		wgValidation.Add(1)
-		go func() {
-			wgValidation.Done()
-			engine.RegisterForValidation(secret)
-			cvssScoreChan <- secret
-		}()
+		wgValidation.Add(2)
+		go func(secret *secrets.Secret, wg *sync.WaitGroup) {
+			engine.RegisterForValidation(secret, wg)
+			engine.Score(secret, true, wg)
+		}(secret, wgValidation)
 	}
 	wgValidation.Wait()
 
 	engine.Validate()
 }
 
-func processScore(engine *engine.Engine) {
+func processScoreWithoutValidation(engine *engine.Engine) {
 	defer channels.WaitGroup.Done()
 
 	wgScore := &sync.WaitGroup{}
-	for secret := range cvssScoreChan {
+	for secret := range cvssScoreWithoutValidationChan {
 		wgScore.Add(1)
-		go engine.Score(secret, validateVar, wgScore)
+		go engine.Score(secret, false, wgScore)
 	}
 	wgScore.Wait()
 }
