@@ -28,11 +28,14 @@ func processSecrets() {
 		secretsExtrasChan <- secret
 		if validateVar {
 			validationChan <- secret
+		} else {
+			cvssScoreChan <- secret
 		}
 		report.Results[secret.ID] = append(report.Results[secret.ID], secret)
 	}
 	close(secretsExtrasChan)
 	close(validationChan)
+	close(cvssScoreChan)
 }
 
 func processSecretsExtras() {
@@ -52,9 +55,24 @@ func processValidation(engine *engine.Engine) {
 	wgValidation := &sync.WaitGroup{}
 	for secret := range validationChan {
 		wgValidation.Add(1)
-		go engine.RegisterForValidation(secret, wgValidation)
+		go func() {
+			wgValidation.Done()
+			engine.RegisterForValidation(secret)
+			cvssScoreChan <- secret
+		}()
 	}
 	wgValidation.Wait()
 
 	engine.Validate()
+}
+
+func processScore(engine *engine.Engine) {
+	defer channels.WaitGroup.Done()
+
+	wgScore := &sync.WaitGroup{}
+	for secret := range cvssScoreChan {
+		wgScore.Add(1)
+		go engine.Score(secret, validateVar, wgScore)
+	}
+	wgScore.Wait()
 }

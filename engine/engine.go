@@ -3,6 +3,7 @@ package engine
 import (
 	"crypto/sha1"
 	"fmt"
+	"github.com/checkmarx/2ms/engine/score"
 	"os"
 	"regexp"
 	"strings"
@@ -21,9 +22,10 @@ import (
 )
 
 type Engine struct {
-	rules     map[string]config.Rule
-	detector  detect.Detector
-	validator validation.Validator
+	rules              map[string]config.Rule
+	rulesBaseRiskScore map[string]float64
+	detector           detect.Detector
+	validator          validation.Validator
 
 	ignoredIds    []string
 	allowedValues []string
@@ -49,9 +51,11 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}
 
 	rulesToBeApplied := make(map[string]config.Rule)
+	rulesBaseRiskScore := make(map[string]float64)
 	keywords := []string{}
 	for _, rule := range *selectedRules {
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
+		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
 			keywords = append(keywords, strings.ToLower(keyword))
 		}
@@ -63,9 +67,10 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
 	return &Engine{
-		rules:     rulesToBeApplied,
-		detector:  *detector,
-		validator: *validation.NewValidator(),
+		rules:              rulesToBeApplied,
+		rulesBaseRiskScore: rulesBaseRiskScore,
+		detector:           *detector,
+		validator:          *validation.NewValidator(),
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
@@ -126,9 +131,17 @@ func (e *Engine) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func (s *Engine) RegisterForValidation(secret *secrets.Secret, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (s *Engine) RegisterForValidation(secret *secrets.Secret) {
 	s.validator.RegisterForValidation(secret)
+}
+
+func (s *Engine) Score(secret *secrets.Secret, validateFlag bool, wg *sync.WaitGroup) {
+	defer wg.Done()
+	validationStatus := secrets.UnknownResult // default validity
+	if validateFlag {
+		validationStatus = secret.ValidationStatus
+	}
+	secret.CvssScore = score.GetCvssScore(s.GetRuleBaseRiskScore(secret.RuleID), validationStatus)
 }
 
 func (s *Engine) Validate() {
@@ -190,4 +203,8 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func (s *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
+	return s.rulesBaseRiskScore[ruleId]
 }

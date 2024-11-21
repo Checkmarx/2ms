@@ -169,6 +169,10 @@ func TestSecrets(t *testing.T) {
 	}
 }
 
+func TestScore(t *testing.T) {
+
+}
+
 type item struct {
 	content *string
 	id      string

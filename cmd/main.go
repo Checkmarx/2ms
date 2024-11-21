@@ -76,6 +76,7 @@ var report = reporting.Init()
 var secretsChan = make(chan *secrets.Secret)
 var secretsExtrasChan = make(chan *secrets.Secret)
 var validationChan = make(chan *secrets.Secret)
+var cvssScoreChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
@@ -84,7 +85,7 @@ func Execute() (int, error) {
 	cobra.OnInitialize(initialize)
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
-	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "trace", "log level (trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
@@ -151,6 +152,9 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 		channels.WaitGroup.Add(1)
 		go processValidation(engine)
 	}
+
+	channels.WaitGroup.Add(1)
+	go processScore(engine)
 
 	return nil
 }
