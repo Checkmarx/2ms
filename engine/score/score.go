@@ -70,7 +70,3 @@ func GetCvssScore(baseRiskScore float64, validationStatus secrets.ValidationResu
 	cvssScore := (baseRiskScore+validityScore-1)*3 + 1
 	return math.Round(cvssScore*10) / 10
 }
-
-func RegisterForScore(secret *secrets.Secret) {
-
-}
