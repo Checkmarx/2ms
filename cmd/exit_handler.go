@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/rs/zerolog/log"
 	"os"
 )
 
@@ -27,6 +28,7 @@ func isNeedReturnErrorCodeFor(kind ignoreOnExit) bool {
 
 func exitCodeIfError(err error) int {
 	if err != nil && isNeedReturnErrorCodeFor("errors") {
+		log.Error().Err(err).Msg("Failed to run 2ms")
 		return errorCode
 	}
 
