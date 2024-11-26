@@ -24,18 +24,17 @@ func (w SpecificLevelWriter) WriteLevel(level zerolog.Level, p []byte) (int, err
 func CreateLogger(minimumLevel zerolog.Level) zerolog.Logger {
 	writer := zerolog.MultiLevelWriter(
 		SpecificLevelWriter{
-			Writer: zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "15:04:05"},
+			Writer: zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "15:04:05", NoColor: true},
 			Levels: []zerolog.Level{
 				zerolog.DebugLevel, zerolog.InfoLevel, zerolog.WarnLevel,
 			},
 		},
 		SpecificLevelWriter{
-			Writer: zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"},
+			Writer: zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05", NoColor: true},
 			Levels: []zerolog.Level{
 				zerolog.ErrorLevel, zerolog.FatalLevel, zerolog.PanicLevel,
 			},
 		},
 	)
-
 	return zerolog.New(writer).Level(minimumLevel).With().Timestamp().Logger()
 }
