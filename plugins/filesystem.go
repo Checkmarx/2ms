@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -93,6 +94,7 @@ func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error, wg 
 
 	if err != nil {
 		errs <- fmt.Errorf("error while walking through the directory: %w", err)
+		time.Sleep(time.Second) // Temporary fix for incorrect non-error exits; needs a better solution.
 		return
 	}
 
@@ -107,6 +109,7 @@ func (p *FileSystemPlugin) getItems(items chan ISourceItem, errs chan error, wg 
 			actualFile, err := p.getItem(filePath)
 			if err != nil {
 				errs <- err
+				time.Sleep(time.Second) // Temporary fix for incorrect non-error exits; needs a better solution.
 				return
 			}
 			items <- *actualFile
