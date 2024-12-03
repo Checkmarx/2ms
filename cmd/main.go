@@ -76,6 +76,7 @@ var report = reporting.Init()
 var secretsChan = make(chan *secrets.Secret)
 var secretsExtrasChan = make(chan *secrets.Secret)
 var validationChan = make(chan *secrets.Secret)
+var cvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
@@ -149,8 +150,11 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 
 	if validateVar {
 		channels.WaitGroup.Add(1)
-		go processValidation(engine)
+		go processValidationAndScoreWithValidation(engine)
 	}
+
+	channels.WaitGroup.Add(1)
+	go processScoreWithoutValidation(engine)
 
 	return nil
 }

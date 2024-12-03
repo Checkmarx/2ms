@@ -8,9 +8,15 @@ import (
 	"github.com/zricethezav/gitleaks/v8/detect"
 )
 
+type ScoreParameters struct {
+	Category RuleCategory
+	RuleType uint8
+}
+
 type Rule struct {
-	Rule config.Rule
-	Tags []string
+	Rule            config.Rule
+	Tags            []string
+	ScoreParameters ScoreParameters
 }
 
 // Copied from https://github.com/gitleaks/gitleaks/blob/463d24618fa42fc7629dc30c9744ebe36c5df1ab/cmd/generate/config/rules/rule.go

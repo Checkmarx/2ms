@@ -29,6 +29,7 @@ var (
 		EndColumn:        150,
 		Value:            "value",
 		ValidationStatus: secrets.ValidResult,
+		CvssScore:        10.0,
 		RuleDescription:  "Rule Description",
 	}
 	// this result has a different rule than result1
@@ -43,6 +44,7 @@ var (
 		EndColumn:        160,
 		Value:            "value 2",
 		ValidationStatus: secrets.InvalidResult,
+		CvssScore:        4.5,
 		RuleDescription:  "Rule Description2",
 	}
 	// this result has the same rule as result1
@@ -57,6 +59,7 @@ var (
 		EndColumn:        130,
 		Value:            "value 3",
 		ValidationStatus: secrets.UnknownResult,
+		CvssScore:        0.0,
 		RuleDescription:  "Rule Description",
 	}
 )
@@ -105,6 +108,7 @@ var (
 		},
 		Properties: Properties{
 			"validationStatus": string(result1.ValidationStatus),
+			"cvssScore":        result1.CvssScore,
 		},
 	}
 	result2Sarif = Results{
@@ -135,6 +139,7 @@ var (
 		},
 		Properties: Properties{
 			"validationStatus": string(result2.ValidationStatus),
+			"cvssScore":        result2.CvssScore,
 		},
 	}
 	result3Sarif = Results{
@@ -165,6 +170,7 @@ var (
 		},
 		Properties: Properties{
 			"validationStatus": string(result3.ValidationStatus),
+			"cvssScore":        result3.CvssScore,
 		},
 	}
 )
