@@ -45,4 +45,5 @@ type Secret struct {
 	ValidationStatus ValidationResult       `json:"validationStatus,omitempty"`
 	RuleDescription  string                 `json:"ruleDescription,omitempty"`
 	ExtraDetails     map[string]interface{} `json:"extraDetails,omitempty"`
+	CvssScore        float64                `json:"cvssScore,omitempty"`
 }

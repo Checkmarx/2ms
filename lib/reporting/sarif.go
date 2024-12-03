@@ -91,6 +91,7 @@ func getResults(report Report) []Results {
 				Locations: getLocation(secret),
 				Properties: Properties{
 					"validationStatus": secret.ValidationStatus,
+					"cvssScore":        secret.CvssScore,
 				},
 			}
 			results = append(results, r)

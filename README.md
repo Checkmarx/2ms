@@ -10,6 +10,8 @@ This application is written in Go language and is based on the framework provide
 
 The tool checks the content using a series of rules that are designed to identify a wide range of sensitive items such as AWS access token, Bitbucket Client ID, GitHub PAT etc. For a complete list of rules, see [docs/list-of-rules.md](docs/list-of-rules.md).
 
+Additionally, the tool incorporates a scoring system based on the Common Vulnerability Scoring System (CVSS) to help prioritize remediation efforts.
+
 # Installation
 
 The following sections explain how to install 2ms using the following methods:
@@ -396,6 +398,8 @@ The result of the validation can be:
 - `unknown` - We failed to check, or we are not checking the validity of the secret at all
 
 If the `--validate` flag is not provided, the validation field will be omitted from the output, or its value will be an empty string.
+
+> **Note:** The validity check also impacts the score field. If the flag is not provided, the validity is assumed to be "unknown" in the score formula.
 
 ### Special Rules
 
