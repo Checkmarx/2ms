@@ -1,0 +1,45 @@
+
+name: Codecov Scan
+
+on:
+  push:
+    branches:
+      - main 
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      go-version: 'stable'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+    - name: Set up Go
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      with:
+        go-version: ${{ env.go-version }}
+      env:
+        GOPROXY: direct
+        GONOSUMDB: "*"
+        GOPRIVATE: https://github.com/CheckmarxDev/ # Add your private organization url here
+
+    - name: Install dependencies 
+      run: go install golang.org/x/tools/cmd/cover@latest
+
+    - name: Run tests and generate coverage 
+      run: |
+        go test ./... -coverpkg=./... -v -coverprofile cover.out
+                  
+         
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} 
+        files: ./cover.out  
+        flags: target=auto
+        fail_ci_if_error: true
+        verbose: false
