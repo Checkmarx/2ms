@@ -151,10 +151,10 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 	if validateVar {
 		channels.WaitGroup.Add(1)
 		go processValidationAndScoreWithValidation(engine)
+	} else {
+		channels.WaitGroup.Add(1)
+		go processScoreWithoutValidation(engine)
 	}
-
-	channels.WaitGroup.Add(1)
-	go processScoreWithoutValidation(engine)
 
 	return nil
 }
