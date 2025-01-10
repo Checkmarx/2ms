@@ -3,6 +3,7 @@ package engine
 import (
 	"crypto/sha1"
 	"fmt"
+	"github.com/checkmarx/2ms/engine/linecontent"
 	"github.com/checkmarx/2ms/engine/score"
 	"os"
 	"regexp"
@@ -103,7 +104,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			EndLine:         endLine,
 			EndColumn:       value.EndColumn,
 			Value:           value.Secret,
-			LineContent:     value.Line,
+			LineContent:     linecontent.GetLineContent(value.Line, value.StartColumn, value.EndColumn),
 			RuleDescription: value.Description,
 		}
 		if !isSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
