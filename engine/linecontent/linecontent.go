@@ -37,8 +37,8 @@ func GetLineContent(line, secret string) string {
 
 	// Calculate bounds for the result
 	secretEndIndex := secretStartIndex + secretRunesSize
-	start := maxIndex(secretStartIndex-contextLeftSizeLimit, 0)
-	end := minIndex(secretEndIndex+contextRightSizeLimit, lineRunesSize)
+	start := max(secretStartIndex-contextLeftSizeLimit, 0)
+	end := min(secretEndIndex+contextRightSizeLimit, lineRunesSize)
 
 	return string(lineRunes[start:end])
 }
@@ -76,18 +76,4 @@ func compareRunes(a, b []rune) bool {
 		}
 	}
 	return true
-}
-
-func minIndex(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func maxIndex(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
