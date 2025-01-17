@@ -94,6 +94,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 		} else {
 			startLine = value.StartLine
 			endLine = value.EndLine
+
 		}
 		secret := &secrets.Secret{
 			ID:              itemId,
@@ -104,7 +105,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			EndLine:         endLine,
 			EndColumn:       value.EndColumn,
 			Value:           value.Secret,
-			LineContent:     linecontent.GetLineContent(value.Line, value.StartColumn, value.EndColumn),
+			LineContent:     linecontent.GetLineContent(value.Line, value.Secret),
 			RuleDescription: value.Description,
 		}
 		if !isSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {

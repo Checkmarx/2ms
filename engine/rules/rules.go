@@ -187,7 +187,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.PlanetScaleOAuthToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryDatabaseAsAService, RuleType: 4}},
 		{Rule: *rules.PostManAPI(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
 		{Rule: *rules.Prefect(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
-		{Rule: *rules.PrivateKey(), Tags: []string{TagPrivateKey}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *PrivateKey(), Tags: []string{TagPrivateKey}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
 		{Rule: *rules.PulumiAPIToken(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4}},
 		{Rule: *rules.PyPiUploadToken(), Tags: []string{TagUploadToken}, ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4}},
 		{Rule: *rules.RapidAPIAccessToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
