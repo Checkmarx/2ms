@@ -1,27 +1,26 @@
 log-level: info
 ignore-result:
-  - 4f1d13e1bbebef31175ffe9a8d752609b9edc174
-  - 65706aeda7939dca8035f4b0a3446babffc7fcef
-  - d696fe501f3860f76cf768c7ebbccc416db6e4d2
-  - d766d69fed184582fc0cba1515f9beef7901e7a1
-  - deddd58b4aa4999419d6b9046dffa9fffdfd4860
-  - e7bf294c124122a6cf919edbffa40bf6572927b6
-  - 0b217706e100e9a05bbaa8427070d181bb2e2465
-  - 1e68cf841873862527a00ee5ef8d7957e319b6bc
-  - 4d358e6dd9e2f21c647dad571f13dde3fd77d107
-  - 7c73d41f23ba8e59a1c8d744594dbb54f87197b4
-  - 8f3e5dec63edc317daa4bff154939555cd35b2c3
-  - 9c6853ebe9b5e20774224ba6e5ea739191330e53
-  - 59f8916ff79257c8f86207d6e89767cc8e156814
-  - a3a83b7224e7e98e3cca6bd2cd138dbca831e06d
-  - ba1f0517b77a5b451d1d55078218cd23d96b686e
-  - c5748512948b492f5c07849ae2e69e7e831d36d3
-  - 5e73b4b73bf4a59b11f37066829af01478879067 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358
-  - 255853e2044119bf502261713e2f892265d4b5c1 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358
-  - a324bc00bebfbd268b1b9e4cddcd095da1193cd2
-  - cf413577a1df23446f1916be0b6c31679f2042a8
-  - 2cbfe7687bd4b859c51869dc2c1af25e70a8be4b
-  - 9c1749703c1017ebf05455df0e8f5b5752ec08a8
-  - 92c0192a71f1c299a8b8f8ebf63009582146a573
-  - e53a3a4e8c0665454eb9a4c36eaf040e9317e450
-  - ffc22deda44ebb0d4633bed184c5e26e99657084
+  - 4f1d13e1bbebef31175ffe9a8d752609b9edc174 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R21
+  - 65706aeda7939dca8035f4b0a3446babffc7fcef # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R20
+  - d696fe501f3860f76cf768c7ebbccc416db6e4d2 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR373
+  - d766d69fed184582fc0cba1515f9beef7901e7a1 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R22
+  - deddd58b4aa4999419d6b9046dffa9fffdfd4860 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR378
+  - e7bf294c124122a6cf919edbffa40bf6572927b6 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R22
+  - 0b217706e100e9a05bbaa8427070d181bb2e2465 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR388
+  - 1e68cf841873862527a00ee5ef8d7957e319b6bc # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+  - 4d358e6dd9e2f21c647dad571f13dde3fd77d107 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/2aa7733a457a145725aa11f99f05f60ddc6b09a1#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040
+  - 7c73d41f23ba8e59a1c8d744594dbb54f87197b4 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R38
+  - 9c6853ebe9b5e20774224ba6e5ea739191330e53 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/e6e8b8ea07078ae7b66db70c91693d293f813ad6#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR380
+  - 59f8916ff79257c8f86207d6e89767cc8e156814 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R40
+  - a3a83b7224e7e98e3cca6bd2cd138dbca831e06d # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R45
+  - ba1f0517b77a5b451d1d55078218cd23d96b686e # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R39
+  - c5748512948b492f5c07849ae2e69e7e831d36d3 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/e6e8b8ea07078ae7b66db70c91693d293f813ad6#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR375
+  - 5e73b4b73bf4a59b11f37066829af01478879067 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/c6868197ae0910b1ae34a19822b32ae9d8eb7fdd#diff-d712d2256df359061d691b711ca7ed30ba408199b1e3801cef289779778d8badR36
+  - 255853e2044119bf502261713e2f892265d4b5c1 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/45a5c9d35ff910dfec5e5a76cdedb8977da5dd34#diff-d761ee3cdf26960bab9cc0e88d92015b3c38c0bd480c60d7d58755dea5421e36R24
+  - a324bc00bebfbd268b1b9e4cddcd095da1193cd2 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/757c4af1608ec63a3f758f4b2b2b3be915cfbedc#diff-cbf9ce27965b15f1e13be995f164fd6b33a19381364c4be3e8c047d528994495R66
+  - cf413577a1df23446f1916be0b6c31679f2042a8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/4bf7a43e33f3f27bedc97a35e9d74dc95026cf28#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R18
+  - 2cbfe7687bd4b859c51869dc2c1af25e70a8be4b # value used for testing, found at https://github.com/Checkmarx/2ms/commit/4bf7a43e33f3f27bedc97a35e9d74dc95026cf28/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R19
+  - 9c1749703c1017ebf05455df0e8f5b5752ec08a8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/4bf7a43e33f3f27bedc97a35e9d74dc95026cf28/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R22
+  - 92c0192a71f1c299a8b8f8ebf63009582146a573 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/4bf7a43e33f3f27bedc97a35e9d74dc95026cf28/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R26
+  - e53a3a4e8c0665454eb9a4c36eaf040e9317e450 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/2aa7733a457a145725aa11f99f05f60ddc6b09a1/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R9
+  - ffc22deda44ebb0d4633bed184c5e26e99657084 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
