@@ -15,7 +15,7 @@ func processItems(engine *engine.Engine, pluginName string) {
 	for item := range channels.Items {
 		report.TotalItemsScanned++
 		wgItems.Add(1)
-		go engine.Detect(item, secretsChan, wgItems, pluginName)
+		go engine.Detect(item, secretsChan, wgItems, pluginName, channels.Errors)
 	}
 	wgItems.Wait()
 	close(secretsChan)
