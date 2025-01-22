@@ -135,7 +135,7 @@ func TestScore(t *testing.T) {
 		ruleConfig.PlanetScaleOAuthToken().RuleID:           {10, 5.2, 8.2},
 		ruleConfig.PostManAPI().RuleID:                      {10, 5.2, 8.2},
 		ruleConfig.Prefect().RuleID:                         {10, 5.2, 8.2},
-		ruleConfig.PrivateKey().RuleID:                      {10, 5.2, 8.2},
+		rules.PrivateKey().RuleID:                           {10, 5.2, 8.2},
 		ruleConfig.PulumiAPIToken().RuleID:                  {10, 5.2, 8.2},
 		ruleConfig.PyPiUploadToken().RuleID:                 {10, 5.2, 8.2},
 		ruleConfig.RapidAPIAccessToken().RuleID:             {10, 5.2, 8.2},

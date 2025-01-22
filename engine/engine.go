@@ -78,7 +78,7 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, pluginName string) {
+func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, pluginName string, errors chan error) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
@@ -94,6 +94,11 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 		} else {
 			startLine = value.StartLine
 			endLine = value.EndLine
+
+		}
+		lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
+		if err != nil {
+			errors <- err
 		}
 		secret := &secrets.Secret{
 			ID:              itemId,
@@ -104,7 +109,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			EndLine:         endLine,
 			EndColumn:       value.EndColumn,
 			Value:           value.Secret,
-			LineContent:     linecontent.GetLineContent(value.Line, value.StartColumn, value.EndColumn),
+			LineContent:     lineContent,
 			RuleDescription: value.Description,
 		}
 		if !isSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
