@@ -56,7 +56,7 @@ jobs:
           vuln-type: os,library
           format: table
           ignore-unfixed: true
-          severity: CRITICAL,HIGH,MEDIUM,LOW
+          severity: CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN
           trivy-config: trivy.yaml
           exit-code: '1'
         env:
