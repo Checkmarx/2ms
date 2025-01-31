@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
@@ -16,10 +15,5 @@ func VaultServiceToken() *config.Rule {
 		Regex:       generateUniqueTokenRegex(`hvs\.[a-z0-9_-]{90,100}`, true),
 		Keywords:    []string{"hvs"},
 	}
-
-	// validate
-	tps := []string{
-		generateSampleSecret("vault", "hvs."+secrets.NewSecret(alphaNumericExtendedShort("90"))),
-	}
-	return validate(r, tps, nil)
+	return &r
 }

@@ -1,6 +1,9 @@
 package rules
 
 import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
+	"github.com/zricethezav/gitleaks/v8/detect"
+	"strings"
 	"testing"
 
 	"github.com/zricethezav/gitleaks/v8/config"
@@ -301,6 +304,119 @@ func TestIgnoreRules(t *testing.T) {
 					if _, ok := gotResult[rule.Rule.RuleID]; ok {
 						t.Errorf("expected rule %s to be ignored, but it was not", rule.Rule.RuleID)
 					}
+				}
+			}
+		})
+	}
+}
+
+func Test2msRules(t *testing.T) {
+	testRules := map[string]struct {
+		rule           config.Rule
+		truePositives  []string
+		falsePositives []string
+	}{
+		"authenticated-url": {
+			rule: *AuthenticatedURL(),
+			truePositives: []string{
+				"mongodb+srv://radar:mytoken@io.dbb.mongodb.net/?retryWrites=true&w=majority",
+				"--output=https://elastic:bF21iC0bfTVXo3qhpJqTGs78@c22f5bc9787c4c268d3b069ad866bdc2.eu-central-1.aws.cloud.es.io:9243/tfs",
+				"https://abc:123@google.com",
+			},
+			falsePositives: []string{
+				"https://google.com",
+				"https://google.com?user=abc&password=123",
+				`<img src="https://img.shields.io/static/v1?label=Threads&message=Follow&color=101010&link=https://threads.net/@mathrunet" alt="Follow on Threads" />`,
+				`my [Linkedin](https://www.linkedin.com/in/rodriguesjeffdev/) or email: rodriguesjeff.dev@gmail.com`,
+				`[![Gmail Badge](https://img.shields.io/badge/-VaibhavHariramani-d54b3d?style=flat-circle&labelColor=d54b3d&logo=gmail&logoColor=white&link=mailto:vaibhav.hariramani01@gmail.com)](mailto:vaibhav.hariramani01@gmail.com)`,
+				`https://situmops:$(github_token)@github.com/$(Build.Repository.Name).git`,
+				`'$cmd "unilinks://@@malformed.invalid.url/path?"$cmdSuffix',`,
+				`Uri.parse('http://login:password@192.168.0.1:8888'),`,
+			},
+		},
+		"hardcoded-password": {
+			rule: *HardcodedPassword(),
+			truePositives: []string{
+				`"client_id" : "0afae57f3ccfd9d7f5767067bc48b30f719e271ba470488056e37ab35d4b6506"`,
+				`"client_secret" : "6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",`,
+				`"password: 'edf8f16608465858a6c9e3cccb97d3c2'"`,
+				`<element password="edf8f16608465858a6c9e3cccb97d3c2" />`,
+				`"client_id" : "edf8f16608465858a6c9e3cccb97d3c2"`,
+				"https://google.com?user=abc&password=1234",
+				`{ "access-key": "6da89121079f83b2eb6acccf8219ea982c3d79bccc", }`,
+				`"{ \"access-key\": \"6da89121079f83b2eb6acccf8219ea982c3d79bccc\", }"`,
+				"<password>edf8f16608465858a6c9e3cccb97d3c2</password>",
+				"M_DB_PASSWORD= edf8f16608465858a6c9e3cccb97d3c2",
+				`"client_secret" : "4v7b9n2k5h",`, // entropy: 3.32
+				`"password: 'comp123!'"`,
+				"<password>MyComp9876</password>", // entropy: 3.32
+				`<element password="Comp4567@@" />`,
+				"M_DB_PASSWORD= edf8f16608465858a6c9e3cccb97d3c2",
+			},
+			falsePositives: []string{
+				`client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.client-vpn-endpoint.id`,
+				`password combination.
+
+				R5: Regulatory--21`,
+				"GITHUB_TOKEN: ${GITHUB_TOKEN}",
+				"password = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'", // Stop word
+				"password = 'your_password_here'",               // Stop word
+			},
+		},
+		"plaid-client-id": {
+			rule: *PlaidAccessID(),
+			truePositives: []string{
+				generateSampleSecret("plaid", secrets.NewSecret(alphaNumeric("24"))),
+			},
+			falsePositives: nil,
+		},
+		"private-key": {
+			rule: *PrivateKey(),
+			truePositives: []string{`-----BEGIN PRIVATE KEY-----
+		anything
+		-----END PRIVATE KEY-----`,
+				`-----BEGIN RSA PRIVATE KEY-----
+		abcdefghijklmnopqrstuvwxyz
+		-----END RSA PRIVATE KEY-----
+		`,
+				`-----BEGIN PRIVATE KEY BLOCK-----
+		anything
+		-----END PRIVATE KEY BLOCK-----`,
+			},
+			falsePositives: nil,
+		},
+		"vault-service-token": {
+			rule: *VaultServiceToken(),
+			truePositives: []string{
+				generateSampleSecret("vault", "hvs."+secrets.NewSecret(alphaNumericExtendedShort("90"))),
+			},
+			falsePositives: nil,
+		},
+	}
+
+	for ruleID, data := range testRules {
+		t.Run(ruleID, func(t *testing.T) {
+			// Copied from https://github.com/gitleaks/gitleaks/blob/463d24618fa42fc7629dc30c9744ebe36c5df1ab/cmd/generate/config/rules/rule.go
+			var keywords []string
+			for _, k := range data.rule.Keywords {
+				keywords = append(keywords, strings.ToLower(k))
+			}
+			data.rule.Keywords = keywords
+
+			rules := make(map[string]config.Rule)
+			rules[data.rule.RuleID] = data.rule
+			d := detect.NewDetector(config.Config{
+				Rules:    rules,
+				Keywords: keywords,
+			})
+			for _, tp := range data.truePositives {
+				if len(d.DetectString(tp)) != 1 {
+					t.Errorf("Failed to validate. True positive %s was not detected by regex for rule %s", tp, data.rule.RuleID)
+				}
+			}
+			for _, fp := range data.falsePositives {
+				if len(d.DetectString(fp)) != 0 {
+					t.Errorf("Failed to validate. False positive %s was detected by regex for rule %s", fp, data.rule.RuleID)
 				}
 			}
 		})

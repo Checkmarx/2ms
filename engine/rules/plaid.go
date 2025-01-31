@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
@@ -19,9 +18,5 @@ func PlaidAccessID() *config.Rule {
 		},
 	}
 
-	// validate
-	tps := []string{
-		generateSampleSecret("plaid", secrets.NewSecret(alphaNumeric("24"))),
-	}
-	return validate(r, tps, nil)
+	return &r
 }
