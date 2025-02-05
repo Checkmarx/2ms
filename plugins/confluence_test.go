@@ -462,7 +462,7 @@ func TestScanPageAllVersions(t *testing.T) {
 				client:     mockClient,
 				errorsChan: errorsChan,
 				itemsChan:  itemsChan,
-				History:    true,
+				History:    tt.historyEnabled,
 			}
 
 			page := ConfluencePage{ID: "pageID"}
@@ -476,11 +476,14 @@ func TestScanPageAllVersions(t *testing.T) {
 			if len(tt.expectedErrors) == 0 {
 				assert.Empty(t, errorsChan)
 			}
+
+			assert.Equal(t, len(tt.expectedErrors), len(errorsChan))
 			for _, expectedError := range tt.expectedErrors {
 				actualError := <-errorsChan
 				assert.Equal(t, expectedError, actualError)
 			}
 
+			assert.Equal(t, len(tt.expectedItems), len(itemsChan))
 			for _, expectedItem := range tt.expectedItems {
 				actualItem := <-itemsChan
 				assert.Equal(t, &expectedItem, actualItem)
@@ -494,4 +497,12 @@ func TestScanPageAllVersions(t *testing.T) {
 
 func ptrToString(s string) *string {
 	return &s
+}
+
+func countElementsInChannel(ch chan int) int {
+	count := 0
+	for range ch {
+		count++
+	}
+	return count
 }
