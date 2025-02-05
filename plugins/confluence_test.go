@@ -128,6 +128,7 @@ func TestGetSpaces(t *testing.T) {
 		firstSpacesRequestError  error
 		secondSpacesRequestError error
 		expectedError            error
+		filteredSpaces           []string
 	}{
 		{
 			name:                    "Error while getting spaces before pagination is required",
@@ -161,6 +162,12 @@ func TestGetSpaces(t *testing.T) {
 			numberOfSpaces: confluenceDefaultWindow + 2,
 			expectedError:  nil,
 		},
+		{
+			name:           "fetching spaces with filtered spaces",
+			numberOfSpaces: 5,
+			filteredSpaces: []string{"2"},
+			expectedError:  nil,
+		},
 	}
 
 	for _, tt := range tests {
@@ -170,13 +177,24 @@ func TestGetSpaces(t *testing.T) {
 				firstSpacesRequestError:  tt.firstSpacesRequestError,
 				secondSpacesRequestError: tt.secondSpacesRequestError,
 			}
-			plugin := &ConfluencePlugin{client: &mockClient}
+			plugin := &ConfluencePlugin{
+				client: &mockClient,
+				Spaces: tt.filteredSpaces,
+			}
 			result, err := plugin.getSpaces()
 			assert.Equal(t, tt.expectedError, err)
 			if tt.expectedError == nil {
 				var expectedResult []ConfluenceSpaceResult
-				for i := 0; i < tt.numberOfSpaces; i++ {
-					expectedResult = append(expectedResult, ConfluenceSpaceResult{ID: i})
+				if len(tt.filteredSpaces) == 0 {
+					for i := 0; i < tt.numberOfSpaces; i++ {
+						expectedResult = append(expectedResult, ConfluenceSpaceResult{ID: i})
+					}
+				} else {
+					for i := 0; i < len(tt.filteredSpaces); i++ {
+						id, errConvert := strconv.Atoi(tt.filteredSpaces[i])
+						assert.NoError(t, errConvert)
+						expectedResult = append(expectedResult, ConfluenceSpaceResult{ID: id})
+					}
 				}
 				assert.Equal(t, expectedResult, result)
 			}
@@ -497,12 +515,4 @@ func TestScanPageAllVersions(t *testing.T) {
 
 func ptrToString(s string) *string {
 	return &s
-}
-
-func countElementsInChannel(ch chan int) int {
-	count := 0
-	for range ch {
-		count++
-	}
-	return count
 }
