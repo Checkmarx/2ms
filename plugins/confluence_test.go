@@ -175,7 +175,7 @@ func TestGetSpaces(t *testing.T) {
 			assert.Equal(t, tt.expectedError, err)
 			if tt.expectedError == nil {
 				var expectedResult []ConfluenceSpaceResult
-				for i := 0; i < tt.numberOfSpaces-1; i++ {
+				for i := 0; i < tt.numberOfSpaces; i++ {
 					expectedResult = append(expectedResult, ConfluenceSpaceResult{ID: i})
 				}
 				assert.Equal(t, expectedResult, result)
