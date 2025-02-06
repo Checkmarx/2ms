@@ -1,9 +1,14 @@
 package plugins
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
+	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -31,7 +36,7 @@ func (m *mockConfluenceClient) getSpacesRequest(start int) (*ConfluenceSpaceResp
 
 	var spaces []ConfluenceSpaceResult
 	for i := start; i < m.numberOfSpaces && i-start < confluenceDefaultWindow; i++ {
-		spaces = append(spaces, ConfluenceSpaceResult{ID: i})
+		spaces = append(spaces, ConfluenceSpaceResult{ID: i, Key: strconv.Itoa(i)})
 	}
 	return &ConfluenceSpaceResponse{
 		Results: spaces,
@@ -187,13 +192,14 @@ func TestGetSpaces(t *testing.T) {
 				var expectedResult []ConfluenceSpaceResult
 				if len(tt.filteredSpaces) == 0 {
 					for i := 0; i < tt.numberOfSpaces; i++ {
-						expectedResult = append(expectedResult, ConfluenceSpaceResult{ID: i})
+						expectedResult = append(expectedResult, ConfluenceSpaceResult{ID: i, Key: strconv.Itoa(i)})
 					}
 				} else {
 					for i := 0; i < len(tt.filteredSpaces); i++ {
 						id, errConvert := strconv.Atoi(tt.filteredSpaces[i])
+						key := tt.filteredSpaces[i]
 						assert.NoError(t, errConvert)
-						expectedResult = append(expectedResult, ConfluenceSpaceResult{ID: id})
+						expectedResult = append(expectedResult, ConfluenceSpaceResult{ID: id, Key: key})
 					}
 				}
 				assert.Equal(t, expectedResult, result)
@@ -509,6 +515,303 @@ func TestScanPageAllVersions(t *testing.T) {
 
 			close(errorsChan)
 			close(itemsChan)
+		})
+	}
+}
+
+func TestScanConfluenceSpace(t *testing.T) {
+	tests := []struct {
+		name                   string
+		firstPagesRequestError error
+		expectedError          error
+		numberOfPages          int
+		mockPageContent        *ConfluencePageContent
+	}{
+		{
+			name:                   "getPages returns error",
+			firstPagesRequestError: fmt.Errorf("some error before pagination is required"),
+			expectedError:          fmt.Errorf("unexpected error creating an http request %w", fmt.Errorf("some error before pagination is required")),
+			numberOfPages:          1,
+		},
+		{
+			name:                   "scan confluence space with multiple pages",
+			firstPagesRequestError: nil,
+			expectedError:          nil,
+			numberOfPages:          3,
+			mockPageContent: &ConfluencePageContent{
+				Body: struct {
+					Storage struct {
+						Value string `json:"value"`
+					} `json:"storage"`
+				}(struct {
+					Storage struct {
+						Value string
+					}
+				}{
+					Storage: struct{ Value string }{Value: "Page content"},
+				}),
+				History: struct {
+					PreviousVersion struct{ Number int } `json:"previousVersion"`
+				}(struct {
+					PreviousVersion struct {
+						Number int
+					}
+				}{PreviousVersion: struct{ Number int }{Number: 1}}),
+				Links: map[string]string{
+					"base":  "https://example.com",
+					"webui": "/wiki/page",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mockConfluenceClient{
+				firstPagesRequestError: tt.firstPagesRequestError,
+				numberOfPages:          tt.numberOfPages,
+				pageContentResponse:    []*ConfluencePageContent{tt.mockPageContent},
+			}
+
+			errorsChan := make(chan error, 1)
+			itemsChan := make(chan ISourceItem, 3)
+
+			plugin := Plugin{
+				Limit: make(chan struct{}, confluenceMaxRequests),
+			}
+
+			confluencePlugin := &ConfluencePlugin{
+				Plugin:     plugin,
+				client:     mockClient,
+				errorsChan: errorsChan,
+				itemsChan:  itemsChan,
+			}
+
+			space := ConfluenceSpaceResult{Key: "spaceKey"}
+			var wg sync.WaitGroup
+			wg.Add(1)
+
+			go confluencePlugin.scanConfluenceSpace(&wg, space)
+
+			wg.Wait()
+
+			close(errorsChan)
+			close(itemsChan)
+
+			if tt.expectedError != nil {
+				actualError := <-errorsChan
+				assert.Equal(t, tt.expectedError, actualError)
+			} else {
+				assert.Empty(t, errorsChan)
+				var actualItems []ISourceItem
+				for i := 0; i < tt.numberOfPages; i++ {
+					actualItem := <-itemsChan
+					actualItems = append(actualItems, actualItem)
+				}
+				sort.Slice(actualItems, func(i, j int) bool {
+					return actualItems[i].GetID() < actualItems[j].GetID()
+				})
+				for i := 0; i < tt.numberOfPages; i++ {
+					expectedItem := item{
+						Content: ptrToString("Page content"),
+						ID:      fmt.Sprintf("confluence-spaceKey-%d", i),
+						Source:  "https://example.com/wiki/page",
+					}
+					assert.Equal(t, &expectedItem, actualItems[i])
+				}
+			}
+		})
+	}
+}
+
+func TestScanConfluence(t *testing.T) {
+	tests := []struct {
+		name                    string
+		firstSpacesRequestError error
+		expectedError           error
+		numberOfSpaces          int
+		numberOfPages           int
+		mockPageContent         *ConfluencePageContent
+	}{
+		{
+			name:                    "getSpaces returns error",
+			firstSpacesRequestError: fmt.Errorf("some error before pagination is required"),
+			expectedError:           fmt.Errorf("some error before pagination is required"),
+			numberOfPages:           1,
+		},
+		{
+			name:                    "scan confluence with multiple spaces and pages",
+			firstSpacesRequestError: nil,
+			expectedError:           nil,
+			numberOfSpaces:          3,
+			numberOfPages:           3,
+			mockPageContent: &ConfluencePageContent{
+				Body: struct {
+					Storage struct {
+						Value string `json:"value"`
+					} `json:"storage"`
+				}(struct {
+					Storage struct {
+						Value string
+					}
+				}{
+					Storage: struct{ Value string }{Value: "Page content"},
+				}),
+				History: struct {
+					PreviousVersion struct{ Number int } `json:"previousVersion"`
+				}(struct {
+					PreviousVersion struct {
+						Number int
+					}
+				}{PreviousVersion: struct{ Number int }{Number: 1}}),
+				Links: map[string]string{
+					"base":  "https://example.com",
+					"webui": "/wiki/page",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mockConfluenceClient{
+				firstSpacesRequestError: tt.firstSpacesRequestError,
+				numberOfPages:           tt.numberOfPages,
+				numberOfSpaces:          tt.numberOfSpaces,
+				pageContentResponse:     []*ConfluencePageContent{tt.mockPageContent},
+			}
+
+			errorsChan := make(chan error, 1)
+			itemsChan := make(chan ISourceItem, 3)
+
+			plugin := Plugin{
+				Limit: make(chan struct{}, confluenceMaxRequests),
+			}
+
+			confluencePlugin := &ConfluencePlugin{
+				Plugin:     plugin,
+				client:     mockClient,
+				errorsChan: errorsChan,
+				itemsChan:  itemsChan,
+			}
+
+			wg := &sync.WaitGroup{}
+
+			go confluencePlugin.scanConfluence(wg)
+
+			wg.Wait()
+
+			if tt.expectedError != nil {
+				actualError := <-errorsChan
+				assert.Equal(t, tt.expectedError, actualError)
+			} else {
+				assert.Empty(t, errorsChan)
+				var actualItems []ISourceItem
+				for i := 0; i < tt.numberOfSpaces; i++ {
+					for j := 0; j < tt.numberOfPages; j++ {
+						actualItem := <-itemsChan
+						actualItems = append(actualItems, actualItem)
+					}
+				}
+				sort.Slice(actualItems, func(i, j int) bool {
+					splitID := func(id string) (string, string) {
+						parts := strings.Split(id, "-")
+						return parts[1], parts[2]
+					}
+
+					spaceKey1, pageID1 := splitID(actualItems[i].GetID())
+					spaceKey2, pageID2 := splitID(actualItems[j].GetID())
+
+					if spaceKey1 != spaceKey2 {
+						return spaceKey1 < spaceKey2
+					}
+					return pageID1 < pageID2
+				})
+				for i := 0; i < tt.numberOfSpaces; i++ {
+					for j := 0; j < tt.numberOfPages; j++ {
+						expectedItem := item{
+							Content: ptrToString("Page content"),
+							ID:      fmt.Sprintf("confluence-%d-%d", i, j),
+							Source:  "https://example.com/wiki/page",
+						}
+						assert.Equal(t, &expectedItem, actualItems[i*tt.numberOfPages+j])
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestInitialize(t *testing.T) {
+	tests := []struct {
+		name        string
+		urlArg      string
+		username    string
+		token       string
+		expectURL   string
+		expectLimit int
+		expectWarn  bool
+	}{
+		{
+			name:        "Valid credentials",
+			urlArg:      "https://example.com/",
+			username:    "user",
+			token:       "token",
+			expectURL:   "https://example.com",
+			expectLimit: confluenceMaxRequests,
+			expectWarn:  false,
+		},
+		{
+			name:        "No credentials provided",
+			urlArg:      "https://example.com/",
+			username:    "",
+			token:       "",
+			expectURL:   "https://example.com",
+			expectLimit: confluenceMaxRequests,
+			expectWarn:  true,
+		},
+		{
+			name:        "URL without trailing slash",
+			urlArg:      "https://example.com",
+			username:    "user",
+			token:       "token",
+			expectURL:   "https://example.com",
+			expectLimit: confluenceMaxRequests,
+			expectWarn:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var logBuf bytes.Buffer
+			log.Logger = zerolog.New(&logBuf)
+
+			username = tt.username
+			token = tt.token
+
+			p := &ConfluencePlugin{}
+
+			err := p.initialize(tt.urlArg)
+			assert.NoError(t, err)
+
+			assert.NotNil(t, p.client)
+			client, ok := p.client.(*confluenceClient)
+			assert.True(t, ok, "Client should be of type *confluenceClient")
+
+			assert.Equal(t, tt.expectURL, client.baseURL)
+
+			assert.Equal(t, tt.username, client.username)
+			assert.Equal(t, tt.token, client.token)
+
+			assert.NotNil(t, p.Limit)
+			assert.Equal(t, tt.expectLimit, cap(p.Limit))
+
+			logOutput := logBuf.String()
+			if tt.expectWarn {
+				assert.Contains(t, logOutput, "confluence credentials were not provided", "Expected warning log missing")
+			} else {
+				assert.NotContains(t, logOutput, "confluence credentials were not provided", "Unexpected warning log found")
+			}
 		})
 	}
 }
