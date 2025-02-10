@@ -37,6 +37,7 @@ func TestProcessItems(t *testing.T) {
 	assert.NoError(t, err)
 	report = reporting.Init()
 	channels.Items = make(chan plugins.ISourceItem)
+	secretsChan = make(chan *secrets.Secret)
 	channels.WaitGroup = &sync.WaitGroup{}
 	channels.WaitGroup.Add(1)
 	go processItems(engineTest, "mockPlugin")

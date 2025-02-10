@@ -3,7 +3,10 @@ package cmd
 import (
 	"fmt"
 	"github.com/checkmarx/2ms/engine"
+	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/checkmarx/2ms/plugins"
 	"github.com/stretchr/testify/assert"
+	"sync"
 	"testing"
 )
 
@@ -73,8 +76,17 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar = tt.engineConfigVar
 			customRegexRuleVar = tt.customRegexRuleVar
 			validateVar = tt.validateVar
+			channels.Items = make(chan plugins.ISourceItem)
 			channels.Errors = make(chan error)
+			channels.WaitGroup = &sync.WaitGroup{}
+			secretsChan = make(chan *secrets.Secret)
+			secretsExtrasChan = make(chan *secrets.Secret)
+			validationChan = make(chan *secrets.Secret)
+			cvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 			err := preRun("mock", nil, nil)
+			close(channels.Items)
+			close(channels.Errors)
+			channels.WaitGroup.Wait()
 			if tt.expectedErr != nil {
 				assert.Error(t, err)
 				assert.EqualError(t, err, tt.expectedErr.Error())
