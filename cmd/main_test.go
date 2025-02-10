@@ -55,7 +55,7 @@ func TestPreRun(t *testing.T) {
 			reportPath:         []string{"mock.json"},
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{},
-			validateVar:        false,
+			validateVar:        true,
 			expectedErr:        nil,
 		},
 		{
