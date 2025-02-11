@@ -8,7 +8,7 @@ import (
 	"github.com/checkmarx/2ms/engine/extra"
 )
 
-func processItems(engine *engine.Engine, pluginName string) {
+func ProcessItems(engine *engine.Engine, pluginName string) {
 	defer channels.WaitGroup.Done()
 
 	wgItems := &sync.WaitGroup{}
@@ -21,7 +21,7 @@ func processItems(engine *engine.Engine, pluginName string) {
 	close(secretsChan)
 }
 
-func processSecrets() {
+func ProcessSecrets() {
 	defer channels.WaitGroup.Done()
 
 	for secret := range secretsChan {
@@ -39,7 +39,7 @@ func processSecrets() {
 	close(cvssScoreWithoutValidationChan)
 }
 
-func processSecretsExtras() {
+func ProcessSecretsExtras() {
 	defer channels.WaitGroup.Done()
 
 	wgExtras := &sync.WaitGroup{}
@@ -50,7 +50,7 @@ func processSecretsExtras() {
 	wgExtras.Wait()
 }
 
-func processValidationAndScoreWithValidation(engine *engine.Engine) {
+func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
 	defer channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}
@@ -66,7 +66,7 @@ func processValidationAndScoreWithValidation(engine *engine.Engine) {
 	engine.Validate()
 }
 
-func processScoreWithoutValidation(engine *engine.Engine) {
+func ProcessScoreWithoutValidation(engine *engine.Engine) {
 	defer channels.WaitGroup.Done()
 
 	wgScore := &sync.WaitGroup{}

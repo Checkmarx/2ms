@@ -140,20 +140,20 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 	}
 
 	channels.WaitGroup.Add(1)
-	go processItems(engine, pluginName)
+	go ProcessItems(engine, pluginName)
 
 	channels.WaitGroup.Add(1)
-	go processSecrets()
+	go ProcessSecrets()
 
 	channels.WaitGroup.Add(1)
-	go processSecretsExtras()
+	go ProcessSecretsExtras()
 
 	if validateVar {
 		channels.WaitGroup.Add(1)
-		go processValidationAndScoreWithValidation(engine)
+		go ProcessValidationAndScoreWithValidation(engine)
 	} else {
 		channels.WaitGroup.Add(1)
-		go processScoreWithoutValidation(engine)
+		go ProcessScoreWithoutValidation(engine)
 	}
 
 	return nil
