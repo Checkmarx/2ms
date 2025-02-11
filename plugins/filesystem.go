@@ -39,7 +39,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 			log.Info().Msg("Folder plugin started")
 
 			wg := &sync.WaitGroup{}
-			p.getFiles(items, errors, wg)
+			p.GetFiles(items, errors, wg)
 			wg.Wait()
 			close(items)
 		},
@@ -60,7 +60,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 	return cmd, nil
 }
 
-func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error, wg *sync.WaitGroup) {
+func (p *FileSystemPlugin) GetFiles(items chan ISourceItem, errs chan error, wg *sync.WaitGroup) {
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
@@ -98,10 +98,10 @@ func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error, wg 
 		return
 	}
 
-	p.getItems(items, errs, wg, fileList)
+	p.GetItems(items, errs, wg, fileList)
 }
 
-func (p *FileSystemPlugin) getItems(items chan ISourceItem, errs chan error, wg *sync.WaitGroup, fileList []string) {
+func (p *FileSystemPlugin) GetItems(items chan ISourceItem, errs chan error, wg *sync.WaitGroup, fileList []string) {
 	for _, filePath := range fileList {
 		wg.Add(1)
 		go func(filePath string) {
