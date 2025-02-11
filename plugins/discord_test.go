@@ -1,10 +1,74 @@
 package plugins
 
 import (
+	"bytes"
 	"github.com/bwmarrin/discordgo"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
+
+func TestInitializeDiscord(t *testing.T) {
+	tests := []struct {
+		name           string
+		plugin         DiscordPlugin
+		expectedError  string
+		expectedLogMsg string
+	}{
+		{
+			name: "Channels provided",
+			plugin: DiscordPlugin{
+				Channels:         []string{"mockChannel1", "mockChannel2"},
+				Count:            10,
+				BackwardDuration: 5,
+			},
+			expectedError:  "",
+			expectedLogMsg: "",
+		},
+		{
+			name: "Channels not provided",
+			plugin: DiscordPlugin{
+				Channels:         []string{},
+				Count:            10,
+				BackwardDuration: 5,
+			},
+			expectedError:  "",
+			expectedLogMsg: "discord channels not provided. Will scan all channels",
+		},
+		{
+			name: "Count and BackwardDuration both zero",
+			plugin: DiscordPlugin{
+				Channels:         []string{"channel1"},
+				Count:            0,
+				BackwardDuration: 0,
+			},
+			expectedError:  "discord messages count or from date arg is missing. Plugin initialization failed",
+			expectedLogMsg: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var logBuf bytes.Buffer
+			log.Logger = zerolog.New(&logBuf)
+
+			err := tt.plugin.initialize()
+
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedError, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+			logOutput := logBuf.String()
+			if tt.expectedLogMsg != "" {
+				assert.Contains(t, logOutput, tt.expectedLogMsg)
+			}
+		})
+	}
+}
 
 func TestGetGuildsByNameOrIDs(t *testing.T) {
 	tests := []struct {

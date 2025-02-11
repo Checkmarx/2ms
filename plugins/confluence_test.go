@@ -742,7 +742,7 @@ func TestScanConfluence(t *testing.T) {
 	}
 }
 
-func TestInitialize(t *testing.T) {
+func TestInitializeConfluence(t *testing.T) {
 	tests := []struct {
 		name        string
 		urlArg      string
