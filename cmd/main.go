@@ -66,7 +66,7 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.GitPlugin{},
 }
 
-var channels = plugins.Channels{
+var Channels = plugins.Channels{
 	Items:     make(chan plugins.ISourceItem),
 	Errors:    make(chan error),
 	WaitGroup: &sync.WaitGroup{},
@@ -104,7 +104,7 @@ func Execute() (int, error) {
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
-		subCommand, err := plugin.DefineCommand(channels.Items, channels.Errors)
+		subCommand, err := plugin.DefineCommand(Channels.Items, Channels.Errors)
 		if err != nil {
 			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
@@ -116,7 +116,7 @@ func Execute() (int, error) {
 		rootCmd.AddCommand(subCommand)
 	}
 
-	listenForErrors(channels.Errors)
+	listenForErrors(Channels.Errors)
 
 	if err := rootCmd.Execute(); err != nil {
 		return 0, err
@@ -139,20 +139,20 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	channels.WaitGroup.Add(1)
+	Channels.WaitGroup.Add(1)
 	go ProcessItems(engine, pluginName)
 
-	channels.WaitGroup.Add(1)
+	Channels.WaitGroup.Add(1)
 	go ProcessSecrets()
 
-	channels.WaitGroup.Add(1)
+	Channels.WaitGroup.Add(1)
 	go ProcessSecretsExtras()
 
 	if validateVar {
-		channels.WaitGroup.Add(1)
+		Channels.WaitGroup.Add(1)
 		go ProcessValidationAndScoreWithValidation(engine)
 	} else {
-		channels.WaitGroup.Add(1)
+		Channels.WaitGroup.Add(1)
 		go ProcessScoreWithoutValidation(engine)
 	}
 
@@ -160,7 +160,7 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 }
 
 func postRun(cmd *cobra.Command, args []string) error {
-	channels.WaitGroup.Wait()
+	Channels.WaitGroup.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
 

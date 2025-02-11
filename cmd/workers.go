@@ -9,20 +9,20 @@ import (
 )
 
 func ProcessItems(engine *engine.Engine, pluginName string) {
-	defer channels.WaitGroup.Done()
+	defer Channels.WaitGroup.Done()
 
 	wgItems := &sync.WaitGroup{}
-	for item := range channels.Items {
+	for item := range Channels.Items {
 		report.TotalItemsScanned++
 		wgItems.Add(1)
-		go engine.Detect(item, secretsChan, wgItems, pluginName, channels.Errors)
+		go engine.Detect(item, secretsChan, wgItems, pluginName, Channels.Errors)
 	}
 	wgItems.Wait()
 	close(secretsChan)
 }
 
 func ProcessSecrets() {
-	defer channels.WaitGroup.Done()
+	defer Channels.WaitGroup.Done()
 
 	for secret := range secretsChan {
 		report.TotalSecretsFound++
@@ -40,7 +40,7 @@ func ProcessSecrets() {
 }
 
 func ProcessSecretsExtras() {
-	defer channels.WaitGroup.Done()
+	defer Channels.WaitGroup.Done()
 
 	wgExtras := &sync.WaitGroup{}
 	for secret := range secretsExtrasChan {
@@ -51,7 +51,7 @@ func ProcessSecretsExtras() {
 }
 
 func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
-	defer channels.WaitGroup.Done()
+	defer Channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}
 	for secret := range validationChan {
@@ -67,7 +67,7 @@ func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
 }
 
 func ProcessScoreWithoutValidation(engine *engine.Engine) {
-	defer channels.WaitGroup.Done()
+	defer Channels.WaitGroup.Done()
 
 	wgScore := &sync.WaitGroup{}
 	for secret := range cvssScoreWithoutValidationChan {

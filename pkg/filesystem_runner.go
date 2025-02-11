@@ -25,8 +25,8 @@ func (r *fileSystemRunner) Run(path string, projectName string, ignored []string
 		Ignored:     ignored,
 	}
 
-	items := make(chan plugins.ISourceItem)
-	errors := make(chan error)
+	items := cmd.Channels.Items
+	errors := cmd.Channels.Errors
 	wg := &sync.WaitGroup{}
 
 	// Initialize engine configuration
