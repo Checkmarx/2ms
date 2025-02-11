@@ -3,7 +3,7 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM cgr.dev/chainguard/go@sha256:bec4bfc80786869dc30beca3d0bd437bd932f376dc6ac5b1f4dd6a5355ba11fc AS builder
+FROM cgr.dev/chainguard/go@sha256:36fee4a2334d13bbf585ad2225ea1ca99fe65de366022e561ac157de26fd5ed6 AS builder
 
 WORKDIR /app
 
