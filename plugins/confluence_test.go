@@ -14,7 +14,6 @@ import (
 )
 
 type mockConfluenceClient struct {
-	spaceResponse            *ConfluenceSpaceResponse
 	pageContentResponse      []*ConfluencePageContent
 	pageContentError         error
 	numberOfPages            int
