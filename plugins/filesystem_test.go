@@ -17,7 +17,7 @@ func TestGetItem(t *testing.T) {
 		assert.NoError(t, err, "failed to remove temp file")
 	}(tmpFile.Name())
 
-	expectedContent := "Hello, this is test content"
+	expectedContent := "mock expected content"
 	_, err = tmpFile.WriteString(expectedContent)
 	assert.NoError(t, err, "failed to write to temp file")
 
@@ -45,7 +45,7 @@ func TestGetItems(t *testing.T) {
 		assert.NoError(t, err, "failed to remove temp file")
 	}(tmpFile.Name())
 
-	validContent := "This is valid file content"
+	validContent := "valid mock content"
 	_, err = tmpFile.WriteString(validContent)
 	assert.NoError(t, err, "failed to write to temporary file")
 
@@ -91,7 +91,6 @@ func TestGetItems(t *testing.T) {
 }
 
 func TestGetFiles(t *testing.T) {
-	// Define our test cases.
 	tests := []struct {
 		name        string
 		nonExistent bool
