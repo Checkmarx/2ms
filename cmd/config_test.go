@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -49,6 +52,54 @@ func TestValidateFormat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateFormat(tt.stdoutFormatVar, tt.reportPath)
 			assert.Equal(t, tt.expectedErr, err)
+		})
+	}
+}
+
+func TestInitializeLogLevels(t *testing.T) {
+	testCases := []struct {
+		name          string
+		logLevelInput string
+		expectedLevel zerolog.Level
+	}{
+		{"Trace Level", "trace", zerolog.TraceLevel},
+		{"Debug Level", "debug", zerolog.DebugLevel},
+		{"Info Level", "info", zerolog.InfoLevel},
+		{"Warn Level", "warn", zerolog.WarnLevel},
+		{"Error Level with 'error'", "error", zerolog.ErrorLevel},
+		{"Error Level with 'err'", "err", zerolog.ErrorLevel},
+		{"Fatal Level", "fatal", zerolog.FatalLevel},
+		{"Invalid Level Defaults to Info", "invalid", zerolog.InfoLevel},
+		{"Empty Level Defaults to Info", "", zerolog.InfoLevel},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			originalRootCmd := rootCmd
+			defer func() { rootCmd = originalRootCmd }()
+			rootCmd = &cobra.Command{
+				Use: "test",
+				Run: func(cmd *cobra.Command, args []string) {
+					cmd.Flags().StringVar(&configFilePath, configFileFlag, "", "")
+					cmd.Flags().StringVar(&logLevelVar, logLevelFlagName, "", "")
+
+					err := cmd.Flags().Set(configFileFlag, "")
+					assert.NoError(t, err)
+
+					err = cmd.Flags().Set(logLevelFlagName, tc.logLevelInput)
+					assert.NoError(t, err)
+
+					initialize()
+
+					assert.Equal(t, tc.expectedLevel, zerolog.GlobalLevel())
+					assert.Equal(t, tc.expectedLevel, log.Logger.GetLevel())
+				},
+			}
+
+			err := rootCmd.Execute()
+			if err != nil {
+				t.Fatalf("Error executing command: %v", err)
+			}
 		})
 	}
 }
