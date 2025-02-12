@@ -97,9 +97,7 @@ func TestInitializeLogLevels(t *testing.T) {
 			}
 
 			err := rootCmd.Execute()
-			if err != nil {
-				t.Fatalf("Error executing command: %v", err)
-			}
+			assert.NoError(t, err, "Error executing command")
 		})
 	}
 }
