@@ -18,7 +18,7 @@ func TestBuildScanOptions(t *testing.T) {
 		expectedOptions string
 	}{
 		{
-			name:            "Default: scan every commit from branch",
+			name:            "Default: scan every commit from checked in branch",
 			scanAllBranches: false,
 			depth:           0,
 			expectedOptions: "--full-history",
@@ -30,7 +30,7 @@ func TestBuildScanOptions(t *testing.T) {
 			expectedOptions: "--full-history --all",
 		},
 		{
-			name:            "scan the last 10 commits from branch",
+			name:            "scan the last 10 commits from checked in branch",
 			scanAllBranches: false,
 			depth:           10,
 			expectedOptions: "--full-history -n 10",
