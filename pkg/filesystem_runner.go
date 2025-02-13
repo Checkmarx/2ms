@@ -7,7 +7,6 @@ import (
 	"github.com/checkmarx/2ms/cmd"
 	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/lib/config"
-	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog/log"
 )
@@ -43,56 +42,39 @@ func (r *fileSystemRunner) Run(path string, projectName string, ignored []string
 	}
 
 	// Start processing items
-	wg.Add(1)
+	cmd.Channels.WaitGroup.Add(1)
 	go cmd.ProcessItems(engineInstance, plugin.GetName())
 
 	// Start processing secrets
-	wg.Add(1)
+	cmd.Channels.WaitGroup.Add(1)
 	go cmd.ProcessSecrets()
 
 	// Start processing secrets extras
-	wg.Add(1)
+	cmd.Channels.WaitGroup.Add(1)
 	go cmd.ProcessSecretsExtras()
 
 	// Start validation and scoring
 	validate := false
 	if validate {
-		wg.Add(1)
+		cmd.Channels.WaitGroup.Add(1)
 		go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
 	} else {
-		wg.Add(1)
+		cmd.Channels.WaitGroup.Add(1)
 		go cmd.ProcessScoreWithoutValidation(engineInstance)
 	}
 
 	// Run the plugin to get files
-	go plugin.GetFiles(items, errors, wg)
-
-	// Handle items and errors
-	for {
-		select {
-		case item, ok := <-items:
-			if !ok {
-				items = nil
-			} else {
-				fmt.Println("Item:", item)
-			}
-		case err, ok := <-errors:
-			if !ok {
-				errors = nil
-			} else {
-				fmt.Println("Error:", err)
-			}
-		}
-
-		if items == nil && errors == nil {
-			break
-		}
-	}
-
+	wg.Add(1)
+	go func() {
+		plugin.GetFiles(items, errors, wg)
+		wg.Done()
+	}()
 	wg.Wait()
+	close(items)
+	cmd.Channels.WaitGroup.Wait()
 
 	// Finalize and generate report
-	report := reporting.Init()
+	report := cmd.Report
 	cfg := config.LoadConfig("2ms", "0.0.0")
 	if report.TotalItemsScanned > 0 {
 		if err := report.ShowReport("yaml", cfg); err != nil {

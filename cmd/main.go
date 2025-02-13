@@ -72,7 +72,7 @@ var Channels = plugins.Channels{
 	WaitGroup: &sync.WaitGroup{},
 }
 
-var report = reporting.Init()
+var Report = reporting.Init()
 var secretsChan = make(chan *secrets.Secret)
 var secretsExtrasChan = make(chan *secrets.Secret)
 var validationChan = make(chan *secrets.Secret)
@@ -122,7 +122,7 @@ func Execute() (int, error) {
 		return 0, err
 	}
 
-	return report.TotalSecretsFound, nil
+	return Report.TotalSecretsFound, nil
 }
 
 func preRun(pluginName string, cmd *cobra.Command, args []string) error {
@@ -164,13 +164,13 @@ func postRun(cmd *cobra.Command, args []string) error {
 
 	cfg := config.LoadConfig("2ms", Version)
 
-	if report.TotalItemsScanned > 0 {
-		if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
+	if Report.TotalItemsScanned > 0 {
+		if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
 			return err
 		}
 
 		if len(reportPathVar) > 0 {
-			err := report.WriteFile(reportPathVar, cfg)
+			err := Report.WriteFile(reportPathVar, cfg)
 			if err != nil {
 				return fmt.Errorf("failed to create report file with error: %s", err)
 			}
