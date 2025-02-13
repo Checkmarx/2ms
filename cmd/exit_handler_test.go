@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -68,6 +69,78 @@ func TestExitHandler_IsNeedReturnErrorCode(t *testing.T) {
 			if result != testCase.expectedResult {
 				t.Errorf("Expected %v, got %v", testCase.expectedResult, result)
 			}
+		})
+	}
+}
+
+func TestExitCodeIfError(t *testing.T) {
+	testCases := []struct {
+		name         string
+		err          error
+		ignoreOnExit ignoreOnExit
+		expectedCode int
+	}{
+		{
+			name:         "No error, ignoreOnExitNone",
+			err:          nil,
+			ignoreOnExit: ignoreOnExitNone,
+			expectedCode: 0,
+		},
+		{
+			name:         "Error present, ignoreOnExitNone",
+			err:          fmt.Errorf("sample error"),
+			ignoreOnExit: ignoreOnExitNone,
+			expectedCode: errorCode,
+		},
+		{
+			name:         "Error present, ignoreOnExitAll",
+			err:          fmt.Errorf("sample error"),
+			ignoreOnExit: ignoreOnExitAll,
+			expectedCode: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ignoreOnExitVar = tc.ignoreOnExit
+			code := exitCodeIfError(tc.err)
+			assert.Equal(t, tc.expectedCode, code)
+		})
+	}
+}
+
+func TestExitCodeIfResults(t *testing.T) {
+	testCases := []struct {
+		name         string
+		resultsCount int
+		ignoreOnExit ignoreOnExit
+		expectedCode int
+	}{
+		{
+			name:         "No results, ignoreOnExitNone",
+			resultsCount: 0,
+			ignoreOnExit: ignoreOnExitNone,
+			expectedCode: 0,
+		},
+		{
+			name:         "Results present, ignoreOnExitNone",
+			resultsCount: 5,
+			ignoreOnExit: ignoreOnExitNone,
+			expectedCode: resultsCode,
+		},
+		{
+			name:         "Results present, ignoreOnExitAll",
+			resultsCount: 5,
+			ignoreOnExit: ignoreOnExitAll,
+			expectedCode: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ignoreOnExitVar = tc.ignoreOnExit
+			code := exitCodeIfResults(tc.resultsCount)
+			assert.Equal(t, tc.expectedCode, code)
 		})
 	}
 }
