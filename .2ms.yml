@@ -24,8 +24,8 @@ ignore-result:
   - 37bd36009d49856cecfe7df2063e1bdc6d28e707 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/56e1558a97196afd0531be028a43a09e571622f5/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R19
   - e53a3a4e8c0665454eb9a4c36eaf040e9317e450 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/2aa7733a457a145725aa11f99f05f60ddc6b09a1/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R9
   - ffc22deda44ebb0d4633bed184c5e26e99657084 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-  - 6b6dbac96b64c7fdef21193857643fc991150efa # value used for testing, found at https://github.com/Checkmarx/2ms/commit/a2ffd44a06713b003f06c1e36e62141edde50e45/cmd/workers_test.go
-  - 8acb6e408c407ddd9e832eee18990202e1e8c077 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/a2ffd44a06713b003f06c1e36e62141edde50e45/cmd/workers_test.go
-  - 191869165cadea42f4f55682efecd47a0b064ffc # value used for testing, found at https://github.com/Checkmarx/2ms/commit/5c77f87ebdda3cc8262d35d7ddbed465f28315d3/engine/extra/extra_test.go
-  - b9cb9dffa9bac85c0d4374b610f1598c5796582e # value used for testing, found at https://github.com/Checkmarx/2ms/commit/a2ffd44a06713b003f06c1e36e62141edde50e45/cmd/workers_test.go
-  - e17de81b21f82e7916ece9a387e9417f3857251d # value used for testing, found at https://github.com/Checkmarx/2ms/commit/a2ffd44a06713b003f06c1e36e62141edde50e45/cmd/workers_test.go
+  - 4d5a3dd11c58b7b471ec087ab589b1995f09891e # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
+  - 05ab8f76aebbca7ea76b904ce4f4f7cf287f16c3 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/engine/extra/extra_test.go
+  - 33a14f1d1e4a1201a3e0062ebf09079fe8c84714 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
+  - da610673906f695e3e85bda6fc0a916762f01a70 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
+  - f8da5c56428cf708773be38269932c46aaf44cd4 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
