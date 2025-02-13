@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/engine/extra"
 	"github.com/checkmarx/2ms/lib/secrets"
@@ -9,10 +8,7 @@ import (
 )
 
 func ProcessItems(engine *engine.Engine, pluginName string) { //fechou
-	defer func() {
-		Channels.WaitGroup.Done()
-		fmt.Println("ProcessItems is done")
-	}()
+	defer Channels.WaitGroup.Done()
 	wgItems := &sync.WaitGroup{}
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
@@ -24,10 +20,8 @@ func ProcessItems(engine *engine.Engine, pluginName string) { //fechou
 }
 
 func ProcessSecrets() { //fechou
-	defer func() {
-		Channels.WaitGroup.Done()
-		fmt.Println("ProcessSecrets is done")
-	}()
+	defer Channels.WaitGroup.Done()
+
 	for secret := range secretsChan {
 		Report.TotalSecretsFound++
 		secretsExtrasChan <- secret
@@ -44,10 +38,7 @@ func ProcessSecrets() { //fechou
 }
 
 func ProcessSecretsExtras() { //fechou
-	defer func() {
-		Channels.WaitGroup.Done()
-		fmt.Println("ProcessSecretsExtras is done")
-	}()
+	defer Channels.WaitGroup.Done()
 
 	wgExtras := &sync.WaitGroup{}
 	for secret := range secretsExtrasChan {
@@ -58,10 +49,8 @@ func ProcessSecretsExtras() { //fechou
 }
 
 func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
-	defer func() {
-		Channels.WaitGroup.Done()
-		fmt.Println("ProcessValidationAndScoreWithValidation is done")
-	}()
+	defer Channels.WaitGroup.Done()
+
 	wgValidation := &sync.WaitGroup{}
 	for secret := range validationChan {
 		wgValidation.Add(2)
@@ -76,10 +65,8 @@ func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
 }
 
 func ProcessScoreWithoutValidation(engine *engine.Engine) { //fechou
-	defer func() {
-		Channels.WaitGroup.Done()
-		fmt.Println("ProcessScoreWithoutValidation is done")
-	}()
+	defer Channels.WaitGroup.Done()
+
 	wgScore := &sync.WaitGroup{}
 	for secret := range cvssScoreWithoutValidationChan {
 		wgScore.Add(1)
