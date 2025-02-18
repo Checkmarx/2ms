@@ -16,6 +16,9 @@ func Test2msRules(t *testing.T) {
 	}{
 		{name: "AuthenticatedURL", validate: rules.AuthenticatedURL},
 		{name: "HardcodedPassword", validate: rules.HardcodedPassword},
+		{name: "PlaidAccessID", validate: rules.PlaidAccessID},
+		{name: "PrivateKey", validate: rules.PrivateKey},
+		{name: "VaultServiceToken", validate: rules.VaultServiceToken},
 	}
 
 	for _, tRule := range testsRules {
