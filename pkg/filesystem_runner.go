@@ -17,7 +17,7 @@ func NewFileSystemRunner() FileSystemRunner {
 	return &fileSystemRunner{}
 }
 
-func (r *fileSystemRunner) Run(path string, projectName string, ignored []string) error {
+func (r *fileSystemRunner) Run(path string, projectName string, ignored []string) (string, error) {
 	plugin := &plugins.FileSystemPlugin{
 		Path:        path,
 		ProjectName: projectName,
@@ -32,13 +32,13 @@ func (r *fileSystemRunner) Run(path string, projectName string, ignored []string
 	engineConfig := engine.EngineConfig{}
 	engineInstance, err := engine.Init(engineConfig)
 	if err != nil {
-		return fmt.Errorf("error initializing engine: %w", err)
+		return "", fmt.Errorf("error initializing engine: %w", err)
 	}
 
 	// Add custom regex rules if any
 	customRegexRules := []string{}
 	if err := engineInstance.AddRegexRules(customRegexRules); err != nil {
-		return fmt.Errorf("error adding custom regex rules: %w", err)
+		return "", fmt.Errorf("error adding custom regex rules: %w", err)
 	}
 
 	// Start processing items
@@ -76,20 +76,17 @@ func (r *fileSystemRunner) Run(path string, projectName string, ignored []string
 	// Finalize and generate report
 	report := cmd.Report
 	cfg := config.LoadConfig("2ms", "0.0.0")
-	if report.TotalItemsScanned > 0 {
-		if err := report.ShowReport("yaml", cfg); err != nil {
-			return fmt.Errorf("error showing report: %w", err)
-		}
 
-		reportPaths := []string{}
-		if len(reportPaths) > 0 {
-			if err := report.WriteFile(reportPaths, cfg); err != nil {
-				return fmt.Errorf("error writing report file: %w", err)
-			}
+	if report.TotalItemsScanned > 0 {
+		jsonData, err := report.GetOutput("json", cfg)
+		if err != nil {
+			return "", fmt.Errorf("error showing report: %w", err)
 		}
+		return jsonData, nil
+
 	} else {
 		log.Info().Msg("Scan completed with empty content")
 	}
 
-	return nil
+	return "", nil
 }
