@@ -54,14 +54,8 @@ func (r *fileSystemRunner) Run(path string, projectName string, ignored []string
 	go cmd.ProcessSecretsExtras()
 
 	// Start validation and scoring
-	validate := false
-	if validate {
-		cmd.Channels.WaitGroup.Add(1)
-		go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
-	} else {
-		cmd.Channels.WaitGroup.Add(1)
-		go cmd.ProcessScoreWithoutValidation(engineInstance)
-	}
+	cmd.Channels.WaitGroup.Add(1)
+	go cmd.ProcessScoreWithoutValidation(engineInstance)
 
 	// Run the plugin to get files
 	wg.Add(1)
