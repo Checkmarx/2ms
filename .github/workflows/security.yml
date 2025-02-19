@@ -60,8 +60,8 @@ jobs:
           trivy-config: trivy.yaml
           exit-code: '1'
         env:
-          TRIVY_SKIP_DB_UPDATE: false
-          TRIVY_SKIP_JAVA_DB_UPDATE: false
+          TRIVY_SKIP_DB_UPDATE: true
+          TRIVY_SKIP_JAVA_DB_UPDATE: true
 
 
   secret-scanning:
