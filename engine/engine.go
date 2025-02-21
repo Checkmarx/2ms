@@ -94,11 +94,11 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 		} else {
 			startLine = value.StartLine
 			endLine = value.EndLine
-
 		}
 		lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 		if err != nil {
 			errors <- err
+			return
 		}
 		secret := &secrets.Secret{
 			ID:              itemId,
