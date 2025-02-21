@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -17,8 +18,20 @@ func NewScanner() Scanner {
 }
 
 func (s *scanner) Scan(scanItems []ScanItem) (string, error) {
-	items := cmd.Channels.Items
+	itemsCh := cmd.Channels.Items
+	errorsCh := cmd.Channels.Errors
 	wg := &sync.WaitGroup{}
+
+	// listener for errors
+	bufferedErrors := make(chan error, len(scanItems))
+	go func() {
+		for err := range errorsCh {
+			if err != nil {
+				bufferedErrors <- err
+			}
+		}
+		close(bufferedErrors)
+	}()
 
 	// Initialize engine configuration
 	engineConfig := engine.EngineConfig{}
@@ -48,12 +61,24 @@ func (s *scanner) Scan(scanItems []ScanItem) (string, error) {
 		wg.Add(1)
 		go func(item ScanItem) {
 			defer wg.Done()
-			items <- item
+			itemsCh <- item
 		}(scanItem)
 	}
 	wg.Wait()
-	close(items)
+	close(itemsCh)
 	cmd.Channels.WaitGroup.Wait()
+
+	close(errorsCh)
+	var errs []error
+	for err = range bufferedErrors {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return "", fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
+	}
 
 	// Finalize and generate report
 	report := cmd.Report
