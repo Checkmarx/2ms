@@ -76,23 +76,23 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar = tt.engineConfigVar
 			customRegexRuleVar = tt.customRegexRuleVar
 			validateVar = tt.validateVar
-			channels.Items = make(chan plugins.ISourceItem)
-			channels.Errors = make(chan error)
-			channels.WaitGroup = &sync.WaitGroup{}
+			Channels.Items = make(chan plugins.ISourceItem)
+			Channels.Errors = make(chan error)
+			Channels.WaitGroup = &sync.WaitGroup{}
 			secretsChan = make(chan *secrets.Secret)
 			secretsExtrasChan = make(chan *secrets.Secret)
 			validationChan = make(chan *secrets.Secret)
 			cvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 			err := preRun("mock", nil, nil)
-			close(channels.Items)
-			close(channels.Errors)
-			channels.WaitGroup.Wait()
+			close(Channels.Items)
+			close(Channels.Errors)
+			Channels.WaitGroup.Wait()
 			if tt.expectedErr != nil {
 				assert.Error(t, err)
 				assert.EqualError(t, err, tt.expectedErr.Error())
 			} else {
 				assert.NoError(t, err)
-				assert.Empty(t, channels.Errors)
+				assert.Empty(t, Channels.Errors)
 			}
 		})
 	}

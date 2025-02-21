@@ -35,22 +35,22 @@ func TestProcessItems(t *testing.T) {
 	engineConfig := engine.EngineConfig{}
 	engineTest, err := engine.Init(engineConfig)
 	assert.NoError(t, err)
-	report = reporting.Init()
-	channels.Items = make(chan plugins.ISourceItem)
+	Report = reporting.Init()
+	Channels.Items = make(chan plugins.ISourceItem)
 	secretsChan = make(chan *secrets.Secret)
-	channels.WaitGroup = &sync.WaitGroup{}
-	channels.WaitGroup.Add(1)
-	go processItems(engineTest, "mockPlugin")
+	Channels.WaitGroup = &sync.WaitGroup{}
+	Channels.WaitGroup.Add(1)
+	go ProcessItems(engineTest, "mockPlugin")
 	for i := 0; i < totalItemsToProcess; i++ {
 		mockData := strconv.Itoa(i)
-		channels.Items <- &mockItem{
+		Channels.Items <- &mockItem{
 			content: &mockData,
 			id:      mockData,
 		}
 	}
-	close(channels.Items)
-	channels.WaitGroup.Wait()
-	assert.Equal(t, totalItemsToProcess, report.TotalItemsScanned)
+	close(Channels.Items)
+	Channels.WaitGroup.Wait()
+	assert.Equal(t, totalItemsToProcess, Report.TotalItemsScanned)
 }
 
 func TestProcessSecrets(t *testing.T) {
@@ -70,22 +70,22 @@ func TestProcessSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			report = reporting.Init()
+			Report = reporting.Init()
 			secretsChan = make(chan *secrets.Secret, 3)
 			secretsExtrasChan = make(chan *secrets.Secret, 3)
 			validationChan = make(chan *secrets.Secret, 3)
 			cvssScoreWithoutValidationChan = make(chan *secrets.Secret, 3)
-			channels.WaitGroup = &sync.WaitGroup{}
+			Channels.WaitGroup = &sync.WaitGroup{}
 			validateVar = tt.validateVar
 			secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
 			secretsChan <- &secrets.Secret{ID: "mockId2"}
 			secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
 			close(secretsChan)
 
-			channels.WaitGroup.Add(1)
-			go processSecrets()
+			Channels.WaitGroup.Add(1)
+			go ProcessSecrets()
 
-			channels.WaitGroup.Wait()
+			Channels.WaitGroup.Wait()
 
 			expectedSecrets := []*secrets.Secret{
 				{ID: "mockId", StartLine: 1},
@@ -132,12 +132,12 @@ func TestProcessSecrets(t *testing.T) {
 				assert.Equal(t, expectedSecrets, actualSecretsWithoutValidation)
 			}
 
-			assert.Equal(t, 3, report.TotalSecretsFound)
-			assert.Equal(t, 2, len(report.Results["mockId"]))
-			assert.Equal(t, 1, len(report.Results["mockId2"]))
-			assert.Equal(t, &secrets.Secret{ID: "mockId", StartLine: 1}, report.Results["mockId"][0])
-			assert.Equal(t, &secrets.Secret{ID: "mockId", StartLine: 2}, report.Results["mockId"][1])
-			assert.Equal(t, &secrets.Secret{ID: "mockId2"}, report.Results["mockId2"][0])
+			assert.Equal(t, 3, Report.TotalSecretsFound)
+			assert.Equal(t, 2, len(Report.Results["mockId"]))
+			assert.Equal(t, 1, len(Report.Results["mockId2"]))
+			assert.Equal(t, &secrets.Secret{ID: "mockId", StartLine: 1}, Report.Results["mockId"][0])
+			assert.Equal(t, &secrets.Secret{ID: "mockId", StartLine: 2}, Report.Results["mockId"][1])
+			assert.Equal(t, &secrets.Secret{ID: "mockId2"}, Report.Results["mockId2"][0])
 		})
 	}
 }
@@ -197,9 +197,9 @@ func TestProcessSecretsExtras(t *testing.T) {
 			}
 			close(secretsExtrasChan)
 
-			channels.WaitGroup.Add(1)
-			go processSecretsExtras()
-			channels.WaitGroup.Wait()
+			Channels.WaitGroup.Add(1)
+			go ProcessSecretsExtras()
+			Channels.WaitGroup.Wait()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
@@ -258,9 +258,9 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 			}
 			close(validationChan)
 
-			channels.WaitGroup.Add(1)
-			go processValidationAndScoreWithValidation(engineTest)
-			channels.WaitGroup.Wait()
+			Channels.WaitGroup.Add(1)
+			go ProcessValidationAndScoreWithValidation(engineTest)
+			Channels.WaitGroup.Wait()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
@@ -319,9 +319,9 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 			}
 			close(cvssScoreWithoutValidationChan)
 
-			channels.WaitGroup.Add(1)
-			go processScoreWithoutValidation(engineTest)
-			channels.WaitGroup.Wait()
+			Channels.WaitGroup.Add(1)
+			go ProcessScoreWithoutValidation(engineTest)
+			Channels.WaitGroup.Wait()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
