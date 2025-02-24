@@ -13,35 +13,35 @@ func ProcessItems(engine *engine.Engine, pluginName string) { //fechou
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
 		wgItems.Add(1)
-		go engine.Detect(item, secretsChan, wgItems, pluginName, Channels.Errors)
+		go engine.Detect(item, SecretsChan, wgItems, pluginName, Channels.Errors)
 	}
 	wgItems.Wait()
-	close(secretsChan)
+	close(SecretsChan)
 }
 
 func ProcessSecrets() { //fechou
 	defer Channels.WaitGroup.Done()
 
-	for secret := range secretsChan {
+	for secret := range SecretsChan {
 		Report.TotalSecretsFound++
-		secretsExtrasChan <- secret
+		SecretsExtrasChan <- secret
 		if validateVar {
-			validationChan <- secret
+			ValidationChan <- secret
 		} else {
-			cvssScoreWithoutValidationChan <- secret
+			CvssScoreWithoutValidationChan <- secret
 		}
 		Report.Results[secret.ID] = append(Report.Results[secret.ID], secret)
 	}
-	close(secretsExtrasChan)
-	close(validationChan)
-	close(cvssScoreWithoutValidationChan)
+	close(SecretsExtrasChan)
+	close(ValidationChan)
+	close(CvssScoreWithoutValidationChan)
 }
 
 func ProcessSecretsExtras() { //fechou
 	defer Channels.WaitGroup.Done()
 
 	wgExtras := &sync.WaitGroup{}
-	for secret := range secretsExtrasChan {
+	for secret := range SecretsExtrasChan {
 		wgExtras.Add(1)
 		go extra.AddExtraToSecret(secret, wgExtras)
 	}
@@ -52,7 +52,7 @@ func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
 	defer Channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}
-	for secret := range validationChan {
+	for secret := range ValidationChan {
 		wgValidation.Add(2)
 		go func(secret *secrets.Secret, wg *sync.WaitGroup) {
 			engine.RegisterForValidation(secret, wg)
@@ -68,7 +68,7 @@ func ProcessScoreWithoutValidation(engine *engine.Engine) { //fechou
 	defer Channels.WaitGroup.Done()
 
 	wgScore := &sync.WaitGroup{}
-	for secret := range cvssScoreWithoutValidationChan {
+	for secret := range CvssScoreWithoutValidationChan {
 		wgScore.Add(1)
 		go engine.Score(secret, false, wgScore)
 	}

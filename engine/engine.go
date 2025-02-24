@@ -88,7 +88,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 	for _, value := range e.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
 		var startLine, endLine int
-		if pluginName == "filesystem" {
+		if pluginName == "filesystem" || pluginName == "custom" {
 			startLine = value.StartLine + 1
 			endLine = value.EndLine + 1
 		} else {
@@ -97,7 +97,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 		}
 		lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 		if err != nil {
-			errors <- err
+			errors <- fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 			return
 		}
 		secret := &secrets.Secret{

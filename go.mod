@@ -5,6 +5,7 @@ go 1.23.6
 require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/gitleaks/go-gitdiff v0.9.0
+	github.com/google/go-cmp v0.6.0
 	github.com/rs/zerolog v1.32.0
 	github.com/slack-go/slack v0.12.2
 	github.com/spf13/cobra v1.8.0

@@ -42,7 +42,7 @@ func (s *scanner) Scan(scanItems []ScanItem) (string, error) {
 
 	// Start processing items
 	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessItems(engineInstance, "")
+	go cmd.ProcessItems(engineInstance, "custom")
 
 	// Start processing secrets
 	cmd.Channels.WaitGroup.Add(1)
@@ -90,7 +90,6 @@ func (s *scanner) Scan(scanItems []ScanItem) (string, error) {
 			return "", fmt.Errorf("error showing report: %w", err)
 		}
 		return jsonData, nil
-
 	} else {
 		log.Info().Msg("Scan completed with empty content")
 	}

@@ -37,7 +37,7 @@ func TestProcessItems(t *testing.T) {
 	assert.NoError(t, err)
 	Report = reporting.Init()
 	Channels.Items = make(chan plugins.ISourceItem)
-	secretsChan = make(chan *secrets.Secret)
+	SecretsChan = make(chan *secrets.Secret)
 	Channels.WaitGroup = &sync.WaitGroup{}
 	Channels.WaitGroup.Add(1)
 	go ProcessItems(engineTest, "mockPlugin")
@@ -71,16 +71,16 @@ func TestProcessSecrets(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			Report = reporting.Init()
-			secretsChan = make(chan *secrets.Secret, 3)
-			secretsExtrasChan = make(chan *secrets.Secret, 3)
-			validationChan = make(chan *secrets.Secret, 3)
-			cvssScoreWithoutValidationChan = make(chan *secrets.Secret, 3)
+			SecretsChan = make(chan *secrets.Secret, 3)
+			SecretsExtrasChan = make(chan *secrets.Secret, 3)
+			ValidationChan = make(chan *secrets.Secret, 3)
+			CvssScoreWithoutValidationChan = make(chan *secrets.Secret, 3)
 			Channels.WaitGroup = &sync.WaitGroup{}
 			validateVar = tt.validateVar
-			secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
-			secretsChan <- &secrets.Secret{ID: "mockId2"}
-			secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
-			close(secretsChan)
+			SecretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
+			SecretsChan <- &secrets.Secret{ID: "mockId2"}
+			SecretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
+			close(SecretsChan)
 
 			Channels.WaitGroup.Add(1)
 			go ProcessSecrets()
@@ -93,7 +93,7 @@ func TestProcessSecrets(t *testing.T) {
 				{ID: "mockId2"},
 			}
 			var actualSecrets []*secrets.Secret
-			for val := range secretsExtrasChan {
+			for val := range SecretsExtrasChan {
 				actualSecrets = append(actualSecrets, val)
 			}
 			sort.Slice(actualSecrets, func(i, j int) bool {
@@ -105,9 +105,9 @@ func TestProcessSecrets(t *testing.T) {
 			assert.Equal(t, expectedSecrets, actualSecrets)
 
 			if validateVar {
-				assert.Empty(t, cvssScoreWithoutValidationChan)
+				assert.Empty(t, CvssScoreWithoutValidationChan)
 				var actualSecretsWithValidation []*secrets.Secret
-				for val := range validationChan {
+				for val := range ValidationChan {
 					actualSecretsWithValidation = append(actualSecretsWithValidation, val)
 				}
 				sort.Slice(actualSecretsWithValidation, func(i, j int) bool {
@@ -118,9 +118,9 @@ func TestProcessSecrets(t *testing.T) {
 				})
 				assert.Equal(t, expectedSecrets, actualSecretsWithValidation)
 			} else {
-				assert.Empty(t, validationChan)
+				assert.Empty(t, ValidationChan)
 				var actualSecretsWithoutValidation []*secrets.Secret
-				for val := range cvssScoreWithoutValidationChan {
+				for val := range CvssScoreWithoutValidationChan {
 					actualSecretsWithoutValidation = append(actualSecretsWithoutValidation, val)
 				}
 				sort.Slice(actualSecretsWithoutValidation, func(i, j int) bool {
@@ -191,11 +191,11 @@ func TestProcessSecretsExtras(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			secretsExtrasChan = make(chan *secrets.Secret, len(tt.inputSecrets))
+			SecretsExtrasChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			for _, secret := range tt.inputSecrets {
-				secretsExtrasChan <- secret
+				SecretsExtrasChan <- secret
 			}
-			close(secretsExtrasChan)
+			close(SecretsExtrasChan)
 
 			Channels.WaitGroup.Add(1)
 			go ProcessSecretsExtras()
@@ -252,11 +252,11 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 			engineConfig := engine.EngineConfig{}
 			engineTest, err := engine.Init(engineConfig)
 			assert.NoError(t, err)
-			validationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
+			ValidationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			for _, secret := range tt.inputSecrets {
-				validationChan <- secret
+				ValidationChan <- secret
 			}
-			close(validationChan)
+			close(ValidationChan)
 
 			Channels.WaitGroup.Add(1)
 			go ProcessValidationAndScoreWithValidation(engineTest)
@@ -313,11 +313,11 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 			engineConfig := engine.EngineConfig{}
 			engineTest, err := engine.Init(engineConfig)
 			assert.NoError(t, err)
-			cvssScoreWithoutValidationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
+			CvssScoreWithoutValidationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			for _, secret := range tt.inputSecrets {
-				cvssScoreWithoutValidationChan <- secret
+				CvssScoreWithoutValidationChan <- secret
 			}
-			close(cvssScoreWithoutValidationChan)
+			close(CvssScoreWithoutValidationChan)
 
 			Channels.WaitGroup.Add(1)
 			go ProcessScoreWithoutValidation(engineTest)

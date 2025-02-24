@@ -73,10 +73,10 @@ var Channels = plugins.Channels{
 }
 
 var Report = reporting.Init()
-var secretsChan = make(chan *secrets.Secret)
-var secretsExtrasChan = make(chan *secrets.Secret)
-var validationChan = make(chan *secrets.Secret)
-var cvssScoreWithoutValidationChan = make(chan *secrets.Secret)
+var SecretsChan = make(chan *secrets.Secret)
+var SecretsExtrasChan = make(chan *secrets.Secret)
+var ValidationChan = make(chan *secrets.Secret)
+var CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
