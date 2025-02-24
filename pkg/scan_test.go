@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/checkmarx/2ms/cmd"
+	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/google/go-cmp/cmp"
@@ -18,12 +19,14 @@ const (
 	expectedReportPath = "testData/expectedSecretsReport.json"
 )
 
-func TestScan(t *testing.T) {
+func TestScanWithItems(t *testing.T) {
+	cmd.Report = reporting.Init()
 	cmd.SecretsChan = make(chan *secrets.Secret)
 	cmd.SecretsExtrasChan = make(chan *secrets.Secret)
 	cmd.ValidationChan = make(chan *secrets.Secret)
 	cmd.CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 	cmd.Channels.Items = make(chan plugins.ISourceItem)
+	cmd.Channels.Errors = make(chan error)
 
 	githubPatBytes, err := os.ReadFile(githubPatPath)
 	assert.NoError(t, err, "failed to read github-pat file")
@@ -74,11 +77,13 @@ func TestScan(t *testing.T) {
 }
 
 func TestScanWithErrors(t *testing.T) {
+	cmd.Report = reporting.Init()
 	cmd.SecretsChan = make(chan *secrets.Secret)
 	cmd.SecretsExtrasChan = make(chan *secrets.Secret)
 	cmd.ValidationChan = make(chan *secrets.Secret)
 	cmd.CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 	cmd.Channels.Items = make(chan plugins.ISourceItem)
+	cmd.Channels.Errors = make(chan error)
 
 	emptyContent := ""
 	scanItems := []ScanItem{
@@ -106,4 +111,40 @@ func TestScanWithErrors(t *testing.T) {
 	assert.Equal(t, "", report)
 	assert.NotNil(t, err)
 	assert.Equal(t, "error(s) processing scan items:\nmock processing error 1\nmock processing error 2", err.Error())
+}
+
+func TestScanWithoutItems(t *testing.T) {
+	tests := []struct {
+		name           string
+		items          []ScanItem
+		expectedReport string
+	}{
+		{
+			name:           "nil items",
+			items:          nil,
+			expectedReport: "",
+		},
+		{
+			name:           "empty slice",
+			items:          []ScanItem{},
+			expectedReport: "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd.Report = reporting.Init()
+			cmd.SecretsChan = make(chan *secrets.Secret)
+			cmd.SecretsExtrasChan = make(chan *secrets.Secret)
+			cmd.ValidationChan = make(chan *secrets.Secret)
+			cmd.CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
+			cmd.Channels.Items = make(chan plugins.ISourceItem)
+			cmd.Channels.Errors = make(chan error)
+
+			testScanner := NewScanner()
+			actualReport, err := testScanner.Scan(tc.items)
+			assert.NoError(t, err, "scanner encountered an error")
+			assert.Equal(t, tc.expectedReport, actualReport)
+		})
+	}
 }

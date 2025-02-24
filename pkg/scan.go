@@ -23,7 +23,7 @@ func (s *scanner) Scan(scanItems []ScanItem) (string, error) {
 	wg := &sync.WaitGroup{}
 
 	// listener for errors
-	bufferedErrors := make(chan error, len(scanItems))
+	bufferedErrors := make(chan error, len(scanItems)+1)
 	go func() {
 		for err := range errorsCh {
 			if err != nil {
