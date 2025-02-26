@@ -11,13 +11,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type ScanConfig struct {
+	IgnoreResultIds []string
+}
+
 type scanner struct{}
 
 func NewScanner() Scanner {
 	return &scanner{}
 }
 
-func (s *scanner) Scan(scanItems []ScanItem) (string, error) {
+func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (string, error) {
 	itemsCh := cmd.Channels.Items
 	errorsCh := cmd.Channels.Errors
 	wg := &sync.WaitGroup{}
@@ -83,6 +87,14 @@ func (s *scanner) Scan(scanItems []ScanItem) (string, error) {
 	// Finalize and generate report
 	report := cmd.Report
 	cfg := config.LoadConfig("2ms", "0.0.0")
+
+	for _, resultId := range scanConfig.IgnoreResultIds {
+		numberOfSecretsPerResultId := len(report.Results[resultId])
+		if numberOfSecretsPerResultId > 0 {
+			report.TotalSecretsFound -= numberOfSecretsPerResultId
+			delete(report.Results, resultId)
+		}
+	}
 
 	if report.TotalItemsScanned > 0 {
 		jsonData, err := report.GetOutput("json", cfg)

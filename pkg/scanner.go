@@ -25,5 +25,5 @@ func (i ScanItem) GetSource() string {
 }
 
 type Scanner interface {
-	Scan([]ScanItem) (string, error)
+	Scan(scanItems []ScanItem, scanConfig ScanConfig) (string, error)
 }

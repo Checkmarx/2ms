@@ -1,0 +1,51 @@
+{
+ "totalItemsScanned" : 3,
+ "totalSecretsFound" : 3,
+ "results" : {
+  "6949272451f77dc4a38d5f35d583cf56023cd2c1" : [ {
+   "id" : "6949272451f77dc4a38d5f35d583cf56023cd2c1",
+   "source" : "testData/secrets/github-pat.txt",
+   "ruleId" : "github-pat",
+   "startLine" : 1,
+   "endLine" : 1,
+   "lineContent" : "TextExampleghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATextExampleghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBTextExample\r",
+   "startColumn" : 12,
+   "endColumn" : 51,
+   "value" : "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+   "ruleDescription" : "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+   "cvssScore" : 8.2
+  } ],
+  "f29abe9eacc233a8e5e9c7762bca48589d9c76a2" : [ {
+   "id" : "f29abe9eacc233a8e5e9c7762bca48589d9c76a2",
+   "source" : "testData/secrets/jwt.txt",
+   "ruleId" : "jwt",
+   "startLine" : 1,
+   "endLine" : 1,
+   "lineContent" : "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample\r",
+   "startColumn" : 13,
+   "endColumn" : 116,
+   "value" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
+   "ruleDescription" : "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+   "extraDetails" : {
+    "secretDetails" : {
+     "name" : "mockName1",
+     "sub" : "mockSub1"
+    }
+   },
+   "cvssScore" : 8.2
+  } ],
+  "fc17c755f40062dcb3f16eb6299f9afc7eccbc56" : [ {
+   "id" : "fc17c755f40062dcb3f16eb6299f9afc7eccbc56",
+   "source" : "testData/secrets/github-pat.txt",
+   "ruleId" : "github-pat",
+   "startLine" : 1,
+   "endLine" : 1,
+   "lineContent" : "TextExampleghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATextExampleghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBTextExample\r",
+   "startColumn" : 63,
+   "endColumn" : 102,
+   "value" : "ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+   "ruleDescription" : "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+   "cvssScore" : 8.2
+  } ]
+ }
+}
