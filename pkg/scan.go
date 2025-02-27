@@ -15,13 +15,13 @@ type ScanConfig struct {
 	IgnoreResultIds []string
 }
 
-type scanner reporting.Report
+type scanner struct{}
 
 func NewScanner() Scanner {
 	return &scanner{}
 }
 
-func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (reporting.Report, error) {
+func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
 	itemsCh := cmd.Channels.Items
 	errorsCh := cmd.Channels.Errors
 	wg := &sync.WaitGroup{}
@@ -41,7 +41,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (reporting.R
 	engineConfig := engine.EngineConfig{}
 	engineInstance, err := engine.Init(engineConfig)
 	if err != nil {
-		return reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
+		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}
 
 	// Start processing items
@@ -81,11 +81,11 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (reporting.R
 	}
 
 	if len(errs) > 0 {
-		return reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
+		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
 	// Finalize and generate report
-	report := reporting.Report{}
+	report := cmd.Report
 	for _, resultId := range scanConfig.IgnoreResultIds {
 		numberOfSecretsPerResultId := len(report.Results[resultId])
 		if numberOfSecretsPerResultId > 0 {
@@ -96,12 +96,12 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (reporting.R
 
 	if report.TotalItemsScanned > 0 {
 		if err != nil {
-			return reporting.Report{}, fmt.Errorf("error showing report: %w", err)
+			return &reporting.Report{}, fmt.Errorf("error showing report: %w", err)
 		}
 		return report, nil
 	} else {
 		log.Info().Msg("Scan completed with empty content")
 	}
 
-	return reporting.Report{}, nil
+	return &reporting.Report{}, nil
 }
