@@ -1,6 +1,9 @@
 package scanner
 
-import "github.com/checkmarx/2ms/plugins"
+import (
+	"github.com/checkmarx/2ms/lib/reporting"
+	"github.com/checkmarx/2ms/plugins"
+)
 
 type ScanItem struct {
 	Content *string
@@ -25,5 +28,5 @@ func (i ScanItem) GetSource() string {
 }
 
 type Scanner interface {
-	Scan(scanItems []ScanItem, scanConfig ScanConfig) (string, error)
+	Scan(scanItems []ScanItem, scanConfig ScanConfig) (reporting.Report, error)
 }

@@ -3,11 +3,11 @@ package scanner
 import (
 	"errors"
 	"fmt"
+	"github.com/checkmarx/2ms/lib/reporting"
 	"sync"
 
 	"github.com/checkmarx/2ms/cmd"
 	"github.com/checkmarx/2ms/engine"
-	"github.com/checkmarx/2ms/lib/config"
 	"github.com/rs/zerolog/log"
 )
 
@@ -15,13 +15,13 @@ type ScanConfig struct {
 	IgnoreResultIds []string
 }
 
-type scanner struct{}
+type scanner reporting.Report
 
 func NewScanner() Scanner {
 	return &scanner{}
 }
 
-func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (string, error) {
+func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (reporting.Report, error) {
 	itemsCh := cmd.Channels.Items
 	errorsCh := cmd.Channels.Errors
 	wg := &sync.WaitGroup{}
@@ -41,7 +41,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (string, err
 	engineConfig := engine.EngineConfig{}
 	engineInstance, err := engine.Init(engineConfig)
 	if err != nil {
-		return "", fmt.Errorf("error initializing engine: %w", err)
+		return reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}
 
 	// Start processing items
@@ -81,13 +81,11 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (string, err
 	}
 
 	if len(errs) > 0 {
-		return "", fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
+		return reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
 	// Finalize and generate report
-	report := cmd.Report
-	cfg := config.LoadConfig("2ms", "0.0.0")
-
+	report := reporting.Report{}
 	for _, resultId := range scanConfig.IgnoreResultIds {
 		numberOfSecretsPerResultId := len(report.Results[resultId])
 		if numberOfSecretsPerResultId > 0 {
@@ -97,14 +95,13 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (string, err
 	}
 
 	if report.TotalItemsScanned > 0 {
-		jsonData, err := report.GetOutput("json", cfg)
 		if err != nil {
-			return "", fmt.Errorf("error showing report: %w", err)
+			return reporting.Report{}, fmt.Errorf("error showing report: %w", err)
 		}
-		return jsonData, nil
+		return report, nil
 	} else {
 		log.Info().Msg("Scan completed with empty content")
 	}
 
-	return "", nil
+	return reporting.Report{}, nil
 }
