@@ -88,7 +88,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 	for _, value := range e.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
 		var startLine, endLine int
-		if pluginName == "filesystem" || pluginName == "custom" {
+		if pluginName == "filesystem" {
 			startLine = value.StartLine + 1
 			endLine = value.EndLine + 1
 		} else {
