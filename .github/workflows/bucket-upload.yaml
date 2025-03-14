@@ -1,16 +1,46 @@
-name: Upload Results to S3
+name: Run 2ms Scan and Upload to S3
 
 on:
-  push:
-
+    push:
+      branches:
+        - main
+    pull_request:
+      branches:
+        - main
+  
 jobs:
-  upload:
-    runs-on: ubuntu-latest
+  scan-and-upload:
+    runs-on: ubuntu-latest  
+
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - uses: shallwefootball/s3-upload-action@master
+      - name: Check out repository
+        uses: actions/checkout@v4  
+
+      - name: Run 2ms Scan
+        uses: miguel-neiva01/2ms-github-action@v1.5.19  
+        id: twoms_scan
+        
+      - name: Set S3 Destination Path
+        id: set_s3_path
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          PR_NUMBER="${{ github.event.pull_request.number || 'no-pr' }}"
+          VERSION="v3.17.0"
+          echo "destination_dir=2ms/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV
+
+      - name: Upload results to S3
+        uses: shallwefootball/s3-upload-action@master
         with:
-          aws_key_id: ${{ secrets.AWS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-          aws_bucket: ${{ secrets.AWS_BUCKET }}
-          source_dir: 'dirname'
+          aws_key_id: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+          aws_secret_access_key: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+          aws_bucket: "ces-results" 
+          source_dir: ${{ steps.twoms_scan.outputs.results_dir }}
+          destination_dir: ${{ env.destination_dir }}
+
+      - name: Update deployment status
+        uses: chrnorm/deployment-status@releases/v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target_url: "https://${{ secrets.AWS_BUCKET }}.s3.amazonaws.com/uploads/index.html"
+          state: 'success'
+          deployment_id: '123456'
