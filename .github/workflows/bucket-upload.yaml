@@ -18,15 +18,16 @@ jobs:
       - name: Get Results Directory
         id: get_results_dir
         run: |
+         echo "Results directory from 2ms scan: ${{ steps.twoms_scan.outputs.results_dir }}"
           echo "results_dir=${{ steps.twoms_scan.outputs.results_dir }}" >> $GITHUB_ENV
-          echo "Results Directory: ${{ steps.twoms_scan.outputs.results_dir }}"  # para ver o valor
+          echo "Results Directory: ${{ steps.twoms_scan.outputs.results_dir }}"  
 
       - name: Upload 2ms Scan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: 2ms-results
           path: ${{ env.results_dir }}
-          
+
       - name: Set S3 Destination Path
         id: set_s3_path
         run: |
