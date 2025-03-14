@@ -19,12 +19,17 @@ jobs:
       - name: Run 2ms Scan
         uses: miguel-neiva01/2ms-github-action@v1.5.19  
         id: twoms_scan
-        
+
+      - name: Get Results Directory
+        id: get_results_dir
+        run: |
+           echo "results_dir=${{ steps.twoms_scan.outputs.results_dir }}" >> $GITHUB_ENV
+
       - name: Set S3 Destination Path
         id: set_s3_path
         run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          PR_NUMBER="${{ github.event.pull_request.number || 'no-pr' }}"
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }} 
+          PR_NUMBER="${{ github.event.pull_request.number }}"
           VERSION="v3.17.0"
           echo "destination_dir=2ms/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV
 
@@ -36,11 +41,3 @@ jobs:
           aws_bucket: "ces-results" 
           source_dir: ${{ steps.twoms_scan.outputs.results_dir }}
           destination_dir: ${{ env.destination_dir }}
-
-      - name: Update deployment status
-        uses: chrnorm/deployment-status@releases/v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          target_url: "https://${{ secrets.AWS_BUCKET }}.s3.amazonaws.com/uploads/index.html"
-          state: 'success'
-          deployment_id: '123456'
