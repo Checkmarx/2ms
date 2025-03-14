@@ -18,9 +18,8 @@ jobs:
       - name: Get Results Directory
         id: get_results_dir
         run: |
-         echo "Results directory from 2ms scan: ${{ steps.twoms_scan.outputs.results_dir }}"
-          echo "results_dir=${{ steps.twoms_scan.outputs.results_dir }}" >> $GITHUB_ENV
-          echo "Results Directory: ${{ steps.twoms_scan.outputs.results_dir }}"  
+          echo "results_dir=results" >> $GITHUB_ENV
+          echo "Results Directory: ${{ env.results_dir }}"  
 
       - name: Upload 2ms Scan Artifact
         uses: actions/upload-artifact@v4
