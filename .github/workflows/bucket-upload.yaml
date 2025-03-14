@@ -2,7 +2,12 @@ name: Run 2ms Scan and Upload to S3
 
 on:
   push:
+    branches:
+      - '*'
 
+  pull_request:
+    branches:
+      - '*'  
 jobs:
   scan-and-upload:
     runs-on: ubuntu-latest  
@@ -41,5 +46,5 @@ jobs:
           aws_key_id: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
           aws_secret_access_key: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
           aws_bucket: "ces-results" 
-          source_dir: ${{ steps.twoms_scan.outputs.results_dir }}
+          source_dir: ${{ env.results_dir }}
           destination_dir: ${{ env.destination_dir }}
