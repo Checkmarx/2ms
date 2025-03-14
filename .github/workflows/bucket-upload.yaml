@@ -21,7 +21,7 @@ jobs:
            echo "results_dir=${{ steps.twoms_scan.outputs.results_dir }}" >> $GITHUB_ENV
 
       - name: Upload 2ms Scan Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
             name: 2ms-scan-results
             path: ${{ steps.twoms_scan.outputs.results_dir }}
