@@ -1,0 +1,76 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - master
+  merge_group:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0 # Required for 2ms to have visibility to all commit history
+        
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: "^1.22"
+
+      - name: go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code
+
+      - name: Go Linter
+        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.61.0 golangci-lint run -v -E gofmt --timeout=5m --out-format github-actions
+
+      - name: Go Test
+        run: go test -v ./...
+
+      - name: Run 2ms Scan
+        run: go run . git . --config .2ms.yml
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb #v3.3.0
+
+      - run: make build
+      - name: docker run
+        run: |
+          docker run -v "$(pwd)":/repo -t checkmarx/2ms:latest git /repo --report-path output/results.json --ignore-on-exit results
+
+  kics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - run: mkdir -p kics-results
+
+      - name: Run KICS scan
+        uses: checkmarx/kics-github-action@03c9abe351b01c3e4dbe60fa00ff79ee07d73f44 # master
+        with:
+          path: .
+          output_path: kics-results
+          output_formats: json,sarif
+          enable_comments: ${{ github.event_name == 'pull_request'}}
+          fail_on: high,medium
+          enable_jobs_summary: true
+      - name: Show KICS results
+        if: failure()
+        run: cat kics-results/results.json
+      # - name: Upload SARIF file
+      #   uses: github/codeql-action/upload-sarif@4355270be187e1b672a7a1c7c7bae5afdc1ab94a #v3.24.10
+      #   with:
+      #     sarif_file: kics-results/results.sarif

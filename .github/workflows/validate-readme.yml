@@ -1,0 +1,30 @@
+name: Validate README
+
+on:
+  pull_request:
+    branches:
+      - master
+  merge_group:
+
+jobs:
+  validate:
+    name: README should be updated
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: "^1.22"
+
+      - name: update README
+        run: ./.ci/update-readme.sh
+      - name: validate README wasn't updated
+        run: |
+          if ! git diff-index --quiet HEAD; then
+            # Find the line numbers of the start and end markers
+            start_line=$(grep -n '<!-- command-line:start -->' README.md | cut -d ":" -f 1)
+            end_line=$(grep -n '<!-- command-line:end -->' README.md | cut -d ":" -f 1)
+            
+            echo "::error file=README.md,title=Outdated README,line=$start_line,endLine=$end_line::README.md is outdated, please run ./.ci/update-readme.sh"
+            exit 1
+          fi

@@ -2,12 +2,7 @@ name: Run 2ms Scan and Upload to S3
 
 on:
     push:
-      branches:
-        - main
-    pull_request:
-      branches:
-        - main
-  
+        
 jobs:
   scan-and-upload:
     runs-on: ubuntu-latest  
