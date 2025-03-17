@@ -61,21 +61,23 @@ jobs:
 
       - name: Create Metadata File
         run: |
-          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
+           echo "COMMIT_TIMESTAMP=$(git log -1 --format=%ct)" >> $GITHUB_ENV
+ 
+           METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
 
-          echo '{
-            "timestamp": "'"${TIMESTAMP}"'",
+           echo '{
+            "seq": "'"${{ env.COMMIT_TIMESTAMP }}"'",
+            "tag": "'"${{ github.event.number }}"'",
+            "comment":"'"${{ github.event.pull_request.title }}"'",
+            "commit": "'"${{ github.sha }}"'",
+            "owner": "'"${{ github.actor }}"'",
             "branch": "'"${{ github.head_ref || github.ref_name }}"'",
-            "pr_number": "'"${{ github.event.number }}"'",
-            "version": "'"${{ env.twoms_version }}"'",
-            "commit_hash": "'"${{ github.sha }}"'",
-            "pr_owner": "'"${{ github.actor }}"'",
-            "engine": "2ms"
-          }' > "$METADATA_PATH"
+            "engine": "2ms",
+            "version": "1.0.0"
+           }' > "$METADATA_PATH"
 
-          echo "Created metadata file at $METADATA_PATH"
-          cat "$METADATA_PATH"
+           echo "Created metadata file at $METADATA_PATH"
+           cat "$METADATA_PATH"
 
       - name: Upload results to S3
         run: |
