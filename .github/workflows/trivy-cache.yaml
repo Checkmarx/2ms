@@ -3,6 +3,7 @@
 name: Update Trivy Cache
 
 on:
+  push:
   workflow_dispatch:  # Allow manual triggering
   schedule:
     - cron: '0 */6 * * *'  # Run daily at midnight UTC
