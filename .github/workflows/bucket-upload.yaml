@@ -27,10 +27,6 @@ jobs:
           name: results
           path: ${{ env.results_dir }}
 
-
-      
-          
-
       - name: Set S3 Destination Path
         id: set_s3_path
         run: |
@@ -42,7 +38,7 @@ jobs:
           PR_OWNER="${{ github.actor }}"
           TARGET_BRANCH="master"
 
-          DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}"
+          DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/v3.17.0/pr-${PR_NUMBER}"
           
           echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
           echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
@@ -70,12 +66,12 @@ jobs:
 
           echo '{
             "timestamp": "'"${TIMESTAMP}"'",
-            "branch": " ${{ github.head_ref || github.ref_name }} ",
-            "pr_number": "'"${{ github.event.number }}"'",
+            "branch": "'"${{ github.head_ref || github.ref_name }}"'",
+            "pr_number": "'"${{ github.event.number }}",
             "version": "${{ env.twoms_version }}",
-            "commit_hash": "'"${{ github.sha }}"'",
-            "pr_owner": " ${{ github.event.pull_request.user.login }} ",
-            "engine": "'"${ENGINE}"'"
+            "commit_hash": "${{ github.sha }}",
+            "pr_owner": "${{ github.actor }}",
+            "engine": "2ms"
           }' > "$METADATA_PATH"
 
           echo "Created metadata file at $METADATA_PATH"
