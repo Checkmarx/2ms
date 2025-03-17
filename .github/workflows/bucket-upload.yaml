@@ -38,7 +38,7 @@ jobs:
           PR_OWNER="${{ github.actor }}"
           TARGET_BRANCH="master"
 
-          DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/v3.17.0/pr-${PR_NUMBER}"
+          DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${{ env.twoms_version }}pr-${PR_NUMBER}"
           
           echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
           echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
