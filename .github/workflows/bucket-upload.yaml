@@ -31,11 +31,10 @@ jobs:
         id: set_s3_path
         run: |
           BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
-          PR_NUMBER="${{ github.event.number }}""
+          PR_NUMBER="${{ github.event.number }}"
           VERSION="v3.17.0"
-          echo "destination_dir=2ms/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV 
+          echo "destination_dir=2ms/master/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV 
           echo "results_dir=${RESULTS_DIR}" >> $GITHUB_ENV
-          echo "destination_dir=2ms/master/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV
 
       - name: Organize Results in Correct Structure
         run: |
@@ -46,13 +45,11 @@ jobs:
               artifact_name=$(basename $(dirname $artifact_dir))  # Nome do repositório (projeto)
               mkdir -p "${{ env.results_dir }}/${artifact_name}"
   
-              # Mover o arquivo SARIF para o diretório do artefato
               mv "${artifact_dir}"/*.sarif "${{ env.results_dir }}/${artifact_name}/"
   
               echo "Moved SARIF file for artifact: ${artifact_name}"
             done
   
-            # Criar o metadata.json
             TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             echo '{
               "timestamp": "'"${TIMESTAMP}"'",
