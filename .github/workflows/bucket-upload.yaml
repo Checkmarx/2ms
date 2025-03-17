@@ -73,11 +73,9 @@ jobs:
             "owner": "'"${{ github.actor }}"'",
             "branch": "'"${{ github.head_ref || github.ref_name }}"'",
             "engine": "2ms",
-            "version": "1.0.0"
+            "version": "'"${{ env.twoms_version }}"'"
            }' > "$METADATA_PATH"
 
-           echo "Created metadata file at $METADATA_PATH"
-           cat "$METADATA_PATH"
 
       - name: Upload results to S3
         run: |
