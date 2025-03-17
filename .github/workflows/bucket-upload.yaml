@@ -36,7 +36,7 @@ jobs:
         id: set_s3_path
         run: |
           BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
-          PR_NUMBER="275"
+          PR_NUMBER="${{ github.event.number }}""
           VERSION="v3.17.0"
           echo "destination_dir=2ms/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV
 
