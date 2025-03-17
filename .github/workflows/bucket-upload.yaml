@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  scan-and-upload:
+  bucket-upload-S3:
     runs-on: ubuntu-latest  
 
     steps:
@@ -61,12 +61,12 @@ jobs:
 
       - name: Create Metadata File
         run: |
-           echo "COMMIT_TIMESTAMP=$(git log -1 --format=%ct)" >> $GITHUB_ENV
+           COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
  
            METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
 
            echo '{
-            "seq": "'"${{ env.COMMIT_TIMESTAMP }}"'",
+            "seq": "'"${COMMIT_TIMESTAMP}"'",
             "tag": "'"${{ github.event.number }}"'",
             "comment":"'"${{ github.event.pull_request.title }}"'",
             "commit": "'"${{ github.sha }}"'",
