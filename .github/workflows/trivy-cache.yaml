@@ -1,0 +1,23 @@
+# Note: This workflow only updates the cache. You should create a separate workflow for your actual Trivy scans.
+# In your scan workflow, set TRIVY_SKIP_DB_UPDATE=true and TRIVY_SKIP_JAVA_DB_UPDATE=true.
+name: Update Trivy Cache
+
+on:
+  workflow_dispatch:  # Allow manual triggering
+  schedule:
+    - cron: '0 */6 * * *'  # Run daily at midnight UTC
+ 
+jobs:
+  update-trivy-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Push Directory Changes
+        uses: CheckmarxDev/actions-workflow-template/workflows/trivy-cache@910f5c4bee4ccbc62b7fd94de00796e60027ca55
+        with:
+          trivy_db_tag: '2'
+          trivy_java_db_tag: '1'
+          cache_key_prefix: 'cache-trivy'
+          cache_dir: '${{ github.workspace }}/.cache/trivy'
