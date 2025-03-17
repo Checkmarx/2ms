@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4  
 
       - name: Run 2ms Scan
-        uses: miguel-neiva01/2ms-github-action@v1.5.18  
+        uses: miguel-neiva01/2ms-github-action@v1.6.5 
         id: twoms_scan
 
       - name: Get Results Directory
@@ -24,7 +24,7 @@ jobs:
       - name: Upload 2ms Scan Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 2ms-results
+          name: results
           path: ${{ env.results_dir }}
 
       - name: Set S3 Destination Path
@@ -33,39 +33,46 @@ jobs:
           BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
           PR_NUMBER="${{ github.event.number }}"
           VERSION="v3.17.0"
-          echo "destination_dir=2ms/master/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV 
-          echo "results_dir=${RESULTS_DIR}" >> $GITHUB_ENV
+          ENGINE="2ms"
+          COMMIT_HASH="${{ github.sha }}"
+          PR_OWNER="${{ github.actor }}"
+          TARGET_BRANCH="master"  
 
-      - name: Organize Results in Correct Structure
+          echo "destination_dir=s3://ces-results/${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV 
+          echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
+
+      - name: Create metadata
         run: |
-            mkdir -p "${{ env.results_dir }}"
-            
+          mkdir -p "${{ env.results_dir }}"
     
-            for artifact_dir in $(find $GITHUB_WORKSPACE -type d -name "results"); do
-              artifact_name=$(basename $(dirname $artifact_dir))  # Nome do repositório (projeto)
-              mkdir -p "${{ env.results_dir }}/${artifact_name}"
+          for artifact_dir in $(find $GITHUB_WORKSPACE -type d -name "results"); do
+            artifact_name=$(basename $(dirname $artifact_dir))  # Nome do repositório (projeto)
+            mkdir -p "${{ env.results_dir }}/${artifact_name}"
   
-              mv "${artifact_dir}"/*.sarif "${{ env.results_dir }}/${artifact_name}/"
+            mv "${artifact_dir}"/*.sarif "${{ env.results_dir }}/${artifact_name}/"
   
-              echo "Moved SARIF file for artifact: ${artifact_name}"
-            done
+            echo "Moved SARIF file for artifact: ${artifact_name}"
+          done
   
-            TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-            echo '{
-              "timestamp": "'"${TIMESTAMP}"'",
-              "branch": "'"${{ github.head_ref || github.ref_name }}"'",
-              "pr_number": "'"${{ github.event.number }}"'",
-              "version": "'"${VERSION}"'"
-            }' > "${{ env.results_dir }}/metadata.json"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo '{
+            "timestamp": "'"${TIMESTAMP}"'",
+            "branch": "'"${{ github.head_ref || github.ref_name }}"'",
+            "pr_number": "'"${{ github.event.number }}"'",
+            "version": "'"${VERSION}"'",
+            "commit_hash": "'"${COMMIT_HASH}"'",
+            "pr_owner": "'"${PR_OWNER}"'",
+            "engine": "'"${ENGINE}"'"
+          }' > "${{ env.results_dir }}/metadata.json"
   
-            echo "Created directory structure:"
-            tree "${{ env.results_dir }}"
-  
+          echo "Created directory structure:"
+          tree "${{ env.results_dir }}"
+
       - name: Upload results to S3
         uses: shallwefootball/s3-upload-action@master
         with:
             aws_key_id: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
             aws_secret_access_key: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
-            aws_bucket: "ces-results" 
+            aws_bucket:  ${{ secrets.CES_AWS_BUCKET }} 
             source_dir: ${{ env.results_dir }}
             destination_dir: ${{ env.destination_dir }}
