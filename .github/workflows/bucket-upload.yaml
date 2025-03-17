@@ -67,10 +67,10 @@ jobs:
           echo '{
             "timestamp": "'"${TIMESTAMP}"'",
             "branch": "'"${{ github.head_ref || github.ref_name }}"'",
-            "pr_number": "'"${{ github.event.number }}",
-            "version": "${{ env.twoms_version }}",
-            "commit_hash": "${{ github.sha }}",
-            "pr_owner": "${{ github.actor }}",
+            "pr_number": "'"${{ github.event.number }}"'",
+            "version": "'"${{ env.twoms_version }}"'",
+            "commit_hash": "'"${{ github.sha }}"'",
+            "pr_owner": "'"${{ github.actor }}"'",
             "engine": "2ms"
           }' > "$METADATA_PATH"
 
