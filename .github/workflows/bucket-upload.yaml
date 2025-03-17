@@ -73,8 +73,10 @@ jobs:
           tree "${{ env.results_dir }}"
 
       - name: Upload results to S3
-        uses: shallwefootball/s3-upload-action@master
-        with:
+        run: |
+            aws s3 cp --recursive "${{ env.results_dir }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
+              --storage-class STANDARD
+        env:
           aws_key_id: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
           aws_secret_access_key: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
           aws_bucket: ${{ secrets.CES_AWS_BUCKET }} 
