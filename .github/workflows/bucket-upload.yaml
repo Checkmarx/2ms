@@ -41,19 +41,19 @@ jobs:
           echo "destination_dir=s3://ces-results/${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${VERSION}/pr-${PR_NUMBER}" >> $GITHUB_ENV 
           echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
 
-      - name: Create metadata
-        run: |
+          - name: Create metadata
+         run: |
           mkdir -p "${{ env.results_dir }}"
     
-          for artifact_dir in $(find $GITHUB_WORKSPACE -type d -name "results"); do
-            artifact_name=$(basename $(dirname $artifact_dir))  # Nome do repositório (projeto)
-            mkdir -p "${{ env.results_dir }}/${artifact_name}"
-  
-            mv "${artifact_dir}"/*.sarif "${{ env.results_dir }}/${artifact_name}/"
-  
-            echo "Moved SARIF file for artifact: ${artifact_name}"
+          for sarif_file in $GITHUB_WORKSPACE/results/*.sarif; do
+            if [[ -f "$sarif_file" ]]; then
+              project_name=$(basename "$sarif_file" .sarif)  # Nome do projeto (sem extensão)
+              mkdir -p "${{ env.results_dir }}/$project_name"
+              mv "$sarif_file" "${{ env.results_dir }}/$project_name/results.sarif"
+              echo "Moved $sarif_file to $project_name/results.sarif"
+            fi
           done
-  
+
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           echo '{
             "timestamp": "'"${TIMESTAMP}"'",
