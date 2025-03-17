@@ -1,4 +1,4 @@
-name: Checkmarx One Scan
+name: cx-one-scan
 
 on:
   workflow_dispatch:
@@ -10,13 +10,13 @@ on:
     - cron: '00 7 * * *'
 
 jobs:
-  cx-scan:
+  cx-one-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Checkmarx One CLI Action
-        uses: checkmarx/ast-github-action@dd0f9365942f29a99c3be5bdb308958ede8f906b # v.2.0.25
+        uses: checkmarx/ast-github-action@7b7c2fd5b562de70e53fd3256b47c64e7e1951bd # v.2.0.45
         with:
           base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
           cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}
