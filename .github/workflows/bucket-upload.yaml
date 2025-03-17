@@ -27,12 +27,16 @@ jobs:
           name: results
           path: ${{ env.results_dir }}
 
+
+      
+          
+
       - name: Set S3 Destination Path
         id: set_s3_path
         run: |
           BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
           PR_NUMBER="${{ github.event.number }}"
-          VERSION="v3.17.0"
+          echo "twoms_version=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')" >> $GITHUB_ENV
           ENGINE="2ms"
           COMMIT_HASH="${{ github.sha }}"
           PR_OWNER="${{ github.actor }}"
@@ -66,11 +70,11 @@ jobs:
 
           echo '{
             "timestamp": "'"${TIMESTAMP}"'",
-            "branch": "'"${{ github.head_ref || github.ref_name }}"'",
+            "branch": " ${{ github.head_ref || github.ref_name }} ",
             "pr_number": "'"${{ github.event.number }}"'",
-            "version": "'"${VERSION}"'",
-            "commit_hash": "'"${COMMIT_HASH}"'",
-            "pr_owner": "'"${PR_OWNER}"'",
+            "version": "${{ env.twoms_version }}",
+            "commit_hash": "'"${{ github.sha }}"'",
+            "pr_owner": " ${{ github.event.pull_request.user.login }} ",
             "engine": "'"${ENGINE}"'"
           }' > "$METADATA_PATH"
 
