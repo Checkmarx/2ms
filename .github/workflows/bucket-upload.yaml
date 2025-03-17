@@ -1,7 +1,7 @@
 name: Run 2ms Scan and Upload to S3
 
 on:
-  push:
+  pull_request:
 
 jobs:
   scan-and-upload:
@@ -79,7 +79,7 @@ jobs:
 
       - name: Upload results to S3
         run: |
-          aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}/pr-${{ github.event.number }}" \
+          aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
             --storage-class STANDARD
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
