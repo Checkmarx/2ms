@@ -19,13 +19,6 @@ jobs:
         id: get_results_dir
         run: |
           echo "results_dir=results" >> $GITHUB_ENV
-          
-
-      - name: Upload 2ms Scan Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: results
-          path: ${{ env.results_dir }}~
 
       - name: Get 2ms Version
         id: get_twoms_version
