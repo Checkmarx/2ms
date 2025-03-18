@@ -32,7 +32,8 @@ jobs:
         run: |
           BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
           PR_NUMBER="${{ github.event.number }}"
-          echo "twoms_version=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')" >> $GITHUB_ENV
+          TWOMS_VERSION=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')
+          echo "twoms_version=$TWOMS_VERSION" >> $GITHUB_ENV
           ENGINE="2ms"
           COMMIT_HASH="${{ github.sha }}"
           PR_OWNER="${{ github.actor }}"
