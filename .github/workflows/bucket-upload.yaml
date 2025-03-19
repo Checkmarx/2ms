@@ -58,13 +58,13 @@ jobs:
             echo "Cloning repository: $repo_url"
             
             # Criar uma pasta para o repositório
-            mkdir -p "$GITHUB_WORKSPACE/$repo_name"
+            mkdir -p "$GITHUB_WORKSPACE/repos/$repo_name"
             
             # Clonar o repositório na pasta criada
-            git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
+            git clone "$repo_url" "$GITHUB_WORKSPACE/repos/$repo_name"
             
             # Verificar se o repositório foi clonado corretamente
-            ls -la "$GITHUB_WORKSPACE/$repo_name"
+            ls -la "$GITHUB_WORKSPACE/repos/$repo_name"
           done
 
       - name: Run 2ms Scan for each repo
@@ -85,7 +85,7 @@ jobs:
             echo "Running 2ms scan on $repo_name"
             
             # Executar o scan 2ms no repositório clonado, passando o path correto
-            $GITHUB_WORKSPACE/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
+            $GITHUB_WORKSPACE/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/repos/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
             
             # Verificar se o comando 2ms foi executado corretamente
             if [ $? -ne 0 ]; then
