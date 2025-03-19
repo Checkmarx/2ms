@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - add-bucket-upload-workflow  
+      - add-bucket-upload-workflow
   pull_request:
     branches:
       - add-bucket-upload-workflow
@@ -37,7 +37,6 @@ jobs:
           # Garantir permissões de execução
           chmod +x dist/2ms
 
-      
       - name: Load Repos from JSON
         run: |
             # Baixar o arquivo repos.json diretamente
@@ -53,44 +52,43 @@ jobs:
             REPOS_LIST_CSV=$(echo $REPOS_LIST | tr '\n' ',')
             echo "repos=$REPOS_LIST_CSV" >> $GITHUB_ENV
 
+      - name: Run 2ms Scan for each repo
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/results
 
-            - name: Run 2ms Scan for each repo
-            run: |
-              mkdir -p $GITHUB_WORKSPACE/results
-    
-              IFS=',' read -r -a REPOS_ARRAY <<< "$REPOS_LIST"
-    
-              # Verificar se o binário 2ms existe
-              if [ ! -f /tmp/2ms/dist/2ms ]; then
-                echo "2ms binary not found!"
-                exit 1
-              fi
-    
-              for repo_url in "${REPOS_ARRAY[@]}"; do
-                repo_name=$(basename "$repo_url" .git)
-                echo "Cloning repository: $repo_url"
-                
-                # Clonar o repositório
-                git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
-                
-                # Verificar se o repositório foi clonado corretamente
-                ls -la "$GITHUB_WORKSPACE/$repo_name"
-                
-                # Verificar se o binário 2ms existe
-                ls -la /tmp/2ms/dist/
-    
-                echo "Running 2ms scan on $repo_name"
-                
-                # Executar o scan com 2ms
-                /tmp/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
-                
-                # Verificar se o comando 2ms foi executado corretamente
-                if [ $? -ne 0 ]; then
-                  echo "2ms scan failed for $repo_name, continuing with the next repo."
-                  continue
-                fi
-              done
-              
+          IFS=',' read -r -a REPOS_ARRAY <<< "$REPOS_LIST"
+
+          # Verificar se o binário 2ms existe
+          if [ ! -f /tmp/2ms/dist/2ms ]; then
+            echo "2ms binary not found!"
+            exit 1
+          fi
+
+          for repo_url in "${REPOS_ARRAY[@]}"; do
+            repo_name=$(basename "$repo_url" .git)
+            echo "Cloning repository: $repo_url"
+            
+            # Clonar o repositório
+            git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
+            
+            # Verificar se o repositório foi clonado corretamente
+            ls -la "$GITHUB_WORKSPACE/$repo_name"
+            
+            # Verificar se o binário 2ms existe
+            ls -la /tmp/2ms/dist/
+
+            echo "Running 2ms scan on $repo_name"
+            
+            # Executar o scan com 2ms
+            /tmp/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
+            
+            # Verificar se o comando 2ms foi executado corretamente
+            if [ $? -ne 0 ]; then
+              echo "2ms scan failed for $repo_name, continuing with the next repo."
+              continue
+            fi
+          done
+
       - name: Get Results Directory
         id: get_results_dir
         run: |
