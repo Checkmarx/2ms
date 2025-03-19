@@ -63,8 +63,8 @@ jobs:
               ls -la "$GITHUB_WORKSPACE/$repo_name"
             done
         
-            - name: Run 2ms Scan for each repo
-            run: |
+      - name: Run 2ms Scan for each repo
+        run: |
               mkdir -p $GITHUB_WORKSPACE/results
           
               # Obter a lista de repositórios do GITHUB_ENV
@@ -101,7 +101,7 @@ jobs:
                   continue
                 fi
               done
-              
+
       - name: Get Results Directory
         id: get_results_dir
         run: |
