@@ -133,15 +133,18 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
 
-      # Obter os resultados do scan para o comentário
       - name: Get Scan Results for Comment
         id: scan_results
         run: |
-          # Formatar os resultados em uma tabela
-          result_table=$(jq -r '.[] | "| \(.repo_name) | \(.scan_status) | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json)
-          echo "result_table=$result_table" >> $GITHUB_ENV
+            # Formatar os resultados em uma tabela
+            result_table=$(jq -r '.[] | "| \(.repo_name) | \(.scan_status) | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json)
+        
+            # Adicionar a linha do cabeçalho da tabela
+            result_table="| Repositório  | Status  | Tempo de Execução (segundos) |\n|--------------|---------|------------------------------|\n$result_table"
+        
+            # Salvar a variável formatada na variável de ambiente
+            echo "result_table=$result_table" >> $GITHUB_ENV
 
-      # Criar o comentário no PR com o resumo dos resultados
       - name: Criar Comentário no PR com Job Summary em Tabela
         uses: peter-evans/create-or-update-comment@v2
         with:
