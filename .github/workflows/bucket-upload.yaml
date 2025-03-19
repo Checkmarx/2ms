@@ -18,7 +18,8 @@ jobs:
           # Clonar o repositório 2ms
           git clone https://github.com/checkmarx/2ms.git /tmp/2ms
           cd /tmp/2ms
-
+          
+          git fetch --all
           git checkout ${{ github.sha }}
 
           go build -o dist/2ms main.go
