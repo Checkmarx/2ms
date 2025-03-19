@@ -8,11 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          ref: ${{ github.sha }} 
-      
-      - name: Echo GitHub SHA
-        run: |
-             echo "GitHub SHA: ${{ github.sha }}"
+          ref: ${{ github.event.pull_request.head.sha }}
       
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
@@ -23,7 +19,7 @@ jobs:
           git clone https://github.com/checkmarx/2ms.git $GITHUB_WORKSPACE/2ms
           cd $GITHUB_WORKSPACE/2ms
           git fetch --all
-          git checkout ${{ github.sha }} 
+          git checkout ${{ github.event.pull_request.head.sha }}
           go build -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
