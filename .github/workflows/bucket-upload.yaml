@@ -80,7 +80,6 @@ jobs:
             exit 1
           fi
           
-          # Iterar sobre cada repositório
           for repo_url in "${REPOS_ARRAY[@]}"; do
             repo_name=$(basename "$repo_url" .git)
             echo "Running 2ms scan on $repo_name"
