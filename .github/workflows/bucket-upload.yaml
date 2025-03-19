@@ -1,10 +1,5 @@
 on:
-  push:
-    branches:
-      - add-bucket-upload-workflow
-  pull_request:
-    branches:
-      - add-bucket-upload-workflow
+  pull request:
 
 jobs:
   bucket-upload-S3:
@@ -21,78 +16,31 @@ jobs:
 
       - name: Clone 2ms Repository and Checkout Commit SHA
         run: |
-            # Clonar o repositório 2ms no diretório do workspace
-            git clone https://github.com/checkmarx/2ms.git $GITHUB_WORKSPACE/2ms
-            cd $GITHUB_WORKSPACE/2ms
-            
-            # Buscar todos os commits e fazer checkout no commit correto
-            git fetch --all
-            git checkout ${{ github.sha }}
-            
-            # Compilar o 2ms
-            go build -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
-            
-            # Verificar se o binário foi criado corretamente
-            ls -la $GITHUB_WORKSPACE/2ms/dist/2ms
-            
-            # Garantir permissões de execução
-            chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
+          git clone https://github.com/checkmarx/2ms.git $GITHUB_WORKSPACE/2ms
+          cd $GITHUB_WORKSPACE/2ms
+          git fetch --all
+          git checkout ${{ github.sha }} 
+          go build -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
+          chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
       - name: Load Repos from JSON and Clone Each Repo
         run: |
-              # Baixar o arquivo repos.json diretamente
-              curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
-              
-              # Extrair os repositórios e criar uma string separada por espaços (ou nova linha, conforme necessário)
-              REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
-              
-              # Exibir o conteúdo de REPOS_LIST para depuração
-              echo "Repos List: $REPOS_LIST"
-              
-              # Corrigir separação da variável para garantir que a leitura esteja correta
-              echo "repos=$(echo "$REPOS_LIST" | tr '\n' ' ')" >> $GITHUB_ENV
-          
-              # Iterar sobre cada repositório e cloná-los
-              IFS=' '   # Ajusta o delimitador para garantir que o loop leia as URLs separadas por espaço
-              for repo_url in $REPOS_LIST; do
-                repo_name=$(basename "$repo_url" .git)
-                echo "Cloning repository: $repo_url"
-                
-                # Criar uma pasta para o repositório dentro de workspace/repos
-                mkdir -p "$GITHUB_WORKSPACE/workspace/repos/$repo_name"
-                
-                # Clonar o repositório na pasta criada
-                git clone "$repo_url" "$GITHUB_WORKSPACE/workspace/repos/$repo_name"
-                
-                # Verificar se o repositório foi clonado corretamente
-                ls -la "$GITHUB_WORKSPACE/workspace/repos/$repo_name"
-              done
-          
+          curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
+          REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json | tr '\n' ' ')
+          echo "repos=$REPOS_LIST" >> $GITHUB_ENV
+          for repo_url in $REPOS_LIST; do
+            repo_name=$(basename "$repo_url" .git)
+            mkdir -p "$GITHUB_WORKSPACE/repos/$repo_name"
+            git clone "$repo_url" "$GITHUB_WORKSPACE/repos/$repo_name"
+          done
+
       - name: Run 2ms Scan for each repo
         run: |
           mkdir -p $GITHUB_WORKSPACE/results
-
-          # Obter a lista de repositórios do GITHUB_ENV
           IFS=' ' read -r -a REPOS_ARRAY <<< "$repos"
-          
-          # Verificar se o binário 2ms existe no diretório correto
-          if [ ! -f /tmp/2ms/dist/2ms ]; then
-            echo "2ms binary not found!"
-            exit 1
-          fi
-          
           for repo_url in "${REPOS_ARRAY[@]}"; do
             repo_name=$(basename "$repo_url" .git)
-            echo "Running 2ms scan on $repo_name"
-            
-            # Executar o scan 2ms no repositório clonado, passando o path correto
             $GITHUB_WORKSPACE/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/repos/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
-            
-            # Verificar se o comando 2ms foi executado corretamente
-            if [ $? -ne 0 ]; then
-              echo "2ms scan failed for $repo_name, continuing with the next repo."
-              continue
-            fi
           done
 
       - name: Get Results Directory
@@ -114,34 +62,25 @@ jobs:
           COMMIT_HASH="${{ github.sha }}"
           PR_OWNER="${{ github.actor }}"
           TARGET_BRANCH="master"
-
           DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${{ env.twoms_version }}/pr-${PR_NUMBER}"
-          
           echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
           echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
 
       - name: Organize SARIF files
         run: |
           mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}"
-          
-          echo "Listing SARIF files before processing..."
-          ls -la $GITHUB_WORKSPACE/results/
-      
           for sarif_file in $GITHUB_WORKSPACE/results/*.sarif; do
             if [[ -f "$sarif_file" ]]; then
               project_name=$(basename "$sarif_file" .sarif)
               mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name"
               mv "$sarif_file" "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name/results.sarif"
-              echo "Moved $sarif_file to pr-${{ github.event.number }}/$project_name/results.sarif"
             fi
           done
 
       - name: Create Metadata File
         run: |
           COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
-  
           METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
-  
           echo '{
             "seq": "'"${COMMIT_TIMESTAMP}"'",
             "tag": "'"${{ github.event.number }}"'",
@@ -152,6 +91,7 @@ jobs:
             "engine": "2ms",
             "version": "'"${{ env.twoms_version }}"'"
           }' > "$METADATA_PATH"
+
 
       - name: Upload results to S3
         run: |
