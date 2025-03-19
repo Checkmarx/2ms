@@ -1,6 +1,10 @@
 on:
+  push:
+    branches:
+      - add-bucket-upload-workflow
   pull_request:
-
+    branches:
+      - add-bucket-upload-workflow
 jobs:
   bucket-upload-S3:
     runs-on: ubuntu-latest  
