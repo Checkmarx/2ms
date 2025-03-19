@@ -40,33 +40,34 @@ jobs:
 
       - name: Load Repos from JSON and Clone Each Repo
         run: |
-          # Baixar o arquivo repos.json diretamente
-          curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
+              # Baixar o arquivo repos.json diretamente
+              curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
+              
+              # Extrair os repositórios e criar uma string separada por espaços (ou nova linha, conforme necessário)
+              REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
+              
+              # Exibir o conteúdo de REPOS_LIST para depuração
+              echo "Repos List: $REPOS_LIST"
+              
+              # Corrigir separação da variável para garantir que a leitura esteja correta
+              echo "repos=$(echo "$REPOS_LIST" | tr '\n' ' ')" >> $GITHUB_ENV
           
-          # Extrair os repositórios e criar uma string separada por vírgulas
-          REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
+              # Iterar sobre cada repositório e cloná-los
+              IFS=' '   # Ajusta o delimitador para garantir que o loop leia as URLs separadas por espaço
+              for repo_url in $REPOS_LIST; do
+                repo_name=$(basename "$repo_url" .git)
+                echo "Cloning repository: $repo_url"
+                
+                # Criar uma pasta para o repositório dentro de workspace/repos
+                mkdir -p "$GITHUB_WORKSPACE/workspace/repos/$repo_name"
+                
+                # Clonar o repositório na pasta criada
+                git clone "$repo_url" "$GITHUB_WORKSPACE/workspace/repos/$repo_name"
+                
+                # Verificar se o repositório foi clonado corretamente
+                ls -la "$GITHUB_WORKSPACE/workspace/repos/$repo_name"
+              done
           
-          # Exibir o conteúdo de REPOS_LIST para depuração
-          echo "Repos List: $REPOS_LIST"
-          
-          # Salvar a lista de repositórios em uma variável de ambiente
-          echo "repos=$REPOS_LIST" >> $GITHUB_ENV
-
-          # Iterar sobre cada repositório e cloná-los
-          for repo_url in $REPOS_LIST; do
-            repo_name=$(basename "$repo_url" .git)
-            echo "Cloning repository: $repo_url"
-            
-            # Criar uma pasta para o repositório
-            mkdir -p "$GITHUB_WORKSPACE/repos/$repo_name"
-            
-            # Clonar o repositório na pasta criada
-            git clone "$repo_url" "$GITHUB_WORKSPACE/repos/$repo_name"
-            
-            # Verificar se o repositório foi clonado corretamente
-            ls -la "$GITHUB_WORKSPACE/repos/$repo_name"
-          done
-
       - name: Run 2ms Scan for each repo
         run: |
           mkdir -p $GITHUB_WORKSPACE/results
