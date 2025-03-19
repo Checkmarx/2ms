@@ -1,7 +1,4 @@
 on:
-  push:
-    branches:
-      - add-bucket-upload-workflow
   pull_request:
     branches:
       - add-bucket-upload-workflow
