@@ -6,7 +6,6 @@ on:
     branches:
       - add-bucket-upload-workflow
 
-
 jobs:
   bucket-upload-S3:
     runs-on: ubuntu-latest  
@@ -14,7 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-         ref: ${{ github.sha }} 
+          ref: ${{ github.sha }} 
+      
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: "^1.22"
@@ -27,109 +27,107 @@ jobs:
           
           git fetch --all
           git checkout ${{ github.sha }}
-
+          
+          # Compilar o 2ms
           go build -o dist/2ms main.go
+          
+          # Verificar se o binário foi criado corretamente
           ls -la dist/2ms
-
-
-      - name: Load Repos from JSON
-        run: |
-            # Baixar o arquivo repos.json diretamente
-            curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
-        
-            # Extrair os repositórios e criar uma string separada por vírgulas
-            REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
-            
-            # Exibir o conteúdo de REPOS_LIST para depuração
-            echo "Repos List: $REPOS_LIST"
-            
-            # Converter a lista de repositórios para uma string separada por vírgulas e passá-la para o GITHUB_ENV
-            REPOS_LIST_CSV=$(echo $REPOS_LIST | tr '\n' ',')
-            echo "repos=$REPOS_LIST_CSV" >> $GITHUB_ENV
-        
+          
+          # Garantir permissões de execução
+          chmod +x dist/2ms
 
       - name: Run 2ms Scan for each repo
         run: |
-              mkdir -p $GITHUB_WORKSPACE/results
+          mkdir -p $GITHUB_WORKSPACE/results
+      
+          # Dividir a variável 'repos' em uma lista separada por vírgulas
+          IFS=',' read -r -a REPOS_ARRAY <<< "$REPOS_LIST"
           
-              # Dividir a variável 'repos' em uma lista separada por vírgulas
-              IFS=',' read -r -a REPOS_ARRAY <<< "$REPOS_LIST"
-              
-              # Iterar sobre os repositórios no array
-              for repo_url in "${REPOS_ARRAY[@]}"; do
-                repo_name=$(basename "$repo_url" .git)
-                echo "Cloning repository: $repo_url"
-                
-                # Clonar o repositório
-                git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
-                
-                # Rodar o 2ms scan no repositório clonado
-                /tmp/2ms filesystem --path "$GITHUB_WORKSPACE/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
-              done
-          
+          # Iterar sobre os repositórios no array
+          for repo_url in "${REPOS_ARRAY[@]}"; do
+            repo_name=$(basename "$repo_url" .git)
+            echo "Cloning repository: $repo_url"
+            
+            # Clonar o repositório
+            git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
+            
+            # Verificar se o repositório foi clonado corretamente
+            ls -la "$GITHUB_WORKSPACE/$repo_name"
+            
+            # Rodar o 2ms scan no repositório clonado
+            echo "Running 2ms scan on $repo_name"
+            /tmp/2ms filesystem --path "$GITHUB_WORKSPACE/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
+            
+            # Verificar se o comando 2ms foi executado
+            if [ $? -ne 0 ]; then
+              echo "2ms scan failed for $repo_name"
+              exit 1
+            fi
+          done
+      
       - name: Get Results Directory
         id: get_results_dir
         run: |
-              echo "results_dir=results" >> $GITHUB_ENV
-  
+          echo "results_dir=results" >> $GITHUB_ENV
+
       - name: Get 2ms Version
         id: get_twoms_version
         run: |
-           echo "twoms_version=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')" >> $GITHUB_ENV
-  
+          echo "twoms_version=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')" >> $GITHUB_ENV
+
       - name: Set S3 Destination Path
         id: set_s3_path
         run: |
-            BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
-            PR_NUMBER="${{ github.event.number }}"
-            ENGINE="2ms"
-            COMMIT_HASH="${{ github.sha }}"
-            PR_OWNER="${{ github.actor }}"
-            TARGET_BRANCH="master"
-  
-            DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${{ env.twoms_version }}/pr-${PR_NUMBER}"
-            
-            echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
-            echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
-  
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          PR_NUMBER="${{ github.event.number }}"
+          ENGINE="2ms"
+          COMMIT_HASH="${{ github.sha }}"
+          PR_OWNER="${{ github.actor }}"
+          TARGET_BRANCH="master"
+
+          DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${{ env.twoms_version }}/pr-${PR_NUMBER}"
+          
+          echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
+          echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
+
       - name: Organize SARIF files
         run: |
-            mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}"
-            
-            echo "Listing SARIF files before processing..."
-            ls -la $GITHUB_WORKSPACE/results/
-  
-            for sarif_file in $GITHUB_WORKSPACE/results/*.sarif; do
-              if [[ -f "$sarif_file" ]]; then
-                project_name=$(basename "$sarif_file" .sarif)
-                mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name"
-                mv "$sarif_file" "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name/results.sarif"
-                echo "Moved $sarif_file to pr-${{ github.event.number }}/$project_name/results.sarif"
-              fi
-            done
-  
+          mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}"
+          
+          echo "Listing SARIF files before processing..."
+          ls -la $GITHUB_WORKSPACE/results/
+      
+          for sarif_file in $GITHUB_WORKSPACE/results/*.sarif; do
+            if [[ -f "$sarif_file" ]]; then
+              project_name=$(basename "$sarif_file" .sarif)
+              mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name"
+              mv "$sarif_file" "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name/results.sarif"
+              echo "Moved $sarif_file to pr-${{ github.event.number }}/$project_name/results.sarif"
+            fi
+          done
+
       - name: Create Metadata File
         run: |
-             COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
-   
-             METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
+          COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
   
-             echo '{
-              "seq": "'"${COMMIT_TIMESTAMP}"'",
-              "tag": "'"${{ github.event.number }}"'",
-              "comment":"'"${{ github.event.pull_request.title }}"'",
-              "commit": "'"${{ github.sha }}"'",
-              "owner": "'"${{ github.actor }}"'",
-              "branch": "'"${{ github.head_ref || github.ref_name }}"'",
-              "engine": "2ms",
-              "version": "'"${{ env.twoms_version }}"'"
-             }' > "$METADATA_PATH"
+          METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
   
-  
+          echo '{
+            "seq": "'"${COMMIT_TIMESTAMP}"'",
+            "tag": "'"${{ github.event.number }}"'",
+            "comment":"'"${{ github.event.pull_request.title }}"'",
+            "commit": "'"${{ github.sha }}"'",
+            "owner": "'"${{ github.actor }}"'",
+            "branch": "'"${{ github.head_ref || github.ref_name }}"'",
+            "engine": "2ms",
+            "version": "'"${{ env.twoms_version }}"'"
+          }' > "$METADATA_PATH"
+
       - name: Upload results to S3
         run: |
-            aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
-              --storage-class STANDARD
+          aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
+            --storage-class STANDARD
         env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
