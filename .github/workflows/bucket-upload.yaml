@@ -37,6 +37,23 @@ jobs:
           # Garantir permissões de execução
           chmod +x dist/2ms
 
+      
+      - name: Load Repos from JSON
+        run: |
+            # Baixar o arquivo repos.json diretamente
+            curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
+        
+            # Extrair os repositórios e criar uma string separada por vírgulas
+            REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
+            
+            # Exibir o conteúdo de REPOS_LIST para depuração
+            echo "Repos List: $REPOS_LIST"
+            
+            # Converter a lista de repositórios para uma string separada por vírgulas e passá-la para o GITHUB_ENV
+            REPOS_LIST_CSV=$(echo $REPOS_LIST | tr '\n' ',')
+            echo "repos=$REPOS_LIST_CSV" >> $GITHUB_ENV
+            
+
       - name: Run 2ms Scan for each repo
         run: |
           mkdir -p $GITHUB_WORKSPACE/results
