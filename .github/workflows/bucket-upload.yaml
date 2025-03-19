@@ -1,31 +1,57 @@
 name: Run 2ms Scan and Upload to S3
 
 on:
-  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   bucket-upload-S3:
     runs-on: ubuntu-latest  
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4  
-
-      - name: Run 2ms Scan
-        uses: miguel-neiva01/2ms-github-action@v2.0.7
-        id: twoms_scan
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          commit_hash: ${{ github.sha }}  
+          go-version: "^1.22"
+
+      - name: Clone 2ms Repository and Checkout Commit SHA
+        run: |
+          # Clonar o repositório 2ms
+          git clone https://github.com/checkmarx/2ms.git /tmp/2ms
+          cd /tmp/2ms
+
+          git checkout ${{ github.sha }}
+
+          go build -o dist/2ms main.go
+          ls -la dist/2ms
+
+      - name: Load Repos from JSON
+        run: |
+          # Baixar o arquivo repos.json diretamente
+          curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
+          REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
+          echo "repos=$REPOS_LIST" >> $GITHUB_ENV
+
+      - name: Run 2ms Scan for each repo
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/results
+
+          for repo_url in $REPOS_LIST; do
+            repo_name=$(basename $repo_url .git)
+            echo "Cloning repository: $repo_url"
+            
+            # Clonar o repositório
+            git clone $repo_url $GITHUB_WORKSPACE/$repo_name
+
+            # Rodar o 2ms scan no repositório clonado
+            /tmp/2ms filesystem --path $GITHUB_WORKSPACE/$repo_name --ignore-on-exit results --report-path $GITHUB_WORKSPACE/results/$repo_name.sarif
+          done
 
       - name: Get Results Directory
         id: get_results_dir
         run: |
           echo "results_dir=results" >> $GITHUB_ENV
-
-      - name: Get 2ms Version
-        id: get_twoms_version
-        run: |
-         echo "twoms_version=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')" >> $GITHUB_ENV
 
       - name: Set S3 Destination Path
         id: set_s3_path
@@ -45,41 +71,10 @@ jobs:
       - name: Organize SARIF files
         run: |
           mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}"
-          
-          echo "Listing SARIF files before processing..."
-          ls -la $GITHUB_WORKSPACE/results/
 
           for sarif_file in $GITHUB_WORKSPACE/results/*.sarif; do
             if [[ -f "$sarif_file" ]]; then
               project_name=$(basename "$sarif_file" .sarif)
               mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name"
               mv "$sarif_file" "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name/results.sarif"
-              echo "Moved $sarif_file to pr-${{ github.event.number }}/$project_name/results.sarif"
             fi
-          done
-
-      - name: Create Metadata File
-        run: |
-           COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
- 
-           METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
-
-           echo '{
-            "seq": "'"${COMMIT_TIMESTAMP}"'",
-            "tag": "'"${{ github.event.number }}"'",
-            "comment":"'"${{ github.event.pull_request.title }}"'",
-            "commit": "'"${{ github.sha }}"'",
-            "owner": "'"${{ github.actor }}"'",
-            "branch": "'"${{ github.head_ref || github.ref_name }}"'",
-            "engine": "2ms",
-            "version": "'"${{ env.twoms_version }}"'"
-           }' > "$METADATA_PATH"
-
-
-      - name: Upload results to S3
-        run: |
-          aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
-            --storage-class STANDARD
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
