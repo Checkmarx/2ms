@@ -36,12 +36,31 @@ jobs:
 
       - name: Run 2ms Scan for each repo
         run: |
-          mkdir -p $GITHUB_WORKSPACE/results
-          IFS=' ' read -r -a REPOS_ARRAY <<< "$repos"
-          for repo_url in "${REPOS_ARRAY[@]}"; do
-            repo_name=$(basename "$repo_url" .git)
-            $GITHUB_WORKSPACE/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/repos/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
-          done
+            mkdir -p $GITHUB_WORKSPACE/results
+            IFS=' ' read -r -a REPOS_ARRAY <<< "$repos"
+            
+            # Criando um arquivo para armazenar os resultados (status e tempo)
+            touch $GITHUB_WORKSPACE/scan_results.json
+            echo "[" > $GITHUB_WORKSPACE/scan_results.json
+            for repo_url in "${REPOS_ARRAY[@]}"; do
+              repo_name=$(basename "$repo_url" .git)
+              result_sarif="$GITHUB_WORKSPACE/results/$repo_name.sarif"
+              start_time=$(date +%s)  # Marca o início do tempo
+              if $GITHUB_WORKSPACE/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/repos/$repo_name" --ignore-on-exit results --report-path "$result_sarif"; then
+                scan_status="success"
+              else
+                scan_status="failure"
+              fi
+              end_time=$(date +%s)  # Marca o tempo de término
+              execution_time=$((end_time - start_time))  # Calculando o tempo de execução
+              echo "{
+                \"repo_name\": \"$repo_name\",
+                \"scan_status\": \"$scan_status\",
+                \"execution_time\": \"$execution_time\"
+              }," >> $GITHUB_WORKSPACE/scan_results.json
+            done
+            sed -i '$ s/,$//' $GITHUB_WORKSPACE/scan_results.json
+            echo "]" >> $GITHUB_WORKSPACE/scan_results.json
 
       - name: Get Results Directory
         id: get_results_dir
@@ -92,7 +111,6 @@ jobs:
             "version": "'"${{ env.twoms_version }}"'"
           }' > "$METADATA_PATH"
 
-
       - name: Upload results to S3
         run: |
           aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
@@ -100,3 +118,11 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+
+      - name: Upload results as artifact
+        uses: actions/upload-artifact@v4
+        with:
+         name: results
+         path: results/
+
+  
