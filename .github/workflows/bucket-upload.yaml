@@ -45,14 +45,15 @@ jobs:
             for repo_url in "${REPOS_ARRAY[@]}"; do
               repo_name=$(basename "$repo_url" .git)
               result_sarif="$GITHUB_WORKSPACE/results/$repo_name.sarif"
-              start_time=$(date +%s)  # Marca o início do tempo
+              start_time=$(date +%s.%N)   # Marca o início do tempo
               if $GITHUB_WORKSPACE/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/repos/$repo_name" --ignore-on-exit results --report-path "$result_sarif"; then
                 scan_status="success"
               else
                 scan_status="failure"
               fi
-              end_time=$(date +%s)  # Marca o tempo de término
-              execution_time=$((end_time - start_time))  # Calculando o tempo de execução
+              end_time=$(date +%s.%N)  # Marca o tempo de término
+              execution_time=$(echo "$end_time - $start_time" | bc)  
+              execution_time_formatted=$(printf "%.2f" "$execution_time")
               echo "{
                 \"repo_name\": \"$repo_name\",
                 \"scan_status\": \"$scan_status\",
@@ -121,10 +122,15 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
 
-      - name: Upload results as artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Comment on Pr
+        uses: peter-evans/create-or-update-comment@v2
         with:
-         name: results
-         path: results_backup/
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## Resumo do Scan
 
-  
+            ### Resultados do Scan
+
+            | Repositório  | Status  | Tempo de Execução (segundos) |
+            |--------------|---------|------------------------------|
+            $(jq -r '.[] | "| \(.repo_name) | \(.scan_status) | \(.execution_time) |"' $GITHUB_WORKSPACE/results_backup/scan_results.json)
