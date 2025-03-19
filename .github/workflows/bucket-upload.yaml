@@ -31,13 +31,20 @@ jobs:
           go build -o dist/2ms main.go
           ls -la dist/2ms
 
+
       - name: Load Repos from JSON
         run: |
-          # Baixar o arquivo repos.json diretamente
-          curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
-          REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
-          echo "repos=$REPOS_LIST" >> $GITHUB_ENV
+            # Baixar o arquivo repos.json diretamente
+            curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
+            REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
+        
+            # Exibir o conteúdo de REPOS_LIST para depuração
+            echo "REPOS_LIST: $REPOS_LIST"
+        
+            # Passar a variável corretamente ao ambiente
+            echo "REPOS_LIST=$REPOS_LIST" >> $GITHUB_ENV
 
+            
       - name: Run 2ms Scan for each repo
         run: |
           mkdir -p $GITHUB_WORKSPACE/results
