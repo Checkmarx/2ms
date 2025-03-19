@@ -126,6 +126,7 @@ jobs:
             result_table=$(jq -r '.[] | "| \(.repo_name) | \(.scan_status) | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json)
             result_table="| Repository  | Status  | Execution Time (seconds) |\n|--------------|---------|----------------------------|\n$result_table"
             echo "$result_table" > $GITHUB_WORKSPACE/scan_results_table.md
+            echo "scan_results_table_content=$(cat $GITHUB_WORKSPACE/scan_results_table.md)" >> $GITHUB_ENV
         
       - name: Create PR Comment with Job Summary 
         uses: peter-evans/create-or-update-comment@v2
@@ -133,8 +134,6 @@ jobs:
             issue-number: ${{ github.event.pull_request.number }}
             body: |
               ## Scan Summary
-        
-              ### Scan Results
-        
-              $(cat $GITHUB_WORKSPACE/scan_results_table.md)
+  
+              ${{ env.scan_results_table_content }}
         
