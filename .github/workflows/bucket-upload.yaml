@@ -1,9 +1,11 @@
-name: Run 2ms Scan and Upload to S3
-
 on:
+  push:
+    branches:
+      - add-bucket-upload-workflow  
   pull_request:
     branches:
       - add-bucket-upload-workflow
+
 
 jobs:
   bucket-upload-S3:
