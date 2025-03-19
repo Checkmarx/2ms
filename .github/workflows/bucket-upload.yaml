@@ -6,17 +6,14 @@ jobs:
     runs-on: ubuntu-latest  
 
     steps:
-      # Checkout do repositório com a versão correta do commit
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      
-      # Configuração do Go
+
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: "^1.22"
 
-      # Clonar o repositório 2ms e compilar
       - name: Clone 2ms Repository and Checkout Commit SHA
         run: |
           git clone https://github.com/checkmarx/2ms.git $GITHUB_WORKSPACE/2ms
@@ -26,7 +23,6 @@ jobs:
           go build -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
-      # Carregar os repositórios a partir do arquivo JSON e cloná-los
       - name: Load Repos from JSON and Clone Each Repo
         run: |
           curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
@@ -38,26 +34,23 @@ jobs:
             git clone "$repo_url" "$GITHUB_WORKSPACE/repos/$repo_name"
           done
 
-      # Rodar o scan para cada repositório e registrar resultados
       - name: Run 2ms Scan for each repo
         run: |
             mkdir -p $GITHUB_WORKSPACE/results
             IFS=' ' read -r -a REPOS_ARRAY <<< "$repos"
-            
-            # Criando um arquivo para armazenar os resultados (status e tempo)
             touch $GITHUB_WORKSPACE/scan_results.json
             echo "[" > $GITHUB_WORKSPACE/scan_results.json
             for repo_url in "${REPOS_ARRAY[@]}"; do
               repo_name=$(basename "$repo_url" .git)
               result_sarif="$GITHUB_WORKSPACE/results/$repo_name.sarif"
-              start_time=$(date +%s.%N)   # Marca o início do tempo
+              start_time=$(date +%s.%N)
               if $GITHUB_WORKSPACE/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/repos/$repo_name" --ignore-on-exit results --report-path "$result_sarif"; then
                 scan_status="success"
               else
                 scan_status="failure"
               fi
-              end_time=$(date +%s.%N)  # Marca o tempo de término
-              execution_time=$(echo "$end_time - $start_time" | bc)  
+              end_time=$(date +%s.%N)
+              execution_time=$(echo "$end_time - $start_time" | bc)
               execution_time_formatted=$(printf "%.2f" "$execution_time")
               echo "{
                 \"repo_name\": \"$repo_name\",
@@ -67,22 +60,18 @@ jobs:
             done
             sed -i '$ s/,$//' $GITHUB_WORKSPACE/scan_results.json
             echo "]" >> $GITHUB_WORKSPACE/scan_results.json
-
             cp -r $GITHUB_WORKSPACE/results $GITHUB_WORKSPACE/results_backup
 
-      # Definir variável com diretório de resultados
       - name: Get Results Directory
         id: get_results_dir
         run: |
           echo "results_dir=results" >> $GITHUB_ENV
 
-      # Obter versão do 2ms
       - name: Get 2ms Version
         id: get_twoms_version
         run: |
           echo "twoms_version=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')" >> $GITHUB_ENV
 
-      # Definir o caminho do destino do S3
       - name: Set S3 Destination Path
         id: set_s3_path
         run: |
@@ -96,7 +85,6 @@ jobs:
           echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
           echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
 
-      # Organizar os arquivos SARIF
       - name: Organize SARIF files
         run: |
           mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}"
@@ -108,7 +96,6 @@ jobs:
             fi
           done
 
-      # Criar o arquivo de metadata
       - name: Create Metadata File
         run: |
           COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
@@ -124,7 +111,6 @@ jobs:
             "version": "'"${{ env.twoms_version }}"'"
           }' > "$METADATA_PATH"
 
-      # Subir os resultados para o S3
       - name: Upload results to S3
         run: |
           aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
@@ -133,27 +119,22 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
 
+
       - name: Get Scan Results for Comment
         id: scan_results
         run: |
-            # Formatar os resultados em uma tabela
             result_table=$(jq -r '.[] | "| \(.repo_name) | \(.scan_status) | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json)
+            result_table="| Repository  | Status  | Execution Time (seconds) |\n|--------------|---------|----------------------------|\n$result_table"
+            echo "$result_table" > $GITHUB_WORKSPACE/scan_results_table.md
         
-            # Adicionar a linha do cabeçalho da tabela
-            result_table="| Repositório  | Status  | Tempo de Execução (segundos) |\n|--------------|---------|------------------------------|\n$result_table"
-        
-            # Salvar a variável formatada na variável de ambiente
-            echo "result_table=$result_table" >> $GITHUB_ENV
-
-      - name: Criar Comentário no PR com Job Summary em Tabela
+      - name: Create PR Comment with Job Summary 
         uses: peter-evans/create-or-update-comment@v2
         with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## Resumo do Scan
-
-            ### Resultados do Scan
-
-            | Repositório  | Status  | Tempo de Execução (segundos) |
-            |--------------|---------|------------------------------|
-            ${{ env.result_table }}
+            issue-number: ${{ github.event.pull_request.number }}
+            body: |
+              ## Scan Summary
+        
+              ### Scan Results
+        
+              $(cat $GITHUB_WORKSPACE/scan_results_table.md)
+        
