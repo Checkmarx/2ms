@@ -1,7 +1,6 @@
 on:
   pull_request:
-    branches:
-      - add-bucket-upload-workflow
+
 jobs:
   bucket-upload-S3:
     runs-on: ubuntu-latest  
@@ -10,6 +9,10 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: ${{ github.sha }} 
+      
+      - name: Echo GitHub SHA
+        run: |
+             echo "GitHub SHA: ${{ github.sha }}"
       
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
