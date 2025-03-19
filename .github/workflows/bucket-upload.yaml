@@ -63,33 +63,70 @@ jobs:
             /tmp/2ms filesystem --path $GITHUB_WORKSPACE/$repo_name --ignore-on-exit results --report-path $GITHUB_WORKSPACE/results/$repo_name.sarif
           done
 
-      - name: Get Results Directory
-        id: get_results_dir
-        run: |
-          echo "results_dir=results" >> $GITHUB_ENV
 
+          - name: Get Results Directory
+          id: get_results_dir
+          run: |
+            echo "results_dir=results" >> $GITHUB_ENV
+  
+      - name: Get 2ms Version
+        id: get_twoms_version
+        run: |
+           echo "twoms_version=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')" >> $GITHUB_ENV
+  
       - name: Set S3 Destination Path
         id: set_s3_path
         run: |
-          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
-          PR_NUMBER="${{ github.event.number }}"
-          ENGINE="2ms"
-          COMMIT_HASH="${{ github.sha }}"
-          PR_OWNER="${{ github.actor }}"
-          TARGET_BRANCH="master"
-
-          DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${{ env.twoms_version }}/pr-${PR_NUMBER}"
-          
-          echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
-          echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
-
+            BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+            PR_NUMBER="${{ github.event.number }}"
+            ENGINE="2ms"
+            COMMIT_HASH="${{ github.sha }}"
+            PR_OWNER="${{ github.actor }}"
+            TARGET_BRANCH="master"
+  
+            DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${{ env.twoms_version }}/pr-${PR_NUMBER}"
+            
+            echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
+            echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
+  
       - name: Organize SARIF files
         run: |
-          mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}"
-
-          for sarif_file in $GITHUB_WORKSPACE/results/*.sarif; do
-            if [[ -f "$sarif_file" ]]; then
-              project_name=$(basename "$sarif_file" .sarif)
-              mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name"
-              mv "$sarif_file" "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name/results.sarif"
-            fi
+            mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}"
+            
+            echo "Listing SARIF files before processing..."
+            ls -la $GITHUB_WORKSPACE/results/
+  
+            for sarif_file in $GITHUB_WORKSPACE/results/*.sarif; do
+              if [[ -f "$sarif_file" ]]; then
+                project_name=$(basename "$sarif_file" .sarif)
+                mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name"
+                mv "$sarif_file" "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name/results.sarif"
+                echo "Moved $sarif_file to pr-${{ github.event.number }}/$project_name/results.sarif"
+              fi
+            done
+  
+      - name: Create Metadata File
+        run: |
+             COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
+   
+             METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
+  
+             echo '{
+              "seq": "'"${COMMIT_TIMESTAMP}"'",
+              "tag": "'"${{ github.event.number }}"'",
+              "comment":"'"${{ github.event.pull_request.title }}"'",
+              "commit": "'"${{ github.sha }}"'",
+              "owner": "'"${{ github.actor }}"'",
+              "branch": "'"${{ github.head_ref || github.ref_name }}"'",
+              "engine": "2ms",
+              "version": "'"${{ env.twoms_version }}"'"
+             }' > "$METADATA_PATH"
+  
+  
+      - name: Upload results to S3
+        run: |
+            aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
+              --storage-class STANDARD
+        env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
