@@ -71,6 +71,9 @@ jobs:
             
             # Verificar se o repositório foi clonado corretamente
             ls -la "$GITHUB_WORKSPACE/$repo_name"
+
+            ls -la /tmp/2ms/dist/
+
             
             # Rodar o 2ms scan no repositório clonado
             echo "Running 2ms scan on $repo_name"
