@@ -57,7 +57,7 @@ jobs:
                 \"repo_name\": \"$repo_name\",
                 \"scan_status\": \"$scan_status\",
                 \"execution_time\": \"$execution_time\"
-              }," >> $GITHUB_WORKSPACE/scan_results.json
+              }," >> $GITHUB_WORKSPACE/results/scan_results.json
             done
             sed -i '$ s/,$//' $GITHUB_WORKSPACE/results/scan_results.json
             echo "]" >> $GITHUB_WORKSPACE/results/scan_results.json
