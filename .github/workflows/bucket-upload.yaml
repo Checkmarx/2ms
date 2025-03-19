@@ -37,58 +37,71 @@ jobs:
           # Garantir permissões de execução
           chmod +x dist/2ms
 
-      - name: Load Repos from JSON
+      - name: Load Repos from JSON and Clone Each Repo
         run: |
             # Baixar o arquivo repos.json diretamente
             curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
-        
-            # Extrair os repositórios e criar uma string separada por vírgulas
+            
+            # Extrair os repositórios e iterar sobre eles
             REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json)
             
             # Exibir o conteúdo de REPOS_LIST para depuração
             echo "Repos List: $REPOS_LIST"
             
-            # Converter a lista de repositórios para uma string separada por vírgulas e passá-la para o GITHUB_ENV
-            REPOS_LIST_CSV=$(echo $REPOS_LIST | tr '\n' ',')
-            echo "repos=$REPOS_LIST_CSV" >> $GITHUB_ENV
-
-      - name: Run 2ms Scan for each repo
-        run: |
-          mkdir -p $GITHUB_WORKSPACE/results
-
-          IFS=',' read -r -a REPOS_ARRAY <<< "$REPOS_LIST"
-
-          # Verificar se o binário 2ms existe
-          if [ ! -f /tmp/2ms/dist/2ms ]; then
-            echo "2ms binary not found!"
-            exit 1
-          fi
-
-          for repo_url in "${REPOS_ARRAY[@]}"; do
-            repo_name=$(basename "$repo_url" .git)
-            echo "Cloning repository: $repo_url"
-            
-            # Clonar o repositório
-            git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
-            
-            # Verificar se o repositório foi clonado corretamente
-            ls -la "$GITHUB_WORKSPACE/$repo_name"
-            
-            # Verificar se o binário 2ms existe
-            ls -la /tmp/2ms/dist/
-
-            echo "Running 2ms scan on $repo_name"
-            
-            # Executar o scan com 2ms
-            /tmp/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
-            
-            # Verificar se o comando 2ms foi executado corretamente
-            if [ $? -ne 0 ]; then
-              echo "2ms scan failed for $repo_name, continuing with the next repo."
-              continue
-            fi
-          done
-
+            # Iterar sobre cada repositório na lista
+            for repo_url in $REPOS_LIST; do
+              repo_name=$(basename "$repo_url" .git)
+              echo "Cloning repository: $repo_url"
+              
+              # Criar uma pasta para o repositório
+              mkdir -p "$GITHUB_WORKSPACE/$repo_name"
+              
+              # Clonar o repositório na pasta criada
+              git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
+              
+              # Verificar se o repositório foi clonado corretamente
+              ls -la "$GITHUB_WORKSPACE/$repo_name"
+            done
+        
+            - name: Run 2ms Scan for each repo
+            run: |
+              mkdir -p $GITHUB_WORKSPACE/results
+          
+              # Obter a lista de repositórios do GITHUB_ENV
+              IFS=',' read -r -a REPOS_ARRAY <<< "$REPOS_LIST"
+          
+              # Verificar se o binário 2ms existe no diretório correto
+              if [ ! -f /tmp/2ms/dist/2ms ]; then
+                echo "2ms binary not found!"
+                exit 1
+              fi
+          
+              # Iterar sobre cada repositório
+              for repo_url in "${REPOS_ARRAY[@]}"; do
+                repo_name=$(basename "$repo_url" .git)
+                echo "Cloning repository: $repo_url"
+          
+                # Criar pasta para o repositório e clonar o repositório
+                git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
+          
+                # Verificar se o repositório foi clonado corretamente
+                ls -la "$GITHUB_WORKSPACE/$repo_name"
+          
+                # Verificar se o binário 2ms existe no diretório onde foi compilado
+                ls -la /tmp/2ms/dist/
+          
+                echo "Running 2ms scan on $repo_name"
+          
+                # Executar o scan 2ms no repositório clonado, passando o path correto
+                /tmp/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
+          
+                # Verificar se o comando 2ms foi executado corretamente
+                if [ $? -ne 0 ]; then
+                  echo "2ms scan failed for $repo_name, continuing with the next repo."
+                  continue
+                fi
+              done
+              
       - name: Get Results Directory
         id: get_results_dir
         run: |
