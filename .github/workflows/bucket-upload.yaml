@@ -50,24 +50,27 @@ jobs:
 
       - name: Run 2ms Scan for each repo
         run: |
-          mkdir -p $GITHUB_WORKSPACE/results
-
-          for repo_url in $REPOS_LIST; do
-            repo_name=$(basename $repo_url .git)
-            echo "Cloning repository: $repo_url"
-            
-            # Clonar o repositório
-            git clone $repo_url $GITHUB_WORKSPACE/$repo_name
-
-            # Rodar o 2ms scan no repositório clonado
-            /tmp/2ms filesystem --path $GITHUB_WORKSPACE/$repo_name --ignore-on-exit results --report-path $GITHUB_WORKSPACE/results/$repo_name.sarif
-          done
-
-
-          - name: Get Results Directory
-          id: get_results_dir
-          run: |
-            echo "results_dir=results" >> $GITHUB_ENV
+              mkdir -p $GITHUB_WORKSPACE/results
+          
+              # Dividir a variável 'repos' em uma lista separada por vírgulas
+              IFS=',' read -r -a REPOS_ARRAY <<< "$REPOS_LIST"
+              
+              # Iterar sobre os repositórios no array
+              for repo_url in "${REPOS_ARRAY[@]}"; do
+                repo_name=$(basename "$repo_url" .git)
+                echo "Cloning repository: $repo_url"
+                
+                # Clonar o repositório
+                git clone "$repo_url" "$GITHUB_WORKSPACE/$repo_name"
+                
+                # Rodar o 2ms scan no repositório clonado
+                /tmp/2ms filesystem --path "$GITHUB_WORKSPACE/$repo_name" --ignore-on-exit results --report-path "$GITHUB_WORKSPACE/results/$repo_name.sarif"
+              done
+          
+      - name: Get Results Directory
+        id: get_results_dir
+        run: |
+              echo "results_dir=results" >> $GITHUB_ENV
   
       - name: Get 2ms Version
         id: get_twoms_version
