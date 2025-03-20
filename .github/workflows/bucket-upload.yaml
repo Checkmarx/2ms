@@ -119,13 +119,12 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
 
-
       - name: Get Scan Results for Comment
         id: scan_results
         run: |
-            result_table=$(jq -r '.[] | "| \(.repo_name) | \(.scan_status) | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json)
-            result_table="| Repository  | Status  | Execution Time (seconds) |\n|--------------|---------|----------------------------|\n$result_table"
-            echo "$result_table" > $GITHUB_WORKSPACE/scan_results_table.md
+            echo "| Repository | Status | Execution Time (seconds) |" > $GITHUB_WORKSPACE/scan_results_table.md
+            echo "|------------|--------|--------------------------|" >> $GITHUB_WORKSPACE/scan_results_table.md
+            jq -r '.[] | "| \(.repo_name) | \(.scan_status) | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json >> $GITHUB_WORKSPACE/scan_results_table.md
             echo "SCAN_RESULTS<<EOF" >> $GITHUB_ENV
             cat $GITHUB_WORKSPACE/scan_results_table.md >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
@@ -135,8 +134,9 @@ jobs:
         with:
             issue-number: ${{ github.event.pull_request.number }}
             body: |
-              ## Scan Summary
+              ## 🛠 Scan Summary
         
-              ### Scan Results
+              ### 📋 Scan Results
         
-              ${{ env.SCAN_RESULTS }} 
+              ${{ env.SCAN_RESULTS }}
+        
