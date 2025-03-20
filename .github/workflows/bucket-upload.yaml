@@ -122,13 +122,17 @@ jobs:
       - name: Get Scan Results for Comment
         id: scan_results
         run: |
-            echo "| Repository | Status | Execution Time (seconds) |" > $GITHUB_WORKSPACE/scan_results_table.md
-            echo "|------------|--------|--------------------------|" >> $GITHUB_WORKSPACE/scan_results_table.md
-            jq -r '.[] | "| \(.repo_name) | \(.scan_status) | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json >> $GITHUB_WORKSPACE/scan_results_table.md
-            echo "SCAN_RESULTS<<EOF" >> $GITHUB_ENV
-            cat $GITHUB_WORKSPACE/scan_results_table.md >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-        
+              echo "| Repository | Status | Execution Time (seconds) |" > $GITHUB_WORKSPACE/scan_results_table.md
+              echo "|------------|--------|--------------------------|" >> $GITHUB_WORKSPACE/scan_results_table.md
+              jq -r '
+              .[] | 
+              "| \(.repo_name) | " + 
+              (if .scan_status == "success" then "✅" else "❌" end) + 
+              " | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json >> $GITHUB_WORKSPACE/scan_results_table.md
+              echo "SCAN_RESULTS<<EOF" >> $GITHUB_ENV
+              cat $GITHUB_WORKSPACE/scan_results_table.md >> $GITHUB_ENV
+              echo "EOF" >> $GITHUB_ENV
+
       - name: Create PR Comment with Job Summary in Table
         uses: peter-evans/create-or-update-comment@v2
         with:
@@ -136,7 +140,6 @@ jobs:
             body: |
               ## 🛠 Scan Summary
         
-              ### 📋 Scan Results
         
               ${{ env.SCAN_RESULTS }}
         
