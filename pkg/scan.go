@@ -105,3 +105,70 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 
 	return &reporting.Report{}, nil
 }
+
+func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
+	itemsCh := cmd.Channels.Items
+	errorsCh := cmd.Channels.Errors
+	wg := &sync.WaitGroup{}
+
+	// Initialize engine configuration.
+	engineConfig := engine.EngineConfig{}
+	engineInstance, err := engine.Init(engineConfig)
+	if err != nil {
+		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
+	}
+
+	// Start processing routines.
+	cmd.Channels.WaitGroup.Add(1)
+	go cmd.ProcessItems(engineInstance, "custom")
+
+	cmd.Channels.WaitGroup.Add(1)
+	go cmd.ProcessSecrets()
+
+	cmd.Channels.WaitGroup.Add(1)
+	go cmd.ProcessSecretsExtras()
+
+	cmd.Channels.WaitGroup.Add(1)
+	go cmd.ProcessScoreWithoutValidation(engineInstance)
+
+	// Forward scan items from itemsIn to itemsCh.
+	go func() {
+		for item := range itemsIn {
+			wg.Add(1)
+			go func(i ScanItem) {
+				defer wg.Done()
+				itemsCh <- i
+			}(item)
+		}
+		wg.Wait()
+		close(itemsCh)
+	}()
+
+	// Wait for all processing routines.
+	cmd.Channels.WaitGroup.Wait()
+	close(errorsCh)
+
+	// Check if any error occurred.
+	for err := range errorsCh {
+		if err != nil {
+			return &reporting.Report{}, fmt.Errorf("error processing scan items: %w", err)
+		}
+	}
+
+	// Finalize and generate report.
+	report := cmd.Report
+	for _, resultId := range scanConfig.IgnoreResultIds {
+		numberOfSecretsPerResultId := len(report.Results[resultId])
+		if numberOfSecretsPerResultId > 0 {
+			report.TotalSecretsFound -= numberOfSecretsPerResultId
+			delete(report.Results, resultId)
+		}
+	}
+
+	if report.TotalItemsScanned > 0 {
+		return report, nil
+	} else {
+		log.Info().Msg("Scan completed with empty content")
+	}
+	return &reporting.Report{}, nil
+}
