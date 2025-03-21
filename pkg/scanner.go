@@ -29,5 +29,5 @@ func (i ScanItem) GetSource() string {
 
 type Scanner interface {
 	Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
-	ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
+	ScanDynamic(itemsIn chan plugins.ISourceItem, scanConfig ScanConfig) (*reporting.Report, error)
 }
