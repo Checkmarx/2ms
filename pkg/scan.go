@@ -8,7 +8,6 @@ import (
 
 	"github.com/checkmarx/2ms/cmd"
 	"github.com/checkmarx/2ms/engine"
-	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog/log"
 )
 
@@ -107,9 +106,10 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 	return &reporting.Report{}, nil
 }
 
-func (s *scanner) ScanDynamic(itemsIn chan plugins.ISourceItem, scanConfig ScanConfig) (*reporting.Report, error) {
-	cmd.Channels.Items = itemsIn
+func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
+	itemsCh := cmd.Channels.Items
 	errorsCh := cmd.Channels.Errors
+	wg := &sync.WaitGroup{}
 
 	// Initialize engine configuration.
 	engineConfig := engine.EngineConfig{}
@@ -130,6 +130,19 @@ func (s *scanner) ScanDynamic(itemsIn chan plugins.ISourceItem, scanConfig ScanC
 
 	cmd.Channels.WaitGroup.Add(1)
 	go cmd.ProcessScoreWithoutValidation(engineInstance)
+
+	// Forward scan items from itemsIn to itemsCh.
+	go func() {
+		for item := range itemsIn {
+			wg.Add(1)
+			go func(i ScanItem) {
+				defer wg.Done()
+				itemsCh <- i
+			}(item)
+		}
+		wg.Wait()
+		close(itemsCh)
+	}()
 
 	// Wait for all processing routines.
 	cmd.Channels.WaitGroup.Wait()
