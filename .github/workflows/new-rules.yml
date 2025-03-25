@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: "0 2 * * 6" # At 02:00 on Saturday
 
+    #Verify Rules
+
 jobs:
   update_secrets:
     runs-on: ubuntu-latest
