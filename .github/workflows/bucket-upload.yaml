@@ -1,0 +1,145 @@
+on:
+    pull_request:
+  
+  jobs:
+    bucket-upload-S3:
+      runs-on: ubuntu-latest  
+  
+      steps:
+        - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+          with:
+            ref: ${{ github.event.pull_request.head.sha }}
+  
+        - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+          with:
+            go-version: "^1.22"
+  
+        - name: Clone 2ms Repository and Checkout Commit SHA
+          run: |
+            git clone https://github.com/checkmarx/2ms.git $GITHUB_WORKSPACE/2ms
+            cd $GITHUB_WORKSPACE/2ms
+            git fetch --all
+            git checkout ${{ github.event.pull_request.head.sha }}
+            go build -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
+            chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
+  
+        - name: Load Repos from JSON and Clone Each Repo
+          run: |
+            curl -o /tmp/repos.json https://raw.githubusercontent.com/cx-miguel-neiva/2ms-github-action/main/repos.json
+            REPOS_LIST=$(jq -r '.projects[]' /tmp/repos.json | tr '\n' ' ')
+            echo "repos=$REPOS_LIST" >> $GITHUB_ENV
+            for repo_url in $REPOS_LIST; do
+              repo_name=$(basename "$repo_url" .git)
+              mkdir -p "$GITHUB_WORKSPACE/repos/$repo_name"
+              git clone "$repo_url" "$GITHUB_WORKSPACE/repos/$repo_name"
+            done
+  
+        - name: Run 2ms Scan for each repo
+          run: |
+              mkdir -p $GITHUB_WORKSPACE/results
+              IFS=' ' read -r -a REPOS_ARRAY <<< "$repos"
+              touch $GITHUB_WORKSPACE/scan_results.json
+              echo "[" > $GITHUB_WORKSPACE/scan_results.json
+              for repo_url in "${REPOS_ARRAY[@]}"; do
+                repo_name=$(basename "$repo_url" .git)
+                result_sarif="$GITHUB_WORKSPACE/results/$repo_name.sarif"
+                start_time=$(date +%s.%N)
+                if $GITHUB_WORKSPACE/2ms/dist/2ms filesystem --path "$GITHUB_WORKSPACE/repos/$repo_name" --ignore-on-exit results --report-path "$result_sarif"; then
+                  scan_status="success"
+                else
+                  scan_status="failure"
+                fi
+                end_time=$(date +%s.%N)
+                execution_time=$(echo "$end_time - $start_time" | bc)
+                execution_time_formatted=$(printf "%.2f" "$execution_time")
+                echo "{
+                  \"repo_name\": \"$repo_name\",
+                  \"scan_status\": \"$scan_status\",
+                  \"execution_time\": \"$execution_time_formatted\"
+                }," >> $GITHUB_WORKSPACE/scan_results.json
+              done
+              sed -i '$ s/,$//' $GITHUB_WORKSPACE/scan_results.json
+              echo "]" >> $GITHUB_WORKSPACE/scan_results.json
+              cp -r $GITHUB_WORKSPACE/results $GITHUB_WORKSPACE/results_backup
+  
+        - name: Get Results Directory
+          id: get_results_dir
+          run: |
+            echo "results_dir=results" >> $GITHUB_ENV
+  
+        - name: Get 2ms Version
+          id: get_twoms_version
+          run: |
+            echo "twoms_version=$(curl -s https://api.github.com/repos/checkmarx/2ms/releases/latest | jq -r '.tag_name')" >> $GITHUB_ENV
+  
+        - name: Set S3 Destination Path
+          id: set_s3_path
+          run: |
+            BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+            PR_NUMBER="${{ github.event.number }}"
+            ENGINE="2ms"
+            COMMIT_HASH="${{ github.sha }}"
+            PR_OWNER="${{ github.actor }}"
+            TARGET_BRANCH="master"
+            DEST_DIR="${ENGINE}/${TARGET_BRANCH}/${BRANCH_NAME}/${{ env.twoms_version }}/pr-${PR_NUMBER}"
+            echo "destination_dir=$DEST_DIR" >> $GITHUB_ENV
+            echo "results_dir=${{ env.results_dir }}" >> $GITHUB_ENV
+  
+        - name: Organize SARIF files
+          run: |
+            mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}"
+            for sarif_file in $GITHUB_WORKSPACE/results/*.sarif; do
+              if [[ -f "$sarif_file" ]]; then
+                project_name=$(basename "$sarif_file" .sarif)
+                mkdir -p "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name"
+                mv "$sarif_file" "${{ env.results_dir }}/pr-${{ github.event.number }}/$project_name/results.sarif"
+              fi
+            done
+  
+        - name: Create Metadata File
+          run: |
+            COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
+            METADATA_PATH="${{ env.results_dir }}/pr-${{ github.event.number }}/metadata.json"
+            echo '{
+              "seq": "'"${COMMIT_TIMESTAMP}"'",
+              "tag": "'"${{ github.event.number }}"'",
+              "comment": "'"${{ github.event.pull_request.title }}"'",
+              "commit": "'"${{ github.sha }}"'",
+              "owner": "'"${{ github.actor }}"'",
+              "branch": "'"${{ github.head_ref || github.ref_name }}"'",
+              "engine": "2ms",
+              "version": "'"${{ env.twoms_version }}"'"
+            }' > "$METADATA_PATH"
+  
+        - name: Upload results to S3
+          run: |
+            aws s3 cp --recursive "${{ env.results_dir }}/pr-${{ github.event.number }}" "s3://${{ secrets.CES_AWS_BUCKET }}/${{ env.destination_dir }}" \
+              --storage-class STANDARD
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+  
+        - name: Get Scan Results for Comment
+          id: scan_results
+          run: |
+                echo "| Repository | Status | Execution Time (seconds) |" > $GITHUB_WORKSPACE/scan_results_table.md
+                echo "|------------|--------|--------------------------|" >> $GITHUB_WORKSPACE/scan_results_table.md
+                jq -r '
+                .[] | 
+                "| \(.repo_name) | " + 
+                (if .scan_status == "success" then "✅" else "❌" end) + 
+                " | \(.execution_time) |"' $GITHUB_WORKSPACE/scan_results.json >> $GITHUB_WORKSPACE/scan_results_table.md
+                echo "SCAN_RESULTS<<EOF" >> $GITHUB_ENV
+                cat $GITHUB_WORKSPACE/scan_results_table.md >> $GITHUB_ENV
+                echo "EOF" >> $GITHUB_ENV
+  
+        - name: Create PR Comment with Job Summary in Table
+          uses: peter-evans/create-or-update-comment@v2
+          with:
+              issue-number: ${{ github.event.pull_request.number }}
+              body: |
+                ## 🛠 Scan Summary
+          
+          
+                ${{ env.SCAN_RESULTS }}
+          

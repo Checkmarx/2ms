@@ -1,14 +1,15 @@
 package score_test
 
 import (
+	"sync"
+	"testing"
+
 	. "github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/engine/score"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	ruleConfig "github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
-	"sync"
-	"testing"
 )
 
 func TestScore(t *testing.T) {
@@ -63,7 +64,6 @@ func TestScore(t *testing.T) {
 		ruleConfig.EasyPost().RuleID:                        {9.4, 3.4, 6.4},
 		ruleConfig.EasyPostTestAPI().RuleID:                 {9.4, 3.4, 6.4},
 		ruleConfig.EtsyAccessToken().RuleID:                 {7.6, 1.6, 4.6},
-		ruleConfig.Facebook().RuleID:                        {7.6, 1.6, 4.6},
 		ruleConfig.FastlyAPIToken().RuleID:                  {9.4, 3.4, 6.4},
 		ruleConfig.FinicityClientSecret().RuleID:            {10, 7, 10},
 		ruleConfig.FinicityAPIToken().RuleID:                {10, 7, 10},
@@ -89,7 +89,6 @@ func TestScore(t *testing.T) {
 		ruleConfig.GrafanaApiKey().RuleID:                   {7.6, 1.6, 4.6},
 		ruleConfig.GrafanaCloudApiToken().RuleID:            {7.6, 1.6, 4.6},
 		ruleConfig.GrafanaServiceAccountToken().RuleID:      {7.6, 1.6, 4.6},
-		ruleConfig.Hashicorp().RuleID:                       {10, 5.2, 8.2},
 		ruleConfig.HashicorpField().RuleID:                  {10, 5.2, 8.2},
 		ruleConfig.Heroku().RuleID:                          {9.4, 3.4, 6.4},
 		ruleConfig.HubSpot().RuleID:                         {7.6, 1.6, 4.6},

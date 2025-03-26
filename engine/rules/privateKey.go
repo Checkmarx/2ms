@@ -1,8 +1,9 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/config"
 	"regexp"
+
+	"github.com/zricethezav/gitleaks/v8/config"
 )
 
 func PrivateKey() *config.Rule {
@@ -19,9 +20,8 @@ func PrivateKey() *config.Rule {
 anything
 -----END PRIVATE KEY-----`,
 		`-----BEGIN RSA PRIVATE KEY-----
-abcdefghijklmnopqrstuvwxyz
------END RSA PRIVATE KEY-----
-`,
+abcdefghijklmnopqrstuvwxz
+-----END RSA PRIVATE KEY-----`,
 		`-----BEGIN PRIVATE KEY BLOCK-----
 anything
 -----END PRIVATE KEY BLOCK-----`,
