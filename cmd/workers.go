@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-func ProcessItems(engine *engine.Engine, pluginName string) { //fechou
+func ProcessItems(engine *engine.Engine, pluginName string) {
 	defer Channels.WaitGroup.Done()
 	wgItems := &sync.WaitGroup{}
 	for item := range Channels.Items {
@@ -19,7 +19,7 @@ func ProcessItems(engine *engine.Engine, pluginName string) { //fechou
 	close(SecretsChan)
 }
 
-func ProcessSecrets() { //fechou
+func ProcessSecrets() {
 	defer Channels.WaitGroup.Done()
 
 	for secret := range SecretsChan {
@@ -37,7 +37,7 @@ func ProcessSecrets() { //fechou
 	close(CvssScoreWithoutValidationChan)
 }
 
-func ProcessSecretsExtras() { //fechou
+func ProcessSecretsExtras() {
 	defer Channels.WaitGroup.Done()
 
 	wgExtras := &sync.WaitGroup{}
@@ -64,7 +64,7 @@ func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
 	engine.Validate()
 }
 
-func ProcessScoreWithoutValidation(engine *engine.Engine) { //fechou
+func ProcessScoreWithoutValidation(engine *engine.Engine) {
 	defer Channels.WaitGroup.Done()
 
 	wgScore := &sync.WaitGroup{}
