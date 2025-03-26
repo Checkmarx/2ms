@@ -1,7 +1,7 @@
 on:
     pull_request:
-  
-  jobs:
+        
+jobs:
     bucket-upload-S3:
       runs-on: ubuntu-latest  
   
