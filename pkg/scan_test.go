@@ -3,15 +3,17 @@ package scanner
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"testing"
+
 	"github.com/checkmarx/2ms/cmd"
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"sync"
-	"testing"
 )
 
 const (
@@ -20,6 +22,11 @@ const (
 	expectedReportPath               = "testData/expectedReport.json"
 	expectedReportResultsIgnoredPath = "testData/expectedReportWithIgnoredResults.json"
 )
+
+// normalizeJSON removes carriage returns to normalize line endings.
+func normalizeJSON(data []byte) []byte {
+	return []byte(strings.ReplaceAll(string(data), "\r", ""))
+}
 
 func TestScan(t *testing.T) {
 	t.Run("Successful Scan with Multiple Items", func(t *testing.T) {
@@ -68,12 +75,16 @@ func TestScan(t *testing.T) {
 		assert.NoError(t, err, "failed to read expected report file")
 
 		var expectedReport, actualReportMap map[string]interface{}
+
+		// Normalize expected JSON line endings.
+		expectedReportBytes = normalizeJSON(expectedReportBytes)
 		err = json.Unmarshal(expectedReportBytes, &expectedReport)
 		assert.NoError(t, err, "failed to unmarshal expected report JSON")
 
-		// Marshal the actual report to JSON bytes before unmarshalling into a map.
+		// Marshal and then normalize actual report JSON before unmarshalling.
 		actualReportBytes, err := json.Marshal(actualReport)
 		assert.NoError(t, err, "failed to marshal actual report to JSON")
+		actualReportBytes = normalizeJSON(actualReportBytes)
 		err = json.Unmarshal(actualReportBytes, &actualReportMap)
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
 
@@ -132,12 +143,15 @@ func TestScan(t *testing.T) {
 		assert.NoError(t, err, "failed to read expected report file")
 
 		var expectedReport, actualReportMap map[string]interface{}
+
+		// Normalize expected JSON line endings.
+		expectedReportBytes = normalizeJSON(expectedReportBytes)
 		err = json.Unmarshal(expectedReportBytes, &expectedReport)
 		assert.NoError(t, err, "failed to unmarshal expected report JSON")
 
-		// Marshal the actual report to JSON bytes before unmarshalling into a map.
 		actualReportBytes, err := json.Marshal(actualReport)
 		assert.NoError(t, err, "failed to marshal actual report to JSON")
+		actualReportBytes = normalizeJSON(actualReportBytes)
 		err = json.Unmarshal(actualReportBytes, &actualReportMap)
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
 
@@ -269,11 +283,14 @@ func TestScanDynamic(t *testing.T) {
 		assert.NoError(t, err, "failed to read expected report file")
 
 		var expectedReport, actualReportMap map[string]interface{}
+
+		expectedReportBytes = normalizeJSON(expectedReportBytes)
 		err = json.Unmarshal(expectedReportBytes, &expectedReport)
 		assert.NoError(t, err, "failed to unmarshal expected report JSON")
 
 		actualReportBytes, err := json.Marshal(actualReport)
 		assert.NoError(t, err, "failed to marshal actual report to JSON")
+		actualReportBytes = normalizeJSON(actualReportBytes)
 		err = json.Unmarshal(actualReportBytes, &actualReportMap)
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
 
@@ -341,11 +358,14 @@ func TestScanDynamic(t *testing.T) {
 		assert.NoError(t, err, "failed to read expected report file")
 
 		var expectedReport, actualReportMap map[string]interface{}
+
+		expectedReportBytes = normalizeJSON(expectedReportBytes)
 		err = json.Unmarshal(expectedReportBytes, &expectedReport)
 		assert.NoError(t, err, "failed to unmarshal expected report JSON")
 
 		actualReportBytes, err := json.Marshal(actualReport)
 		assert.NoError(t, err, "failed to marshal actual report to JSON")
+		actualReportBytes = normalizeJSON(actualReportBytes)
 		err = json.Unmarshal(actualReportBytes, &actualReportMap)
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
 
