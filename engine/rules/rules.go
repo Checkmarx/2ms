@@ -115,7 +115,6 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.EasyPost(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryShipping, RuleType: 4}},
 		{Rule: *rules.EasyPostTestAPI(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryShipping, RuleType: 4}},
 		{Rule: *rules.EtsyAccessToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryECommercePlatform, RuleType: 4}},
-		{Rule: *rules.Facebook(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4}},
 		{Rule: *rules.FastlyAPIToken(), Tags: []string{TagApiToken, TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryCDN, RuleType: 4}},
 		{Rule: *rules.FinicityClientSecret(), Tags: []string{TagClientSecret}, ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4}},
 		{Rule: *rules.FinicityAPIToken(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4}},
@@ -141,7 +140,6 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.GrafanaApiKey(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4}},
 		{Rule: *rules.GrafanaCloudApiToken(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4}},
 		{Rule: *rules.GrafanaServiceAccountToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4}},
-		{Rule: *rules.Hashicorp(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryInfrastructureAsCode, RuleType: 4}},
 		{Rule: *rules.HashicorpField(), Tags: []string{TagPassword}, ScoreParameters: ScoreParameters{Category: CategoryInfrastructureAsCode, RuleType: 4}},
 		{Rule: *rules.Heroku(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 4}},
 		{Rule: *rules.HubSpot(), Tags: []string{TagApiToken, TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryMarketingAutomation, RuleType: 4}},
@@ -239,6 +237,50 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.YandexAccessToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4}},
 		{Rule: *rules.ZendeskSecretKey(), Tags: []string{TagSecretKey}, ScoreParameters: ScoreParameters{Category: CategoryCustomerSupport, RuleType: 4}},
 		{Rule: *AuthenticatedURL(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+
+		// Rules to update
+		{Rule: *rules.OnePasswordServiceAccountToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.AzureActiveDirectoryClientSecret(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.CloudflareAPIKey(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.CloudflareGlobalAPIKey(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.CloudflareOriginCAKey(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.CohereAPIToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.CurlHeaderAuth(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.CurlBasicAuth(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.FacebookSecret(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.FacebookAccessToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.FacebookPageAccessToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.FlyIOAccessToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.Freemius(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabCiCdJobToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabDeployToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabFeatureFlagClientToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabFeedToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabIncomingMailToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabKubernetesAgentToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabOauthAppSecret(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabPatRoutable(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabRunnerAuthenticationToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabScimToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.GitlabSessionCookie(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.HarnessApiKey(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.HashiCorpTerraform(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryInfrastructureAsCode, RuleType: 4}},
+		{Rule: *rules.Intra42ClientSecret(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.KubernetesSecret(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.Meraki(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.NewRelicInsertKey(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.NugetConfigPassword(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.OctopusDeployApiKey(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.OpenshiftUserToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.PrivateAIToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.PrivateKeyPKCS12File(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.SentryOrgToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.SentryUserToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.SettlemintApplicationAccessToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.SettlemintPersonalAccessToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.SettlemintServiceAccessToken(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.Sonar(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *rules.SourceGraph(), Tags: []string{TagSensitiveUrl}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
 	}
 
 	return allRules
@@ -294,6 +336,7 @@ func FilterRules(selectedList, ignoreList, specialList []string) *[]Rule {
 	}
 
 	selectedRules := getDefaultRules()
+
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
 	}

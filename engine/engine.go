@@ -3,13 +3,14 @@ package engine
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/checkmarx/2ms/engine/linecontent"
-	"github.com/checkmarx/2ms/engine/score"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"text/tabwriter"
+
+	"github.com/checkmarx/2ms/engine/linecontent"
+	"github.com/checkmarx/2ms/engine/score"
 
 	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/engine/validation"
@@ -47,20 +48,23 @@ type EngineConfig struct {
 
 func Init(engineConfig EngineConfig) (*Engine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
+
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
 	}
 
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
-	keywords := []string{}
+	keywords := map[string]struct{}{}
+
 	for _, rule := range *selectedRules {
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
-			keywords = append(keywords, strings.ToLower(keyword))
+			keywords[strings.ToLower(keyword)] = struct{}{}
 		}
 	}
+
 	cfg.Rules = rulesToBeApplied
 	cfg.Keywords = keywords
 
