@@ -23,9 +23,24 @@ const (
 	expectedReportResultsIgnoredPath = "testData/expectedReportWithIgnoredResults.json"
 )
 
-// normalizeJSON removes carriage returns to normalize line endings.
-func normalizeJSON(data []byte) []byte {
-	return []byte(strings.ReplaceAll(string(data), "\r", ""))
+// normalizeReportData recursively traverses the report data and removes any carriage return characters.
+func normalizeReportData(data interface{}) interface{} {
+	switch v := data.(type) {
+	case string:
+		return strings.ReplaceAll(v, "\r", "")
+	case []interface{}:
+		for i, item := range v {
+			v[i] = normalizeReportData(item)
+		}
+		return v
+	case map[string]interface{}:
+		for key, val := range v {
+			v[key] = normalizeReportData(val)
+		}
+		return v
+	default:
+		return data
+	}
 }
 
 func TestScan(t *testing.T) {
@@ -76,17 +91,18 @@ func TestScan(t *testing.T) {
 
 		var expectedReport, actualReportMap map[string]interface{}
 
-		// Normalize expected JSON line endings.
-		expectedReportBytes = normalizeJSON(expectedReportBytes)
 		err = json.Unmarshal(expectedReportBytes, &expectedReport)
 		assert.NoError(t, err, "failed to unmarshal expected report JSON")
 
-		// Marshal and then normalize actual report JSON before unmarshalling.
+		// Marshal actual report and unmarshal back into a map.
 		actualReportBytes, err := json.Marshal(actualReport)
 		assert.NoError(t, err, "failed to marshal actual report to JSON")
-		actualReportBytes = normalizeJSON(actualReportBytes)
 		err = json.Unmarshal(actualReportBytes, &actualReportMap)
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+		// Normalize both expected and actual maps.
+		expectedReport = normalizeReportData(expectedReport).(map[string]interface{})
+		actualReportMap = normalizeReportData(actualReportMap).(map[string]interface{})
 
 		if !cmp.Equal(expectedReport, actualReportMap) {
 			t.Errorf("Scan report does not match the expected report:\n%s", cmp.Diff(expectedReport, actualReportMap))
@@ -144,16 +160,17 @@ func TestScan(t *testing.T) {
 
 		var expectedReport, actualReportMap map[string]interface{}
 
-		// Normalize expected JSON line endings.
-		expectedReportBytes = normalizeJSON(expectedReportBytes)
 		err = json.Unmarshal(expectedReportBytes, &expectedReport)
 		assert.NoError(t, err, "failed to unmarshal expected report JSON")
 
 		actualReportBytes, err := json.Marshal(actualReport)
 		assert.NoError(t, err, "failed to marshal actual report to JSON")
-		actualReportBytes = normalizeJSON(actualReportBytes)
 		err = json.Unmarshal(actualReportBytes, &actualReportMap)
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+		// Normalize both expected and actual maps.
+		expectedReport = normalizeReportData(expectedReport).(map[string]interface{})
+		actualReportMap = normalizeReportData(actualReportMap).(map[string]interface{})
 
 		if !cmp.Equal(expectedReport, actualReportMap) {
 			t.Errorf("Scan report does not match the expected report:\n%s", cmp.Diff(expectedReport, actualReportMap))
@@ -278,21 +295,22 @@ func TestScanDynamic(t *testing.T) {
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
-		// Compare with expected report.
 		expectedReportBytes, err := os.ReadFile(expectedReportPath)
 		assert.NoError(t, err, "failed to read expected report file")
 
 		var expectedReport, actualReportMap map[string]interface{}
 
-		expectedReportBytes = normalizeJSON(expectedReportBytes)
 		err = json.Unmarshal(expectedReportBytes, &expectedReport)
 		assert.NoError(t, err, "failed to unmarshal expected report JSON")
 
 		actualReportBytes, err := json.Marshal(actualReport)
 		assert.NoError(t, err, "failed to marshal actual report to JSON")
-		actualReportBytes = normalizeJSON(actualReportBytes)
 		err = json.Unmarshal(actualReportBytes, &actualReportMap)
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+		// Normalize both maps.
+		expectedReport = normalizeReportData(expectedReport).(map[string]interface{})
+		actualReportMap = normalizeReportData(actualReportMap).(map[string]interface{})
 
 		if !cmp.Equal(expectedReport, actualReportMap) {
 			t.Errorf("ScanDynamic report does not match the expected report:\n%s", cmp.Diff(expectedReport, actualReportMap))
@@ -300,7 +318,6 @@ func TestScanDynamic(t *testing.T) {
 	})
 
 	t.Run("Successful ScanDynamic with Multiple Items and Ignored Results", func(t *testing.T) {
-		// Reset global channels and report.
 		cmd.Report = reporting.Init()
 		cmd.SecretsChan = make(chan *secrets.Secret)
 		cmd.SecretsExtrasChan = make(chan *secrets.Secret)
@@ -359,15 +376,17 @@ func TestScanDynamic(t *testing.T) {
 
 		var expectedReport, actualReportMap map[string]interface{}
 
-		expectedReportBytes = normalizeJSON(expectedReportBytes)
 		err = json.Unmarshal(expectedReportBytes, &expectedReport)
 		assert.NoError(t, err, "failed to unmarshal expected report JSON")
 
 		actualReportBytes, err := json.Marshal(actualReport)
 		assert.NoError(t, err, "failed to marshal actual report to JSON")
-		actualReportBytes = normalizeJSON(actualReportBytes)
 		err = json.Unmarshal(actualReportBytes, &actualReportMap)
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+		// Normalize both maps.
+		expectedReport = normalizeReportData(expectedReport).(map[string]interface{})
+		actualReportMap = normalizeReportData(actualReportMap).(map[string]interface{})
 
 		if !cmp.Equal(expectedReport, actualReportMap) {
 			t.Errorf("ScanDynamic report does not match the expected report:\n%s", cmp.Diff(expectedReport, actualReportMap))
@@ -375,22 +394,18 @@ func TestScanDynamic(t *testing.T) {
 	})
 
 	t.Run("error handling should work", func(t *testing.T) {
-		// Reset global channels and report.
 		cmd.Report = reporting.Init()
 		cmd.SecretsChan = make(chan *secrets.Secret)
 		cmd.SecretsExtrasChan = make(chan *secrets.Secret)
 		cmd.ValidationChan = make(chan *secrets.Secret)
 		cmd.CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 		cmd.Channels.Items = make(chan plugins.ISourceItem)
-		// Create a buffered error channel for error injection.
 		cmd.Channels.Errors = make(chan error, 2)
 		cmd.Channels.WaitGroup = &sync.WaitGroup{}
 
-		// Create an empty input channel.
 		itemsIn := make(chan ScanItem)
 		close(itemsIn)
 
-		// Inject errors.
 		go func() {
 			cmd.Channels.Errors <- fmt.Errorf("mock processing error 1")
 			cmd.Channels.Errors <- fmt.Errorf("mock processing error 2")
@@ -401,13 +416,11 @@ func TestScanDynamic(t *testing.T) {
 
 		assert.Equal(t, &reporting.Report{}, report)
 		assert.NotNil(t, err)
-		// Since ScanDynamic returns on the first error encountered, check that it contains the first error.
 		expectedErrMsg := "error processing scan items: mock processing error 1"
 		assert.Equal(t, expectedErrMsg, err.Error())
 	})
 
 	t.Run("scan with empty channel", func(t *testing.T) {
-		// Reset global channels and report.
 		cmd.Report = reporting.Init()
 		cmd.SecretsChan = make(chan *secrets.Secret)
 		cmd.SecretsExtrasChan = make(chan *secrets.Secret)
@@ -417,7 +430,6 @@ func TestScanDynamic(t *testing.T) {
 		cmd.Channels.Errors = make(chan error)
 		cmd.Channels.WaitGroup = &sync.WaitGroup{}
 
-		// Create and immediately close an empty input channel.
 		itemsIn := make(chan ScanItem)
 		close(itemsIn)
 
