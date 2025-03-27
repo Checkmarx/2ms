@@ -224,7 +224,7 @@ func TestScan(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan([]ScanItem{}, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
-		assert.Equal(t, &reporting.Report{}, actualReport)
+		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
 	})
 	t.Run("scan with scanItems nil", func(t *testing.T) {
 		cmd.Report = reporting.Init()
@@ -238,7 +238,7 @@ func TestScan(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan(nil, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
-		assert.Equal(t, &reporting.Report{}, actualReport)
+		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
 	})
 }
 
@@ -436,6 +436,6 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
-		assert.Equal(t, &reporting.Report{}, actualReport)
+		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
 	})
 }

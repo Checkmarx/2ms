@@ -8,7 +8,6 @@ import (
 
 	"github.com/checkmarx/2ms/cmd"
 	"github.com/checkmarx/2ms/engine"
-	"github.com/rs/zerolog/log"
 )
 
 type ScanConfig struct {
@@ -38,7 +37,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 	}()
 
 	// Initialize engine configuration
-	engineConfig := engine.EngineConfig{}
+	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds}
 	engineInstance, err := engine.Init(engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
@@ -86,24 +85,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 
 	// Finalize and generate report
 	report := cmd.Report
-	for _, resultId := range scanConfig.IgnoreResultIds {
-		numberOfSecretsPerResultId := len(report.Results[resultId])
-		if numberOfSecretsPerResultId > 0 {
-			report.TotalSecretsFound -= numberOfSecretsPerResultId
-			delete(report.Results, resultId)
-		}
-	}
-
-	if report.TotalItemsScanned > 0 {
-		if err != nil {
-			return &reporting.Report{}, fmt.Errorf("error showing report: %w", err)
-		}
-		return report, nil
-	} else {
-		log.Info().Msg("Scan completed with empty content")
-	}
-
-	return &reporting.Report{}, nil
+	return report, nil
 }
 
 func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
@@ -112,7 +94,7 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 	wg := &sync.WaitGroup{}
 
 	// Initialize engine configuration.
-	engineConfig := engine.EngineConfig{}
+	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds}
 	engineInstance, err := engine.Init(engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
@@ -157,18 +139,5 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 
 	// Finalize and generate report.
 	report := cmd.Report
-	for _, resultId := range scanConfig.IgnoreResultIds {
-		numberOfSecretsPerResultId := len(report.Results[resultId])
-		if numberOfSecretsPerResultId > 0 {
-			report.TotalSecretsFound -= numberOfSecretsPerResultId
-			delete(report.Results, resultId)
-		}
-	}
-
-	if report.TotalItemsScanned > 0 {
-		return report, nil
-	} else {
-		log.Info().Msg("Scan completed with empty content")
-	}
-	return &reporting.Report{}, nil
+	return report, nil
 }
