@@ -1,60 +1,58 @@
 package cmd
 
 import (
-	"github.com/checkmarx/2ms/lib/secrets"
-	"sync"
-
 	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/engine/extra"
+	"github.com/checkmarx/2ms/lib/secrets"
+	"sync"
 )
 
-func processItems(engine *engine.Engine, pluginName string) {
-	defer channels.WaitGroup.Done()
-
+func ProcessItems(engine *engine.Engine, pluginName string) {
+	defer Channels.WaitGroup.Done()
 	wgItems := &sync.WaitGroup{}
-	for item := range channels.Items {
-		report.TotalItemsScanned++
+	for item := range Channels.Items {
+		Report.TotalItemsScanned++
 		wgItems.Add(1)
-		go engine.Detect(item, secretsChan, wgItems, pluginName, channels.Errors)
+		go engine.Detect(item, SecretsChan, wgItems, pluginName, Channels.Errors)
 	}
 	wgItems.Wait()
-	close(secretsChan)
+	close(SecretsChan)
 }
 
-func processSecrets() {
-	defer channels.WaitGroup.Done()
+func ProcessSecrets() {
+	defer Channels.WaitGroup.Done()
 
-	for secret := range secretsChan {
-		report.TotalSecretsFound++
-		secretsExtrasChan <- secret
+	for secret := range SecretsChan {
+		Report.TotalSecretsFound++
+		SecretsExtrasChan <- secret
 		if validateVar {
-			validationChan <- secret
+			ValidationChan <- secret
 		} else {
-			cvssScoreWithoutValidationChan <- secret
+			CvssScoreWithoutValidationChan <- secret
 		}
-		report.Results[secret.ID] = append(report.Results[secret.ID], secret)
+		Report.Results[secret.ID] = append(Report.Results[secret.ID], secret)
 	}
-	close(secretsExtrasChan)
-	close(validationChan)
-	close(cvssScoreWithoutValidationChan)
+	close(SecretsExtrasChan)
+	close(ValidationChan)
+	close(CvssScoreWithoutValidationChan)
 }
 
-func processSecretsExtras() {
-	defer channels.WaitGroup.Done()
+func ProcessSecretsExtras() {
+	defer Channels.WaitGroup.Done()
 
 	wgExtras := &sync.WaitGroup{}
-	for secret := range secretsExtrasChan {
+	for secret := range SecretsExtrasChan {
 		wgExtras.Add(1)
 		go extra.AddExtraToSecret(secret, wgExtras)
 	}
 	wgExtras.Wait()
 }
 
-func processValidationAndScoreWithValidation(engine *engine.Engine) {
-	defer channels.WaitGroup.Done()
+func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
+	defer Channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}
-	for secret := range validationChan {
+	for secret := range ValidationChan {
 		wgValidation.Add(2)
 		go func(secret *secrets.Secret, wg *sync.WaitGroup) {
 			engine.RegisterForValidation(secret, wg)
@@ -66,11 +64,11 @@ func processValidationAndScoreWithValidation(engine *engine.Engine) {
 	engine.Validate()
 }
 
-func processScoreWithoutValidation(engine *engine.Engine) {
-	defer channels.WaitGroup.Done()
+func ProcessScoreWithoutValidation(engine *engine.Engine) {
+	defer Channels.WaitGroup.Done()
 
 	wgScore := &sync.WaitGroup{}
-	for secret := range cvssScoreWithoutValidationChan {
+	for secret := range CvssScoreWithoutValidationChan {
 		wgScore.Add(1)
 		go engine.Score(secret, false, wgScore)
 	}

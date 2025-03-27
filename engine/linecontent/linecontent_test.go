@@ -24,7 +24,7 @@ func TestGetLineContent(t *testing.T) {
 			secret:       dummySecret,
 			expected:     "",
 			error:        true,
-			errorMessage: "failed to get line content: line empty",
+			errorMessage: "line empty",
 		},
 		{
 			name:         "Empty secret",
@@ -32,7 +32,7 @@ func TestGetLineContent(t *testing.T) {
 			secret:       "",
 			expected:     "",
 			error:        true,
-			errorMessage: "failed to get line content: secret empty",
+			errorMessage: "secret empty",
 		},
 		{
 			name:     "Secret not found with line size smaller than the parse limit",

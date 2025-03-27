@@ -293,7 +293,7 @@ func TestGetOutputSarif(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.arg.getOutput(sarifFormat, &config.Config{Name: "report", Version: "1"})
+			got, err := tt.arg.GetOutput(sarifFormat, &config.Config{Name: "report", Version: "1"})
 			if tt.wantErr {
 				assert.NotNil(t, err)
 				return
