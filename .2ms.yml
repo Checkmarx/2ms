@@ -29,3 +29,23 @@ ignore-result:
   - 33a14f1d1e4a1201a3e0062ebf09079fe8c84714 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
   - da610673906f695e3e85bda6fc0a916762f01a70 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
   - f8da5c56428cf708773be38269932c46aaf44cd4 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
+  - 0d49f4953e8c5b2e04cca54d40bd2a91c079926b # value used for testing
+  - 5fb857fa72e8d568e6cfd96119d6b2db87c1e9b2 # value used for testing
+  - 6b92e79146584c6263671b7bcaac79a9c0852465 # value used for testing
+  - 22a792422372ef239494839d11c188258d18abc8 # value used for testing
+  - 29ce1990ca4555a207e77a66ffc26d46575a7911 # value used for testing
+  - 98a2f843609061bba58b69d4d31b70624de299ee # value used for testing
+  - 0188f28d26c2ae3f87df20092ab39c4465d6bbba # value used for testing
+  - 468bdfec08e1660b6ec73d78d15f03c320c68078 # value used for testing
+  - 5586d6fb77d9fa54224604ab158c2ceda4ab0995 # value used for testing
+  - 6403ca0ffb2abf3f1c9f70202474fb8f6564c4d7 # value used for testing
+  - a6fe66dfd9531c5415c1d1fed28b71f13a855a46 # value used for testing
+  - aaf4ba87a3bdbaf9346c0229f404eb86c0e6aabe # value used for testing
+  - b09e3219bca2cbcc4d7bc34f46e394e1f80d6574 # value used for testing
+  - c00a0d0af6bac8b20572bbb3b0b2cbea70476a0d # value used for testing
+  - c94ccae65acb14fdd2b9db7c9119e58875346a3b # value used for testing
+  - d4ac7947e0a7a4b387bf46279daa74e9dbe7f66f # value used for testing
+  - dd2e802e4c3205e57e291a89dfd469946531292b # value used for testing
+  - e475d6cf0a94469ea1717db008936a4e8749fe6a # value used for testing
+  - eed7c634d36422d7276cd8623c149e4c8d874f95 # value used for testing
+  - ff933778f18c92254c15369564b7d359f44018b5 # value used for testing

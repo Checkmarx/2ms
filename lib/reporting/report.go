@@ -30,7 +30,7 @@ func Init() *Report {
 }
 
 func (r *Report) ShowReport(format string, cfg *config.Config) error {
-	output, err := r.getOutput(format, cfg)
+	output, err := r.GetOutput(format, cfg)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 
 		fileExtension := filepath.Ext(path)
 		format := strings.TrimPrefix(fileExtension, ".")
-		output, err := r.getOutput(format, cfg)
+		output, err := r.GetOutput(format, cfg)
 		if err != nil {
 			return err
 		}
@@ -66,7 +66,7 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 	return nil
 }
 
-func (r *Report) getOutput(format string, cfg *config.Config) (string, error) {
+func (r *Report) GetOutput(format string, cfg *config.Config) (string, error) {
 	var output string
 	var err error
 

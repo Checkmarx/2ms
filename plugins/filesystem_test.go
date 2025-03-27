@@ -64,7 +64,7 @@ func TestGetItems(t *testing.T) {
 		ProjectName: "TestProject",
 	}
 
-	plugin.getItems(itemsChan, errsChan, &wg, fileList)
+	plugin.GetItems(itemsChan, errsChan, &wg, fileList)
 
 	wg.Wait()
 
@@ -188,7 +188,7 @@ func TestGetFiles(t *testing.T) {
 			errsChan := make(chan error, 10)
 			var wg sync.WaitGroup
 
-			plugin.getFiles(itemsChan, errsChan, &wg)
+			plugin.GetFiles(itemsChan, errsChan, &wg)
 			wg.Wait()
 			close(itemsChan)
 			close(errsChan)

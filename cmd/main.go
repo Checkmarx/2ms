@@ -66,17 +66,17 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.GitPlugin{},
 }
 
-var channels = plugins.Channels{
+var Channels = plugins.Channels{
 	Items:     make(chan plugins.ISourceItem),
 	Errors:    make(chan error),
 	WaitGroup: &sync.WaitGroup{},
 }
 
-var report = reporting.Init()
-var secretsChan = make(chan *secrets.Secret)
-var secretsExtrasChan = make(chan *secrets.Secret)
-var validationChan = make(chan *secrets.Secret)
-var cvssScoreWithoutValidationChan = make(chan *secrets.Secret)
+var Report = reporting.Init()
+var SecretsChan = make(chan *secrets.Secret)
+var SecretsExtrasChan = make(chan *secrets.Secret)
+var ValidationChan = make(chan *secrets.Secret)
+var CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
@@ -104,7 +104,7 @@ func Execute() (int, error) {
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
-		subCommand, err := plugin.DefineCommand(channels.Items, channels.Errors)
+		subCommand, err := plugin.DefineCommand(Channels.Items, Channels.Errors)
 		if err != nil {
 			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
@@ -116,13 +116,13 @@ func Execute() (int, error) {
 		rootCmd.AddCommand(subCommand)
 	}
 
-	listenForErrors(channels.Errors)
+	listenForErrors(Channels.Errors)
 
 	if err := rootCmd.Execute(); err != nil {
 		return 0, err
 	}
 
-	return report.TotalSecretsFound, nil
+	return Report.TotalSecretsFound, nil
 }
 
 func preRun(pluginName string, cmd *cobra.Command, args []string) error {
@@ -139,38 +139,38 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	channels.WaitGroup.Add(1)
-	go processItems(engine, pluginName)
+	Channels.WaitGroup.Add(1)
+	go ProcessItems(engine, pluginName)
 
-	channels.WaitGroup.Add(1)
-	go processSecrets()
+	Channels.WaitGroup.Add(1)
+	go ProcessSecrets()
 
-	channels.WaitGroup.Add(1)
-	go processSecretsExtras()
+	Channels.WaitGroup.Add(1)
+	go ProcessSecretsExtras()
 
 	if validateVar {
-		channels.WaitGroup.Add(1)
-		go processValidationAndScoreWithValidation(engine)
+		Channels.WaitGroup.Add(1)
+		go ProcessValidationAndScoreWithValidation(engine)
 	} else {
-		channels.WaitGroup.Add(1)
-		go processScoreWithoutValidation(engine)
+		Channels.WaitGroup.Add(1)
+		go ProcessScoreWithoutValidation(engine)
 	}
 
 	return nil
 }
 
 func postRun(cmd *cobra.Command, args []string) error {
-	channels.WaitGroup.Wait()
+	Channels.WaitGroup.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
 
-	if report.TotalItemsScanned > 0 {
-		if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
+	if Report.TotalItemsScanned > 0 {
+		if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
 			return err
 		}
 
 		if len(reportPathVar) > 0 {
-			err := report.WriteFile(reportPathVar, cfg)
+			err := Report.WriteFile(reportPathVar, cfg)
 			if err != nil {
 				return fmt.Errorf("failed to create report file with error: %s", err)
 			}
