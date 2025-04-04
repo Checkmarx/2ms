@@ -44,6 +44,29 @@ func generateSemiGenericRegex(identifiers []string, secretRegex string, isCaseIn
 	sb.WriteString(secretSuffix)
 	return regexp.MustCompile(sb.String())
 }
+func generateSemiGenericRegexWithAdditionalRegex(identifiers []string, secretRegex string, isCaseInsensitive bool, addRegex []string) *regexp.Regexp {
+	var sb strings.Builder
+	// The identifiers should always be case-insensitive.
+	// This is inelegant but prevents an extraneous `(?i:)` from being added to the pattern; it could be removed.
+	if isCaseInsensitive {
+		sb.WriteString(caseInsensitive)
+		writeIdentifiers(&sb, identifiers)
+	} else {
+		sb.WriteString(identifierCaseInsensitivePrefix)
+		writeIdentifiers(&sb, identifiers)
+		sb.WriteString(identifierCaseInsensitiveSuffix)
+	}
+	sb.WriteString(operator)
+	sb.WriteString(secretPrefix)
+	sb.WriteString(secretRegex)
+	sb.WriteString(secretSuffix)
+
+	for _, regex := range addRegex {
+		sb.WriteString(`|`)
+		sb.WriteString(regex)
+	}
+	return regexp.MustCompile(sb.String())
+}
 
 func writeIdentifiers(sb *strings.Builder, identifiers []string) {
 	sb.WriteString(identifierPrefix)
