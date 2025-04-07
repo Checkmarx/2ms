@@ -15,15 +15,17 @@ const (
 	identifierCaseInsensitiveSuffix = `)`
 	identifierPrefix                = `(?:`
 	identifierSuffix                = `)(?:[0-9a-z\-_\t .]{0,20})(?:[\s|']|[\s|"]){0,3}`
+	identifierSuffixAdditional      = `)(?:[0-9a-z\-_\t .]{0,20})(?:<\/key>\s{0,10}<string)?(?:[\s|']|[\s|"]){0,3}`
 
 	// commonly used assignment operators or function call
 	operator = `(?:=|>|:{1,3}=|\|\|:|<=|=>|:|\?=)`
 
 	// boundaries for the secret
 	// \x60 = `
-	secretPrefixUnique = `\b(`
-	secretPrefix       = `(?:'|\"|\s|=|\x60){0,5}(`
-	secretSuffix       = `)(?:['|\"|\n|\r|\s|\x60|;]|$)`
+	secretPrefixUnique     = `\b(`
+	secretPrefix           = `(?:'|\"|\s|=|\x60){0,5}(`
+	secretSuffix           = `)(?:['|\"|\n|\r|\s|\x60|;]|$)`
+	secretSuffixAdditional = `)(?:['|\"|\n|\r|\s|\x60|;]|$|\s{0,10}<\/string>)`
 )
 
 func generateSemiGenericRegex(identifiers []string, secretRegex string, isCaseInsensitive bool) *regexp.Regexp {
@@ -44,13 +46,13 @@ func generateSemiGenericRegex(identifiers []string, secretRegex string, isCaseIn
 	sb.WriteString(secretSuffix)
 	return regexp.MustCompile(sb.String())
 }
-func generateSemiGenericRegexWithAdditionalRegex(identifiers []string, secretRegex string, isCaseInsensitive bool, addRegex []string) *regexp.Regexp {
+func generateSemiGenericRegexWithAdditionalRegex(identifiers []string, secretRegex string, isCaseInsensitive bool) *regexp.Regexp {
 	var sb strings.Builder
 	// The identifiers should always be case-insensitive.
 	// This is inelegant but prevents an extraneous `(?i:)` from being added to the pattern; it could be removed.
 	if isCaseInsensitive {
 		sb.WriteString(caseInsensitive)
-		writeIdentifiers(&sb, identifiers)
+		writeIdentifiersAdditionalRegex(&sb, identifiers)
 	} else {
 		sb.WriteString(identifierCaseInsensitivePrefix)
 		writeIdentifiers(&sb, identifiers)
@@ -59,13 +61,15 @@ func generateSemiGenericRegexWithAdditionalRegex(identifiers []string, secretReg
 	sb.WriteString(operator)
 	sb.WriteString(secretPrefix)
 	sb.WriteString(secretRegex)
-	sb.WriteString(secretSuffix)
+	sb.WriteString(secretSuffixAdditional)
 
-	for _, regex := range addRegex {
-		sb.WriteString(`|`)
-		sb.WriteString(regex)
-	}
 	return regexp.MustCompile(sb.String())
+}
+
+func writeIdentifiersAdditionalRegex(sb *strings.Builder, identifiers []string) {
+	sb.WriteString(identifierPrefix)
+	sb.WriteString(strings.Join(identifiers, "|"))
+	sb.WriteString(identifierSuffixAdditional)
 }
 
 func writeIdentifiers(sb *strings.Builder, identifiers []string) {
