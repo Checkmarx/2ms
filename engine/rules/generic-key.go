@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
@@ -9,7 +10,7 @@ func GenericCredential() *config.Rule {
 	r := config.Rule{
 		RuleID:      "generic-api-key",
 		Description: "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
-		Regex: generateSemiGenericRegexWithAdditionalRegex([]string{
+		Regex: generateSemiGenericRegexIncludingXml([]string{
 			"key",
 			"api",
 			"token",
@@ -33,7 +34,7 @@ func GenericCredential() *config.Rule {
 		},
 		Entropy: 3.5,
 		Allowlist: config.Allowlist{
-			StopWords: DefaultStopWords,
+			StopWords: rules.DefaultStopWords,
 		},
 	}
 
