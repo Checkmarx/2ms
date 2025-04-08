@@ -3,13 +3,14 @@ package engine
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/checkmarx/2ms/engine/linecontent"
-	"github.com/checkmarx/2ms/engine/score"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"text/tabwriter"
+
+	"github.com/checkmarx/2ms/engine/linecontent"
+	"github.com/checkmarx/2ms/engine/score"
 
 	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/engine/validation"
@@ -86,7 +87,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 		FilePath: item.GetSource(),
 	}
 	for _, value := range e.detector.Detect(fragment) {
-		itemId := getFindingId(item, value)
+		itemId := getFindingId(item, value) //fosadsjn
 		var startLine, endLine int
 		if pluginName == "filesystem" {
 			startLine = value.StartLine + 1
