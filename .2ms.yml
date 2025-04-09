@@ -29,20 +29,20 @@ ignore-result:
   - 33a14f1d1e4a1201a3e0062ebf09079fe8c84714 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
   - da610673906f695e3e85bda6fc0a916762f01a70 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
   - f8da5c56428cf708773be38269932c46aaf44cd4 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
-  - 0fed4aed1a63c270c410840e01c957025fe2e7b9 # value used for testing 
-  - 1e829f2d6236716cecb4683af3d26236fe4d5467 # value used for testing
-  - 2d2c9ddd21109c7d4909e166c18d570eadc95812 # value used for testing
-  - 2fbcd323e560798376c79e73a78938b8edd294d8 # value used for testing
-  - 4e243aa393011da09ff2bc4a598c2879e967abb8 # value used for testing
-  - 09f677494966f740534bc70d6194529a96d59a69 # value used for testing
-  - 10abdf40e0d14bdfb965f9a5be9056a09c7eb40d # value used for testing
-  - 4632bbfa56424359e6386b56d05bcec49b16548a # value used for testing
-  - 489123e817ab17accc3d47a6d39cdb17e37b6c97 # value used for testing
-  - 14472805c7de45b2c3b5caf92f19effcba98c386 # value used for testing
-  - acf7fa74f45c792f8ab3f701609a0b6ba4283b91 # value used for testing
-  - bc457e70eee50d9edd5ec8194bc7749fa95fde34 # value used for testing
-  - ca6b0f5b7f055a1ae52c2f34ad5d0409f7625c85 # value used for testing
-  - d7cf637e896d585946966d95d7b04910569a0191 # value used for testing
-  - d9207d5fa344d2423e97384f45014c87c0c91d4f # value used for testing
-  - f858b057df65752e0030854331dd1e5e8e41856b # value used for testing
-  - 670491bf5e759f4c03bf0e47f519deaccdc9ac44 # value used for testing
+  - 0fed4aed1a63c270c410840e01c957025fe2e7b9 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 1e829f2d6236716cecb4683af3d26236fe4d5467 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 2d2c9ddd21109c7d4909e166c18d570eadc95812 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 2fbcd323e560798376c79e73a78938b8edd294d8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 4e243aa393011da09ff2bc4a598c2879e967abb8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 09f677494966f740534bc70d6194529a96d59a69 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 10abdf40e0d14bdfb965f9a5be9056a09c7eb40d # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 4632bbfa56424359e6386b56d05bcec49b16548a # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 489123e817ab17accc3d47a6d39cdb17e37b6c97 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 14472805c7de45b2c3b5caf92f19effcba98c386 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - acf7fa74f45c792f8ab3f701609a0b6ba4283b91 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - bc457e70eee50d9edd5ec8194bc7749fa95fde34 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - ca6b0f5b7f055a1ae52c2f34ad5d0409f7625c85 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - d7cf637e896d585946966d95d7b04910569a0191 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - d9207d5fa344d2423e97384f45014c87c0c91d4f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - f858b057df65752e0030854331dd1e5e8e41856b # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+  - 670491bf5e759f4c03bf0e47f519deaccdc9ac44 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
