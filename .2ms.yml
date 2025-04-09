@@ -45,4 +45,7 @@ ignore-result:
   - d7cf637e896d585946966d95d7b04910569a0191 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
   - d9207d5fa344d2423e97384f45014c87c0c91d4f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
   - f858b057df65752e0030854331dd1e5e8e41856b # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-  - 670491bf5e759f4c03bf0e47f519deaccdc9ac44 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
+  - 670491bf5e759f4c03bf0e47f519deaccdc9ac44 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
+  - 70e912a00a3e1ac5ebd86101a535f545488f2377 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+  - 899ae0c9c4cbbec6ca86a87b05122d2584a780a1 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+  - edff33ab56ee4e1f64e5491f377eb4fea19fe116 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
