@@ -13,6 +13,13 @@ import (
 	git "github.com/zricethezav/gitleaks/v8/sources"
 )
 
+type DiffType int
+
+const (
+	AddedContent DiffType = iota
+	RemovedContent
+)
+
 const (
 	argDepth           = "depth"
 	argScanAllBranches = "all-branches"
@@ -28,9 +35,8 @@ type GitPlugin struct {
 }
 
 type GitInfo struct {
-	Hunks            []*gitdiff.TextFragment
-	IsAddedContent   bool
-	IsDeletedContent bool
+	Hunks       []*gitdiff.TextFragment
+	ContentType DiffType
 }
 
 func (p *GitPlugin) GetName() string {
@@ -98,8 +104,8 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		return
 	}
 
-	// Extract the changes (added and deleted) from the text fragments.
-	addedChanges, deletedChanges := extractChanges(file.TextFragments)
+	// Extract the changes (added and removed) from the text fragments.
+	addedChanges, removedChanges := extractChanges(file.TextFragments)
 
 	id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName)
 	source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName)
@@ -111,29 +117,29 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 			ID:      id,
 			Source:  source,
 			GitInfo: &GitInfo{
-				Hunks:          file.TextFragments,
-				IsAddedContent: true,
+				Hunks:       file.TextFragments,
+				ContentType: AddedContent,
 			},
 		}
 	}
 
-	// If there are deleted changes, send an item with deleted content.
-	if deletedChanges != "" {
+	// If there are removed changes, send an item with removed content.
+	if removedChanges != "" {
 		itemsChan <- item{
-			Content: &deletedChanges,
+			Content: &removedChanges,
 			ID:      id,
 			Source:  source,
 			GitInfo: &GitInfo{
-				Hunks:            file.TextFragments,
-				IsDeletedContent: true,
+				Hunks:       file.TextFragments,
+				ContentType: RemovedContent,
 			},
 		}
 	}
 }
 
-// extractChanges iterates over the text fragments to compile added and deleted changes.
-func extractChanges(fragments []*gitdiff.TextFragment) (added string, deleted string) {
-	var addedBuilder, deletedBuilder strings.Builder
+// extractChanges iterates over the text fragments to compile added and removed changes.
+func extractChanges(fragments []*gitdiff.TextFragment) (added string, removed string) {
+	var addedBuilder, removedBuilder strings.Builder
 
 	for _, tf := range fragments {
 		if tf == nil {
@@ -144,7 +150,7 @@ func extractChanges(fragments []*gitdiff.TextFragment) (added string, deleted st
 			case gitdiff.OpAdd:
 				addedBuilder.WriteString(tf.Lines[i].Line)
 			case gitdiff.OpDelete:
-				deletedBuilder.WriteString(tf.Lines[i].Line)
+				removedBuilder.WriteString(tf.Lines[i].Line)
 			default:
 			}
 			// Clean up the line content to free memory.
@@ -152,7 +158,7 @@ func extractChanges(fragments []*gitdiff.TextFragment) (added string, deleted st
 		}
 	}
 
-	return addedBuilder.String(), deletedBuilder.String()
+	return addedBuilder.String(), removedBuilder.String()
 }
 
 func (p *GitPlugin) readGitLog(path string, scanOptions string, errChan chan error) (<-chan *gitdiff.File, func()) {
@@ -194,11 +200,10 @@ func validGitRepoArgs(cmd *cobra.Command, args []string) error {
 }
 
 func GetGitStartAndEndLine(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
-	if gitInfo.IsAddedContent {
+	if gitInfo.ContentType == AddedContent {
 		return getGitStartAndEndLineAddedContent(gitInfo, localStartLine, localEndLine)
-	}
-	if gitInfo.IsDeletedContent {
-		return getGitStartAndEndLineDeletedContent(gitInfo, localStartLine, localEndLine)
+	} else if gitInfo.ContentType == RemovedContent {
+		return getGitStartAndEndLineRemovedContent(gitInfo, localStartLine, localEndLine)
 	}
 	return 0, 0
 }
@@ -222,17 +227,17 @@ func getGitStartAndEndLineAddedContent(gitInfo *GitInfo, localStartLine, localEn
 	return 0, 0
 }
 
-func getGitStartAndEndLineDeletedContent(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
-	deletedIndex := 0
+func getGitStartAndEndLineRemovedContent(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
+	removedIndex := 0
 	for _, hunk := range gitInfo.Hunks {
 		globalStartLine := int(hunk.OldPosition) - 1
 		for _, line := range hunk.Lines {
 			if line.Op == gitdiff.OpDelete {
 				globalStartLine += 1
-				if deletedIndex == localStartLine {
+				if removedIndex == localStartLine {
 					return globalStartLine, (globalStartLine - localStartLine) + localEndLine
 				}
-				deletedIndex += 1
+				removedIndex += 1
 			} else if line.Op == gitdiff.OpContext {
 				globalStartLine += 1
 			}
