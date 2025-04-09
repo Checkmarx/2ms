@@ -50,6 +50,17 @@ func GenericCredential() *config.Rule {
 		`password combination.
 
 R5: Regulatory--21`,
+
+		`<key>AD_UNIT_ID_FOR_BANNER_TEST</key>
+<string>ca-app-pub-3940256099942544/2934735716</string>`,
+		`<key>AD_UNIT_ID_FOR_INTERSTITIAL_TEST</key>
+<string>ca-app-pub-3940256099942544/4411468910</string>`,
+		`<key>CLIENT_ID</key>
+<string>407966239993-b1h97alknrmf0g846um5pr3a25s9qmeu.apps.googleusercontent.com</string>`,
+		`<key>REVERSED_CLIENT_ID</key>
+<string>com.googleusercontent.apps.407966239993-b1h97alknrmf0g846um5pr3a25s9qmeu</string>`,
+		`<key>GOOGLE_APP_ID</key>
+<string>1:407966239993:ios:0d7534f14f8cfe19</string>`,
 	}
 	return validate(r, tps, fps)
 }
