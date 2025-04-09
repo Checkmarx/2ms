@@ -28,9 +28,9 @@ type GitPlugin struct {
 }
 
 type GitInfo struct {
+	Hunks            []*gitdiff.TextFragment
 	IsAddedContent   bool
 	IsDeletedContent bool
-	Hunks            []*gitdiff.TextFragment
 }
 
 func (p *GitPlugin) GetName() string {
@@ -79,55 +79,80 @@ func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan ISou
 	defer close()
 
 	for file := range diffs {
-		if file.PatchHeader == nil {
-			// While parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value.
-			// This scenario is unlikely, but it causes the scan to never complete.
-			file.PatchHeader = &gitdiff.PatchHeader{}
-		}
+		p.processFileDiff(file, itemsChan)
+	}
+}
 
-		log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
-		if file.IsBinary || file.IsDelete {
-			continue
-		}
+// processFileDiff handles processing a single diff file.
+func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceItem) {
+	if file.PatchHeader == nil {
+		// When parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value.
+		// This scenario is unlikely but may cause the scan to never complete.
+		file.PatchHeader = &gitdiff.PatchHeader{}
+	}
 
-		var addedBuilder, deletedBuilder strings.Builder
-		for _, tf := range file.TextFragments {
-			if tf == nil {
-				continue
-			}
-			addedBuilder.WriteString(tf.Raw(gitdiff.OpAdd))
-			deletedBuilder.WriteString(tf.Raw(gitdiff.OpDelete))
-		}
+	log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
 
-		fileAddedChanges := addedBuilder.String()
-		fileDeletedChanges := deletedBuilder.String()
-		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName)
-		source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName)
+	// Skip binary files
+	if file.IsBinary {
+		return
+	}
 
-		if fileAddedChanges != "" {
-			itemsChan <- item{
-				Content: &fileAddedChanges,
-				ID:      id,
-				Source:  source,
-				GitInfo: &GitInfo{
-					Hunks:          file.TextFragments,
-					IsAddedContent: true,
-				},
-			}
-		}
+	// Extract the changes (added and deleted) from the text fragments.
+	addedChanges, deletedChanges := extractChanges(file.TextFragments)
 
-		if fileDeletedChanges != "" {
-			itemsChan <- item{
-				Content: &fileDeletedChanges,
-				ID:      id,
-				Source:  source,
-				GitInfo: &GitInfo{
-					Hunks:            file.TextFragments,
-					IsDeletedContent: true,
-				},
-			}
+	id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName)
+	source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName)
+
+	// If there are added changes, send an item with added content.
+	if addedChanges != "" {
+		itemsChan <- item{
+			Content: &addedChanges,
+			ID:      id,
+			Source:  source,
+			GitInfo: &GitInfo{
+				Hunks:          file.TextFragments,
+				IsAddedContent: true,
+			},
 		}
 	}
+
+	// If there are deleted changes, send an item with deleted content.
+	if deletedChanges != "" {
+		itemsChan <- item{
+			Content: &deletedChanges,
+			ID:      id,
+			Source:  source,
+			GitInfo: &GitInfo{
+				Hunks:            file.TextFragments,
+				IsDeletedContent: true,
+			},
+		}
+	}
+}
+
+// extractChanges iterates over the text fragments to compile added and deleted changes.
+func extractChanges(fragments []*gitdiff.TextFragment) (added string, deleted string) {
+	var addedBuilder, deletedBuilder strings.Builder
+
+	for _, tf := range fragments {
+		if tf == nil {
+			continue
+		}
+		for i := range tf.Lines {
+			switch tf.Lines[i].Op {
+			case gitdiff.OpAdd:
+				addedBuilder.WriteString(tf.Lines[i].Line)
+			case gitdiff.OpDelete:
+				deletedBuilder.WriteString(tf.Lines[i].Line)
+			default:
+			}
+			// Clean up the line content to free memory.
+			tf.Lines[i].Line = ""
+		}
+	}
+
+	return addedBuilder.String(), deletedBuilder.String()
 }
 
 func (p *GitPlugin) readGitLog(path string, scanOptions string, errChan chan error) (<-chan *gitdiff.File, func()) {
