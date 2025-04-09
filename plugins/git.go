@@ -27,6 +27,12 @@ type GitPlugin struct {
 	projectName     string
 }
 
+type GitInfo struct {
+	IsAddedContent   bool
+	IsDeletedContent bool
+	Hunks            []*gitdiff.TextFragment
+}
+
 func (p *GitPlugin) GetName() string {
 	return "git"
 }
@@ -84,18 +90,41 @@ func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan ISou
 			continue
 		}
 
-		fileChanges := ""
-		for _, textFragment := range file.TextFragments {
-			if textFragment != nil {
-				raw := textFragment.Raw(gitdiff.OpAdd)
-				fileChanges += raw
+		var addedBuilder, deletedBuilder strings.Builder
+		for _, tf := range file.TextFragments {
+			if tf == nil {
+				continue
+			}
+			addedBuilder.WriteString(tf.Raw(gitdiff.OpAdd))
+			deletedBuilder.WriteString(tf.Raw(gitdiff.OpDelete))
+		}
+
+		fileAddedChanges := addedBuilder.String()
+		fileDeletedChanges := deletedBuilder.String()
+		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName)
+		source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName)
+
+		if fileAddedChanges != "" {
+			itemsChan <- item{
+				Content: &fileAddedChanges,
+				ID:      id,
+				Source:  source,
+				GitInfo: &GitInfo{
+					Hunks:          file.TextFragments,
+					IsAddedContent: true,
+				},
 			}
 		}
-		if fileChanges != "" {
+
+		if fileDeletedChanges != "" {
 			itemsChan <- item{
-				Content: &fileChanges,
-				ID:      fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName),
-				Source:  fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName),
+				Content: &fileDeletedChanges,
+				ID:      id,
+				Source:  source,
+				GitInfo: &GitInfo{
+					Hunks:            file.TextFragments,
+					IsDeletedContent: true,
+				},
 			}
 		}
 	}
@@ -137,4 +166,52 @@ func validGitRepoArgs(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s is not a git repository", args[0])
 	}
 	return nil
+}
+
+func GetGitStartAndEndLine(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
+	if gitInfo.IsAddedContent {
+		return getGitStartAndEndLineAddedContent(gitInfo, localStartLine, localEndLine)
+	}
+	if gitInfo.IsDeletedContent {
+		return getGitStartAndEndLineDeletedContent(gitInfo, localStartLine, localEndLine)
+	}
+	return 0, 0
+}
+
+func getGitStartAndEndLineAddedContent(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
+	addedIndex := 0
+	for _, hunk := range gitInfo.Hunks {
+		globalStartLine := int(hunk.NewPosition) - 1
+		for _, line := range hunk.Lines {
+			if line.Op == gitdiff.OpAdd {
+				globalStartLine += 1
+				if addedIndex == localStartLine {
+					return globalStartLine, (globalStartLine - localStartLine) + localEndLine
+				}
+				addedIndex += 1
+			} else if line.Op == gitdiff.OpContext {
+				globalStartLine += 1
+			}
+		}
+	}
+	return 0, 0
+}
+
+func getGitStartAndEndLineDeletedContent(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
+	deletedIndex := 0
+	for _, hunk := range gitInfo.Hunks {
+		globalStartLine := int(hunk.OldPosition) - 1
+		for _, line := range hunk.Lines {
+			if line.Op == gitdiff.OpDelete {
+				globalStartLine += 1
+				if deletedIndex == localStartLine {
+					return globalStartLine, (globalStartLine - localStartLine) + localEndLine
+				}
+				deletedIndex += 1
+			} else if line.Op == gitdiff.OpContext {
+				globalStartLine += 1
+			}
+		}
+	}
+	return 0, 0
 }
