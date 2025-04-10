@@ -211,16 +211,21 @@ func GetGitStartAndEndLine(gitInfo *GitInfo, localStartLine, localEndLine int) (
 func getGitStartAndEndLineAddedContent(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
 	addedIndex := 0
 	for _, hunk := range gitInfo.Hunks {
-		globalStartLine := int(hunk.NewPosition) - 1
+		fileStartLine := int(hunk.NewPosition) - 1
+		addedLines := int(hunk.LinesAdded)
+		if addedIndex+addedLines <= localStartLine {
+			addedIndex += addedLines
+			continue
+		}
 		for _, line := range hunk.Lines {
 			if line.Op == gitdiff.OpAdd {
-				globalStartLine += 1
+				fileStartLine += 1
 				if addedIndex == localStartLine {
-					return globalStartLine, (globalStartLine - localStartLine) + localEndLine
+					return fileStartLine, (fileStartLine - localStartLine) + localEndLine
 				}
 				addedIndex += 1
 			} else if line.Op == gitdiff.OpContext {
-				globalStartLine += 1
+				fileStartLine += 1
 			}
 		}
 	}
@@ -230,16 +235,21 @@ func getGitStartAndEndLineAddedContent(gitInfo *GitInfo, localStartLine, localEn
 func getGitStartAndEndLineRemovedContent(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
 	removedIndex := 0
 	for _, hunk := range gitInfo.Hunks {
-		globalStartLine := int(hunk.OldPosition) - 1
+		fileStartLine := int(hunk.OldPosition) - 1
+		deletedLines := int(hunk.LinesDeleted)
+		if removedIndex+deletedLines <= localStartLine {
+			removedIndex += deletedLines
+			continue
+		}
 		for _, line := range hunk.Lines {
 			if line.Op == gitdiff.OpDelete {
-				globalStartLine += 1
+				fileStartLine += 1
 				if removedIndex == localStartLine {
-					return globalStartLine, (globalStartLine - localStartLine) + localEndLine
+					return fileStartLine, (fileStartLine - localStartLine) + localEndLine
 				}
 				removedIndex += 1
 			} else if line.Op == gitdiff.OpContext {
-				globalStartLine += 1
+				fileStartLine += 1
 			}
 		}
 	}
