@@ -127,7 +127,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.FrameIO(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryNewsAndMedia, RuleType: 4}},
 		{Rule: *rules.FreshbooksAccessToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4}},
 		{Rule: *rules.GCPAPIKey(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4}},
-		{Rule: *rules.GenericCredential(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
+		{Rule: *GenericCredential(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4}},
 		{Rule: *rules.GitHubPat(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryDevelopmentPlatform, RuleType: 4}},
 		{Rule: *rules.GitHubFineGrainedPat(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
 		{Rule: *rules.GitHubOauth(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4}},
