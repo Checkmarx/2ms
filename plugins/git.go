@@ -107,8 +107,14 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 	// Extract the changes (added and removed) from the text fragments.
 	addedChanges, removedChanges := extractChanges(file.TextFragments)
 
-	id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, file.NewName)
-	source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, file.NewName)
+	var fileName string
+	if file.IsDelete {
+		fileName = file.OldName
+	} else {
+		fileName = file.NewName
+	}
+	id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
+	source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
 
 	// If there are added changes, send an item with added content.
 	if addedChanges != "" {
