@@ -44,7 +44,7 @@ func writeYaml(report *Report) (string, error) {
 
 			builder.WriteString(fmt.Sprintf("      validationstatus: %q\n", fmt.Sprintf("%v", s.ValidationStatus)))
 			builder.WriteString("      ruledescription: " + s.RuleDescription + "\n")
-			if s.ExtraDetails == nil || len(s.ExtraDetails) == 0 {
+			if len(s.ExtraDetails) == 0 {
 				builder.WriteString("      extradetails: {}\n")
 			} else {
 				builder.WriteString(fmt.Sprintf("      extradetails: %v\n", s.ExtraDetails))
