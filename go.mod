@@ -14,7 +14,6 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/zricethezav/gitleaks/v8 v8.18.2
 	golang.org/x/time v0.5.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -53,6 +52,7 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 //transitive dependency not applied but also reported as not used by go mod why
