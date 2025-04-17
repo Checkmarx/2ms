@@ -28,18 +28,12 @@ func Init() *Report {
 		Results: make(map[string][]*secrets.Secret),
 	}
 }
-
-func (r *Report) ShowReport(format string, cfg *config.Config) error {
-	output, err := r.GetOutput(format, cfg)
-	if err != nil {
-		return err
-	}
-
+func (r *Report) ShowReport(output string) error {
 	log.Info().Msg("\n" + output)
 	return nil
 }
 
-func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
+func (r *Report) WriteFile(output string, reportPath []string, cfg *config.Config) error {
 	for _, path := range reportPath {
 		err := os.MkdirAll(filepath.Dir(path), 0750)
 		if err != nil {
@@ -72,11 +66,11 @@ func (r *Report) GetOutput(format string, cfg *config.Config) (string, error) {
 
 	switch format {
 	case jsonFormat:
-		output, err = writeJson(*r)
+		output, err = writeJson(r)
 	case longYamlFormat, shortYamlFormat:
-		output, err = writeYaml(*r)
+		output, err = writeYaml(r)
 	case sarifFormat:
-		output, err = writeSarif(*r, cfg)
+		output, err = writeSarif(r, cfg)
 	}
 	return output, err
 }
