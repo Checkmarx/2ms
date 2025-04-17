@@ -164,16 +164,21 @@ func postRun(cmd *cobra.Command, args []string) error {
 
 	cfg := config.LoadConfig("2ms", Version)
 
+	var output string
+	var err error
+
 	if Report.TotalItemsScanned > 0 {
-		if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
+		output, err = Report.GetOutput(stdoutFormatVar, cfg)
+		if err != nil {
+			return err
+		}
+
+		if err := Report.ShowReport(output); err != nil {
 			return err
 		}
 
 		if len(reportPathVar) > 0 {
-			err := Report.WriteFile(reportPathVar, cfg)
-			if err != nil {
-				return fmt.Errorf("failed to create report file with error: %s", err)
-			}
+			Report.WriteFile(output, reportPathVar, cfg)
 		}
 	} else {
 		log.Info().Msg("Scan completed with empty content")

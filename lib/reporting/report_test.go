@@ -213,15 +213,17 @@ JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 
 func TestWriteReportInNonExistingDir(t *testing.T) {
 	report := Init()
-
 	tempDir := os.TempDir()
-	path := filepath.Join(tempDir, "test_temp_dir", "sub_dir", "report.yaml")
-	err := report.WriteFile([]string{path}, &config.Config{Name: "report", Version: "5"})
+	dirPath := filepath.Join(tempDir, "test_temp_dir", "sub_dir")
+	filePath := filepath.Join(dirPath, "report.yaml")
+	defer os.RemoveAll(filepath.Join(tempDir, "test_temp_dir"))
+	output, err := report.GetOutput("yaml", &config.Config{Name: "report", Version: "5"})
 	if err != nil {
-		t.Error(err)
+		t.Error("Failed to get report output:", err)
+		return
 	}
 
-	os.RemoveAll(filepath.Join(tempDir, "test_temp_dir"))
+	report.WriteFile(output, []string{filePath}, &config.Config{Name: "report", Version: "5"})
 }
 
 func TestGetOutputSarif(t *testing.T) {
@@ -340,7 +342,14 @@ func TestGetOutputYAML(t *testing.T) {
 	testCases := []struct {
 		name   string
 		report Report
-	}{
+	}{{
+		name: "No secrets found",
+		report: Report{
+			TotalItemsScanned: 5,
+			TotalSecretsFound: 0,
+			Results:           map[string][]*secrets.Secret{},
+		},
+	},
 		{
 			name: "Single real secret in hardcodedPassword.go",
 			report: Report{

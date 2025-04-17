@@ -28,18 +28,12 @@ func Init() *Report {
 		Results: make(map[string][]*secrets.Secret),
 	}
 }
-
-func (r *Report) ShowReport(format string, cfg *config.Config) error {
-	output, err := r.GetOutput(format, cfg)
-	if err != nil {
-		return err
-	}
-
+func (r *Report) ShowReport(output string) error {
 	log.Info().Msg("\n" + output)
 	return nil
 }
 
-func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
+func (r *Report) WriteFile(output string, reportPath []string, cfg *config.Config) error {
 	for _, path := range reportPath {
 		err := os.MkdirAll(filepath.Dir(path), 0750)
 		if err != nil {
