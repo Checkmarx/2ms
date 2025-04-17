@@ -1,6 +1,7 @@
 package reporting
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 // test input results
@@ -333,4 +335,143 @@ func SortResults(results1, results2 []Results) {
 	sort.Slice(results2, func(i, j int) bool {
 		return results2[i].Message.Text < results2[j].Message.Text
 	})
+}
+
+func TestGetOutputYAML(t *testing.T) {
+	testCases := []struct {
+		name   string
+		report Report
+	}{
+		{
+			name: "Single real secret in hardcodedPassword.go",
+			report: Report{
+				TotalItemsScanned: 1,
+				TotalSecretsFound: 1,
+				Results: map[string][]*secrets.Secret{
+					"c6490d749fd4670fde969011d99ea5c4c4b1c0d7": {
+						{
+							ID:               "c6490d749fd4670fde969011d99ea5c4c4b1c0d7",
+							Source:           "..\\2ms\\engine\\rules\\hardcodedPassword.go",
+							RuleID:           "generic-api-key",
+							StartLine:        45,
+							EndLine:          45,
+							LineContent:      "value",
+							StartColumn:      8,
+							EndColumn:        64,
+							Value:            "value",
+							ValidationStatus: "",
+							CvssScore:        8.2,
+							RuleDescription:  "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Multiple real JWT secrets in jwt.txt",
+			report: Report{
+				TotalItemsScanned: 2,
+				TotalSecretsFound: 2,
+				Results: map[string][]*secrets.Secret{
+					"12fd8706491196cbfbdddd2fdcd650ed842dd963": {
+						{
+							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
+							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
+							RuleID:           "jwt",
+							StartLine:        1,
+							EndLine:          1,
+							LineContent:      "line content",
+							StartColumn:      129,
+							EndColumn:        232,
+							Value:            "value",
+							ValidationStatus: "",
+							CvssScore:        8.2,
+							RuleDescription:  "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+							ExtraDetails: map[string]interface{}{
+								"secretDetails": map[string]string{
+									"name": "mockName2",
+									"sub":  "mockSub2",
+								},
+							},
+						},
+						{
+							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
+							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
+							RuleID:           "jwt",
+							StartLine:        2,
+							EndLine:          2,
+							LineContent:      "line Content",
+							StartColumn:      64,
+							EndColumn:        166,
+							Value:            "value",
+							ValidationStatus: "",
+							CvssScore:        8.2,
+							RuleDescription:  "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+							ExtraDetails: map[string]interface{}{
+								"secretDetails": map[string]string{
+									"name": "mockName2",
+									"sub":  "mockSub2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := tc.report.GetOutput("yaml", &config.Config{Name: "report", Version: "1"})
+			assert.NoError(t, err)
+
+			var report Report
+			err = yaml.Unmarshal([]byte(output), &report)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.report.TotalItemsScanned, report.TotalItemsScanned)
+			assert.Equal(t, tc.report.TotalSecretsFound, report.TotalSecretsFound)
+
+			for key, expectedSecretsList := range tc.report.Results {
+				actualSecretsList, exists := report.Results[key]
+				if !exists {
+					t.Errorf("Key %s not found in actual report results", key)
+					continue
+				}
+
+				for i, expectedSecret := range expectedSecretsList {
+					actualSecret := actualSecretsList[i]
+
+					assert.Equal(t, expectedSecret.ID, actualSecret.ID, "Mismatch in ID for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.Source, actualSecret.Source, "Mismatch in Source for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.RuleID, actualSecret.RuleID, "Mismatch in RuleID for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.StartLine, actualSecret.StartLine, "Mismatch in StartLine for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.EndLine, actualSecret.EndLine, "Mismatch in EndLine for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.LineContent, actualSecret.LineContent, "Mismatch in LineContent for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.StartColumn, actualSecret.StartColumn, "Mismatch in StartColumn for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.EndColumn, actualSecret.EndColumn, "Mismatch in EndColumn for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.Value, actualSecret.Value, "Mismatch in Value for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.ValidationStatus, actualSecret.ValidationStatus, "Mismatch in ValidationStatus for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.RuleDescription, actualSecret.RuleDescription, "Mismatch in RuleDescription for key %s at index %d", key, i)
+					assert.Equal(t, expectedSecret.CvssScore, actualSecret.CvssScore, "Mismatch in CvssScore for key %s at index %d", key, i)
+
+					expectedYAML, err := yaml.Marshal(expectedSecret.ExtraDetails)
+					if err != nil {
+						t.Errorf("Error serializing %s at index %d: %v", key, i, err)
+						continue
+					}
+
+					actualYAML, err := yaml.Marshal(actualSecret.ExtraDetails)
+					if err != nil {
+						t.Errorf("Error %s at index %d: %v", key, i, err)
+						continue
+					}
+
+					if !bytes.Equal(expectedYAML, actualYAML) {
+						t.Errorf("Mismatch in ExtraDetails for key %s at index %d:\nExpected:\n%s\nGot:\n%s", key, i, expectedYAML, actualYAML)
+					}
+				}
+			}
+		})
+	}
 }
