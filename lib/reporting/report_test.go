@@ -1,7 +1,6 @@
 package reporting
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -388,7 +387,7 @@ func TestGetOutputYAML(t *testing.T) {
 							CvssScore:        8.2,
 							RuleDescription:  "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
 							ExtraDetails: map[string]interface{}{
-								"secretDetails": map[string]string{
+								"secretDetails": map[string]interface{}{
 									"name": "mockName2",
 									"sub":  "mockSub2",
 								},
@@ -408,7 +407,7 @@ func TestGetOutputYAML(t *testing.T) {
 							CvssScore:        8.2,
 							RuleDescription:  "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
 							ExtraDetails: map[string]interface{}{
-								"secretDetails": map[string]string{
+								"secretDetails": map[string]interface{}{
 									"name": "mockName2",
 									"sub":  "mockSub2",
 								},
@@ -429,49 +428,7 @@ func TestGetOutputYAML(t *testing.T) {
 			err = yaml.Unmarshal([]byte(output), &report)
 			assert.NoError(t, err)
 
-			assert.Equal(t, tc.report.TotalItemsScanned, report.TotalItemsScanned)
-			assert.Equal(t, tc.report.TotalSecretsFound, report.TotalSecretsFound)
-
-			for key, expectedSecretsList := range tc.report.Results {
-				actualSecretsList, exists := report.Results[key]
-				if !exists {
-					t.Errorf("Key %s not found in actual report results", key)
-					continue
-				}
-
-				for i, expectedSecret := range expectedSecretsList {
-					actualSecret := actualSecretsList[i]
-
-					assert.Equal(t, expectedSecret.ID, actualSecret.ID, "Mismatch in ID for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.Source, actualSecret.Source, "Mismatch in Source for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.RuleID, actualSecret.RuleID, "Mismatch in RuleID for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.StartLine, actualSecret.StartLine, "Mismatch in StartLine for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.EndLine, actualSecret.EndLine, "Mismatch in EndLine for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.LineContent, actualSecret.LineContent, "Mismatch in LineContent for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.StartColumn, actualSecret.StartColumn, "Mismatch in StartColumn for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.EndColumn, actualSecret.EndColumn, "Mismatch in EndColumn for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.Value, actualSecret.Value, "Mismatch in Value for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.ValidationStatus, actualSecret.ValidationStatus, "Mismatch in ValidationStatus for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.RuleDescription, actualSecret.RuleDescription, "Mismatch in RuleDescription for key %s at index %d", key, i)
-					assert.Equal(t, expectedSecret.CvssScore, actualSecret.CvssScore, "Mismatch in CvssScore for key %s at index %d", key, i)
-
-					expectedYAML, err := yaml.Marshal(expectedSecret.ExtraDetails)
-					if err != nil {
-						t.Errorf("Error serializing %s at index %d: %v", key, i, err)
-						continue
-					}
-
-					actualYAML, err := yaml.Marshal(actualSecret.ExtraDetails)
-					if err != nil {
-						t.Errorf("Error %s at index %d: %v", key, i, err)
-						continue
-					}
-
-					if !bytes.Equal(expectedYAML, actualYAML) {
-						t.Errorf("Mismatch in ExtraDetails for key %s at index %d:\nExpected:\n%s\nGot:\n%s", key, i, expectedYAML, actualYAML)
-					}
-				}
-			}
+			assert.Equal(t, tc.report, report)
 		})
 	}
 }
