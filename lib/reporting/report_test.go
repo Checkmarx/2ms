@@ -223,7 +223,9 @@ func TestWriteReportInNonExistingDir(t *testing.T) {
 		return
 	}
 
-	report.WriteFile(output, []string{filePath}, &config.Config{Name: "report", Version: "5"})
+	if err := report.WriteFile(output, []string{filePath}, &config.Config{Name: "report", Version: "5"}); err != nil {
+		t.Fatalf("Failed to write report to %s: %v", filePath, err)
+	}
 }
 
 func TestGetOutputSarif(t *testing.T) {

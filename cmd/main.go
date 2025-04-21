@@ -178,7 +178,9 @@ func postRun(cmd *cobra.Command, args []string) error {
 		}
 
 		if len(reportPathVar) > 0 {
-			Report.WriteFile(output, reportPathVar, cfg)
+			if err := Report.WriteFile(output, reportPathVar, cfg); err != nil {
+				log.Printf("Failed to write report: %v", err)
+			}
 		}
 	} else {
 		log.Info().Msg("Scan completed with empty content")
