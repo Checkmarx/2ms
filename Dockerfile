@@ -24,11 +24,7 @@ FROM cgr.dev/chainguard/git@sha256:2545cd570d26257e45c9d302cc459816ffc1e97de90d3
 
 WORKDIR /app
 
-RUN chown -R 65532:65532 /app
-
-USER 65532
-
-COPY --from=builder /app/2ms /app/2ms
+COPY --chown=65532:65532 --from=builder /app/2ms /app/2ms
 
 RUN git config --global --add safe.directory /repo      
 
