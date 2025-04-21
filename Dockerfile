@@ -26,6 +26,10 @@ WORKDIR /app
 
 COPY --chown=65532:65532 --from=builder /app/2ms /app/2ms
 
+USER 65532
+
+COPY --from=builder /app/2ms /app/2ms
+
 RUN git config --global --add safe.directory /repo      
 
 ENTRYPOINT [ "/app/2ms" ]
