@@ -8,7 +8,9 @@ import (
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/checkmarx/2ms/lib/utils"
 	"github.com/checkmarx/2ms/plugins"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -164,22 +166,23 @@ func postRun(cmd *cobra.Command, args []string) error {
 
 	cfg := config.LoadConfig("2ms", Version)
 
-	var output string
-	var err error
-
 	if Report.TotalItemsScanned > 0 {
-		output, err = Report.GetOutput(stdoutFormatVar, cfg)
-		if err != nil {
-			return err
-		}
+		if zerolog.GlobalLevel() != utils.NoneLevel || len(reportPathVar) > 0 {
+			output, err := Report.GetOutput(stdoutFormatVar, cfg)
+			if err != nil {
+				return err
+			}
 
-		if err := Report.ShowReport(output); err != nil {
-			return err
-		}
+			if zerolog.GlobalLevel() != utils.NoneLevel {
+				if err := Report.ShowReport(output); err != nil {
+					return err
+				}
+			}
 
-		if len(reportPathVar) > 0 {
-			if err := Report.WriteFile(output, reportPathVar, cfg); err != nil {
-				log.Printf("Failed to write report: %v", err)
+			if len(reportPathVar) > 0 {
+				if err := Report.WriteFile(output, reportPathVar, cfg); err != nil {
+					log.Printf("Failed to write report: %v", err)
+				}
 			}
 		}
 	} else {

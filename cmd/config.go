@@ -26,7 +26,7 @@ func initialize() {
 	logLevel := zerolog.InfoLevel
 	switch strings.ToLower(logLevelVar) {
 	case "none":
-		logLevel = zerolog.Disabled
+		logLevel = utils.NoneLevel
 	case "trace":
 		logLevel = zerolog.TraceLevel
 	case "debug":

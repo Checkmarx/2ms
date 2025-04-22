@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var NoneLevel = zerolog.Level(-1)
+var NoneLevel = zerolog.Disabled
 
 func LoadConfig(v *viper.Viper, configFilePath string) error {
 	if configFilePath == "" {
