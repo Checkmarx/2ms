@@ -69,6 +69,17 @@ func hasNoResults(report Report) bool {
 }
 
 func messageText(ruleName string, filePath string) string {
+	finalPath := filePath
+
+	// maintain only the filename if the scan target is git
+	if strings.HasPrefix(finalPath, "git show ") {
+		trimmed := strings.TrimPrefix(finalPath, "git show ")
+		parts := strings.Split(trimmed, ":")
+		if len(parts) == 2 {
+			return parts[1]
+		}
+	}
+
 	return fmt.Sprintf("%s has detected secret for file %s.", ruleName, filePath)
 }
 
