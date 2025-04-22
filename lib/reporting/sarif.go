@@ -71,8 +71,7 @@ func hasNoResults(report Report) bool {
 func messageText(ruleName string, filePath string) string {
 	// maintain only the filename if the scan target is git
 	if strings.HasPrefix(filePath, "git show ") {
-		trimmed := strings.TrimPrefix(filePath, "git show ")
-		parts := strings.Split(trimmed, ":")
+		parts := strings.Split(filePath, ":")
 		if len(parts) == 2 {
 			filePath = strings.ReplaceAll(parts[1], "/", "\\")
 		}
