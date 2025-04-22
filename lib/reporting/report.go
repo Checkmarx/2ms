@@ -5,8 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/checkmarx/2ms/lib/utils"
+
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -64,6 +67,9 @@ func (r *Report) GetOutput(format string, cfg *config.Config) (string, error) {
 	var output string
 	var err error
 
+	if zerolog.GlobalLevel() == utils.NoneLevel {
+		return "", nil
+	}
 	switch format {
 	case jsonFormat:
 		output, err = writeJson(r)
