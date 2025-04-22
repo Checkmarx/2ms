@@ -76,11 +76,11 @@ func messageText(ruleName string, filePath string) string {
 		trimmed := strings.TrimPrefix(finalPath, "git show ")
 		parts := strings.Split(trimmed, ":")
 		if len(parts) == 2 {
-			return parts[1]
+			finalPath = strings.ReplaceAll(parts[1], "/", "\\")
 		}
 	}
 
-	return fmt.Sprintf("%s has detected secret for file %s.", ruleName, filePath)
+	return fmt.Sprintf("%s has detected secret for file %s.", ruleName, finalPath)
 }
 
 func getResults(report Report) []Results {
