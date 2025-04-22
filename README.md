@@ -180,7 +180,7 @@ Flags:
                                       example: if 'results' is set, only engine errors will make 2ms exit code different from 0 (default none)
       --ignore-result strings         ignore specific result by id
       --ignore-rule strings           ignore rules by name or tag
-      --log-level string              log level (trace, debug, info, warn, error, fatal) (default "info")
+      --log-level string              log level (trace, debug, info, warn, error, fatal, none) (default "info")
       --max-target-megabytes int      files larger than this will be skipped.
                                       Omit or set to 0 to disable this check.
       --regex stringArray             custom regexes to apply to the scan, must be valid Go regex
