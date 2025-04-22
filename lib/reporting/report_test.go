@@ -11,6 +11,7 @@ import (
 
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
@@ -229,6 +230,9 @@ func TestWriteReportInNonExistingDir(t *testing.T) {
 }
 
 func TestGetOutputSarif(t *testing.T) {
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
 	tests := []struct {
 		name    string
 		arg     Report

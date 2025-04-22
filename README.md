@@ -376,7 +376,7 @@ The following table describes the global flags that can be used together with an
 |--ignore-on-exit |  | None | Defines which kind of non-zero exits code should be ignored. Options are: all, results, errors, none. For example, if 'results' is set, only engine errors will make 2ms exit code different from 0. |
 |--ignore-result | strings |  | Ignore specific result by ID |
 |--ignore-rule | strings |  | Ignore rules by name or tag. |
-|--log-level | string | info | Type of log to return. Options are: trace, debug, info, warn, error, fatal |
+|--log-level | string | info | Type of log to return. Options are: trace, debug, info, warn, error, fatal, none |
 |--max-target-megabytes | int |  | Files larger than than the specified threshold will be skipped. Omit or set to 0 to disable this check. |
 |--regex | stringArray |  | Custom regexes to apply to the scan. Must be valid Go regex. |
 |--report-path | strings |  | Path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif) |
