@@ -8,7 +8,6 @@ import (
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
-	"github.com/checkmarx/2ms/lib/utils"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -167,13 +166,13 @@ func postRun(cmd *cobra.Command, args []string) error {
 	cfg := config.LoadConfig("2ms", Version)
 
 	if Report.TotalItemsScanned > 0 {
-		if zerolog.GlobalLevel() != utils.NoneLevel || len(reportPathVar) > 0 {
+		if zerolog.GlobalLevel() != zerolog.Disabled || len(reportPathVar) > 0 {
 			output, err := Report.GetOutput(stdoutFormatVar, cfg)
 			if err != nil {
 				return err
 			}
 
-			if zerolog.GlobalLevel() != utils.NoneLevel {
+			if zerolog.GlobalLevel() != zerolog.Disabled {
 				if err := Report.ShowReport(output); err != nil {
 					return err
 				}
