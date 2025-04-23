@@ -33,6 +33,7 @@ const (
 	ignoreOnExitFlagName       = "ignore-on-exit"
 	maxTargetMegabytesFlagName = "max-target-megabytes"
 	validate                   = "validate"
+	maxConcurrentFilesFlagName = "max-concurrent-files"
 )
 
 var (
@@ -97,6 +98,7 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 	rootCmd.PersistentFlags().IntVar(&engineConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
 	rootCmd.PersistentFlags().BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
+	rootCmd.PersistentFlags().IntVar(&engineConfigVar.MaxConcurrentFiles, maxConcurrentFilesFlagName, 0, "maximum number of files to scan concurrently.\nOmit or set to 0 to disable this check.")
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
 
@@ -130,17 +132,17 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	engine, err := engine.Init(engineConfigVar)
+	engineInstance, err := engine.Init(engineConfigVar)
 	if err != nil {
 		return err
 	}
 
-	if err := engine.AddRegexRules(customRegexRuleVar); err != nil {
+	if err := engineInstance.AddRegexRules(customRegexRuleVar); err != nil {
 		return err
 	}
 
 	Channels.WaitGroup.Add(1)
-	go ProcessItems(engine, pluginName)
+	go ProcessItems(engineInstance, pluginName)
 
 	Channels.WaitGroup.Add(1)
 	go ProcessSecrets()
@@ -150,10 +152,10 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 
 	if validateVar {
 		Channels.WaitGroup.Add(1)
-		go ProcessValidationAndScoreWithValidation(engine)
+		go ProcessValidationAndScoreWithValidation(engineInstance)
 	} else {
 		Channels.WaitGroup.Add(1)
-		go ProcessScoreWithoutValidation(engine)
+		go ProcessScoreWithoutValidation(engineInstance)
 	}
 
 	return nil

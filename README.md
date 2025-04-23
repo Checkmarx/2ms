@@ -181,6 +181,8 @@ Flags:
       --ignore-result strings         ignore specific result by id
       --ignore-rule strings           ignore rules by name or tag
       --log-level string              log level (trace, debug, info, warn, error, fatal) (default "info")
+      --max-concurrent-files int      maximum number of files to scan concurrently.
+                                      Omit or set to 0 to disable this check.
       --max-target-megabytes int      files larger than this will be skipped.
                                       Omit or set to 0 to disable this check.
       --regex stringArray             custom regexes to apply to the scan, must be valid Go regex

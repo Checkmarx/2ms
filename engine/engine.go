@@ -1,10 +1,13 @@
 package engine
 
 import (
-	"crypto/sha1"
+	"bufio"
+	"bytes"
 	"fmt"
-	"github.com/checkmarx/2ms/engine/linecontent"
 	"github.com/checkmarx/2ms/engine/score"
+	"github.com/checkmarx/2ms/engine/utils"
+	"github.com/h2non/filetype"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -19,7 +22,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
-	"github.com/zricethezav/gitleaks/v8/report"
 )
 
 type Engine struct {
@@ -27,6 +29,7 @@ type Engine struct {
 	rulesBaseRiskScore map[string]float64
 	detector           detect.Detector
 	validator          validation.Validator
+	MaxConcurrentFiles int
 
 	ignoredIds    []string
 	allowedValues []string
@@ -44,6 +47,7 @@ type EngineConfig struct {
 	SpecialList  []string
 
 	MaxTargetMegabytes int
+	MaxConcurrentFiles int
 
 	IgnoredIds    []string
 	AllowedValues []string
@@ -76,6 +80,7 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 		rulesBaseRiskScore: rulesBaseRiskScore,
 		detector:           *detector,
 		validator:          *validation.NewValidator(),
+		MaxConcurrentFiles: engineConfig.MaxConcurrentFiles,
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
