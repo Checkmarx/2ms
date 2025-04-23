@@ -32,7 +32,11 @@ type Engine struct {
 	allowedValues []string
 }
 
-const customRegexRuleIdFormat = "custom-regex-%d"
+const (
+	customRegexRuleIdFormat = "custom-regex-%d"
+	chunkSize               = 100 * 1_000 // 100kb
+	maxPeekSize             = 25 * 1_000  // 10kb
+)
 
 type EngineConfig struct {
 	SelectedList []string
@@ -78,44 +82,98 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, pluginName string, errors chan error) {
+func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, errors chan error) {
 	defer wg.Done()
 
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
-	for _, value := range e.detector.Detect(fragment) {
-		itemId := getFindingId(item, value)
-		var startLine, endLine int
-		if pluginName == "filesystem" {
-			startLine = value.StartLine + 1
-			endLine = value.EndLine + 1
-		} else {
-			startLine = value.StartLine
-			endLine = value.EndLine
-		}
-		lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
-		if err != nil {
-			errors <- fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
+	e.detectSecrets(item, fragment, secretsChannel, errors)
+}
+
+func (e *Engine) DetectFiles(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup,
+	errors chan error /*, sem chan struct{}*/) {
+	defer wg.Done()
+	//defer func() {
+	//	<-sem // Release slot in semaphore
+	//}()
+
+	f, err := os.Open(item.GetSource())
+	if err != nil {
+		errors <- fmt.Errorf("failed to open file %s: %w", item.GetSource(), err)
+		return
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	fileInfo, err := f.Stat()
+	if err != nil {
+		errors <- fmt.Errorf("failed to get file info %s: %w", item.GetSource(), err)
+		return
+	}
+	// Check if file size exceeds the limit
+	fileSize := fileInfo.Size()
+	if e.detector.MaxTargetMegaBytes > 0 {
+		rawLength := fileSize / 1000000
+		if rawLength > int64(e.detector.MaxTargetMegaBytes) {
+			log.Debug().
+				Int64("size", rawLength).
+				Msg("Skipping file: exceeds --max-target-megabytes")
 			return
 		}
-		secret := &secrets.Secret{
-			ID:              itemId,
-			Source:          item.GetSource(),
-			RuleID:          value.RuleID,
-			StartLine:       startLine,
-			StartColumn:     value.StartColumn,
-			EndLine:         endLine,
-			EndColumn:       value.EndColumn,
-			Value:           value.Secret,
-			LineContent:     lineContent,
-			RuleDescription: value.Description,
+	}
+
+	var (
+		// Buffer to hold file chunks
+		reader     = bufio.NewReaderSize(f, chunkSize)
+		buf        = make([]byte, chunkSize)
+		totalLines = 0
+	)
+	for {
+		n, err := reader.Read(buf)
+
+		// "Callers should always process the n > 0 bytes returned before considering the error err."
+		// https://pkg.go.dev/io#Reader
+		if n > 0 {
+			// Only check the filetype at the start of file
+			if totalLines == 0 {
+				// TODO: could other optimizations be introduced here?
+				if mimetype, err := filetype.Match(buf[:n]); err != nil {
+					errors <- fmt.Errorf("failed to detect file type for %s: %w", item.GetSource(), err)
+					return
+				} else if mimetype.MIME.Type == "application" {
+					return // skip binary files
+				}
+			}
+
+			// Try to split chunks across large areas of whitespace, if possible.
+			peekBuf := bytes.NewBuffer(buf[:n])
+			if readErr := utils.ReadUntilSafeBoundary(reader, n, maxPeekSize, peekBuf); readErr != nil {
+				errors <- fmt.Errorf("failed to read file %s: %w", item.GetSource(), readErr)
+				return
+			}
+
+			// Count the number of newlines in this chunk
+			chunk := peekBuf.String()
+			linesInChunk := strings.Count(chunk, "\n")
+			totalLines += linesInChunk
+
+			fragment := detect.Fragment{
+				Raw:      chunk,
+				FilePath: item.GetSource(),
+			}
+			e.detectSecrets(item, fragment, secretsChannel, errors)
 		}
-		if !isSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
-			secretsChannel <- secret
-		} else {
-			log.Debug().Msgf("Secret %s was ignored", secret.ID)
+
+		// Check if we reached the end of the file
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			errors <- fmt.Errorf("failed to read file %s: %w", item.GetSource(), err)
+			return
 		}
 	}
 }
@@ -137,42 +195,42 @@ func (e *Engine) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func (s *Engine) RegisterForValidation(secret *secrets.Secret, wg *sync.WaitGroup) {
+func (e *Engine) RegisterForValidation(secret *secrets.Secret, wg *sync.WaitGroup) {
 	defer wg.Done()
-	s.validator.RegisterForValidation(secret)
+	e.validator.RegisterForValidation(secret)
 }
 
-func (s *Engine) Score(secret *secrets.Secret, validateFlag bool, wg *sync.WaitGroup) {
+func (e *Engine) Score(secret *secrets.Secret, validateFlag bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 	validationStatus := secrets.UnknownResult // default validity
 	if validateFlag {
 		validationStatus = secret.ValidationStatus
 	}
-	secret.CvssScore = score.GetCvssScore(s.GetRuleBaseRiskScore(secret.RuleID), validationStatus)
+	secret.CvssScore = score.GetCvssScore(e.GetRuleBaseRiskScore(secret.RuleID), validationStatus)
 }
 
-func (s *Engine) Validate() {
-	s.validator.Validate()
+func (e *Engine) Validate() {
+	e.validator.Validate()
 }
 
-func getFindingId(item plugins.ISourceItem, finding report.Finding) string {
-	idParts := []string{item.GetID(), finding.RuleID, finding.Secret}
-	sha := sha1.Sum([]byte(strings.Join(idParts, "-")))
-	return fmt.Sprintf("%x", sha)
+func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
+	return e.rulesBaseRiskScore[ruleId]
 }
 
-func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string) bool {
-	for _, allowedValue := range *allowedValues {
-		if secret.Value == allowedValue {
-			return true
+func (e *Engine) detectSecrets(item plugins.ISourceItem, fragment detect.Fragment, channel chan *secrets.Secret, errors chan error) {
+	for _, value := range e.detector.Detect(fragment) {
+		// Build secret
+		secret, buildErr := utils.BuildSecret(item, value)
+		if buildErr != nil {
+			errors <- buildErr
+			return
+		}
+		if !utils.IsSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
+			channel <- secret
+		} else {
+			log.Debug().Msgf("Secret %s was ignored", secret.ID)
 		}
 	}
-	for _, ignoredId := range *ignoredIds {
-		if secret.ID == ignoredId {
-			return true
-		}
-	}
-	return false
 }
 
 func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
@@ -210,8 +268,4 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 			return nil
 		},
 	}
-}
-
-func (s *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
-	return s.rulesBaseRiskScore[ruleId]
 }

@@ -81,7 +81,7 @@ func TestDetector(t *testing.T) {
 		errorsChan := make(chan error, 1)
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
-		detector.Detect(i, secretsChan, wg, fsPlugin.GetName(), errorsChan)
+		detector.Detect(i, secretsChan, wg, errorsChan)
 		close(secretsChan)
 
 		s := <-secretsChan
@@ -157,7 +157,7 @@ func TestSecrets(t *testing.T) {
 			errorsChan := make(chan error, 1)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
-			detector.Detect(item{content: &secret.Content}, secretsChan, wg, fsPlugin.GetName(), errorsChan)
+			detector.Detect(item{content: &secret.Content}, secretsChan, wg, errorsChan)
 			close(secretsChan)
 			close(errorsChan)
 

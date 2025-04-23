@@ -7,13 +7,21 @@ import (
 	"sync"
 )
 
-func ProcessItems(engine *engine.Engine, pluginName string) {
+func ProcessItems(engineInstance *engine.Engine, pluginName string) {
 	defer Channels.WaitGroup.Done()
+
 	wgItems := &sync.WaitGroup{}
+	// Semaphore to limit concurrency of processing items (in case of filesystem scans)
+	//sem := make(chan struct{}, engineInstance.MaxConcurrentFiles)
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
 		wgItems.Add(1)
-		go engine.Detect(item, SecretsChan, wgItems, pluginName, Channels.Errors)
+		if pluginName == "filesystem" {
+			//sem <- struct{}{} // Acquire slot
+			go engineInstance.DetectFiles(item, SecretsChan, wgItems, Channels.Errors /*, sem*/)
+		} else {
+			go engineInstance.Detect(item, SecretsChan, wgItems, Channels.Errors)
+		}
 	}
 	wgItems.Wait()
 	close(SecretsChan)
