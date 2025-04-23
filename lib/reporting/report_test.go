@@ -214,19 +214,15 @@ JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 
 func TestWriteReportInNonExistingDir(t *testing.T) {
 	report := Init()
+
 	tempDir := os.TempDir()
-	dirPath := filepath.Join(tempDir, "test_temp_dir", "sub_dir")
-	filePath := filepath.Join(dirPath, "report.yaml")
-	defer os.RemoveAll(filepath.Join(tempDir, "test_temp_dir"))
-	output, err := report.GetOutput("yaml", &config.Config{Name: "report", Version: "5"})
+	path := filepath.Join(tempDir, "test_temp_dir", "sub_dir", "report.yaml")
+	err := report.WriteFile([]string{path}, &config.Config{Name: "report", Version: "5"})
 	if err != nil {
-		t.Error("Failed to get report output:", err)
-		return
+		t.Error(err)
 	}
 
-	if err := report.WriteFile(output, []string{filePath}, &config.Config{Name: "report", Version: "5"}); err != nil {
-		t.Fatalf("Failed to write report to %s: %v", filePath, err)
-	}
+	os.RemoveAll(filepath.Join(tempDir, "test_temp_dir"))
 }
 
 func TestGetOutputSarif(t *testing.T) {
