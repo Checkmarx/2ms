@@ -28,7 +28,6 @@ func Init() *Report {
 		Results: make(map[string][]*secrets.Secret),
 	}
 }
-
 func (r *Report) ShowReport(format string, cfg *config.Config) error {
 	output, err := r.GetOutput(format, cfg)
 	if err != nil {
@@ -69,14 +68,13 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 func (r *Report) GetOutput(format string, cfg *config.Config) (string, error) {
 	var output string
 	var err error
-
 	switch format {
 	case jsonFormat:
-		output, err = writeJson(*r)
+		output, err = writeJson(r)
 	case longYamlFormat, shortYamlFormat:
-		output, err = writeYaml(*r)
+		output, err = writeYaml(r)
 	case sarifFormat:
-		output, err = writeSarif(*r, cfg)
+		output, err = writeSarif(r, cfg)
 	}
 	return output, err
 }

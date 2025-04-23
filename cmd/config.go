@@ -13,6 +13,7 @@ import (
 )
 
 func initialize() {
+
 	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
 	if err != nil {
 		cobra.CheckErr(err)
@@ -22,6 +23,8 @@ func initialize() {
 
 	logLevel := zerolog.InfoLevel
 	switch strings.ToLower(logLevelVar) {
+	case "none":
+		logLevel = zerolog.Disabled
 	case "trace":
 		logLevel = zerolog.TraceLevel
 	case "debug":
