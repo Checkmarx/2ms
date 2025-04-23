@@ -33,7 +33,7 @@ func (r *Report) ShowReport(output string) error {
 	return nil
 }
 
-func (r *Report) WriteFile(output string, reportPath []string, cfg *config.Config) error {
+func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 	for _, path := range reportPath {
 		err := os.MkdirAll(filepath.Dir(path), 0750)
 		if err != nil {
