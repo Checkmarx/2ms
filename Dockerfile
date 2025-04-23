@@ -30,6 +30,6 @@ USER 65532
 
 COPY --from=builder /app/2ms /app/2ms
 
-RUN git config --global --add safe.directory /repo  
+RUN git config --global --add safe.directory /repo
 
 ENTRYPOINT [ "/app/2ms" ]
