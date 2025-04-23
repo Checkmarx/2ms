@@ -28,7 +28,12 @@ func Init() *Report {
 		Results: make(map[string][]*secrets.Secret),
 	}
 }
-func (r *Report) ShowReport(output string) error {
+func (r *Report) ShowReport(format string, cfg *config.Config) error {
+	output, err := r.GetOutput(format, cfg)
+	if err != nil {
+		return err
+	}
+
 	log.Info().Msg("\n" + output)
 	return nil
 }

@@ -168,21 +168,19 @@ func postRun(cmd *cobra.Command, args []string) error {
 	if Report.TotalItemsScanned > 0 {
 
 		if zerolog.GlobalLevel() != zerolog.Disabled {
-			output, err := Report.GetOutput(stdoutFormatVar, cfg)
-			if err != nil {
-				return err
-			}
-
-			if err := Report.ShowReport(output); err != nil {
+			if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
 				return err
 			}
 		}
 
 		if len(reportPathVar) > 0 {
-			if err := Report.WriteFile(reportPathVar, cfg); err != nil {
-				log.Printf("Failed to write report: %v", err)
+			err := Report.WriteFile(reportPathVar, cfg)
+			if err != nil {
+				return fmt.Errorf("failed to create report file with error: %s", err)
 			}
 		}
+	} else {
+		log.Info().Msg("Scan completed with empty content")
 	}
 
 	return nil
