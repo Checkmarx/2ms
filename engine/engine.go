@@ -3,10 +3,12 @@ package engine
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/checkmarx/2ms/engine/score"
 	"github.com/checkmarx/2ms/engine/utils"
 	"github.com/h2non/filetype"
+	"golang.org/x/sync/semaphore"
 	"io"
 	"os"
 	"regexp"
@@ -37,8 +39,23 @@ type Engine struct {
 
 const (
 	customRegexRuleIdFormat = "custom-regex-%d"
-	chunkSize               = 100 * 1_000 // 100kb
-	maxPeekSize             = 25 * 1_000  // 10kb
+	ChunkSize               = 100 * 1_000     // 100kb
+	MaxPeekSize             = 25 * 1_000      // 10kb
+	SmallFileThreshold      = 1 * 1024 * 1024 // 1MB
+)
+
+var (
+	// Hols the buffer for reading chunks
+	bufPool = sync.Pool{
+		New: func() interface{} { return make([]byte, ChunkSize) },
+	}
+	// Holds the buffer for peeking
+	peekBufPool = sync.Pool{
+		New: func() interface{} {
+			// pre-allocate enough capacity for initial chunk + peek
+			return bytes.NewBuffer(make([]byte, 0, ChunkSize+MaxPeekSize))
+		},
+	}
 )
 
 type EngineConfig struct {
@@ -87,56 +104,88 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, errors chan error) {
-	defer wg.Done()
-
+func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error {
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
-	e.detectSecrets(item, fragment, secretsChannel, errors)
+
+	return e.DetectSecrets(item, fragment, secretsChannel)
 }
 
-func (e *Engine) DetectFiles(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup,
-	errors chan error /*, sem chan struct{}*/) {
-	defer wg.Done()
-	//defer func() {
-	//	<-sem // Release slot in semaphore
-	//}()
+func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secretsChannel chan *secrets.Secret,
+	memoryBudget int64, sem *semaphore.Weighted) error {
 
+	fi, err := os.Stat(item.GetSource())
+	if err != nil {
+		return fmt.Errorf("failed to stat %q: %w", item.GetSource(), err)
+	}
+	// Check if file size exceeds the limit
+	fileSize := fi.Size()
+	if e.detector.MaxTargetMegaBytes > 0 {
+		rawLength := fileSize / 1000000 // convert to MB
+		if rawLength > int64(e.detector.MaxTargetMegaBytes) {
+			log.Debug().
+				Int64("size", rawLength).
+				Msg("Skipping file: exceeds --max-target-megabytes")
+			return nil
+		}
+	}
+
+	// Check if file size exceeds the file threshold, if so, use chunking, if not, read the whole file
+	if fileSize > SmallFileThreshold {
+		// 2 * ChunkSize    // raw read buffer + bufio.Reader’s internal slice
+		// + (ChunkSize+MaxPeekSize)  // peekBuf backing slice
+		// + (ChunkSize+MaxPeekSize)  // chunkStr copy
+		weight := int64(4*ChunkSize + 2*MaxPeekSize)
+		if weight > memoryBudget {
+			return fmt.Errorf("buffer size %d exceeds memory budget %d", weight, memoryBudget)
+		}
+
+		if err := sem.Acquire(ctx, weight); err != nil {
+			return fmt.Errorf("failed to acquire semaphore: %w", err)
+		}
+		defer sem.Release(weight)
+
+		return e.DetectChunks(item, secretsChannel)
+	} else {
+		weight := fileSize * 2 // 2x for the data file bytes and its conversion to string
+		if weight > memoryBudget {
+			return fmt.Errorf("buffer size %d exceeds memory budget %d", weight, memoryBudget)
+		}
+
+		if err := sem.Acquire(ctx, weight); err != nil {
+			return fmt.Errorf("failed to acquire semaphore: %w", err)
+		}
+		defer sem.Release(weight)
+
+		data, err := os.ReadFile(item.GetSource())
+		if err != nil {
+			return fmt.Errorf("read small file %q: %w", item.GetSource(), err)
+		}
+		fragment := detect.Fragment{
+			Raw:      string(data),
+			FilePath: item.GetSource(),
+		}
+		return e.DetectSecrets(item, fragment, secretsChannel)
+	}
+}
+
+func (e *Engine) DetectChunks(item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error {
 	f, err := os.Open(item.GetSource())
 	if err != nil {
-		errors <- fmt.Errorf("failed to open file %s: %w", item.GetSource(), err)
-		return
+		return fmt.Errorf("failed to open file %s: %w", item.GetSource(), err)
 	}
 	defer func() {
 		_ = f.Close()
 	}()
 
-	fileInfo, err := f.Stat()
-	if err != nil {
-		errors <- fmt.Errorf("failed to get file info %s: %w", item.GetSource(), err)
-		return
-	}
-	// Check if file size exceeds the limit
-	fileSize := fileInfo.Size()
-	if e.detector.MaxTargetMegaBytes > 0 {
-		rawLength := fileSize / 1000000
-		if rawLength > int64(e.detector.MaxTargetMegaBytes) {
-			log.Debug().
-				Int64("size", rawLength).
-				Msg("Skipping file: exceeds --max-target-megabytes")
-			return
-		}
-	}
+	reader := bufio.NewReaderSize(f, ChunkSize)
+	totalLines := 0
 
-	var (
-		// Buffer to hold file chunks
-		reader     = bufio.NewReaderSize(f, chunkSize)
-		buf        = make([]byte, chunkSize)
-		totalLines = 0
-	)
 	for {
+		// Reuse the buffer from the pool
+		buf := bufPool.Get().([]byte)
 		n, err := reader.Read(buf)
 
 		// "Callers should always process the n > 0 bytes returned before considering the error err."
@@ -146,39 +195,53 @@ func (e *Engine) DetectFiles(item plugins.ISourceItem, secretsChannel chan *secr
 			if totalLines == 0 {
 				// TODO: could other optimizations be introduced here?
 				if mimetype, err := filetype.Match(buf[:n]); err != nil {
-					errors <- fmt.Errorf("failed to detect file type for %s: %w", item.GetSource(), err)
-					return
+					return nil // could not determine file type
 				} else if mimetype.MIME.Type == "application" {
-					return // skip binary files
+					return nil // skip binary files
 				}
 			}
 
-			// Try to split chunks across large areas of whitespace, if possible.
-			peekBuf := bytes.NewBuffer(buf[:n])
-			if readErr := utils.ReadUntilSafeBoundary(reader, n, maxPeekSize, peekBuf); readErr != nil {
-				errors <- fmt.Errorf("failed to read file %s: %w", item.GetSource(), readErr)
-				return
+			// Use a separate buffer for peeking
+			peekBuf := peekBufPool.Get().(*bytes.Buffer)
+			peekBuf.Reset()
+			peekBuf.Write(buf[:n]) // seed with what we've read
+
+			// Try to split chunks across large areas of whitespace, if possible
+			if readErr := utils.ReadUntilSafeBoundary(reader, n, MaxPeekSize, peekBuf); readErr != nil {
+				// release before early return
+				bufPool.Put(buf)
+				peekBufPool.Put(peekBuf)
+				return fmt.Errorf("failed to read file %s: %w", item.GetSource(), readErr)
 			}
 
 			// Count the number of newlines in this chunk
-			chunk := peekBuf.String()
-			linesInChunk := strings.Count(chunk, "\n")
+			chunkStr := peekBuf.String()
+			linesInChunk := strings.Count(chunkStr, "\n")
 			totalLines += linesInChunk
 
 			fragment := detect.Fragment{
-				Raw:      chunk,
+				Raw:      chunkStr,
 				FilePath: item.GetSource(),
 			}
-			e.detectSecrets(item, fragment, secretsChannel, errors)
-		}
+			detectErr := e.DetectSecrets(item, fragment, secretsChannel)
+			if detectErr != nil {
+				// release before early return
+				bufPool.Put(buf)
+				peekBufPool.Put(peekBuf)
+				return fmt.Errorf("failed to detect secrets in file %s: %w", item.GetSource(), detectErr)
+			}
 
-		// Check if we reached the end of the file
+			// Put the peek buffer back into the pool
+			peekBufPool.Put(peekBuf)
+		}
+		// Put the buffer back into the pool
+		bufPool.Put(buf)
+
 		if err != nil {
 			if err == io.EOF {
-				return
+				return nil
 			}
-			errors <- fmt.Errorf("failed to read file %s: %w", item.GetSource(), err)
-			return
+			return fmt.Errorf("failed to read file %s: %w", item.GetSource(), err)
 		}
 	}
 }
@@ -222,13 +285,12 @@ func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
 	return e.rulesBaseRiskScore[ruleId]
 }
 
-func (e *Engine) detectSecrets(item plugins.ISourceItem, fragment detect.Fragment, channel chan *secrets.Secret, errors chan error) {
+func (e *Engine) DetectSecrets(item plugins.ISourceItem, fragment detect.Fragment, channel chan *secrets.Secret) error {
 	for _, value := range e.detector.Detect(fragment) {
 		// Build secret
 		secret, buildErr := utils.BuildSecret(item, value)
 		if buildErr != nil {
-			errors <- buildErr
-			return
+			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
 		if !utils.IsSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
 			channel <- secret
@@ -236,6 +298,7 @@ func (e *Engine) detectSecrets(item plugins.ISourceItem, fragment detect.Fragmen
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
 		}
 	}
+	return nil
 }
 
 func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {

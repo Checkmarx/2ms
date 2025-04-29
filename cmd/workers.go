@@ -1,29 +1,44 @@
 package cmd
 
 import (
+	"context"
 	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/engine/extra"
 	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/shirou/gopsutil/mem"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
+	"io/ioutil"
+	"strconv"
+	"strings"
 	"sync"
 )
 
 func ProcessItems(engineInstance *engine.Engine, pluginName string) {
 	defer Channels.WaitGroup.Done()
 
-	wgItems := &sync.WaitGroup{}
-	// Semaphore to limit concurrency of processing items (in case of filesystem scans)
-	//sem := make(chan struct{}, engineInstance.MaxConcurrentFiles)
+	g, ctx := errgroup.WithContext(context.Background())
+	memoryBudget := chooseMemoryBudget()
+	sem := semaphore.NewWeighted(memoryBudget)
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
-		wgItems.Add(1)
-		if pluginName == "filesystem" {
-			//sem <- struct{}{} // Acquire slot
-			go engineInstance.DetectFiles(item, SecretsChan, wgItems, Channels.Errors /*, sem*/)
-		} else {
-			go engineInstance.Detect(item, SecretsChan, wgItems, Channels.Errors)
+		item := item
+
+		switch pluginName {
+		case "filesystem":
+			g.Go(func() error {
+				return engineInstance.DetectFile(ctx, item, SecretsChan, memoryBudget, sem)
+			})
+		default:
+			g.Go(func() error {
+				return engineInstance.Detect(item, SecretsChan)
+			})
 		}
 	}
-	wgItems.Wait()
+
+	if err := g.Wait(); err != nil {
+		Channels.Errors <- err
+	}
 	close(SecretsChan)
 }
 
@@ -81,4 +96,62 @@ func ProcessScoreWithoutValidation(engine *engine.Engine) {
 		go engine.Score(secret, false, wgScore)
 	}
 	wgScore.Wait()
+}
+
+// getCgroupMemoryLimit returns the memory cap imposed by cgroups in bytes
+func getCgroupMemoryLimit() uint64 {
+	// Try cgroup v2: unified hierarchy
+	if data, err := ioutil.ReadFile("/sys/fs/cgroup/memory.max"); err == nil {
+		s := strings.TrimSpace(string(data))
+		if s != "max" {
+			if v, err := strconv.ParseUint(s, 10, 64); err == nil {
+				return v
+			}
+		}
+	}
+	// Fallback cgroup v1
+	if data, err := ioutil.ReadFile("/sys/fs/cgroup/memory/memory.limit_in_bytes"); err == nil {
+		if v, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64); err == nil {
+			return v
+		}
+	}
+	// No limit detected
+	return ^uint64(0) // max uint64
+}
+
+// getTotalMemory returns the total physical RAM in bytes
+func getTotalMemory() uint64 {
+	if vm, err := mem.VirtualMemory(); err == nil {
+		return vm.Total
+	}
+	return ^uint64(0) // max uint64
+}
+
+// chooseMemoryBudget picks 50% of total RAM (but at least 256 MiB)
+func chooseMemoryBudget() int64 {
+	// Physical RAM
+	totalHost := getTotalMemory()
+
+	// Cgroup limit
+	cgroupLimit := getCgroupMemoryLimit()
+
+	// Effective total = min(host, cgroup)
+	var effectiveTotal uint64
+	if totalHost < cgroupLimit {
+		effectiveTotal = totalHost
+	} else {
+		effectiveTotal = cgroupLimit
+	}
+
+	// use 50% but cap to [256 MiB -> total − safety margin]
+	safetyMargin := uint64(200 * 1024 * 1024) // reserve 200 MiB for OS/other processes
+	avail := effectiveTotal
+	if effectiveTotal > safetyMargin {
+		avail = effectiveTotal - safetyMargin
+	}
+	budget := int64(avail / 2) // use half of what remains
+	if budget < 256*1024*1024 {
+		budget = 256 * 1024 * 1024
+	}
+	return budget
 }

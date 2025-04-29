@@ -120,7 +120,7 @@ func ReadUntilSafeBoundary(r *bufio.Reader, n int, maxPeekSize int, peekBuf *byt
 			if err == io.EOF {
 				break
 			}
-			return err
+			return fmt.Errorf("failed to read byte: %w", err)
 		}
 		peekBuf.WriteByte(b)
 	}
