@@ -81,8 +81,8 @@ func (p *GitPlugin) buildScanOptions() string {
 }
 
 func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan ISourceItem, errChan chan error) {
-	diffs, close := p.readGitLog(path, scanOptions, errChan)
-	defer close()
+	diffs, wait := p.readGitLog(path, scanOptions, errChan)
+	defer wait()
 
 	for file := range diffs {
 		p.processFileDiff(file, itemsChan)
