@@ -92,8 +92,8 @@ func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan ISou
 // processFileDiff handles processing a single diff file.
 func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceItem) {
 	if file.PatchHeader == nil {
-		// When parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value.
-		// This scenario is unlikely but may cause the scan to never complete.
+		// When parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value
+		// This scenario is unlikely but may cause the scan to never complete
 		file.PatchHeader = &gitdiff.PatchHeader{}
 	}
 
@@ -104,7 +104,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		return
 	}
 
-	// Extract the changes (added and removed) from the text fragments.
+	// Extract the changes (added and removed) from the text fragments
 	addedChanges, removedChanges := extractChanges(file.TextFragments)
 
 	var fileName string
@@ -116,7 +116,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 	id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
 	source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
 
-	// If there are added changes, send an item with added content.
+	// If there are added changes, send an item with added content
 	if addedChanges != "" {
 		itemsChan <- item{
 			Content: &addedChanges,
@@ -129,7 +129,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		}
 	}
 
-	// If there are removed changes, send an item with removed content.
+	// If there are removed changes, send an item with removed content
 	if removedChanges != "" {
 		itemsChan <- item{
 			Content: &removedChanges,
@@ -143,7 +143,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 	}
 }
 
-// extractChanges iterates over the text fragments to compile added and removed changes.
+// extractChanges iterates over the text fragments to compile added and removed changes
 func extractChanges(fragments []*gitdiff.TextFragment) (added string, removed string) {
 	var addedBuilder, removedBuilder strings.Builder
 
@@ -159,7 +159,7 @@ func extractChanges(fragments []*gitdiff.TextFragment) (added string, removed st
 				removedBuilder.WriteString(tf.Lines[i].Line)
 			default:
 			}
-			// Clean up the line content to free memory.
+			// Clean up the line content to free memory
 			tf.Lines[i].Line = ""
 		}
 	}
@@ -205,59 +205,56 @@ func validGitRepoArgs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func GetGitStartAndEndLine(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
-	if gitInfo.ContentType == AddedContent {
-		return getGitStartAndEndLineAddedContent(gitInfo, localStartLine, localEndLine)
-	} else if gitInfo.ContentType == RemovedContent {
-		return getGitStartAndEndLineRemovedContent(gitInfo, localStartLine, localEndLine)
+// GetGitStartAndEndLine walks the diff hunks and discover the actual start and end lines of the file
+func GetGitStartAndEndLine(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int, error) {
+	hunkPosition, hunkCount, relevantOp, err := getHunkPosAndCount(gitInfo)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get hunk position and count: %w", err)
 	}
-	return 0, 0
-}
 
-func getGitStartAndEndLineAddedContent(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
-	addedIndex := 0
+	diffLines := 0 // Tracks how many lines have been processed in the diff
 	for _, hunk := range gitInfo.Hunks {
-		fileStartLine := int(hunk.NewPosition) - 1
-		addedLines := int(hunk.LinesAdded)
-		if addedIndex+addedLines <= localStartLine {
-			addedIndex += addedLines
+		// If the hunk ends before the start line in the file diff, skip it
+		totalLines := hunkCount(hunk)
+		if diffLines+totalLines <= localStartLine {
+			diffLines += totalLines
 			continue
 		}
+
+		// Get the start line of the hunk in the file diff and walk through its lines to find the actual start line
+		fileStartLine := hunkPosition(hunk) - 1
 		for _, line := range hunk.Lines {
-			if line.Op == gitdiff.OpAdd {
+			switch line.Op {
+			case relevantOp:
 				fileStartLine += 1
-				if addedIndex == localStartLine {
-					return fileStartLine, (fileStartLine - localStartLine) + localEndLine
+				if diffLines == localStartLine {
+					fileEndLine := fileStartLine + (localEndLine - localStartLine)
+					return fileStartLine, fileEndLine, nil
 				}
-				addedIndex += 1
-			} else if line.Op == gitdiff.OpContext {
+				diffLines += 1
+			case gitdiff.OpContext: // Context lines are not counted in the diff
 				fileStartLine += 1
+			default:
 			}
 		}
 	}
-	return 0, 0
+	// Did not find the start line in any hunk
+	return 0, 0, fmt.Errorf("failed to find start line %d in hunks", localStartLine)
 }
 
-func getGitStartAndEndLineRemovedContent(gitInfo *GitInfo, localStartLine, localEndLine int) (int, int) {
-	removedIndex := 0
-	for _, hunk := range gitInfo.Hunks {
-		fileStartLine := int(hunk.OldPosition) - 1
-		deletedLines := int(hunk.LinesDeleted)
-		if removedIndex+deletedLines <= localStartLine {
-			removedIndex += deletedLines
-			continue
-		}
-		for _, line := range hunk.Lines {
-			if line.Op == gitdiff.OpDelete {
-				fileStartLine += 1
-				if removedIndex == localStartLine {
-					return fileStartLine, (fileStartLine - localStartLine) + localEndLine
-				}
-				removedIndex += 1
-			} else if line.Op == gitdiff.OpContext {
-				fileStartLine += 1
-			}
-		}
+// getHunkPosAndCount returns the functions to get the position and count of hunks based on the content type
+func getHunkPosAndCount(gitInfo *GitInfo) (hunkPos func(h *gitdiff.TextFragment) int, hunkCount func(h *gitdiff.TextFragment) int, matchOp gitdiff.LineOp, err error) {
+	switch gitInfo.ContentType {
+	case AddedContent:
+		hunkPos = func(h *gitdiff.TextFragment) int { return int(h.NewPosition) }
+		hunkCount = func(h *gitdiff.TextFragment) int { return int(h.LinesAdded) }
+		matchOp = gitdiff.OpAdd
+	case RemovedContent:
+		hunkPos = func(h *gitdiff.TextFragment) int { return int(h.OldPosition) }
+		hunkCount = func(h *gitdiff.TextFragment) int { return int(h.LinesDeleted) }
+		matchOp = gitdiff.OpDelete
+	default:
+		err = fmt.Errorf("unknown content type: %d", gitInfo.ContentType)
 	}
-	return 0, 0
+	return
 }
