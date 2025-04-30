@@ -179,119 +179,11 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 			name: "Secret in added content without context lines",
 			gitInfo: &GitInfo{
 				Hunks: []*gitdiff.TextFragment{
-					{
-						OldPosition:  9,
-						OldLines:     0,
-						NewPosition:  10,
-						NewLines:     3,
-						LinesAdded:   3,
-						LinesDeleted: 0,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  49,
-						OldLines:     0,
-						NewPosition:  53,
-						NewLines:     3,
-						LinesAdded:   3,
-						LinesDeleted: 0,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  55,
-						OldLines:     0,
-						NewPosition:  62,
-						NewLines:     2,
-						LinesAdded:   2,
-						LinesDeleted: 0,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  58,
-						OldLines:     0,
-						NewPosition:  67,
-						NewLines:     1,
-						LinesAdded:   1,
-						LinesDeleted: 0,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  103,
-						OldLines:     11,
-						NewPosition:  112,
-						NewLines:     1,
-						LinesAdded:   1,
-						LinesDeleted: 11,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
+					createMockHunk(9, 0, 10, 3, 3, 0, nil),
+					createMockHunk(49, 0, 53, 3, 3, 0, nil),
+					createMockHunk(55, 0, 62, 2, 2, 0, nil),
+					createMockHunk(58, 0, 67, 1, 1, 0, nil),
+					createMockHunk(103, 11, 112, 1, 1, 11, nil),
 				},
 				ContentType: AddedContent,
 			},
@@ -304,172 +196,13 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 			name: "Secret in removed content without context lines",
 			gitInfo: &GitInfo{
 				Hunks: []*gitdiff.TextFragment{
-					{
-						OldPosition:  10,
-						OldLines:     2,
-						NewPosition:  10,
-						NewLines:     1,
-						LinesAdded:   1,
-						LinesDeleted: 2,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  29,
-						OldLines:     0,
-						NewPosition:  29,
-						NewLines:     1,
-						LinesAdded:   1,
-						LinesDeleted: 0,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  46,
-						OldLines:     8,
-						NewPosition:  46,
-						NewLines:     1,
-						LinesAdded:   1,
-						LinesDeleted: 8,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  57,
-						OldLines:     2,
-						NewPosition:  50,
-						NewLines:     1,
-						LinesAdded:   1,
-						LinesDeleted: 2,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  63,
-						OldLines:     2,
-						NewPosition:  55,
-						NewLines:     2,
-						LinesAdded:   2,
-						LinesDeleted: 2,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  106,
-						OldLines:     0,
-						NewPosition:  99,
-						NewLines:     1,
-						LinesAdded:   1,
-						LinesDeleted: 0,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  108,
-						OldLines:     8,
-						NewPosition:  101,
-						NewLines:     3,
-						LinesAdded:   3,
-						LinesDeleted: 8,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
+					createMockHunk(10, 2, 10, 1, 1, 2, nil),
+					createMockHunk(29, 0, 29, 1, 1, 0, nil),
+					createMockHunk(46, 8, 46, 1, 1, 8, nil),
+					createMockHunk(57, 2, 50, 1, 1, 2, nil),
+					createMockHunk(63, 2, 55, 2, 2, 2, nil),
+					createMockHunk(106, 0, 99, 1, 1, 0, nil),
+					createMockHunk(108, 8, 101, 3, 3, 8, nil),
 				},
 				ContentType: RemovedContent,
 			},
@@ -482,74 +215,58 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 			name: "Secret in added content with context lines",
 			gitInfo: &GitInfo{
 				Hunks: []*gitdiff.TextFragment{
-					{
-						OldPosition:  7,
-						OldLines:     8,
-						NewPosition:  7,
-						NewLines:     7,
-						LinesAdded:   1,
-						LinesDeleted: 2,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
+					createMockHunk(7, 8, 7, 7, 1, 2, []gitdiff.Line{
+						{
+							Op: gitdiff.OpContext,
 						},
-					},
-					{
-						OldPosition:  27,
-						OldLines:     6,
-						NewPosition:  26,
-						NewLines:     7,
-						LinesAdded:   1,
-						LinesDeleted: 0,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
+						{
+							Op: gitdiff.OpContext,
 						},
-					},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+					}),
+					createMockHunk(27, 6, 26, 7, 1, 0, []gitdiff.Line{
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+					}),
 				},
 				ContentType: AddedContent,
 			},
@@ -562,86 +279,70 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 			name: "Secret in removed content with context lines",
 			gitInfo: &GitInfo{
 				Hunks: []*gitdiff.TextFragment{
-					{
-						OldPosition:  475,
-						OldLines:     8,
-						NewPosition:  475,
-						NewLines:     8,
-						LinesAdded:   2,
-						LinesDeleted: 2,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
+					createMockHunk(475, 8, 475, 8, 2, 2, []gitdiff.Line{
+						{
+							Op: gitdiff.OpContext,
 						},
-					},
-					{
-						OldPosition:  512,
-						OldLines:     8,
-						NewPosition:  512,
-						NewLines:     8,
-						LinesAdded:   2,
-						LinesDeleted: 2,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
-							{
-								Op: gitdiff.OpContext,
-							},
+						{
+							Op: gitdiff.OpContext,
 						},
-					},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+					}),
+					createMockHunk(512, 8, 512, 8, 2, 2, []gitdiff.Line{
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+					}),
 				},
 				ContentType: RemovedContent,
 			},
@@ -654,50 +355,8 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 			name: "validate skip hunk when secret is found immediately after the hunk before in added content",
 			gitInfo: &GitInfo{
 				Hunks: []*gitdiff.TextFragment{
-					{
-						OldPosition:  975,
-						OldLines:     0,
-						NewPosition:  976,
-						NewLines:     3,
-						LinesAdded:   3,
-						LinesDeleted: 0,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
-					{
-						OldPosition:  977,
-						OldLines:     4,
-						NewPosition:  980,
-						NewLines:     1,
-						LinesAdded:   1,
-						LinesDeleted: 4,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
+					createMockHunk(975, 0, 976, 3, 3, 0, nil),
+					createMockHunk(977, 4, 980, 1, 1, 4, nil),
 				},
 				ContentType: AddedContent,
 			},
@@ -710,50 +369,8 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 			name: "validate skip hunk when secret is found immediately after the hunk before in removed content",
 			gitInfo: &GitInfo{
 				Hunks: []*gitdiff.TextFragment{
-					{
-						OldPosition:  976,
-						OldLines:     3,
-						NewPosition:  975,
-						NewLines:     0,
-						LinesAdded:   0,
-						LinesDeleted: 3,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpDelete,
-							},
-						},
-					},
-					{
-						OldPosition:  980,
-						OldLines:     1,
-						NewPosition:  977,
-						NewLines:     4,
-						LinesAdded:   4,
-						LinesDeleted: 1,
-						Lines: []gitdiff.Line{
-							{
-								Op: gitdiff.OpDelete,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-							{
-								Op: gitdiff.OpAdd,
-							},
-						},
-					},
+					createMockHunk(976, 3, 975, 0, 0, 3, nil),
+					createMockHunk(980, 1, 977, 4, 4, 1, nil),
 				},
 				ContentType: RemovedContent,
 			},
@@ -766,9 +383,32 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actualFileStartLine, actualFileEndLine := GetGitStartAndEndLine(tt.gitInfo, tt.localStartLine, tt.localEndLine)
+			actualFileStartLine, actualFileEndLine, err := GetGitStartAndEndLine(tt.gitInfo, tt.localStartLine, tt.localEndLine)
+			if err != nil {
+				t.Fatalf("GetGitStartAndEndLine() error = %v", err)
+			}
 			assert.Equal(t, tt.expectedFileStartLine, actualFileStartLine)
 			assert.Equal(t, tt.expectedFileEndLine, actualFileEndLine)
 		})
+	}
+}
+
+func createMockHunk(oldPos, oldLines, newPos, newLines, linesAdded, linesDeleted int64, lines []gitdiff.Line) *gitdiff.TextFragment {
+	if lines == nil {
+		for i := int64(0); i < linesDeleted; i++ {
+			lines = append(lines, gitdiff.Line{Op: gitdiff.OpDelete})
+		}
+		for i := int64(0); i < linesAdded; i++ {
+			lines = append(lines, gitdiff.Line{Op: gitdiff.OpAdd})
+		}
+	}
+	return &gitdiff.TextFragment{
+		OldPosition:  oldPos,
+		OldLines:     oldLines,
+		NewPosition:  newPos,
+		NewLines:     newLines,
+		LinesAdded:   linesAdded,
+		LinesDeleted: linesDeleted,
+		Lines:        lines,
 	}
 }
