@@ -24,6 +24,7 @@ const (
 	argDepth           = "depth"
 	argScanAllBranches = "all-branches"
 	argProjectName     = "project-name"
+	unknownCommit      = "unknown"
 )
 
 type GitPlugin struct {
@@ -95,6 +96,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		// When parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value
 		// This scenario is unlikely but may cause the scan to never complete
 		file.PatchHeader = &gitdiff.PatchHeader{}
+		file.PatchHeader.SHA = unknownCommit
 	}
 
 	log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
