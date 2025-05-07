@@ -195,3 +195,7 @@ func (i item) GetSource() string {
 	}
 	return "test"
 }
+
+func (i item) GetGitInfo() *plugins.GitInfo {
+	return nil
+}
