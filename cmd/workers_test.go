@@ -30,6 +30,10 @@ func (i *mockItem) GetSource() string {
 	return i.source
 }
 
+func (i *mockItem) GetGitInfo() *plugins.GitInfo {
+	return nil
+}
+
 func TestProcessItems(t *testing.T) {
 	totalItemsToProcess := 5
 	engineConfig := engine.EngineConfig{}
