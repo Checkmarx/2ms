@@ -1,6 +1,15 @@
 package tests
 
-import "testing"
+import (
+	"encoding/json"
+	"os"
+	"testing"
+
+	"github.com/checkmarx/2ms/lib/utils"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
 
 func TestIntegration(t *testing.T) {
 	if testing.Short() {
@@ -78,4 +87,81 @@ func TestIntegration(t *testing.T) {
 			t.Errorf("expected no results, got %d", len(report.Results))
 		}
 	})
+}
+
+func TestSecretsScans(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping edge cases test")
+	}
+
+	tests := []struct {
+		Name               string
+		ScanTarget         string
+		TargetPath         string
+		ExpectedReportPath string
+	}{
+		{
+			Name:               "secret at end without newline",
+			ScanTarget:         "filesystem",
+			TargetPath:         "testData/input/secret_at_end.txt",
+			ExpectedReportPath: "testData/expectedReport/secret_at_end_report.json",
+		},
+		{
+			Name:               "multi line secret ",
+			ScanTarget:         "filesystem",
+			TargetPath:         "testData/input/multi_line_secret.txt",
+			ExpectedReportPath: "testData/expectedReport/multi_line_secret_report.json",
+		},
+		{
+			Name:               "secret at end with newline ",
+			ScanTarget:         "filesystem",
+			TargetPath:         "testData/input/secret_at_end_with_newline.txt",
+			ExpectedReportPath: "testData/expectedReport/secret_at_end_with_newline_report.json",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			executable, err := createCLI(t.TempDir())
+			require.Nil(t, err, "failed to build CLI")
+
+			args := []string{tc.ScanTarget}
+			if tc.ScanTarget == "filesystem" {
+				args = append(args, "--path", tc.TargetPath)
+			} else {
+				args = append(args, tc.TargetPath)
+			}
+			args = append(args, "--ignore-on-exit", "results")
+
+			if err := executable.run(args[0], args[1:]...); err != nil {
+				t.Fatalf("error running scan with args: %v, got: %v", args, err)
+			}
+
+			actualReport, err := executable.getReport()
+			require.NoError(t, err, "failed to get report")
+
+			expectedBytes, err := os.ReadFile(tc.ExpectedReportPath)
+			assert.NoError(t, err, "failed to read expected report")
+
+			var expectedReportMap map[string]interface{}
+			err = json.Unmarshal(expectedBytes, &expectedReportMap)
+			assert.NoError(t, err, "failed to unmarshal expected report JSON")
+
+			actualReportBytes, err := json.Marshal(actualReport)
+			assert.NoError(t, err, "failed to marshal actual report to JSON")
+
+			var actualReportMap map[string]interface{}
+
+			err = json.Unmarshal(actualReportBytes, &actualReportMap)
+			assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+			normalizedExpectedReport, err := utils.NormalizeReportData(expectedReportMap)
+			assert.NoError(t, err, "Failed to normalize expected report")
+
+			normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
+			assert.NoError(t, err, "Failed to normalize expected report")
+
+			assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+		})
+	}
 }
