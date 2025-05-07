@@ -151,7 +151,10 @@ func TestSecretsEdgeCases(t *testing.T) {
 				t.Fatalf("failed to unmarshal expected report: %s", err)
 			}
 
-			assert.EqualValuesf(t, expectedReport, actualReport, "Test Fail")
+			normalizedExpectedReport := normalizeReportData(expectedReport)
+			normalizedActualReport := normalizeReportData(actualReport)
+
+			assert.EqualValuesf(t, normalizedExpectedReport, normalizedActualReport, "Test Fail")
 
 		})
 	}
