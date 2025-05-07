@@ -102,19 +102,19 @@ func TestSecretsEdgeCases(t *testing.T) {
 			Name:               "secret at end without newline (filesystem)",
 			ScanTarget:         "filesystem",
 			TargetPath:         "testData/input/secret_at_end.txt",
-			ExpectedReportPath: "testData/expectedReport/report1.json",
+			ExpectedReportPath: "testData/expectedReport/secret_at_end_report.json",
 		},
 		{
 			Name:               "secret at end with multiLine (filesystem)",
 			ScanTarget:         "filesystem",
 			TargetPath:         "testData/input/multi_line_secret.txt",
-			ExpectedReportPath: "testData/expectedReport/report2.json",
+			ExpectedReportPath: "testData/expectedReport/multi_line_secret_report.json",
 		},
 		{
 			Name:               "secret at end with backspace in newline (filesystem)",
 			ScanTarget:         "filesystem",
 			TargetPath:         "testData/input/secret_at_end_with_newline.txt",
-			ExpectedReportPath: "testData/expectedReport/report3.json",
+			ExpectedReportPath: "testData/expectedReport/secret_at_end_with_newline_report.json",
 		},
 	}
 
