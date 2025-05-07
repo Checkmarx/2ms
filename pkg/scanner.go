@@ -27,6 +27,10 @@ func (i ScanItem) GetSource() string {
 	return i.Source
 }
 
+func (i ScanItem) GetGitInfo() *plugins.GitInfo {
+	return nil
+}
+
 type Scanner interface {
 	Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
 	ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
