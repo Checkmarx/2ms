@@ -1,0 +1,51 @@
+{
+    "totalItemsScanned": 1,
+    "totalSecretsFound": 3,
+    "results": {
+     "1ef1c6a736cb0725175ac969776c3fe0b4602389": [
+      {
+       "id": "1ef1c6a736cb0725175ac969776c3fe0b4602389",
+       "source": "testData/input/multi_line_secret.txt",
+       "ruleId": "private-key",
+       "startLine": 3,
+       "endLine": 4,
+       "lineContent": "\n        -----BEGIN RSA PRIVATE KEY----- MIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Qu KUpRKfFLfRYC9AIKjbJTWit+Cq\r\n        vjWYzvQwECAwEAAQJAIJLixBy2qpFoS4DSmoEm o3qGy0t6z09AIJtH+5OeRV1be+N4cDYJKffGzDa88vQENZiRm0GRq6a+HPGQMd2k TQIhAKMSvzIBnni7ot/OSie2TmJLY4SwTQAevXysE2RbFDYdAiEBCUEaRQnMnbp79mxDXDf6AU0cN/RPBjb9qSHDcWZHGzUCIG2Es59z8ugGrDY+pxLQnwfotadxd+Uy v/Ow5T0q5gIJAiEAyS4RaI9YG8EWx/2w0T67ZUVAw8eOMB6BIUg0Xcu+3okCIBOs /5OiPgoTdSy7bcF9IGpSE8ZgGKzgYQVZeN97YE00 -----END RSA PRIVATE KEY-----\r",
+       "startColumn": 10,
+       "endColumn": 377,
+       "value": "-----BEGIN RSA PRIVATE KEY----- MIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Qu KUpRKfFLfRYC9AIKjbJTWit+Cq\r\n        vjWYzvQwECAwEAAQJAIJLixBy2qpFoS4DSmoEm o3qGy0t6z09AIJtH+5OeRV1be+N4cDYJKffGzDa88vQENZiRm0GRq6a+HPGQMd2k TQIhAKMSvzIBnni7ot/OSie2TmJLY4SwTQAevXysE2RbFDYdAiEBCUEaRQnMnbp79mxDXDf6AU0cN/RPBjb9qSHDcWZHGzUCIG2Es59z8ugGrDY+pxLQnwfotadxd+Uy v/Ow5T0q5gIJAiEAyS4RaI9YG8EWx/2w0T67ZUVAw8eOMB6BIUg0Xcu+3okCIBOs /5OiPgoTdSy7bcF9IGpSE8ZgGKzgYQVZeN97YE00 -----END RSA PRIVATE KEY-----",
+       "ruleDescription": "Identified a Private Key, which may compromise cryptographic security and sensitive data encryption.",
+       "cvssScore": 8.2
+      }
+     ],
+     "58e5a02e5571db6dc1f9c0fdba8d86e254225bf1": [
+      {
+       "id": "58e5a02e5571db6dc1f9c0fdba8d86e254225bf1",
+       "source": "testData/input/multi_line_secret.txt",
+       "ruleId": "generic-api-key",
+       "startLine": 1,
+       "endLine": 1,
+       "lineContent": "`\"client_id\" : \"0afae57f3ccfd9d7f5767067bc48b30f719e271ba470488056e37ab35d4b6506\"`,\r",
+       "startColumn": 3,
+       "endColumn": 81,
+       "value": "0afae57f3ccfd9d7f5767067bc48b30f719e271ba470488056e37ab35d4b6506",
+       "ruleDescription": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+       "cvssScore": 8.2
+      }
+     ],
+     "ed47a9a9052d119d91763ce84d689370fdbccf1f": [
+      {
+       "id": "ed47a9a9052d119d91763ce84d689370fdbccf1f",
+       "source": "testData/input/multi_line_secret.txt",
+       "ruleId": "generic-api-key",
+       "startLine": 2,
+       "endLine": 2,
+       "lineContent": "\n\t\t`\"client_secret\" : \"6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde\",`\r",
+       "startColumn": 6,
+       "endColumn": 88,
+       "value": "6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",
+       "ruleDescription": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+       "cvssScore": 8.2
+      }
+     ]
+    }
+   }
