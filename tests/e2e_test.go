@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -143,16 +142,21 @@ func TestSecretsEdgeCases(t *testing.T) {
 			}
 
 			expectedBytes, err := os.ReadFile(tc.ExpectedReportPath)
-			if err != nil {
-				t.Fatalf("failed to read expected report: %s", err)
-			}
-			var expectedReport reporting.Report
-			if err := json.Unmarshal(expectedBytes, &expectedReport); err != nil {
-				t.Fatalf("failed to unmarshal expected report: %s", err)
-			}
+			assert.NoError(t, err, "failed to read expected report")
 
-			normalizedExpectedReport := normalizeReportData(expectedReport).(map[string]interface{})
-			normalizedActualReport := normalizeReportData(actualReport).(map[string]interface{})
+			var expectedReportMap map[string]interface{}
+			err = json.Unmarshal(expectedBytes, &expectedReportMap)
+			assert.NoError(t, err, "failed to unmarshal expected report JSON")
+
+			actualReportBytes, err := json.Marshal(actualReport)
+			assert.NoError(t, err, "failed to marshal actual report to JSON")
+
+			var actualReportMap map[string]interface{}
+			err = json.Unmarshal(actualReportBytes, &actualReportMap)
+			assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+			normalizedExpectedReport := normalizeReportData(expectedReportMap).(map[string]interface{})
+			normalizedActualReport := normalizeReportData(actualReportMap).(map[string]interface{})
 
 			assert.EqualValuesf(t, normalizedExpectedReport, normalizedActualReport, "Test Fail")
 
