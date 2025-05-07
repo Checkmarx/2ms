@@ -3,6 +3,7 @@ package plugins
 import (
 	"errors"
 	"fmt"
+	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -162,5 +163,252 @@ func TestValidGitRepoArgs(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestGetGitStartAndEndLine(t *testing.T) {
+	tests := []struct {
+		name                  string
+		gitInfo               *GitInfo
+		localStartLine        int
+		localEndLine          int
+		expectedFileStartLine int
+		expectedFileEndLine   int
+	}{
+		{
+			name: "Secret in added content without context lines",
+			gitInfo: &GitInfo{
+				Hunks: []*gitdiff.TextFragment{
+					createMockHunk(9, 0, 10, 3, 3, 0, nil),
+					createMockHunk(49, 0, 53, 3, 3, 0, nil),
+					createMockHunk(55, 0, 62, 2, 2, 0, nil),
+					createMockHunk(58, 0, 67, 1, 1, 0, nil),
+					createMockHunk(103, 11, 112, 1, 1, 11, nil),
+				},
+				ContentType: AddedContent,
+			},
+			localStartLine:        9,
+			localEndLine:          9,
+			expectedFileStartLine: 112,
+			expectedFileEndLine:   112,
+		},
+		{
+			name: "Secret in removed content without context lines",
+			gitInfo: &GitInfo{
+				Hunks: []*gitdiff.TextFragment{
+					createMockHunk(10, 2, 10, 1, 1, 2, nil),
+					createMockHunk(29, 0, 29, 1, 1, 0, nil),
+					createMockHunk(46, 8, 46, 1, 1, 8, nil),
+					createMockHunk(57, 2, 50, 1, 1, 2, nil),
+					createMockHunk(63, 2, 55, 2, 2, 2, nil),
+					createMockHunk(106, 0, 99, 1, 1, 0, nil),
+					createMockHunk(108, 8, 101, 3, 3, 8, nil),
+				},
+				ContentType: RemovedContent,
+			},
+			localStartLine:        18,
+			localEndLine:          18,
+			expectedFileStartLine: 112,
+			expectedFileEndLine:   112,
+		},
+		{
+			name: "Secret in added content with context lines",
+			gitInfo: &GitInfo{
+				Hunks: []*gitdiff.TextFragment{
+					createMockHunk(7, 8, 7, 7, 1, 2, []gitdiff.Line{
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+					}),
+					createMockHunk(27, 6, 26, 7, 1, 0, []gitdiff.Line{
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+					}),
+				},
+				ContentType: AddedContent,
+			},
+			localStartLine:        1,
+			localEndLine:          1,
+			expectedFileStartLine: 29,
+			expectedFileEndLine:   29,
+		},
+		{
+			name: "Secret in removed content with context lines",
+			gitInfo: &GitInfo{
+				Hunks: []*gitdiff.TextFragment{
+					createMockHunk(475, 8, 475, 8, 2, 2, []gitdiff.Line{
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+					}),
+					createMockHunk(512, 8, 512, 8, 2, 2, []gitdiff.Line{
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpDelete,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpAdd,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+						{
+							Op: gitdiff.OpContext,
+						},
+					}),
+				},
+				ContentType: RemovedContent,
+			},
+			localStartLine:        3,
+			localEndLine:          3,
+			expectedFileStartLine: 516,
+			expectedFileEndLine:   516,
+		},
+		{
+			name: "validate skip hunk when secret is found immediately after the hunk before in added content",
+			gitInfo: &GitInfo{
+				Hunks: []*gitdiff.TextFragment{
+					createMockHunk(975, 0, 976, 3, 3, 0, nil),
+					createMockHunk(977, 4, 980, 1, 1, 4, nil),
+				},
+				ContentType: AddedContent,
+			},
+			localStartLine:        3,
+			localEndLine:          3,
+			expectedFileStartLine: 980,
+			expectedFileEndLine:   980,
+		},
+		{
+			name: "validate skip hunk when secret is found immediately after the hunk before in removed content",
+			gitInfo: &GitInfo{
+				Hunks: []*gitdiff.TextFragment{
+					createMockHunk(976, 3, 975, 0, 0, 3, nil),
+					createMockHunk(980, 1, 977, 4, 4, 1, nil),
+				},
+				ContentType: RemovedContent,
+			},
+			localStartLine:        3,
+			localEndLine:          3,
+			expectedFileStartLine: 980,
+			expectedFileEndLine:   980,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actualFileStartLine, actualFileEndLine, err := GetGitStartAndEndLine(tt.gitInfo, tt.localStartLine, tt.localEndLine)
+			if err != nil {
+				t.Fatalf("GetGitStartAndEndLine() error = %v", err)
+			}
+			assert.Equal(t, tt.expectedFileStartLine, actualFileStartLine)
+			assert.Equal(t, tt.expectedFileEndLine, actualFileEndLine)
+		})
+	}
+}
+
+func createMockHunk(oldPos, oldLines, newPos, newLines, linesAdded, linesDeleted int64, lines []gitdiff.Line) *gitdiff.TextFragment {
+	if lines == nil {
+		for i := int64(0); i < linesDeleted; i++ {
+			lines = append(lines, gitdiff.Line{Op: gitdiff.OpDelete})
+		}
+		for i := int64(0); i < linesAdded; i++ {
+			lines = append(lines, gitdiff.Line{Op: gitdiff.OpAdd})
+		}
+	}
+	return &gitdiff.TextFragment{
+		OldPosition:  oldPos,
+		OldLines:     oldLines,
+		NewPosition:  newPos,
+		NewLines:     newLines,
+		LinesAdded:   linesAdded,
+		LinesDeleted: linesDeleted,
+		Lines:        lines,
 	}
 }

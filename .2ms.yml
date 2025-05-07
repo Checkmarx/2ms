@@ -51,3 +51,5 @@ ignore-result:
   - 51a6f4e3c7e3a79c9722abb7541b4902098e526b # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
   - 53803ee7e880952e926898a434acff4483fec67e # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
   - aa52405f239a8be1284d933025c557b071b24036 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+  - 854547fc6e35c0d1f63c0f4d426aebd4d64679fc # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/45a5c9d35ff910dfec5e5a76cdedb8977da5dd34#diff-d712d2256df359061d691b711ca7ed30ba408199b1e3801cef289779778d8bad
+  - b7c3ac03d8a24892a2c4be5810ce73ffdf6ba3ae # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10

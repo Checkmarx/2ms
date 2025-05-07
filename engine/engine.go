@@ -85,12 +85,20 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
+	gitInfo := item.GetGitInfo()
 	for _, value := range e.detector.Detect(fragment) {
 		itemId := getFindingId(item, value)
 		var startLine, endLine int
+		var err error
 		if pluginName == "filesystem" {
 			startLine = value.StartLine + 1
 			endLine = value.EndLine + 1
+		} else if pluginName == "git" {
+			startLine, endLine, err = plugins.GetGitStartAndEndLine(gitInfo, value.StartLine, value.EndLine)
+			if err != nil {
+				errors <- fmt.Errorf("failed to get git lines for source %s: %w", item.GetSource(), err)
+				return
+			}
 		} else {
 			startLine = value.StartLine
 			endLine = value.EndLine
