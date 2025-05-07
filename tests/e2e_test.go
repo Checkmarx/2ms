@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/checkmarx/2ms/lib/reporting"
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIntegration(t *testing.T) {
@@ -151,9 +151,8 @@ func TestSecretsEdgeCases(t *testing.T) {
 				t.Fatalf("failed to unmarshal expected report: %s", err)
 			}
 
-			if !cmp.Equal(expectedReport, actualReport) {
-				t.Errorf("Scan report does not match expected report:\n%s", cmp.Diff(expectedReport, actualReport))
-			}
+			assert.EqualValuesf(t, expectedReport, actualReport, "Test Fail")
+
 		})
 	}
 }
