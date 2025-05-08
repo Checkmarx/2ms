@@ -9,6 +9,7 @@ import (
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -85,7 +86,7 @@ func Execute() (int, error) {
 	cobra.OnInitialize(initialize)
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
-	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal, none)")
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
@@ -165,8 +166,11 @@ func postRun(cmd *cobra.Command, args []string) error {
 	cfg := config.LoadConfig("2ms", Version)
 
 	if Report.TotalItemsScanned > 0 {
-		if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
-			return err
+
+		if zerolog.GlobalLevel() != zerolog.Disabled {
+			if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
+				return err
+			}
 		}
 
 		if len(reportPathVar) > 0 {

@@ -13,10 +13,23 @@ import (
 	"strings"
 )
 
-func BuildSecret(item plugins.ISourceItem, value report.Finding) (*secrets.Secret, error) {
+func BuildSecret(item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
+	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
-	startLine := value.StartLine + 1
-	endLine := value.EndLine + 1
+	var startLine, endLine int
+	var err error
+	if pluginName == "filesystem" {
+		startLine = value.StartLine + 1
+		endLine = value.EndLine + 1
+	} else if pluginName == "git" {
+		startLine, endLine, err = plugins.GetGitStartAndEndLine(gitInfo, value.StartLine, value.EndLine)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get git lines for source %s: %w", item.GetSource(), err)
+		}
+	} else {
+		startLine = value.StartLine
+		endLine = value.EndLine
+	}
 
 	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 	if err != nil {

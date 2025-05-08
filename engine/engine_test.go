@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"sync"
 	"testing"
 
 	"github.com/checkmarx/2ms/engine/rules"
@@ -78,10 +77,10 @@ func TestDetector(t *testing.T) {
 		}
 
 		secretsChan := make(chan *secrets.Secret, 1)
-		errorsChan := make(chan error, 1)
-		wg := &sync.WaitGroup{}
-		wg.Add(1)
-		detector.Detect(i, secretsChan, wg, errorsChan)
+		err = detector.Detect(i, secretsChan, "filesystem")
+		if err != nil {
+			return
+		}
 		close(secretsChan)
 
 		s := <-secretsChan
@@ -154,12 +153,11 @@ func TestSecrets(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
 			secretsChan := make(chan *secrets.Secret, 1)
-			errorsChan := make(chan error, 1)
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			detector.Detect(item{content: &secret.Content}, secretsChan, wg, errorsChan)
+			err = detector.Detect(item{content: &secret.Content}, secretsChan, "filesystem")
+			if err != nil {
+				return
+			}
 			close(secretsChan)
-			close(errorsChan)
 
 			s := <-secretsChan
 
@@ -194,4 +192,8 @@ func (i item) GetSource() string {
 		return i.source
 	}
 	return "test"
+}
+
+func (i item) GetGitInfo() *plugins.GitInfo {
+	return nil
 }

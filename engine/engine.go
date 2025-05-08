@@ -101,13 +101,13 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error {
+func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, pluginName string) error {
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
 
-	return e.DetectSecrets(item, fragment, secretsChannel)
+	return e.DetectSecrets(item, fragment, secretsChannel, pluginName)
 }
 
 func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secretsChannel chan *secrets.Secret,
@@ -164,7 +164,7 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 			Raw:      string(data),
 			FilePath: item.GetSource(),
 		}
-		return e.DetectSecrets(item, fragment, secretsChannel)
+		return e.DetectSecrets(item, fragment, secretsChannel, "filesystem")
 	}
 }
 
@@ -220,7 +220,7 @@ func (e *Engine) DetectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 				Raw:      chunkStr,
 				FilePath: item.GetSource(),
 			}
-			detectErr := e.DetectSecrets(item, fragment, secretsChannel)
+			detectErr := e.DetectSecrets(item, fragment, secretsChannel, "filesystem")
 			if detectErr != nil {
 				// release before early return
 				bufPool.Put(buf)
@@ -282,15 +282,16 @@ func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
 	return e.rulesBaseRiskScore[ruleId]
 }
 
-func (e *Engine) DetectSecrets(item plugins.ISourceItem, fragment detect.Fragment, channel chan *secrets.Secret) error {
+func (e *Engine) DetectSecrets(item plugins.ISourceItem, fragment detect.Fragment, secrets chan *secrets.Secret,
+	pluginName string) error {
 	for _, value := range e.detector.Detect(fragment) {
 		// Build secret
-		secret, buildErr := utils.BuildSecret(item, value)
+		secret, buildErr := utils.BuildSecret(item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
 		if !utils.IsSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
-			channel <- secret
+			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
 		}

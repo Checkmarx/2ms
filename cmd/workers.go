@@ -32,7 +32,7 @@ func ProcessItems(engineInstance *engine.Engine, pluginName string) {
 			})
 		default:
 			g.Go(func() error {
-				return engineInstance.Detect(item, SecretsChan)
+				return engineInstance.Detect(item, SecretsChan, pluginName)
 			})
 		}
 	}
