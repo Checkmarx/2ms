@@ -33,7 +33,6 @@ const (
 	ignoreOnExitFlagName       = "ignore-on-exit"
 	maxTargetMegabytesFlagName = "max-target-megabytes"
 	validate                   = "validate"
-	maxConcurrentFilesFlagName = "max-concurrent-files"
 )
 
 var (
@@ -98,7 +97,6 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 	rootCmd.PersistentFlags().IntVar(&engineConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
 	rootCmd.PersistentFlags().BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
-	rootCmd.PersistentFlags().IntVar(&engineConfigVar.MaxConcurrentFiles, maxConcurrentFilesFlagName, 0, "maximum number of files to scan concurrently.\nOmit or set to 0 to disable this check.")
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
 

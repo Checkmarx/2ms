@@ -5,10 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/checkmarx/2ms/engine/score"
-	"github.com/checkmarx/2ms/engine/utils"
-	"github.com/h2non/filetype"
-	"golang.org/x/sync/semaphore"
 	"io"
 	"os"
 	"regexp"
@@ -17,13 +13,17 @@ import (
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/engine/rules"
+	"github.com/checkmarx/2ms/engine/score"
+	"github.com/checkmarx/2ms/engine/utils"
 	"github.com/checkmarx/2ms/engine/validation"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
+	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
+	"golang.org/x/sync/semaphore"
 )
 
 type Engine struct {
@@ -31,7 +31,6 @@ type Engine struct {
 	rulesBaseRiskScore map[string]float64
 	detector           detect.Detector
 	validator          validation.Validator
-	MaxConcurrentFiles int
 
 	ignoredIds    []string
 	allowedValues []string
@@ -40,7 +39,7 @@ type Engine struct {
 const (
 	customRegexRuleIdFormat = "custom-regex-%d"
 	ChunkSize               = 100 * 1_000     // 100kb
-	MaxPeekSize             = 25 * 1_000      // 10kb
+	MaxPeekSize             = 25 * 1_000      // 25kb
 	SmallFileThreshold      = 1 * 1024 * 1024 // 1MB
 )
 
@@ -64,7 +63,6 @@ type EngineConfig struct {
 	SpecialList  []string
 
 	MaxTargetMegabytes int
-	MaxConcurrentFiles int
 
 	IgnoredIds    []string
 	AllowedValues []string
@@ -97,7 +95,6 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 		rulesBaseRiskScore: rulesBaseRiskScore,
 		detector:           *detector,
 		validator:          *validation.NewValidator(),
-		MaxConcurrentFiles: engineConfig.MaxConcurrentFiles,
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
