@@ -156,10 +156,10 @@ func TestSecretsScans(t *testing.T) {
 			assert.NoError(t, err, "failed to unmarshal actual report JSON")
 
 			normalizedExpectedReport, err := utils.NormalizeReportData(expectedReportMap)
-			require.NoError(t, err, "Failed to normalize expected report")
+			assert.NoError(t, err, "Failed to normalize expected report")
 
 			normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-			require.NoError(t, err, "Failed to normalize expected report")
+			assert.NoError(t, err, "Failed to normalize expected report")
 
 			assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 		})
