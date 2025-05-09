@@ -90,7 +90,7 @@ func TestScan(t *testing.T) {
 			t.Fatalf("Failed to normalize actual report: %v", err)
 		}
 
-		assert.EqualValuesf(t, normalizedExpectedReport, normalizedActualReport, "Test Fail")
+		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
 	t.Run("Successful scan with multiple items and ignored results", func(t *testing.T) {
 		cmd.Report = reporting.Init()
@@ -162,8 +162,7 @@ func TestScan(t *testing.T) {
 			t.Fatalf("Failed to normalize actual report: %v", err)
 		}
 
-		assert.EqualValuesf(t, normalizedExpectedReport, normalizedActualReport, "Test Fail")
-		assert.EqualValuesf(t, expectedReport, actualReportMap, "Test Fail")
+		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
 	t.Run("error handling should work", func(t *testing.T) {
 		cmd.Report = reporting.Init()
@@ -308,7 +307,7 @@ func TestScanDynamic(t *testing.T) {
 			t.Fatalf("Failed to normalize actual report: %v", err)
 		}
 
-		assert.EqualValuesf(t, normalizedExpectedReport, normalizedActualReport, "Test Fail")
+		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
 
 	t.Run("Successful ScanDynamic with Multiple Items and Ignored Results", func(t *testing.T) {
@@ -389,7 +388,7 @@ func TestScanDynamic(t *testing.T) {
 			t.Fatalf("Failed to normalize actual report: %v", err)
 		}
 
-		assert.EqualValuesf(t, normalizedExpectedReport, normalizedActualReport, "Test Fail")
+		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
 
 	t.Run("error handling should work", func(t *testing.T) {

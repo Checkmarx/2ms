@@ -167,8 +167,7 @@ func TestSecretsEdgeCases(t *testing.T) {
 				t.Fatalf("Failed to normalize actual report: %v", err)
 			}
 
-			assert.EqualValuesf(t, normalizedExpectedReport, normalizedActualReport, "Test Fail")
-
+			assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 		})
 	}
 }
