@@ -84,7 +84,7 @@ var (
 	// sarif results
 	result1Sarif = Results{
 		Message: Message{
-			Text: messageText(result1.RuleID, result1.Source),
+			Text: createMessageText(result1.RuleID, result1.Source),
 		},
 		RuleId: ruleID1,
 		Locations: []Locations{
@@ -115,7 +115,7 @@ var (
 	}
 	result2Sarif = Results{
 		Message: Message{
-			Text: messageText(result2.RuleID, result2.Source),
+			Text: createMessageText(result2.RuleID, result2.Source),
 		},
 		RuleId: ruleID2,
 		Locations: []Locations{
@@ -146,7 +146,7 @@ var (
 	}
 	result3Sarif = Results{
 		Message: Message{
-			Text: messageText(result3.RuleID, result3.Source),
+			Text: createMessageText(result3.RuleID, result3.Source),
 		},
 		RuleId: ruleID1,
 		Locations: []Locations{
