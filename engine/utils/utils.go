@@ -3,12 +3,15 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"github.com/checkmarx/2ms/engine/linecontent"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
+	"github.com/h2non/filetype"
 	"github.com/zricethezav/gitleaks/v8/report"
+	"golang.org/x/sync/semaphore"
 	"io"
 	"strings"
 )
@@ -16,19 +19,9 @@ import (
 func BuildSecret(item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
-	var startLine, endLine int
-	var err error
-	if pluginName == "filesystem" {
-		startLine = value.StartLine + 1
-		endLine = value.EndLine + 1
-	} else if pluginName == "git" {
-		startLine, endLine, err = plugins.GetGitStartAndEndLine(gitInfo, value.StartLine, value.EndLine)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get git lines for source %s: %w", item.GetSource(), err)
-		}
-	} else {
-		startLine = value.StartLine
-		endLine = value.EndLine
+	startLine, endLine, err := getStartAndEndLines(pluginName, gitInfo, value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
 	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
@@ -55,6 +48,26 @@ func getFindingId(item plugins.ISourceItem, finding report.Finding) string {
 	idParts := []string{item.GetID(), finding.RuleID, finding.Secret}
 	sha := sha1.Sum([]byte(strings.Join(idParts, "-")))
 	return fmt.Sprintf("%x", sha)
+}
+
+func getStartAndEndLines(pluginName string, gitInfo *plugins.GitInfo, value report.Finding) (int, int, error) {
+	var startLine, endLine int
+	var err error
+
+	if pluginName == "filesystem" {
+		startLine = value.StartLine + 1
+		endLine = value.EndLine + 1
+	} else if pluginName == "git" {
+		startLine, endLine, err = plugins.GetGitStartAndEndLine(gitInfo, value.StartLine, value.EndLine)
+		if err != nil {
+			return 0, 0, err
+		}
+	} else {
+		startLine = value.StartLine
+		endLine = value.EndLine
+	}
+
+	return startLine, endLine, nil
 }
 
 func IsSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string) bool {
@@ -142,4 +155,25 @@ func ReadUntilSafeBoundary(r *bufio.Reader, n int, maxPeekSize int, peekBuf *byt
 
 func isWhitespace(ch byte) bool {
 	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
+// AcquireMemoryWeight acquires a semaphore with a specified weight
+func AcquireMemoryWeight(ctx context.Context, weight, memoryBudget int64, sem *semaphore.Weighted) error {
+	if weight > memoryBudget {
+		return fmt.Errorf("buffer size %d exceeds memory budget %d", weight, memoryBudget)
+	}
+	if err := sem.Acquire(ctx, weight); err != nil {
+		return fmt.Errorf("failed to acquire semaphore: %w", err)
+	}
+	return nil
+}
+
+// ShouldSkipFile checks if the file should be skipped based on its content type
+func ShouldSkipFile(data []byte) bool {
+	// TODO: could other optimizations be introduced here?
+	mimetype, err := filetype.Match(data)
+	if err != nil {
+		return true // could not determine file type
+	}
+	return mimetype.MIME.Type == "application" // skip binary files
 }
