@@ -12,7 +12,6 @@ import (
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -104,9 +103,7 @@ func TestScan(t *testing.T) {
 		expectedReport = normalizeReportData(expectedReport).(map[string]interface{})
 		actualReportMap = normalizeReportData(actualReportMap).(map[string]interface{})
 
-		if !cmp.Equal(expectedReport, actualReportMap) {
-			t.Errorf("Scan report does not match the expected report:\n%s", cmp.Diff(expectedReport, actualReportMap))
-		}
+		assert.EqualValuesf(t, expectedReport, actualReportMap, "Test Fail")
 	})
 	t.Run("Successful scan with multiple items and ignored results", func(t *testing.T) {
 		cmd.Report = reporting.Init()
@@ -172,9 +169,7 @@ func TestScan(t *testing.T) {
 		expectedReport = normalizeReportData(expectedReport).(map[string]interface{})
 		actualReportMap = normalizeReportData(actualReportMap).(map[string]interface{})
 
-		if !cmp.Equal(expectedReport, actualReportMap) {
-			t.Errorf("Scan report does not match the expected report:\n%s", cmp.Diff(expectedReport, actualReportMap))
-		}
+		assert.EqualValuesf(t, expectedReport, actualReportMap, "Test Fail")
 	})
 	t.Run("error handling should work", func(t *testing.T) {
 		cmd.Report = reporting.Init()
@@ -312,9 +307,7 @@ func TestScanDynamic(t *testing.T) {
 		expectedReport = normalizeReportData(expectedReport).(map[string]interface{})
 		actualReportMap = normalizeReportData(actualReportMap).(map[string]interface{})
 
-		if !cmp.Equal(expectedReport, actualReportMap) {
-			t.Errorf("ScanDynamic report does not match the expected report:\n%s", cmp.Diff(expectedReport, actualReportMap))
-		}
+		assert.EqualValuesf(t, expectedReport, actualReportMap, "Test Fail")
 	})
 
 	t.Run("Successful ScanDynamic with Multiple Items and Ignored Results", func(t *testing.T) {
@@ -388,9 +381,7 @@ func TestScanDynamic(t *testing.T) {
 		expectedReport = normalizeReportData(expectedReport).(map[string]interface{})
 		actualReportMap = normalizeReportData(actualReportMap).(map[string]interface{})
 
-		if !cmp.Equal(expectedReport, actualReportMap) {
-			t.Errorf("ScanDynamic report does not match the expected report:\n%s", cmp.Diff(expectedReport, actualReportMap))
-		}
+		assert.EqualValuesf(t, expectedReport, actualReportMap, "Test Fail")
 	})
 
 	t.Run("error handling should work", func(t *testing.T) {
