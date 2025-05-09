@@ -88,7 +88,7 @@ func TestIntegration(t *testing.T) {
 	})
 }
 
-func TestSecretsEdgeCases(t *testing.T) {
+func TestSecretsScans(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping edge cases test")
 	}
