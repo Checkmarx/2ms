@@ -1,21 +1,40 @@
 package cmd
 
 import (
+	"context"
 	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/engine/extra"
 	"github.com/checkmarx/2ms/lib/secrets"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 	"sync"
 )
 
-func ProcessItems(engine *engine.Engine, pluginName string) {
+func ProcessItems(engineInstance *engine.Engine, pluginName string) {
 	defer Channels.WaitGroup.Done()
-	wgItems := &sync.WaitGroup{}
+
+	g, ctx := errgroup.WithContext(context.Background())
+	memoryBudget := chooseMemoryBudget()
+	sem := semaphore.NewWeighted(memoryBudget)
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
-		wgItems.Add(1)
-		go engine.Detect(item, SecretsChan, wgItems, pluginName, Channels.Errors)
+		item := item
+
+		switch pluginName {
+		case "filesystem":
+			g.Go(func() error {
+				return engineInstance.DetectFile(ctx, item, SecretsChan, memoryBudget, sem)
+			})
+		default:
+			g.Go(func() error {
+				return engineInstance.Detect(item, SecretsChan, pluginName)
+			})
+		}
 	}
-	wgItems.Wait()
+
+	if err := g.Wait(); err != nil {
+		Channels.Errors <- err
+	}
 	close(SecretsChan)
 }
 
