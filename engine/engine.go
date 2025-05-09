@@ -3,13 +3,14 @@ package engine
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/checkmarx/2ms/engine/linecontent"
-	"github.com/checkmarx/2ms/engine/score"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"text/tabwriter"
+
+	"github.com/checkmarx/2ms/engine/linecontent"
+	"github.com/checkmarx/2ms/engine/score"
 
 	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/engine/validation"
@@ -80,13 +81,19 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 
 func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, pluginName string, errors chan error) {
 	defer wg.Done()
+	const CxFileEndMarker = ";cx-file-end"
 
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
+
+	fragment.Raw += CxFileEndMarker + "\n"
 	gitInfo := item.GetGitInfo()
-	for _, value := range e.detector.Detect(fragment) {
+
+	values := e.detector.Detect(fragment)
+
+	for idx, value := range values {
 		itemId := getFindingId(item, value)
 		var startLine, endLine int
 		var err error
@@ -103,6 +110,12 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			startLine = value.StartLine
 			endLine = value.EndLine
 		}
+
+		if idx == len(values)-1 && strings.HasSuffix(value.Line, CxFileEndMarker) {
+			value.Line = value.Line[:len(value.Line)-len(CxFileEndMarker)]
+			value.EndColumn--
+		}
+
 		lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 		if err != nil {
 			errors <- fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
