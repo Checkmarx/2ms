@@ -46,6 +46,10 @@ ignore-result:
   - d9207d5fa344d2423e97384f45014c87c0c91d4f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
   - f858b057df65752e0030854331dd1e5e8e41856b # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
   - 670491bf5e759f4c03bf0e47f519deaccdc9ac44 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
-  - 46d644a014e91528b0f6d4180305d35452ed7f46 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
-  - b841441ea9d80db4ad9f21abe25cf30836a33f1d # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
-  - f1c519e1be61df80729d099a21235b64b525b280 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+  - 1bf24590387167e7ade218952eaf168758acc0d6 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
+  - 30ea5ee224b162075bf512dbf5854002b6c5e727 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+  - 51a6f4e3c7e3a79c9722abb7541b4902098e526b # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+  - 53803ee7e880952e926898a434acff4483fec67e # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+  - aa52405f239a8be1284d933025c557b071b24036 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+  - 854547fc6e35c0d1f63c0f4d426aebd4d64679fc # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/45a5c9d35ff910dfec5e5a76cdedb8977da5dd34#diff-d712d2256df359061d691b711ca7ed30ba408199b1e3801cef289779778d8bad
+  - b7c3ac03d8a24892a2c4be5810ce73ffdf6ba3ae # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10

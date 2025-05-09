@@ -91,7 +91,6 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
 	itemsCh := cmd.Channels.Items
 	errorsCh := cmd.Channels.Errors
-	wg := &sync.WaitGroup{}
 
 	// Initialize engine configuration.
 	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds}
@@ -113,18 +112,10 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 	cmd.Channels.WaitGroup.Add(1)
 	go cmd.ProcessScoreWithoutValidation(engineInstance)
 
-	// Forward scan items from itemsIn to itemsCh.
-	go func() {
-		for item := range itemsIn {
-			wg.Add(1)
-			go func(i ScanItem) {
-				defer wg.Done()
-				itemsCh <- i
-			}(item)
-		}
-		wg.Wait()
-		close(itemsCh)
-	}()
+	for item := range itemsIn {
+		itemsCh <- item
+	}
+	close(itemsCh)
 
 	// Wait for all processing routines.
 	cmd.Channels.WaitGroup.Wait()
