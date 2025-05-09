@@ -9,9 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/checkmarx/2ms/lib/reporting"
 )
@@ -22,7 +20,7 @@ type cli struct {
 }
 
 func createCLI(outputDir string) (cli, error) {
-	executable := filepath.Join(outputDir, "2ms")
+	executable := path.Join(outputDir, "2ms")
 	lib, err := build.Import("github.com/checkmarx/2ms", "", build.FindOnly)
 	if err != nil {
 		return cli{}, fmt.Errorf("failed to import 2ms: %s", err)
@@ -78,24 +76,4 @@ func (c *cli) getReport() (reporting.Report, error) {
 	}
 
 	return *report, nil
-}
-
-// normalizeReportData recursively traverses the report data and removes any carriage return characters.
-func normalizeReportData(data interface{}) interface{} {
-	switch v := data.(type) {
-	case string:
-		return strings.ReplaceAll(v, "\r", "")
-	case []interface{}:
-		for i, item := range v {
-			v[i] = normalizeReportData(item)
-		}
-		return v
-	case map[string]interface{}:
-		for key, val := range v {
-			v[key] = normalizeReportData(val)
-		}
-		return v
-	default:
-		return data
-	}
 }
