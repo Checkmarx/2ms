@@ -10,7 +10,6 @@ import (
 func NormalizeReportData(data interface{}) (interface{}, error) {
 	bytes, err := json.Marshal(data)
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to marshal data: %w", err)
 	}
 

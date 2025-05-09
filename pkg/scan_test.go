@@ -13,6 +13,7 @@ import (
 	"github.com/checkmarx/2ms/lib/utils"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -81,14 +82,10 @@ func TestScan(t *testing.T) {
 
 		// Normalize both expected and actual maps.
 		normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-		if err != nil {
-			t.Fatalf("Failed to normalize expected report: %v", err)
-		}
+		require.NoError(t, err, "Failed to normalize actual report")
 
 		normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-		if err != nil {
-			t.Fatalf("Failed to normalize actual report: %v", err)
-		}
+		require.NoError(t, err, "Failed to normalize actual report")
 
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
@@ -153,14 +150,10 @@ func TestScan(t *testing.T) {
 		assert.NoError(t, err, "failed to unmarshal actual report JSON")
 
 		normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-		if err != nil {
-			t.Fatalf("Failed to normalize expected report: %v", err)
-		}
+		require.NoError(t, err, "Failed to normalize actual report")
 
 		normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-		if err != nil {
-			t.Fatalf("Failed to normalize actual report: %v", err)
-		}
+		require.NoError(t, err, "Failed to normalize actual report")
 
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
@@ -298,15 +291,10 @@ func TestScanDynamic(t *testing.T) {
 
 		// Normalize both maps.
 		normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-		if err != nil {
-			t.Fatalf("Failed to normalize expected report: %v", err)
-		}
+		require.NoError(t, err, "Failed to normalize actual report")
 
 		normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-		if err != nil {
-			t.Fatalf("Failed to normalize actual report: %v", err)
-		}
-
+		require.NoError(t, err, "Failed to normalize actual report")
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
 
@@ -379,14 +367,10 @@ func TestScanDynamic(t *testing.T) {
 
 		// Normalize both maps.
 		normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-		if err != nil {
-			t.Fatalf("Failed to normalize expected report: %v", err)
-		}
+		require.NoError(t, err, "Failed to normalize actual report")
 
 		normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-		if err != nil {
-			t.Fatalf("Failed to normalize actual report: %v", err)
-		}
+		require.NoError(t, err, "Failed to normalize actual report")
 
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})

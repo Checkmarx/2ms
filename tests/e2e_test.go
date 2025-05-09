@@ -8,6 +8,7 @@ import (
 	"github.com/checkmarx/2ms/lib/utils"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntegration(t *testing.T) {
@@ -100,7 +101,7 @@ func TestSecretsScans(t *testing.T) {
 		ExpectedReportPath string
 	}{
 		{
-			Name:               "secret at end ",
+			Name:               "secret at end without newline",
 			ScanTarget:         "filesystem",
 			TargetPath:         "testData/input/secret_at_end.txt",
 			ExpectedReportPath: "testData/expectedReport/secret_at_end_report.json",
@@ -122,9 +123,7 @@ func TestSecretsScans(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			executable, err := createCLI(t.TempDir())
-			if err != nil {
-				t.Fatalf("failed to build CLI: %s", err)
-			}
+			require.Nil(t, err, "failed to build CLI")
 
 			args := []string{tc.ScanTarget}
 			if tc.ScanTarget == "filesystem" {
@@ -139,9 +138,7 @@ func TestSecretsScans(t *testing.T) {
 			}
 
 			actualReport, err := executable.getReport()
-			if err != nil {
-				t.Fatalf("failed to get report: %s", err)
-			}
+			require.NoError(t, err, "failed to get report")
 
 			expectedBytes, err := os.ReadFile(tc.ExpectedReportPath)
 			assert.NoError(t, err, "failed to read expected report")
@@ -154,18 +151,15 @@ func TestSecretsScans(t *testing.T) {
 			assert.NoError(t, err, "failed to marshal actual report to JSON")
 
 			var actualReportMap map[string]interface{}
+
 			err = json.Unmarshal(actualReportBytes, &actualReportMap)
 			assert.NoError(t, err, "failed to unmarshal actual report JSON")
-			normalizedExpectedReport, err := utils.NormalizeReportData(expectedReportMap)
 
-			if err != nil {
-				t.Fatalf("Failed to normalize expected report: %v", err)
-			}
+			normalizedExpectedReport, err := utils.NormalizeReportData(expectedReportMap)
+			require.NoError(t, err, "Failed to normalize expected report")
 
 			normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-			if err != nil {
-				t.Fatalf("Failed to normalize actual report: %v", err)
-			}
+			require.NoError(t, err, "Failed to normalize expected report")
 
 			assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 		})
