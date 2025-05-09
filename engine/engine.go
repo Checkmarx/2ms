@@ -81,13 +81,14 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 
 func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, pluginName string, errors chan error) {
 	defer wg.Done()
+	const CxFileEndMarker = ";cx-file-end"
 
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
 
-	fragment.Raw += ";cxline\n"
+	fragment.Raw += CxFileEndMarker + "\n"
 	gitInfo := item.GetGitInfo()
 
 	values := e.detector.Detect(fragment)
@@ -110,8 +111,8 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			endLine = value.EndLine
 		}
 
-		if idx == len(values)-1 && strings.HasSuffix(value.Line, ";cxline") {
-			value.Line = value.Line[:len(value.Line)-len(";cxline")]
+		if idx == len(values)-1 && strings.HasSuffix(value.Line, CxFileEndMarker) {
+			value.Line = value.Line[:len(value.Line)-len(CxFileEndMarker)]
 			value.EndColumn--
 		}
 

@@ -10,7 +10,7 @@
    "endLine" : 1,
    "lineContent" : "\n           Text_Example =                                     ghp_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r",
    "startColumn" : 64,
-   "endColumn" : 102,
+   "endColumn" : 103,
    "value" : "ghp_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
    "ruleDescription" : "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
    "cvssScore" : 8.2
