@@ -16,6 +16,7 @@ import (
 	"strings"
 )
 
+// BuildSecret creates a secret object from the given source item and finding
 func BuildSecret(item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)

@@ -100,7 +100,8 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, pluginName string) error {
+// DetectFragment detects secrets in the given fragment
+func (e *Engine) DetectFragment(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, pluginName string) error {
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
@@ -109,6 +110,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 	return e.DetectSecrets(item, fragment, secretsChannel, pluginName)
 }
 
+// DetectFile reads the given file and detects secrets in it
 func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secretsChannel chan *secrets.Secret,
 	memoryBudget int64, sem *semaphore.Weighted) error {
 	fi, err := os.Stat(item.GetSource())
@@ -157,6 +159,7 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 	}
 }
 
+// DetectChunks reads the given file in chunks and detects secrets in each chunk
 func (e *Engine) DetectChunks(item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error {
 	f, err := os.Open(item.GetSource())
 	if err != nil {
@@ -206,6 +209,23 @@ func (e *Engine) DetectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 			return fmt.Errorf("failed to read file %s: %w", item.GetSource(), err)
 		}
 	}
+}
+
+// DetectSecrets detects secrets and sends them to the secrets channel
+func (e *Engine) DetectSecrets(item plugins.ISourceItem, fragment detect.Fragment, secrets chan *secrets.Secret,
+	pluginName string) error {
+	for _, value := range e.detector.Detect(fragment) {
+		secret, buildErr := utils.BuildSecret(item, value, pluginName)
+		if buildErr != nil {
+			return fmt.Errorf("failed to build secret: %w", buildErr)
+		}
+		if !utils.IsSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
+			secrets <- secret
+		} else {
+			log.Debug().Msgf("Secret %s was ignored", secret.ID)
+		}
+	}
+	return nil
 }
 
 // processChunk reads the next chunk of data from file and detects secrets in it
@@ -282,22 +302,6 @@ func (e *Engine) Validate() {
 
 func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
 	return e.rulesBaseRiskScore[ruleId]
-}
-
-func (e *Engine) DetectSecrets(item plugins.ISourceItem, fragment detect.Fragment, secrets chan *secrets.Secret,
-	pluginName string) error {
-	for _, value := range e.detector.Detect(fragment) {
-		secret, buildErr := utils.BuildSecret(item, value, pluginName)
-		if buildErr != nil {
-			return fmt.Errorf("failed to build secret: %w", buildErr)
-		}
-		if !utils.IsSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
-			secrets <- secret
-		} else {
-			log.Debug().Msgf("Secret %s was ignored", secret.ID)
-		}
-	}
-	return nil
 }
 
 func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {

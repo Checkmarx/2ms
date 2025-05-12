@@ -27,7 +27,7 @@ func ProcessItems(engineInstance *engine.Engine, pluginName string) {
 			})
 		default:
 			g.Go(func() error {
-				return engineInstance.Detect(item, SecretsChan, pluginName)
+				return engineInstance.DetectFragment(item, SecretsChan, pluginName)
 			})
 		}
 	}

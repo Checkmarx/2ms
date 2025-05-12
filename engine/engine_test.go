@@ -1,13 +1,21 @@
 package engine
 
 import (
+	"bytes"
+	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/semaphore"
 )
 
 var fsPlugin = &plugins.FileSystemPlugin{}
@@ -77,7 +85,7 @@ func TestDetector(t *testing.T) {
 		}
 
 		secretsChan := make(chan *secrets.Secret, 1)
-		err = detector.Detect(i, secretsChan, "filesystem")
+		err = detector.DetectFragment(i, secretsChan, fsPlugin.GetName())
 		if err != nil {
 			return
 		}
@@ -153,7 +161,7 @@ func TestSecrets(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
 			secretsChan := make(chan *secrets.Secret, 1)
-			err = detector.Detect(item{content: &secret.Content}, secretsChan, "filesystem")
+			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, fsPlugin.GetName())
 			if err != nil {
 				return
 			}
@@ -165,6 +173,163 @@ func TestSecrets(t *testing.T) {
 				assert.Equal(t, s.LineContent, secret.Content)
 			} else {
 				assert.Nil(t, s)
+			}
+		})
+	}
+}
+
+func TestDetectFile(t *testing.T) {
+	smallSize := 10                                   // 10 bytes
+	chunkWeight := int64(4*ChunkSize + 2*MaxPeekSize) // 450KiB
+
+	testCases := []struct {
+		name         string
+		makeFile     func(tmp string) string
+		maxMegabytes int
+		memoryBudget int64
+		wantRelease  func(sem *semaphore.Weighted) (weight int64)
+		expectedErr  error
+	}{
+		{
+			name:         "non existent file",
+			makeFile:     func(tmp string) string { return filepath.Join(tmp, "does-not-exist") },
+			memoryBudget: 1_000,
+			expectedErr:  fmt.Errorf("failed to stat"),
+		},
+		{
+			name:         "exceed max megabytes",
+			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, 2000000, nil) /* 2MB */ },
+			maxMegabytes: 1,
+			memoryBudget: 1_000,
+		},
+		{
+			name:         "small file - memory too low",
+			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, smallSize, nil) },
+			memoryBudget: int64(smallSize*2) - 1, // 19 bytes < 2*10 bytes
+			expectedErr:  fmt.Errorf("buffer size"),
+		},
+		{
+			name:         "small file - acquire error",
+			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, smallSize, nil) },
+			memoryBudget: int64(smallSize * 2), // 20 bytes >= 2*10 bytes
+			expectedErr:  fmt.Errorf("failed to acquire semaphore"),
+		},
+		{
+			name:         "small file - success & release",
+			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, smallSize, nil) },
+			memoryBudget: 1_000,
+			wantRelease: func(sem *semaphore.Weighted) (weight int64) {
+				return int64(smallSize * 2)
+			},
+		},
+		{
+			name:         "large file - memory too low",
+			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, SmallFileThreshold+1, nil) },
+			memoryBudget: chunkWeight - 1, // 450KB - 1 byte < 450KB
+			expectedErr:  fmt.Errorf("buffer size"),
+		},
+		{
+			name:         "large file - acquire error",
+			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, SmallFileThreshold+1, nil) },
+			memoryBudget: chunkWeight, // 450KB >= 450KB
+			expectedErr:  fmt.Errorf("failed to acquire semaphore"),
+		},
+		{
+			name:         "large file - success & release",
+			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, SmallFileThreshold+1, nil) },
+			memoryBudget: chunkWeight + 1,
+			wantRelease: func(_ *semaphore.Weighted) (weight int64) {
+				return chunkWeight
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			eng, err := Init(EngineConfig{MaxTargetMegabytes: tc.maxMegabytes})
+			if err != nil {
+				t.Fatal(err)
+			}
+			tmp := t.TempDir()
+			src := tc.makeFile(tmp)
+
+			sem := semaphore.NewWeighted(1 * 1024 * 1024) // 1MiB
+
+			ctx := context.Background()
+			// Cancel context immediately to simulate a acquire error
+			if tc.expectedErr != nil && tc.expectedErr.Error() == "failed to acquire semaphore" {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				cancel()
+			}
+
+			err = eng.DetectFile(ctx, &item{source: src}, make(chan *secrets.Secret, 1), tc.memoryBudget, sem)
+			if tc.expectedErr != nil {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else if tc.wantRelease != nil {
+				require.NoError(t, err)
+				// Verify that it Release() exactly once for the right weight
+				weight := tc.wantRelease(sem)
+				ok := sem.TryAcquire(weight)
+				require.True(t, ok, "expected semaphore to have released %d", weight)
+				// Clean up
+				sem.Release(weight)
+			}
+		})
+	}
+}
+
+func TestDetectChunks(t *testing.T) {
+	testCases := []struct {
+		name        string
+		makeFile    func(tmp string) string
+		expectedLog string
+		expectedErr error
+	}{
+		{
+			name:     "successful detection",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte("password=supersecret\n")) },
+		},
+		{
+			name:        "unsupported file type",
+			makeFile:    func(tmp string) string { return writeTempFile(t, tmp, 0, []byte{'P', 'K', 0x03, 0x04}) },
+			expectedLog: "Skipping file %s: unsupported file type",
+		},
+		{
+			name:        "non existent file",
+			makeFile:    func(tmp string) string { return filepath.Join(tmp, "does-not-exist") },
+			expectedErr: fmt.Errorf("failed to open file"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var logsBuffer bytes.Buffer
+			log.Logger = log.Output(zerolog.ConsoleWriter{
+				Out:        &logsBuffer,
+				NoColor:    true,
+				TimeFormat: "",
+			}).Level(zerolog.DebugLevel)
+
+			eng, err := Init(EngineConfig{})
+			tmp := t.TempDir()
+			src := tc.makeFile(tmp)
+			it := &item{
+				source: src,
+			}
+
+			err = eng.DetectChunks(it, make(chan *secrets.Secret, 1))
+			loggedMessage := logsBuffer.String()
+			if tc.expectedErr != nil {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				if tc.expectedLog != "" {
+					expectedLog := fmt.Sprintf(tc.expectedLog, src)
+					require.Contains(t, loggedMessage, expectedLog)
+				}
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -196,4 +361,28 @@ func (i item) GetSource() string {
 
 func (i item) GetGitInfo() *plugins.GitInfo {
 	return nil
+}
+
+// writeTempFile writes either the provided content or a buffer of 'size' bytes
+func writeTempFile(t *testing.T, dir string, size int, content []byte) string {
+	t.Helper()
+
+	f, err := os.CreateTemp(dir, "testfile-*.tmp")
+	require.NoError(t, err, "create temp file")
+	defer f.Close()
+
+	var data []byte
+	if content != nil {
+		data = content
+	} else {
+		data = make([]byte, size)
+		for i := range data {
+			data[i] = 'a'
+		}
+	}
+
+	_, err = f.Write(data)
+	require.NoError(t, err, "write temp file")
+
+	return f.Name()
 }
