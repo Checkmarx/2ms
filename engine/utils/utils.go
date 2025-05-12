@@ -16,13 +16,21 @@ import (
 	"strings"
 )
 
+const CxFileEndMarker = ";cx-file-end"
+
 // BuildSecret creates a secret object from the given source item and finding
-func BuildSecret(item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
+func BuildSecret(item plugins.ISourceItem, idx int, values []report.Finding, value report.Finding,
+	pluginName string) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
 	startLine, endLine, err := getStartAndEndLines(pluginName, gitInfo, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
+	}
+
+	if idx == len(values)-1 && strings.HasSuffix(value.Line, CxFileEndMarker) {
+		value.Line = value.Line[:len(value.Line)-len(CxFileEndMarker)]
+		value.EndColumn--
 	}
 
 	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)

@@ -68,7 +68,15 @@ func hasNoResults(report *Report) bool {
 	return len(report.Results) == 0
 }
 
-func messageText(ruleName string, filePath string) string {
+func createMessageText(ruleName string, filePath string) string {
+	// maintain only the filename if the scan target is git
+	if strings.HasPrefix(filePath, "git show ") {
+		filePathParts := strings.SplitN(filePath, ":", 2)
+		if len(filePathParts) == 2 {
+			filePath = filePathParts[1]
+		}
+	}
+
 	return fmt.Sprintf("%s has detected secret for file %s.", ruleName, filePath)
 }
 
@@ -85,7 +93,7 @@ func getResults(report *Report) []Results {
 		for _, secret := range secrets {
 			r := Results{
 				Message: Message{
-					Text: messageText(secret.RuleID, secret.Source),
+					Text: createMessageText(secret.RuleID, secret.Source),
 				},
 				RuleId:    secret.RuleID,
 				Locations: getLocation(secret),

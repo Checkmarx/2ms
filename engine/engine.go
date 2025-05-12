@@ -214,8 +214,11 @@ func (e *Engine) DetectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 // DetectSecrets detects secrets and sends them to the secrets channel
 func (e *Engine) DetectSecrets(item plugins.ISourceItem, fragment detect.Fragment, secrets chan *secrets.Secret,
 	pluginName string) error {
-	for _, value := range e.detector.Detect(fragment) {
-		secret, buildErr := utils.BuildSecret(item, value, pluginName)
+	fragment.Raw += utils.CxFileEndMarker + "\n"
+
+	values := e.detector.Detect(fragment)
+	for idx, value := range values {
+		secret, buildErr := utils.BuildSecret(item, idx, values, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
