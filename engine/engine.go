@@ -190,7 +190,7 @@ func (e *Engine) DetectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 			if err != nil {
 				// release before early return
 				peekBufPool.Put(peekBuf)
-				//lint:ignore SA6002 boxing a small slice header is negligible here
+				//nolint:staticcheck // SA6002: boxing a small slice header is negligible here
 				bufPool.Put(buf)
 				return err
 			}
@@ -199,7 +199,7 @@ func (e *Engine) DetectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 			peekBufPool.Put(peekBuf)
 		}
 		// Put the buffer back into the pool
-		//lint:ignore SA6002 boxing a small slice header is negligible here
+		//nolint:staticcheck // SA6002: boxing a small slice header is negligible here
 		bufPool.Put(buf)
 
 		if err != nil {

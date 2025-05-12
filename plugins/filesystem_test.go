@@ -68,10 +68,6 @@ func TestGetItems(t *testing.T) {
 	for itm := range itemsChan {
 		items = append(items, itm)
 	}
-	var errs []error
-	for e := range errsChan {
-		errs = append(errs, e)
-	}
 
 	assert.Equal(t, 1, len(items), "should have one valid item")
 	_, ok := items[0].(item)

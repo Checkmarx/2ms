@@ -313,6 +313,7 @@ func TestDetectChunks(t *testing.T) {
 			}).Level(zerolog.DebugLevel)
 
 			eng, err := Init(EngineConfig{})
+			require.NoError(t, err)
 			tmp := t.TempDir()
 			src := tc.makeFile(tmp)
 			it := &item{
