@@ -4,21 +4,38 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"go.uber.org/mock/gomock"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/checkmarx/2ms/engine/chunk"
 	"github.com/checkmarx/2ms/engine/rules"
+	"github.com/checkmarx/2ms/engine/semaphore"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/semaphore"
+	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/detect"
 )
 
 var fsPlugin = &plugins.FileSystemPlugin{}
+
+type mock struct {
+	semaphore *semaphore.MockISemaphore
+	chunk     *chunk.MockIChunk
+}
+
+func newMock(ctrl *gomock.Controller) *mock {
+	return &mock{
+		semaphore: semaphore.NewMockISemaphore(ctrl),
+		chunk:     chunk.NewMockIChunk(ctrl),
+	}
+}
 
 func Test_Init(t *testing.T) {
 	allRules := *rules.FilterRules([]string{}, []string{}, []string{})
@@ -179,127 +196,101 @@ func TestSecrets(t *testing.T) {
 }
 
 func TestDetectFile(t *testing.T) {
-	smallSize := 10                                   // 10 bytes
-	chunkWeight := int64(4*ChunkSize + 2*MaxPeekSize) // 450KiB
+	fileSize := 10
+	sizeThreshold := int64(20)
+	chunkSize := 5
+	maxPeekSize := 10
+	chunkWeight := int64(4*chunkSize + 2*maxPeekSize) // 40 bytes
 
 	testCases := []struct {
 		name         string
 		makeFile     func(tmp string) string
+		mockFunc     func(m *mock)
 		maxMegabytes int
 		memoryBudget int64
-		wantRelease  func(sem *semaphore.Weighted) (weight int64)
+		expectedLog  string
 		expectedErr  error
 	}{
 		{
 			name:         "non existent file",
 			makeFile:     func(tmp string) string { return filepath.Join(tmp, "does-not-exist") },
+			mockFunc:     func(m *mock) {},
 			memoryBudget: 1_000,
 			expectedErr:  fmt.Errorf("failed to stat"),
 		},
 		{
 			name:         "exceed max megabytes",
 			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, 2000000, nil) /* 2MB */ },
+			mockFunc:     func(m *mock) {},
 			maxMegabytes: 1,
 			memoryBudget: 1_000,
 		},
 		{
-			name:         "small file - memory too low",
-			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, smallSize, nil) },
-			memoryBudget: int64(smallSize*2) - 1, // 19 bytes < 2*10 bytes
-			expectedErr:  fmt.Errorf("buffer size"),
+			name:     "small file - acquire error",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, fileSize, nil) },
+			mockFunc: func(m *mock) {
+				weight := int64(fileSize * 2)
+				m.chunk.EXPECT().GetFileThreshold().Return(sizeThreshold)
+				m.semaphore.EXPECT().AcquireMemoryWeight(gomock.Any(), weight).Return(assert.AnError)
+			},
+			memoryBudget: int64(fileSize*2) - 1, // 19 bytes < 2*filesize = 20 bytes
+			expectedErr:  assert.AnError,
 		},
 		{
-			name:         "small file - acquire error",
-			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, smallSize, nil) },
-			memoryBudget: int64(smallSize * 2), // 20 bytes >= 2*10 bytes
-			expectedErr:  fmt.Errorf("failed to acquire semaphore"),
-		},
-		{
-			name:         "small file - success & release",
-			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, smallSize, nil) },
+			name:     "small file - success & release",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, fileSize, nil) },
+			mockFunc: func(m *mock) {
+				weight := int64(fileSize * 2)
+				m.chunk.EXPECT().GetFileThreshold().Return(sizeThreshold)
+				m.semaphore.EXPECT().AcquireMemoryWeight(gomock.Any(), weight).Return(nil)
+				m.semaphore.EXPECT().ReleaseMemoryWeight(weight)
+			},
 			memoryBudget: 1_000,
-			wantRelease: func(sem *semaphore.Weighted) (weight int64) {
-				return int64(smallSize * 2)
+		},
+		{
+			name:     "large file - acquire error",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, fileSize*2+1, nil) },
+			mockFunc: func(m *mock) {
+				m.chunk.EXPECT().GetFileThreshold().Return(sizeThreshold)
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
+				m.semaphore.EXPECT().AcquireMemoryWeight(gomock.Any(), chunkWeight).Return(assert.AnError)
 			},
+			memoryBudget: chunkWeight - 1, // 40 - 1 byte < 40 bytes
+			expectedErr:  assert.AnError,
 		},
 		{
-			name:         "large file - memory too low",
-			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, SmallFileThreshold+1, nil) },
-			memoryBudget: chunkWeight - 1, // 450KB - 1 byte < 450KB
-			expectedErr:  fmt.Errorf("buffer size"),
-		},
-		{
-			name:         "large file - acquire error",
-			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, SmallFileThreshold+1, nil) },
-			memoryBudget: chunkWeight, // 450KB >= 450KB
-			expectedErr:  fmt.Errorf("failed to acquire semaphore"),
-		},
-		{
-			name:         "large file - success & release",
-			makeFile:     func(tmp string) string { return writeTempFile(t, tmp, SmallFileThreshold+1, nil) },
-			memoryBudget: chunkWeight + 1,
-			wantRelease: func(_ *semaphore.Weighted) (weight int64) {
-				return chunkWeight
+			name:     "large file - read chunk error",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, fileSize*2+1, nil) },
+			mockFunc: func(m *mock) {
+				m.chunk.EXPECT().GetFileThreshold().Return(sizeThreshold)
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.semaphore.EXPECT().AcquireMemoryWeight(gomock.Any(), chunkWeight).Return(nil)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), gomock.Any()).Return("", assert.AnError)
+				m.semaphore.EXPECT().ReleaseMemoryWeight(chunkWeight)
 			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			eng, err := Init(EngineConfig{MaxTargetMegabytes: tc.maxMegabytes})
-			if err != nil {
-				t.Fatal(err)
-			}
-			tmp := t.TempDir()
-			src := tc.makeFile(tmp)
-
-			sem := semaphore.NewWeighted(1 * 1024 * 1024) // 1MiB
-
-			ctx := context.Background()
-			// Cancel context immediately to simulate a acquire error
-			if tc.expectedErr != nil && tc.expectedErr.Error() == "failed to acquire semaphore" {
-				var cancel context.CancelFunc
-				ctx, cancel = context.WithCancel(ctx)
-				cancel()
-			}
-
-			err = eng.DetectFile(ctx, &item{source: src}, make(chan *secrets.Secret, 1), tc.memoryBudget, sem)
-			if tc.expectedErr != nil {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.expectedErr.Error())
-			} else if tc.wantRelease != nil {
-				require.NoError(t, err)
-				// Verify that it Release() exactly once for the right weight
-				weight := tc.wantRelease(sem)
-				ok := sem.TryAcquire(weight)
-				require.True(t, ok, "expected semaphore to have released %d", weight)
-				// Clean up
-				sem.Release(weight)
-			}
-		})
-	}
-}
-
-func TestDetectChunks(t *testing.T) {
-	testCases := []struct {
-		name        string
-		makeFile    func(tmp string) string
-		expectedLog string
-		expectedErr error
-	}{
-		{
-			name:     "successful detection",
-			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte("password=supersecret\n")) },
+			memoryBudget: 1_000,
+			expectedErr:  assert.AnError,
 		},
 		{
-			name:        "unsupported file type",
-			makeFile:    func(tmp string) string { return writeTempFile(t, tmp, 0, []byte{'P', 'K', 0x03, 0x04}) },
-			expectedLog: "Skipping file %s: unsupported file type",
-		},
-		{
-			name:        "non existent file",
-			makeFile:    func(tmp string) string { return filepath.Join(tmp, "does-not-exist") },
-			expectedErr: fmt.Errorf("failed to open file"),
+			name: "large file - success & release",
+			makeFile: func(tmp string) string {
+				return writeTempFile(t, tmp, 0, []byte("abc\ndef\nghi\njkl\nmno\npqr\nstu\nvwx\nyz"))
+			},
+			mockFunc: func(m *mock) {
+				m.chunk.EXPECT().GetFileThreshold().Return(sizeThreshold)
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.semaphore.EXPECT().AcquireMemoryWeight(gomock.Any(), chunkWeight).Return(nil)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), gomock.Any()).Return("abc\ndef\nghi\njkl\nmno\npqr\nstu\nvw", nil)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), gomock.Any()).Return("x\nyz", nil)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), gomock.Any()).Return("", io.EOF)
+				m.semaphore.EXPECT().ReleaseMemoryWeight(chunkWeight)
+			},
+			memoryBudget: 1_000,
 		},
 	}
 
@@ -312,25 +303,127 @@ func TestDetectChunks(t *testing.T) {
 				TimeFormat: "",
 			}).Level(zerolog.DebugLevel)
 
-			eng, err := Init(EngineConfig{})
-			require.NoError(t, err)
-			tmp := t.TempDir()
-			src := tc.makeFile(tmp)
-			it := &item{
-				source: src,
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			m := newMock(ctrl)
+			tc.mockFunc(m)
+
+			cfg.Rules = make(map[string]config.Rule)
+			cfg.Keywords = []string{}
+			detector := detect.NewDetector(cfg)
+			detector.MaxTargetMegaBytes = tc.maxMegabytes
+			engine := &Engine{
+				rules: nil,
+
+				semaphore: m.semaphore,
+				chunk:     m.chunk,
+				detector:  *detector,
 			}
 
-			err = eng.DetectChunks(it, make(chan *secrets.Secret, 1))
+			tmp := t.TempDir()
+			src := tc.makeFile(tmp)
+			ctx := context.Background()
+			err := engine.DetectFile(ctx, &item{source: src}, make(chan *secrets.Secret, 1))
 			loggedMessage := logsBuffer.String()
 			if tc.expectedErr != nil {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.expectedErr.Error())
-			} else {
-				if tc.expectedLog != "" {
-					expectedLog := fmt.Sprintf(tc.expectedLog, src)
-					require.Contains(t, loggedMessage, expectedLog)
-				}
-				require.NoError(t, err)
+				require.ErrorContains(t, err, tc.expectedErr.Error())
+			}
+			if tc.expectedLog != "" {
+				expectedLog := fmt.Sprintf(tc.expectedLog, src)
+				require.Contains(t, loggedMessage, expectedLog)
+			}
+		})
+	}
+}
+
+func TestDetectChunks(t *testing.T) {
+	chunkSize := 5
+
+	testCases := []struct {
+		name        string
+		makeFile    func(tmp string) string
+		mockFunc    func(m *mock)
+		expectedLog string
+		expectedErr error
+	}{
+		{
+			name:     "successful detection",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte("password=supersecret\n")) },
+			mockFunc: func(m *mock) {
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("password=supersecret", nil)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", io.EOF)
+			},
+		},
+		{
+			name:        "non existent file",
+			makeFile:    func(tmp string) string { return filepath.Join(tmp, "does-not-exist") },
+			mockFunc:    func(m *mock) {},
+			expectedErr: fmt.Errorf("failed to open file"),
+		},
+		{
+			name:     "unsupported file type",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte{'P', 'K', 0x03, 0x04}) },
+			mockFunc: func(m *mock) {
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", fmt.Errorf("skipping file - unsupported file type"))
+			},
+			expectedLog: "Skipping file %s: unsupported file type",
+		},
+		{
+			name:     "end of file error",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte("password=supersecret\n")) },
+			mockFunc: func(m *mock) {
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", io.EOF)
+			},
+		},
+		{
+			name:     "chunk read error",
+			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte("password=supersecret\n")) },
+			mockFunc: func(m *mock) {
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", assert.AnError)
+			},
+			expectedErr: assert.AnError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var logsBuffer bytes.Buffer
+			log.Logger = log.Output(zerolog.ConsoleWriter{
+				Out:        &logsBuffer,
+				NoColor:    true,
+				TimeFormat: "",
+			}).Level(zerolog.DebugLevel)
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			m := newMock(ctrl)
+			tc.mockFunc(m)
+
+			cfg.Rules = make(map[string]config.Rule)
+			cfg.Keywords = []string{}
+			detector := detect.NewDetector(cfg)
+			engine := &Engine{
+				rules: nil,
+
+				semaphore: m.semaphore,
+				chunk:     m.chunk,
+				detector:  *detector,
+			}
+			tmp := t.TempDir()
+			src := tc.makeFile(tmp)
+
+			err := engine.detectChunks(&item{source: src}, make(chan *secrets.Secret, 1))
+			loggedMessage := logsBuffer.String()
+			if tc.expectedErr != nil {
+				require.ErrorContains(t, err, tc.expectedErr.Error())
+			}
+			if tc.expectedLog != "" {
+				expectedLog := fmt.Sprintf(tc.expectedLog, src)
+				require.Contains(t, loggedMessage, expectedLog)
 			}
 		})
 	}
