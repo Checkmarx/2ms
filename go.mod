@@ -14,6 +14,7 @@ require (
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	github.com/zricethezav/gitleaks/v8 v8.18.2
+	go.uber.org/mock v0.5.2
 	golang.org/x/sync v0.12.0
 	golang.org/x/time v0.5.0
 	gopkg.in/yaml.v3 v3.0.1

@@ -6,16 +6,13 @@ import (
 	"github.com/checkmarx/2ms/engine/extra"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 	"sync"
 )
 
-func ProcessItems(engineInstance *engine.Engine, pluginName string) {
+func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
 
 	g, ctx := errgroup.WithContext(context.Background())
-	memoryBudget := chooseMemoryBudget()
-	sem := semaphore.NewWeighted(memoryBudget)
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
 		item := item
@@ -23,7 +20,7 @@ func ProcessItems(engineInstance *engine.Engine, pluginName string) {
 		switch pluginName {
 		case "filesystem":
 			g.Go(func() error {
-				return engineInstance.DetectFile(ctx, item, SecretsChan, memoryBudget, sem)
+				return engineInstance.DetectFile(ctx, item, SecretsChan)
 			})
 		default:
 			g.Go(func() error {
@@ -67,7 +64,7 @@ func ProcessSecretsExtras() {
 	wgExtras.Wait()
 }
 
-func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
+func ProcessValidationAndScoreWithValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}
@@ -83,7 +80,7 @@ func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
 	engine.Validate()
 }
 
-func ProcessScoreWithoutValidation(engine *engine.Engine) {
+func ProcessScoreWithoutValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
 
 	wgScore := &sync.WaitGroup{}
