@@ -131,17 +131,17 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	engine, err := engine.Init(engineConfigVar)
+	engineInstance, err := engine.Init(engineConfigVar)
 	if err != nil {
 		return err
 	}
 
-	if err := engine.AddRegexRules(customRegexRuleVar); err != nil {
+	if err := engineInstance.AddRegexRules(customRegexRuleVar); err != nil {
 		return err
 	}
 
 	Channels.WaitGroup.Add(1)
-	go ProcessItems(engine, pluginName)
+	go ProcessItems(engineInstance, pluginName)
 
 	Channels.WaitGroup.Add(1)
 	go ProcessSecrets()
@@ -151,10 +151,10 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 
 	if validateVar {
 		Channels.WaitGroup.Add(1)
-		go ProcessValidationAndScoreWithValidation(engine)
+		go ProcessValidationAndScoreWithValidation(engineInstance)
 	} else {
 		Channels.WaitGroup.Add(1)
-		go ProcessScoreWithoutValidation(engine)
+		go ProcessScoreWithoutValidation(engineInstance)
 	}
 
 	return nil

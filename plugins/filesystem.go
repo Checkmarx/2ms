@@ -118,17 +118,11 @@ func (p *FileSystemPlugin) GetItems(items chan ISourceItem, errs chan error, wg 
 }
 
 func (p *FileSystemPlugin) getItem(filePath string) (*item, error) {
-	log.Debug().Str("file", filePath).Msg("reading file")
-	b, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
+	log.Debug().Str("file", filePath).Msg("sending file item")
 
-	content := string(b)
 	item := &item{
-		Content: &content,
-		ID:      fmt.Sprintf("%s-%s-%s", p.GetName(), p.ProjectName, filePath),
-		Source:  filePath,
+		ID:     fmt.Sprintf("%s-%s-%s", p.GetName(), p.ProjectName, filePath),
+		Source: filePath,
 	}
 	return item, nil
 }
