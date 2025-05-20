@@ -95,7 +95,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) {
 		detector:           *detector,
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
-		chunk:              chunk.NewChunk(),
+		chunk:              chunk.New(),
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
@@ -170,9 +170,10 @@ func (e *Engine) detectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 		_ = f.Close()
 	}()
 
-	reader := bufio.NewReaderSize(f, e.chunk.GetSize())
+	reader := bufio.NewReaderSize(f, e.chunk.GetMaxPeekSize())
 	totalLines := 0
 
+	// Read the file in chunks until EOF
 	for {
 		chunkStr, err := e.chunk.ReadChunk(reader, totalLines)
 		if err != nil {

@@ -11,7 +11,6 @@ package chunk
 
 import (
 	bufio "bufio"
-	bytes "bytes"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -39,21 +38,6 @@ func NewMockIChunk(ctrl *gomock.Controller) *MockIChunk {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockIChunk) EXPECT() *MockIChunkMockRecorder {
 	return m.recorder
-}
-
-// GetBuf mocks base method.
-func (m *MockIChunk) GetBuf() (*[]byte, bool) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBuf")
-	ret0, _ := ret[0].(*[]byte)
-	ret1, _ := ret[1].(bool)
-	return ret0, ret1
-}
-
-// GetBuf indicates an expected call of GetBuf.
-func (mr *MockIChunkMockRecorder) GetBuf() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBuf", reflect.TypeOf((*MockIChunk)(nil).GetBuf))
 }
 
 // GetFileThreshold mocks base method.
@@ -84,21 +68,6 @@ func (mr *MockIChunkMockRecorder) GetMaxPeekSize() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxPeekSize", reflect.TypeOf((*MockIChunk)(nil).GetMaxPeekSize))
 }
 
-// GetPeekBuf mocks base method.
-func (m *MockIChunk) GetPeekBuf(buf []byte) (*bytes.Buffer, bool) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPeekBuf", buf)
-	ret0, _ := ret[0].(*bytes.Buffer)
-	ret1, _ := ret[1].(bool)
-	return ret0, ret1
-}
-
-// GetPeekBuf indicates an expected call of GetPeekBuf.
-func (mr *MockIChunkMockRecorder) GetPeekBuf(buf any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPeekBuf", reflect.TypeOf((*MockIChunk)(nil).GetPeekBuf), buf)
-}
-
 // GetSize mocks base method.
 func (m *MockIChunk) GetSize() int {
 	m.ctrl.T.Helper()
@@ -111,30 +80,6 @@ func (m *MockIChunk) GetSize() int {
 func (mr *MockIChunkMockRecorder) GetSize() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSize", reflect.TypeOf((*MockIChunk)(nil).GetSize))
-}
-
-// PutBuf mocks base method.
-func (m *MockIChunk) PutBuf(buf *[]byte) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "PutBuf", buf)
-}
-
-// PutBuf indicates an expected call of PutBuf.
-func (mr *MockIChunkMockRecorder) PutBuf(buf any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutBuf", reflect.TypeOf((*MockIChunk)(nil).PutBuf), buf)
-}
-
-// PutPeekBuf mocks base method.
-func (m *MockIChunk) PutPeekBuf(buf *bytes.Buffer) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "PutPeekBuf", buf)
-}
-
-// PutPeekBuf indicates an expected call of PutPeekBuf.
-func (mr *MockIChunkMockRecorder) PutPeekBuf(buf any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutPeekBuf", reflect.TypeOf((*MockIChunk)(nil).PutPeekBuf), buf)
 }
 
 // ReadChunk mocks base method.

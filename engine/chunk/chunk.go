@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"sync"
 	"unicode"
 
@@ -130,26 +129,24 @@ func (c *Chunk) GetFileThreshold() int64 {
 
 // ReadChunk reads the next chunk of data from file
 func (c *Chunk) ReadChunk(reader *bufio.Reader, totalLines int) (string, error) {
-	chunk, ok := c.GetBuf()
+	// borrow a []bytes from the pool and seed it with raw data from file (up to chunk size + peek size)
+	rawData, ok := c.GetPeekedBuf()
 	if !ok {
-		return "", fmt.Errorf("expected *[]byte, got %T", chunk)
+		return "", fmt.Errorf("expected *bytes.Buffer, got %T", rawData)
 	}
-	defer c.PutBuf(chunk)
+	defer c.PutPeekedBuf(rawData)
+	n, err := reader.Read(*rawData)
 
-	n, err := reader.Read(*chunk)
 	var chunkStr string
 	// "Callers should always process the n > 0 bytes returned before considering the error err."
 	// https://pkg.go.dev/io#Reader
 	if n > 0 {
 		// only check the filetype at the start of file
-		if totalLines == 0 && ShouldSkipFile((*chunk)[:n]) {
+		if totalLines == 0 && ShouldSkipFile((*rawData)[:n]) {
 			return "", fmt.Errorf("skipping file: %w", ErrUnsupportedFileType)
 		}
 
-		chunkStr, err = c.processChunk(reader, (*chunk)[:n])
-		if err != nil {
-			return "", err
-		}
+		chunkStr, err = c.generateChunk((*rawData)[:n])
 	}
 	if err != nil {
 		return "", err
@@ -157,44 +154,26 @@ func (c *Chunk) ReadChunk(reader *bufio.Reader, totalLines int) (string, error) 
 	return chunkStr, nil
 }
 
-// processChunk processes the chunk, reading until a safe boundary
-func (c *Chunk) processChunk(reader *bufio.Reader, chunk []byte) (string, error) {
-	peekBuf, ok := c.GetPeekBuf(chunk)
+// generateChunk processes block of raw data and generates chunk to be scanned
+func (c *Chunk) generateChunk(rawData []byte) (string, error) {
+	// Borrow a buffer from the pool and seed it with raw data (up to chunk size)
+	initialChunkLen := min(len(rawData), c.size)
+	chunkData, ok := c.GetBuf(rawData[:initialChunkLen])
 	if !ok {
-		return "", fmt.Errorf("expected *bytes.Buffer, got %T", peekBuf)
+		return "", fmt.Errorf("expected *bytes.Buffer, got %T", chunkData)
 	}
-	defer c.PutPeekBuf(peekBuf)
+	defer c.PutBuf(chunkData)
 
-	if readErr := c.readUntilSafeBoundary(reader, len(chunk), peekBuf); readErr != nil {
-		return "", fmt.Errorf("failed to read until safe boundary for file: %w", readErr)
-	}
-
-	return peekBuf.String(), nil
-}
-
-// readUntilSafeBoundary (hopefully) avoids splitting (https://github.com/gitleaks/gitleaks/issues/1651)
-func (c *Chunk) readUntilSafeBoundary(r *bufio.Reader, n int, peekBuf *bytes.Buffer) error {
-	if peekBuf.Len() == 0 {
-		return nil
-	}
-
-	// keep reading until see our “\n…\n” boundary or hit limits
-	for peekBuf.Len()-n < c.MaxPeekSize {
-		if endsWithTwoNewlines(peekBuf.Bytes()) {
-			return nil
+	// keep seeding chunk until detecting the “\n...\n” (i.e. safe boundary)
+	// or reaching the max limit of chunk size (i.e. chunk size + peek size)
+	for i := chunkData.Len(); i < len(rawData); i++ {
+		if endsWithTwoNewlines(rawData[:i]) {
+			break
 		}
-
-		b, err := r.ReadByte()
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return fmt.Errorf("failed to read byte: %w", err)
-		}
-		peekBuf.WriteByte(b)
+		chunkData.WriteByte(rawData[i])
 	}
 
-	return nil
+	return chunkData.String(), nil
 }
 
 // endsWithTwoNewlines returns true if b ends in at least two '\n's (ignoring any number of ' ', '\r', or '\t' between them)
