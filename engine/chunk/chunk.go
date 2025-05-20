@@ -22,79 +22,110 @@ const (
 
 var ErrUnsupportedFileType = errors.New("unsupported file type")
 
+type Option func(*Chunk)
+
+// WithSize sets the chunk size
+func WithSize(size int) Option {
+	return func(args *Chunk) {
+		args.size = size
+	}
+}
+
+// WithMaxPeekSize sets the max size of look-ahead bytes
+func WithMaxPeekSize(maxPeekSize int) Option {
+	return func(args *Chunk) {
+		args.maxPeekSize = maxPeekSize
+	}
+}
+
+// WithSmallFileThreshold sets the threshold for small files
+func WithSmallFileThreshold(smallFileThreshold int64) Option {
+	return func(args *Chunk) {
+		args.smallFileThreshold = smallFileThreshold
+	}
+}
+
+// Chunk holds two pools and sizing parameters needed for reading chunks of data with look-ahead
 type Chunk struct {
-	BufPool            *sync.Pool
-	PeekBufPool        *sync.Pool
-	Size               int
-	MaxPeekSize        int
-	SmallFileThreshold int64
+	bufPool            *sync.Pool // *bytes.Buffer with cap Size + MaxPeekSize
+	peekedBufPool      *sync.Pool // *[]byte slices of length Size + MaxPeekSize
+	size               int        // base chunk size
+	maxPeekSize        int        // max size of look-ahead bytes
+	smallFileThreshold int64      // files smaller than this skip chunking
 }
 
 type IChunk interface {
-	GetBuf() (*[]byte, bool)
-	PutBuf(buf *[]byte)
-	GetPeekBuf(buf []byte) (*bytes.Buffer, bool)
-	PutPeekBuf(buf *bytes.Buffer)
 	GetSize() int
 	GetMaxPeekSize() int
 	GetFileThreshold() int64
 	ReadChunk(reader *bufio.Reader, totalLines int) (string, error)
 }
 
-func NewChunk() *Chunk {
-	return NewChunkWithSize(defaultSize, defaultMaxPeekSize, defaultFileThreshold)
-}
-
-func NewChunkWithSize(size, maxPeekSize, smallFileThreshold int) *Chunk {
-	return &Chunk{
-		BufPool: &sync.Pool{
-			New: func() interface{} {
-				b := make([]byte, size)
-				return &b
-			},
-		},
-		PeekBufPool: &sync.Pool{
-			New: func() interface{} {
-				// pre-allocate enough capacity for initial chunk + peek
-				return bytes.NewBuffer(make([]byte, 0, size+maxPeekSize))
-			},
-		},
-		Size:               size,
-		MaxPeekSize:        maxPeekSize,
-		SmallFileThreshold: int64(smallFileThreshold),
+func New(opts ...Option) *Chunk {
+	// set default options
+	c := &Chunk{
+		size:               defaultSize,
+		maxPeekSize:        defaultMaxPeekSize,
+		smallFileThreshold: defaultFileThreshold,
 	}
+	// apply overrides
+	for _, opt := range opts {
+		opt(c)
+	}
+	c.bufPool = &sync.Pool{
+		New: func() interface{} {
+			// pre-allocate dynamic-size buffer for reading chunks (up to chunk size + peek size)
+			return bytes.NewBuffer(make([]byte, 0, c.size+c.maxPeekSize))
+		},
+	}
+	c.peekedBufPool = &sync.Pool{
+		New: func() interface{} {
+			// pre-allocate fixed-size block for loading chunks
+			b := make([]byte, c.size+c.maxPeekSize)
+			return &b
+		},
+	}
+	return c
 }
 
-func (c *Chunk) GetBuf() (*[]byte, bool) {
-	buf, ok := c.BufPool.Get().(*[]byte)
-	return buf, ok
+// GetBuf returns a bytes.Buffer from the pool, seeded with the data
+func (c *Chunk) GetBuf(data []byte) (*bytes.Buffer, bool) {
+	window, ok := c.bufPool.Get().(*bytes.Buffer)
+	if !ok {
+		return nil, false
+	}
+	window.Reset()
+	window.Write(data) // seed the buffer with the data
+	return window, ok
 }
 
-func (c *Chunk) PutBuf(buf *[]byte) {
-	c.BufPool.Put(buf)
+// PutBuf returns the bytes.Buffer to the pool
+func (c *Chunk) PutBuf(window *bytes.Buffer) {
+	window.Reset()
+	c.bufPool.Put(window)
 }
 
-func (c *Chunk) GetPeekBuf(buf []byte) (*bytes.Buffer, bool) {
-	peekBuf, ok := c.PeekBufPool.Get().(*bytes.Buffer)
-	peekBuf.Reset()
-	peekBuf.Write(buf) // seed with buf
-	return peekBuf, ok
+// GetPeekedBuf returns a fixed-size []byte from the pool
+func (c *Chunk) GetPeekedBuf() (*[]byte, bool) {
+	b, ok := c.peekedBufPool.Get().(*[]byte)
+	return b, ok
 }
 
-func (c *Chunk) PutPeekBuf(buf *bytes.Buffer) {
-	c.PeekBufPool.Put(buf)
+// PutPeekedBuf returns the fixed-size []byte to the pool
+func (c *Chunk) PutPeekedBuf(b *[]byte) {
+	c.peekedBufPool.Put(b)
 }
 
 func (c *Chunk) GetSize() int {
-	return c.Size
+	return c.size
 }
 
 func (c *Chunk) GetMaxPeekSize() int {
-	return c.MaxPeekSize
+	return c.maxPeekSize
 }
 
 func (c *Chunk) GetFileThreshold() int64 {
-	return c.SmallFileThreshold
+	return c.smallFileThreshold
 }
 
 // ReadChunk reads the next chunk of data from file
