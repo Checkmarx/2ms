@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"runtime"
 
 	"github.com/checkmarx/2ms/lib/reporting"
@@ -21,11 +20,7 @@ type cli struct {
 }
 
 func createCLI(outputDir string) (cli, error) {
-	executableName := "2ms"
-	if runtime.GOOS == "windows" {
-		executableName += ".exe"
-	}
-	executable := filepath.Join(outputDir, executableName)
+	executable := path.Join(outputDir, "2ms")
 	lib, err := build.Import("github.com/checkmarx/2ms", "", build.FindOnly)
 	if err != nil {
 		return cli{}, fmt.Errorf("failed to import 2ms: %s", err)

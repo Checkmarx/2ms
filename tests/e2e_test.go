@@ -5,8 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/checkmarx/2ms/lib/reporting"
-	"github.com/google/go-cmp/cmp"
+	"github.com/checkmarx/2ms/lib/utils"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntegration(t *testing.T) {
@@ -87,7 +89,7 @@ func TestIntegration(t *testing.T) {
 	})
 }
 
-func TestSecretsEdgeCases(t *testing.T) {
+func TestSecretsScans(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping edge cases test")
 	}
@@ -99,31 +101,29 @@ func TestSecretsEdgeCases(t *testing.T) {
 		ExpectedReportPath string
 	}{
 		{
-			Name:               "secret at end without newline (filesystem)",
+			Name:               "secret at end without newline",
 			ScanTarget:         "filesystem",
 			TargetPath:         "testData/input/secret_at_end.txt",
-			ExpectedReportPath: "testData/expectedReport/report1.json",
+			ExpectedReportPath: "testData/expectedReport/secret_at_end_report.json",
 		},
 		{
-			Name:               "secret at end with multiLine (filesystem)",
+			Name:               "multi line secret ",
 			ScanTarget:         "filesystem",
 			TargetPath:         "testData/input/multi_line_secret.txt",
-			ExpectedReportPath: "testData/expectedReport/report2.json",
+			ExpectedReportPath: "testData/expectedReport/multi_line_secret_report.json",
 		},
 		{
-			Name:               "secret at end with backspace in newline (filesystem)",
+			Name:               "secret at end with newline ",
 			ScanTarget:         "filesystem",
 			TargetPath:         "testData/input/secret_at_end_with_newline.txt",
-			ExpectedReportPath: "testData/expectedReport/report3.json",
+			ExpectedReportPath: "testData/expectedReport/secret_at_end_with_newline_report.json",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			executable, err := createCLI(t.TempDir())
-			if err != nil {
-				t.Fatalf("failed to build CLI: %s", err)
-			}
+			require.Nil(t, err, "failed to build CLI")
 
 			args := []string{tc.ScanTarget}
 			if tc.ScanTarget == "filesystem" {
@@ -138,22 +138,30 @@ func TestSecretsEdgeCases(t *testing.T) {
 			}
 
 			actualReport, err := executable.getReport()
-			if err != nil {
-				t.Fatalf("failed to get report: %s", err)
-			}
+			require.NoError(t, err, "failed to get report")
 
 			expectedBytes, err := os.ReadFile(tc.ExpectedReportPath)
-			if err != nil {
-				t.Fatalf("failed to read expected report: %s", err)
-			}
-			var expectedReport reporting.Report
-			if err := json.Unmarshal(expectedBytes, &expectedReport); err != nil {
-				t.Fatalf("failed to unmarshal expected report: %s", err)
-			}
+			assert.NoError(t, err, "failed to read expected report")
 
-			if !cmp.Equal(expectedReport, actualReport) {
-				t.Errorf("Scan report does not match expected report:\n%s", cmp.Diff(expectedReport, actualReport))
-			}
+			var expectedReportMap map[string]interface{}
+			err = json.Unmarshal(expectedBytes, &expectedReportMap)
+			assert.NoError(t, err, "failed to unmarshal expected report JSON")
+
+			actualReportBytes, err := json.Marshal(actualReport)
+			assert.NoError(t, err, "failed to marshal actual report to JSON")
+
+			var actualReportMap map[string]interface{}
+
+			err = json.Unmarshal(actualReportBytes, &actualReportMap)
+			assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+			normalizedExpectedReport, err := utils.NormalizeReportData(expectedReportMap)
+			assert.NoError(t, err, "Failed to normalize expected report")
+
+			normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
+			assert.NoError(t, err, "Failed to normalize expected report")
+
+			assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 		})
 	}
 }

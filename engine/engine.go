@@ -81,23 +81,38 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 
 func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, pluginName string, errors chan error) {
 	defer wg.Done()
+	const CxFileEndMarker = ";cx-file-end"
 
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
 
-	fragment.Raw += "\n"
-	for _, value := range e.detector.Detect(fragment) {
+	fragment.Raw += CxFileEndMarker + "\n"
+	gitInfo := item.GetGitInfo()
+
+	values := e.detector.Detect(fragment)
+
+	for _, value := range values {
 		itemId := getFindingId(item, value)
 		var startLine, endLine int
+		var err error
 		if pluginName == "filesystem" {
 			startLine = value.StartLine + 1
 			endLine = value.EndLine + 1
+		} else if pluginName == "git" {
+			startLine, endLine, err = plugins.GetGitStartAndEndLine(gitInfo, value.StartLine, value.EndLine)
+			if err != nil {
+				errors <- fmt.Errorf("failed to get git lines for source %s: %w", item.GetSource(), err)
+				return
+			}
 		} else {
 			startLine = value.StartLine
 			endLine = value.EndLine
 		}
+
+		value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
+
 		lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 		if err != nil {
 			errors <- fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
