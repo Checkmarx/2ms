@@ -170,7 +170,7 @@ func (e *Engine) detectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 		_ = f.Close()
 	}()
 
-	reader := bufio.NewReaderSize(f, e.chunk.GetMaxPeekSize())
+	reader := bufio.NewReaderSize(f, e.chunk.GetSize()+e.chunk.GetMaxPeekSize())
 	totalLines := 0
 
 	// Read the file in chunks until EOF

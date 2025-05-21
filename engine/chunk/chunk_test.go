@@ -9,34 +9,40 @@ import (
 	"testing"
 )
 
+const (
+	chunkSize          = 10
+	maxPeekSize        = 5
+	smallFileThreshold = int64(20)
+)
+
 func TestGetAndPutBuf(t *testing.T) {
-	chunk := NewChunk()
-	buf, ok := chunk.GetBuf()
-	defer chunk.PutBuf(buf)
-
-	require.True(t, ok)
-	require.Equal(t, defaultSize, len(*buf))
-}
-
-func TestGetAndPutPeekBuf(t *testing.T) {
-	chunk := NewChunk()
+	c := New()
 	data := []byte("test")
-	buf, ok := chunk.GetPeekBuf(data)
-	defer chunk.PutPeekBuf(buf)
+	buf, ok := c.GetBuf(data)
+	defer c.PutBuf(buf)
 
 	require.True(t, ok)
 	require.Equal(t, defaultSize+defaultMaxPeekSize, buf.Cap())
 	require.Equal(t, string(data), buf.String())
 }
 
+func TestGetAndPutPeekedBuf(t *testing.T) {
+	c := New()
+	window, ok := c.GetPeekedBuf()
+	defer c.PutPeekedBuf(window)
+
+	require.True(t, ok)
+	require.Equal(t, defaultSize+defaultMaxPeekSize, len(*window))
+}
+
 func TestGetSize(t *testing.T) {
-	chunk := NewChunk()
-	require.Equal(t, defaultSize, chunk.GetSize())
+	c := New()
+	require.Equal(t, defaultSize, c.GetSize())
 }
 
 func TestGetMaxPeekSize(t *testing.T) {
-	chunk := NewChunk()
-	require.Equal(t, defaultMaxPeekSize, chunk.GetMaxPeekSize())
+	c := New()
+	require.Equal(t, defaultMaxPeekSize, c.GetMaxPeekSize())
 }
 
 func TestReadChunk(t *testing.T) {
@@ -66,12 +72,12 @@ func TestReadChunk(t *testing.T) {
 		{
 			name:     "successful read - peek size exceeded",
 			reader:   strings.NewReader("abc\ndef\nghi\njkl\nmno\npqr\nstu\nvwx\nyz"),
-			expected: "abc\ndef\nghi\njkl\nmno\npqr\ns",
+			expected: "abc\ndef\nghi\njkl",
 		},
 		{
 			name:     "successful read - multiple lines with consecutives new lines",
-			reader:   strings.NewReader("abc\ndef\n\nghi\n"),
-			expected: "abc\ndef\n\n",
+			reader:   strings.NewReader("abc\ndef\n\n\n\n\nghi\njkl"),
+			expected: "abc\ndef\n\n\n",
 		},
 		{
 			name:     "multiple lines without consecutives new lines",
@@ -82,11 +88,11 @@ func TestReadChunk(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			chunk := NewChunkWithSize(5, 20, 20)
-			reader := bufio.NewReader(tc.reader)
+			c := New(WithSize(chunkSize), WithMaxPeekSize(maxPeekSize), WithSmallFileThreshold(smallFileThreshold))
+			reader := bufio.NewReaderSize(tc.reader, chunkSize+maxPeekSize)
 
 			// Act
-			result, err := chunk.ReadChunk(reader, 0)
+			result, err := c.ReadChunk(reader, 0)
 			require.ErrorIs(t, err, tc.expectedError)
 
 			// Assert
@@ -95,63 +101,62 @@ func TestReadChunk(t *testing.T) {
 	}
 }
 
-func TestReadUntilSafeBoundary(t *testing.T) {
+func TestGenerateChunk(t *testing.T) {
 	// Arrange
 	testCases := []struct {
 		name     string
-		reader   io.Reader
+		rawData  []byte
 		expected string
 	}{
 		// Current split is fine, exit early.
 		{
 			name:     "safe original split - LF",
-			reader:   strings.NewReader("abc\n\ndefghijklmnop\n\nqrstuvwxyz"),
-			expected: "abc\n\n",
+			rawData:  []byte("abc\ndef\n\n\nghijklmnop\n\nqrstuvwxyz"),
+			expected: "abc\ndef\n\n\n",
 		},
 		{
 			name:     "safe original split - CRLF",
-			reader:   strings.NewReader("a\r\n\r\nbcdefghijklmnop\n"),
-			expected: "a\r\n\r\n",
+			rawData:  []byte("abcdef\r\n\r\nghijklmnop\n"),
+			expected: "abcdef\r\n\r\n",
 		},
-		// Current split is bad, look for a better one.
+		// Current split is bad, look for a better one
 		{
 			name:     "safe split - LF",
-			reader:   strings.NewReader("abcdefg\nhijklmnop\n\nqrstuvwxyz"),
-			expected: "abcdefg\nhijklmnop\n\n",
+			rawData:  []byte("abcdef\nghi\n\njklmnop\n\nqrstuvwxyz"),
+			expected: "abcdef\nghi\n\n",
 		},
 		{
 			name:     "safe split - CRLF",
-			reader:   strings.NewReader("abcdefg\r\nhijklmnop\r\n\r\nqrstuvwxyz"),
-			expected: "abcdefg\r\nhijklmnop\r\n\r\n",
+			rawData:  []byte("abcdef\r\nghi\r\n\r\njklmnopqrstuvwxyz"),
+			expected: "abcdef\r\nghi\r\n\r\n",
 		},
 		{
 			name:     "safe split - blank line",
-			reader:   strings.NewReader("abcdefg\nhijklmnop\n\t  \t\nqrstuvwxyz"),
-			expected: "abcdefg\nhijklmnop\n\t  \t\n",
+			rawData:  []byte("abcdefghi\n\t  \t\njklmnopqrstuvwxyz"),
+			expected: "abcdefghi\n\t  \t\n",
 		},
-		// Current split is bad, exhaust options.
+		// Current split is bad, exhaust options
 		{
 			name:     "no safe split",
-			reader:   strings.NewReader("abcdefg\nhijklmnopqrstuvwxyz"),
-			expected: "abcdefg\nhijklmnopqrstuvwx",
+			rawData:  []byte("abcdefg\nhijklmnopqrstuvwxyz"),
+			expected: "abcdefg\nhijklmn",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			buf := make([]byte, 5)
-			n, err := tc.reader.Read(buf)
+			c := New(WithSize(chunkSize), WithMaxPeekSize(maxPeekSize), WithSmallFileThreshold(smallFileThreshold))
+			reader := bufio.NewReaderSize(bytes.NewReader(tc.rawData), c.size+c.maxPeekSize)
+			peekedBuf := make([]byte, c.size+c.maxPeekSize)
+			_, err := reader.Read(peekedBuf)
 			require.NoError(t, err)
 
 			// Act
-			chunk := NewChunkWithSize(5, 20, 20)
-			reader := bufio.NewReader(tc.reader)
-			peekBuf := bytes.NewBuffer(buf[:n])
-			err = chunk.readUntilSafeBoundary(reader, n, peekBuf)
+			chunkStr, err := c.generateChunk(peekedBuf)
 			require.NoError(t, err)
 
 			// Assert
-			require.Equal(t, tc.expected, peekBuf.String())
+			require.Equal(t, tc.expected, chunkStr)
 		})
 	}
 }

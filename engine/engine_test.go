@@ -266,8 +266,9 @@ func TestDetectFile(t *testing.T) {
 				m.chunk.EXPECT().GetFileThreshold().Return(sizeThreshold)
 				m.chunk.EXPECT().GetSize().Return(chunkSize)
 				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
-				m.chunk.EXPECT().GetSize().Return(chunkSize)
 				m.semaphore.EXPECT().AcquireMemoryWeight(gomock.Any(), chunkWeight).Return(nil)
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), gomock.Any()).Return("", assert.AnError)
 				m.semaphore.EXPECT().ReleaseMemoryWeight(chunkWeight)
 			},
@@ -283,8 +284,9 @@ func TestDetectFile(t *testing.T) {
 				m.chunk.EXPECT().GetFileThreshold().Return(sizeThreshold)
 				m.chunk.EXPECT().GetSize().Return(chunkSize)
 				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
-				m.chunk.EXPECT().GetSize().Return(chunkSize)
 				m.semaphore.EXPECT().AcquireMemoryWeight(gomock.Any(), chunkWeight).Return(nil)
+				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), gomock.Any()).Return("abc\ndef\nghi\njkl\nmno\npqr\nstu\nvw", nil)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), gomock.Any()).Return("x\nyz", nil)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), gomock.Any()).Return("", io.EOF)
@@ -338,6 +340,7 @@ func TestDetectFile(t *testing.T) {
 
 func TestDetectChunks(t *testing.T) {
 	chunkSize := 5
+	maxPeekSize := 20
 
 	testCases := []struct {
 		name        string
@@ -351,6 +354,7 @@ func TestDetectChunks(t *testing.T) {
 			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte("password=supersecret\n")) },
 			mockFunc: func(m *mock) {
 				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("password=supersecret", nil)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", io.EOF)
 			},
@@ -366,6 +370,7 @@ func TestDetectChunks(t *testing.T) {
 			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte{'P', 'K', 0x03, 0x04}) },
 			mockFunc: func(m *mock) {
 				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", fmt.Errorf("skipping file - unsupported file type"))
 			},
 			expectedLog: "Skipping file %s: unsupported file type",
@@ -375,6 +380,7 @@ func TestDetectChunks(t *testing.T) {
 			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte("password=supersecret\n")) },
 			mockFunc: func(m *mock) {
 				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", io.EOF)
 			},
 		},
@@ -383,6 +389,7 @@ func TestDetectChunks(t *testing.T) {
 			makeFile: func(tmp string) string { return writeTempFile(t, tmp, 0, []byte("password=supersecret\n")) },
 			mockFunc: func(m *mock) {
 				m.chunk.EXPECT().GetSize().Return(chunkSize)
+				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
 				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", assert.AnError)
 			},
 			expectedErr: assert.AnError,
