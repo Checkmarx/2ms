@@ -371,7 +371,7 @@ func TestDetectChunks(t *testing.T) {
 			mockFunc: func(m *mock) {
 				m.chunk.EXPECT().GetSize().Return(chunkSize)
 				m.chunk.EXPECT().GetMaxPeekSize().Return(maxPeekSize)
-				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", fmt.Errorf("skipping file - unsupported file type"))
+				m.chunk.EXPECT().ReadChunk(gomock.Any(), 0).Return("", fmt.Errorf("skipping file: unsupported file type"))
 			},
 			expectedLog: "Skipping file %s: unsupported file type",
 		},

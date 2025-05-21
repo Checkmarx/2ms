@@ -177,7 +177,7 @@ func (e *Engine) detectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 	for {
 		chunkStr, err := e.chunk.ReadChunk(reader, totalLines)
 		if err != nil {
-			if err.Error() == "skipping file - unsupported file type" {
+			if err.Error() == "skipping file: unsupported file type" {
 				log.Debug().Msgf("Skipping file %s: unsupported file type", item.GetSource())
 				return nil
 			}
