@@ -93,7 +93,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 
 	values := e.detector.Detect(fragment)
 
-	for idx, value := range values {
+	for _, value := range values {
 		itemId := getFindingId(item, value)
 		var startLine, endLine int
 		var err error
@@ -111,10 +111,7 @@ func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.S
 			endLine = value.EndLine
 		}
 
-		if idx == len(values)-1 && strings.HasSuffix(value.Line, CxFileEndMarker) {
-			value.Line = value.Line[:len(value.Line)-len(CxFileEndMarker)]
-			value.EndColumn--
-		}
+		value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
 
 		lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 		if err != nil {
