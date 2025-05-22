@@ -1,21 +1,37 @@
 package cmd
 
 import (
+	"context"
 	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/engine/extra"
 	"github.com/checkmarx/2ms/lib/secrets"
+	"golang.org/x/sync/errgroup"
 	"sync"
 )
 
-func ProcessItems(engine *engine.Engine, pluginName string) {
+func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
-	wgItems := &sync.WaitGroup{}
+
+	g, ctx := errgroup.WithContext(context.Background())
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
-		wgItems.Add(1)
-		go engine.Detect(item, SecretsChan, wgItems, pluginName, Channels.Errors)
+		item := item
+
+		switch pluginName {
+		case "filesystem":
+			g.Go(func() error {
+				return engineInstance.DetectFile(ctx, item, SecretsChan)
+			})
+		default:
+			g.Go(func() error {
+				return engineInstance.DetectFragment(item, SecretsChan, pluginName)
+			})
+		}
 	}
-	wgItems.Wait()
+
+	if err := g.Wait(); err != nil {
+		Channels.Errors <- err
+	}
 	close(SecretsChan)
 }
 
@@ -48,7 +64,7 @@ func ProcessSecretsExtras() {
 	wgExtras.Wait()
 }
 
-func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
+func ProcessValidationAndScoreWithValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
 
 	wgValidation := &sync.WaitGroup{}
@@ -64,7 +80,7 @@ func ProcessValidationAndScoreWithValidation(engine *engine.Engine) {
 	engine.Validate()
 }
 
-func ProcessScoreWithoutValidation(engine *engine.Engine) {
+func ProcessScoreWithoutValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
 
 	wgScore := &sync.WaitGroup{}

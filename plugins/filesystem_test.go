@@ -17,10 +17,6 @@ func TestGetItem(t *testing.T) {
 		assert.NoError(t, err, "failed to remove temp file")
 	}(tmpFile.Name())
 
-	expectedContent := "mock expected content"
-	_, err = tmpFile.WriteString(expectedContent)
-	assert.NoError(t, err, "failed to write to temp file")
-
 	err = tmpFile.Close()
 	assert.NoError(t, err, "failed to close temp file")
 
@@ -30,8 +26,6 @@ func TestGetItem(t *testing.T) {
 
 	it, err := plugin.getItem(tmpFile.Name())
 	assert.NoError(t, err, "getItem returned an error")
-
-	assert.Equal(t, expectedContent, *it.Content, "content should match the written content")
 
 	expectedID := fmt.Sprintf("%s-%s-%s", plugin.GetName(), plugin.ProjectName, tmpFile.Name())
 	assert.Equal(t, expectedID, it.ID, "ID should match the expected format")
@@ -53,8 +47,7 @@ func TestGetItems(t *testing.T) {
 	assert.NoError(t, err, "failed to close temporary file")
 
 	validFile := tmpFile.Name()
-	invalidFile := "nonexistent_file.txt"
-	fileList := []string{validFile, invalidFile}
+	fileList := []string{validFile}
 
 	itemsChan := make(chan ISourceItem, len(fileList))
 	errsChan := make(chan error, len(fileList))
@@ -75,19 +68,10 @@ func TestGetItems(t *testing.T) {
 	for itm := range itemsChan {
 		items = append(items, itm)
 	}
-	var errs []error
-	for e := range errsChan {
-		errs = append(errs, e)
-	}
 
 	assert.Equal(t, 1, len(items), "should have one valid item")
-	assert.Equal(t, 1, len(errs), "should have one error")
-
-	validItem, ok := items[0].(item)
+	_, ok := items[0].(item)
 	assert.True(t, ok, "item should be of type item")
-	assert.Equal(t, validContent, *validItem.Content, "content mismatch for valid item")
-
-	assert.Error(t, errs[0], "expected an error for invalid file")
 }
 
 func TestGetFiles(t *testing.T) {
