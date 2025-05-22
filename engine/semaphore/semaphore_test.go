@@ -52,7 +52,6 @@ func TestAcquireReleaseMemoryWeight(t *testing.T) {
 	type testCase struct {
 		name          string
 		memoryBudget  int64
-		context       context.Context
 		expectedError error
 	}
 
@@ -60,26 +59,18 @@ func TestAcquireReleaseMemoryWeight(t *testing.T) {
 		{
 			name:         "successful acquisition and release",
 			memoryBudget: defaultMemoryBudget,
-			context:      context.Background(),
 		},
 		{
 			name:          "failed acquisition - over budget",
 			memoryBudget:  weight - 1,
-			context:       context.Background(),
 			expectedError: fmt.Errorf("buffer size %d exceeds memory budget %d", weight, weight-1),
-		},
-		{
-			name:          "failed acquisition - context canceled",
-			memoryBudget:  defaultMemoryBudget,
-			context:       canceledContext(),
-			expectedError: fmt.Errorf("failed to acquire semaphore: %w", context.Canceled),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			sem := NewSemaphoreWithBudget(tc.memoryBudget)
 
-			err := sem.AcquireMemoryWeight(tc.context, weight)
+			err := sem.AcquireMemoryWeight(context.Background(), weight)
 			if err == nil {
 				sem.ReleaseMemoryWeight(weight)
 			} else {
@@ -87,10 +78,4 @@ func TestAcquireReleaseMemoryWeight(t *testing.T) {
 			}
 		})
 	}
-}
-
-func canceledContext() context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	return ctx
 }

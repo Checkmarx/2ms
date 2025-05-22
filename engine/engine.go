@@ -138,26 +138,25 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 		defer e.semaphore.ReleaseMemoryWeight(weight)
 
 		return e.detectChunks(item, secretsChannel)
-	} else {
-		// fileSize * 2 -> data file bytes and its conversion to string
-		weight := fileSize * 2
-		err = e.semaphore.AcquireMemoryWeight(ctx, weight)
-		if err != nil {
-			return fmt.Errorf("failed to acquire memory: %w", err)
-		}
-		defer e.semaphore.ReleaseMemoryWeight(weight)
-
-		data, err := os.ReadFile(item.GetSource())
-		if err != nil {
-			return fmt.Errorf("read small file %q: %w", item.GetSource(), err)
-		}
-		fragment := detect.Fragment{
-			Raw:      string(data),
-			FilePath: item.GetSource(),
-		}
-
-		return e.detectSecrets(item, fragment, secretsChannel, "filesystem")
 	}
+	// fileSize * 2 -> data file bytes and its conversion to string
+	weight := fileSize * 2
+	err = e.semaphore.AcquireMemoryWeight(ctx, weight)
+	if err != nil {
+		return fmt.Errorf("failed to acquire memory: %w", err)
+	}
+	defer e.semaphore.ReleaseMemoryWeight(weight)
+
+	data, err := os.ReadFile(item.GetSource())
+	if err != nil {
+		return fmt.Errorf("read small file %q: %w", item.GetSource(), err)
+	}
+	fragment := detect.Fragment{
+		Raw:      string(data),
+		FilePath: item.GetSource(),
+	}
+
+	return e.detectSecrets(item, fragment, secretsChannel, "filesystem")
 }
 
 // detectChunks reads the given file in chunks and detects secrets in each chunk

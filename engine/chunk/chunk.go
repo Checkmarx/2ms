@@ -93,7 +93,6 @@ func (c *Chunk) GetBuf(data []byte) (*bytes.Buffer, bool) {
 	if !ok {
 		return nil, false
 	}
-	window.Reset()
 	window.Write(data) // seed the buffer with the data
 	return window, ok
 }
@@ -112,6 +111,7 @@ func (c *Chunk) GetPeekedBuf() (*[]byte, bool) {
 
 // PutPeekedBuf returns the fixed-size []byte to the pool
 func (c *Chunk) PutPeekedBuf(b *[]byte) {
+	*b = (*b)[:0] // reset the slice to zero length
 	c.peekedBufPool.Put(b)
 }
 
