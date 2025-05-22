@@ -206,8 +206,8 @@ func (e *Engine) detectSecrets(item plugins.ISourceItem, fragment detect.Fragmen
 	fragment.Raw += CxFileEndMarker + "\n"
 
 	values := e.detector.Detect(fragment)
-	for idx, value := range values {
-		secret, buildErr := buildSecret(item, idx, values, value, pluginName)
+	for _, value := range values {
+		secret, buildErr := buildSecret(item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
@@ -306,8 +306,7 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 }
 
 // buildSecret creates a secret object from the given source item and finding
-func buildSecret(item plugins.ISourceItem, idx int, values []report.Finding, value report.Finding,
-	pluginName string) (*secrets.Secret, error) {
+func buildSecret(item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
 	startLine, endLine, err := getStartAndEndLines(pluginName, gitInfo, value)
@@ -315,10 +314,7 @@ func buildSecret(item plugins.ISourceItem, idx int, values []report.Finding, val
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
-	if idx == len(values)-1 && strings.HasSuffix(value.Line, CxFileEndMarker) {
-		value.Line = value.Line[:len(value.Line)-len(CxFileEndMarker)]
-		value.EndColumn--
-	}
+	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
 
 	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 	if err != nil {
