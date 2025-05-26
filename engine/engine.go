@@ -51,11 +51,13 @@ type IEngine interface {
 	GetRuleBaseRiskScore(ruleId string) float64
 }
 
+type ctxKey int
+
 const (
-	customRegexRuleIdFormat = "custom-regex-%d"
-	CxFileEndMarker         = ";cx-file-end"
-	totalLinesField         = "totalLines"
-	linesInChunkField       = "linesInChunk"
+	customRegexRuleIdFormat        = "custom-regex-%d"
+	CxFileEndMarker                = ";cx-file-end"
+	totalLinesKey           ctxKey = iota
+	linesInChunkKey
 )
 
 type EngineConfig struct {
@@ -196,8 +198,8 @@ func (e *Engine) detectChunks(ctx context.Context, item plugins.ISourceItem, sec
 			Raw:      chunkStr,
 			FilePath: item.GetSource(),
 		}
-		ctx = context.WithValue(ctx, totalLinesField, totalLines)
-		ctx = context.WithValue(ctx, linesInChunkField, linesInChunk)
+		ctx = context.WithValue(ctx, totalLinesKey, totalLines)
+		ctx = context.WithValue(ctx, linesInChunkKey, linesInChunk)
 		if detectErr := e.detectSecrets(ctx, item, fragment, secretsChannel, "filesystem"); detectErr != nil {
 			return fmt.Errorf("failed to detect secrets: %w", detectErr)
 		}
@@ -351,8 +353,11 @@ func getStartAndEndLines(ctx context.Context, pluginName string, gitInfo *plugin
 	var err error
 
 	if pluginName == "filesystem" {
-		totalLines := ctx.Value(totalLinesField).(int)
-		linesInChunk := ctx.Value(linesInChunkField).(int)
+		var totalLines, linesInChunk int
+		if ctx.Value(totalLinesKey) != nil && ctx.Value(linesInChunkKey) != nil {
+			totalLines = ctx.Value(totalLinesKey).(int)
+			linesInChunk = ctx.Value(linesInChunkKey).(int)
+		}
 		startLine = value.StartLine + (totalLines - linesInChunk) + 1
 		endLine = value.EndLine + (totalLines - linesInChunk) + 1
 	} else if pluginName == "git" {
