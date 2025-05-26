@@ -54,6 +54,8 @@ type IEngine interface {
 const (
 	customRegexRuleIdFormat = "custom-regex-%d"
 	CxFileEndMarker         = ";cx-file-end"
+	totalLinesField         = "totalLines"
+	linesInChunkField       = "linesInChunk"
 )
 
 type EngineConfig struct {
@@ -109,7 +111,7 @@ func (e *Engine) DetectFragment(item plugins.ISourceItem, secretsChannel chan *s
 		FilePath: item.GetSource(),
 	}
 
-	return e.detectSecrets(item, fragment, secretsChannel, pluginName)
+	return e.detectSecrets(context.Background(), item, fragment, secretsChannel, pluginName)
 }
 
 // DetectFile reads the given file and detects secrets in it
@@ -137,7 +139,7 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 		}
 		defer e.semaphore.ReleaseMemoryWeight(weight)
 
-		return e.detectChunks(item, secretsChannel)
+		return e.detectChunks(ctx, item, secretsChannel)
 	}
 	// fileSize * 2 -> data file bytes and its conversion to string
 	weight := fileSize * 2
@@ -156,11 +158,11 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 		FilePath: item.GetSource(),
 	}
 
-	return e.detectSecrets(item, fragment, secretsChannel, "filesystem")
+	return e.detectSecrets(ctx, item, fragment, secretsChannel, "filesystem")
 }
 
 // detectChunks reads the given file in chunks and detects secrets in each chunk
-func (e *Engine) detectChunks(item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error {
+func (e *Engine) detectChunks(ctx context.Context, item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error {
 	f, err := os.Open(item.GetSource())
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %w", item.GetSource(), err)
@@ -194,20 +196,22 @@ func (e *Engine) detectChunks(item plugins.ISourceItem, secretsChannel chan *sec
 			Raw:      chunkStr,
 			FilePath: item.GetSource(),
 		}
-		if detectErr := e.detectSecrets(item, fragment, secretsChannel, "filesystem"); detectErr != nil {
+		ctx = context.WithValue(ctx, totalLinesField, totalLines)
+		ctx = context.WithValue(ctx, linesInChunkField, linesInChunk)
+		if detectErr := e.detectSecrets(ctx, item, fragment, secretsChannel, "filesystem"); detectErr != nil {
 			return fmt.Errorf("failed to detect secrets: %w", detectErr)
 		}
 	}
 }
 
 // detectSecrets detects secrets and sends them to the secrets channel
-func (e *Engine) detectSecrets(item plugins.ISourceItem, fragment detect.Fragment, secrets chan *secrets.Secret,
+func (e *Engine) detectSecrets(ctx context.Context, item plugins.ISourceItem, fragment detect.Fragment, secrets chan *secrets.Secret,
 	pluginName string) error {
 	fragment.Raw += CxFileEndMarker + "\n"
 
 	values := e.detector.Detect(fragment)
 	for _, value := range values {
-		secret, buildErr := buildSecret(item, value, pluginName)
+		secret, buildErr := buildSecret(ctx, item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
@@ -306,10 +310,10 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 }
 
 // buildSecret creates a secret object from the given source item and finding
-func buildSecret(item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
+func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
-	startLine, endLine, err := getStartAndEndLines(pluginName, gitInfo, value)
+	startLine, endLine, err := getStartAndEndLines(ctx, pluginName, gitInfo, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
@@ -342,13 +346,15 @@ func getFindingId(item plugins.ISourceItem, finding report.Finding) string {
 	return fmt.Sprintf("%x", sha)
 }
 
-func getStartAndEndLines(pluginName string, gitInfo *plugins.GitInfo, value report.Finding) (int, int, error) {
+func getStartAndEndLines(ctx context.Context, pluginName string, gitInfo *plugins.GitInfo, value report.Finding) (int, int, error) {
 	var startLine, endLine int
 	var err error
 
 	if pluginName == "filesystem" {
-		startLine = value.StartLine + 1
-		endLine = value.EndLine + 1
+		totalLines := ctx.Value(totalLinesField).(int)
+		linesInChunk := ctx.Value(linesInChunkField).(int)
+		startLine = value.StartLine + (totalLines - linesInChunk) + 1
+		endLine = value.EndLine + (totalLines - linesInChunk) + 1
 	} else if pluginName == "git" {
 		startLine, endLine, err = plugins.GetGitStartAndEndLine(gitInfo, value.StartLine, value.EndLine)
 		if err != nil {
