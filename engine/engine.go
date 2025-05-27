@@ -51,13 +51,13 @@ type IEngine interface {
 	GetRuleBaseRiskScore(ruleId string) float64
 }
 
-type ctxKey int
+type ctxKey string
 
 const (
 	customRegexRuleIdFormat        = "custom-regex-%d"
 	CxFileEndMarker                = ";cx-file-end"
-	totalLinesKey           ctxKey = iota
-	linesInChunkKey
+	totalLinesKey           ctxKey = "totalLines"
+	linesInChunkKey         ctxKey = "linesInChunk"
 )
 
 type EngineConfig struct {
@@ -353,13 +353,16 @@ func getStartAndEndLines(ctx context.Context, pluginName string, gitInfo *plugin
 	var err error
 
 	if pluginName == "filesystem" {
-		var totalLines, linesInChunk int
-		if ctx.Value(totalLinesKey) != nil && ctx.Value(linesInChunkKey) != nil {
-			totalLines = ctx.Value(totalLinesKey).(int)
-			linesInChunk = ctx.Value(linesInChunkKey).(int)
+		totalLines, totalOK := ctx.Value(totalLinesKey).(int)
+		chunkLines, chunkOK := ctx.Value(linesInChunkKey).(int)
+
+		offset := 1
+		if totalOK && chunkOK {
+			offset = (totalLines - chunkLines) + 1
 		}
-		startLine = value.StartLine + (totalLines - linesInChunk) + 1
-		endLine = value.EndLine + (totalLines - linesInChunk) + 1
+
+		startLine = value.StartLine + offset
+		endLine = value.EndLine + offset
 	} else if pluginName == "git" {
 		startLine, endLine, err = plugins.GetGitStartAndEndLine(gitInfo, value.StartLine, value.EndLine)
 		if err != nil {
