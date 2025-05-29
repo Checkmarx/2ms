@@ -106,6 +106,11 @@ func (c *Chunk) PutBuf(window *bytes.Buffer) {
 // GetPeekedBuf returns a fixed-size []byte from the pool
 func (c *Chunk) GetPeekedBuf() (*[]byte, bool) {
 	b, ok := c.peekedBufPool.Get().(*[]byte)
+	if !ok {
+		return nil, false
+	}
+	// reslice to its full capacity so Read can fill it
+	*b = (*b)[:cap(*b)]
 	return b, ok
 }
 
