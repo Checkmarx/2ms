@@ -92,7 +92,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.Beamer(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryNewsAndMedia, RuleType: 4}},
 		{Rule: *rules.CodecovAccessToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategorySecurity, RuleType: 4}},
 		{Rule: *rules.CoinbaseAccessToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryCryptocurrencyExchange, RuleType: 4}},
-		{Rule: *rules.Clojars(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4}},
+		{Rule: *Clojars(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4}},
 		{Rule: *rules.ConfluentAccessToken(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4}},
 		{Rule: *rules.ConfluentSecretKey(), Tags: []string{TagSecretKey}, ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4}},
 		{Rule: *rules.Contentful(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryContentManagementSystem, RuleType: 4}},
