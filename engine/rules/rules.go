@@ -131,7 +131,7 @@ func getDefaultRules() *[]Rule {
 		{Rule: *rules.GitHubPat(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryDevelopmentPlatform, RuleType: 4}},
 		{Rule: *rules.GitHubFineGrainedPat(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
 		{Rule: *rules.GitHubOauth(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4}},
-		{Rule: *rules.GitHubApp(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4}},
+		{Rule: *GitHubApp(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4}},
 		{Rule: *rules.GitHubRefresh(), Tags: []string{TagRefreshToken}, ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4}},
 		{Rule: *rules.GitlabPat(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategorySourceCodeManagement, RuleType: 4}},
 		{Rule: *rules.GitlabPipelineTriggerToken(), Tags: []string{TagTriggerToken}, ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4}},
