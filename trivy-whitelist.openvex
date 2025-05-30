@@ -1,0 +1,9 @@
+{
+  "@context": "https://openvex.dev/ns",
+  "@id": "https://openvex.dev/docs/public/vex-2e67563e128250cbcb3e98930df948dd053e43271d70dc50cfa22d57e03fe96f",
+  "timestamp": "2024-05-08T16:00:16.853479631-06:00",
+  "version": 1,
+  "author":"Omer fainshtein",
+  "statements": [
+  ]
+}
