@@ -15,6 +15,9 @@ func Test2msRules(t *testing.T) {
 		validate func() *config.Rule
 	}{
 		{name: "AuthenticatedURL", validate: rules.AuthenticatedURL},
+		{name: "Clojars", validate: rules.Clojars},
+		{name: "GenericCredential", validate: rules.GenericCredential},
+		{name: "GitHubApp", validate: rules.GitHubApp},
 		{name: "HardcodedPassword", validate: rules.HardcodedPassword},
 		{name: "PlaidAccessID", validate: rules.PlaidAccessID},
 		{name: "PrivateKey", validate: rules.PrivateKey},
