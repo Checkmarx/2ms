@@ -423,7 +423,7 @@ func TestDetectChunks(t *testing.T) {
 			tmp := t.TempDir()
 			src := tc.makeFile(tmp)
 
-			err := engine.detectChunks(&item{source: src}, make(chan *secrets.Secret, 1))
+			err := engine.detectChunks(context.Background(), &item{source: src}, make(chan *secrets.Secret, 1))
 			loggedMessage := logsBuffer.String()
 			if tc.expectedErr != nil {
 				require.ErrorContains(t, err, tc.expectedErr.Error())
