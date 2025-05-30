@@ -11,7 +11,9 @@ import (
 
 	"github.com/checkmarx/2ms/lib/config"
 	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 // test input results
@@ -82,7 +84,7 @@ var (
 	// sarif results
 	result1Sarif = Results{
 		Message: Message{
-			Text: messageText(result1.RuleID, result1.Source),
+			Text: createMessageText(result1.RuleID, result1.Source),
 		},
 		RuleId: ruleID1,
 		Locations: []Locations{
@@ -113,7 +115,7 @@ var (
 	}
 	result2Sarif = Results{
 		Message: Message{
-			Text: messageText(result2.RuleID, result2.Source),
+			Text: createMessageText(result2.RuleID, result2.Source),
 		},
 		RuleId: ruleID2,
 		Locations: []Locations{
@@ -144,7 +146,7 @@ var (
 	}
 	result3Sarif = Results{
 		Message: Message{
-			Text: messageText(result3.RuleID, result3.Source),
+			Text: createMessageText(result3.RuleID, result3.Source),
 		},
 		RuleId: ruleID1,
 		Locations: []Locations{
@@ -224,6 +226,9 @@ func TestWriteReportInNonExistingDir(t *testing.T) {
 }
 
 func TestGetOutputSarif(t *testing.T) {
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
 	tests := []struct {
 		name    string
 		arg     Report
@@ -293,7 +298,7 @@ func TestGetOutputSarif(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.arg.getOutput(sarifFormat, &config.Config{Name: "report", Version: "1"})
+			got, err := tt.arg.GetOutput(sarifFormat, &config.Config{Name: "report", Version: "1"})
 			if tt.wantErr {
 				assert.NotNil(t, err)
 				return
@@ -333,4 +338,108 @@ func SortResults(results1, results2 []Results) {
 	sort.Slice(results2, func(i, j int) bool {
 		return results2[i].Message.Text < results2[j].Message.Text
 	})
+}
+
+func TestGetOutputYAML(t *testing.T) {
+	testCases := []struct {
+		name   string
+		report Report
+	}{{
+		name: "No secrets found",
+		report: Report{
+			TotalItemsScanned: 5,
+			TotalSecretsFound: 0,
+			Results:           map[string][]*secrets.Secret{},
+		},
+	},
+		{
+			name: "Single real secret in hardcodedPassword.go",
+			report: Report{
+				TotalItemsScanned: 1,
+				TotalSecretsFound: 1,
+				Results: map[string][]*secrets.Secret{
+					"c6490d749fd4670fde969011d99ea5c4c4b1c0d7": {
+						{
+							ID:               "c6490d749fd4670fde969011d99ea5c4c4b1c0d7",
+							Source:           "..\\2ms\\engine\\rules\\hardcodedPassword.go",
+							RuleID:           "generic-api-key",
+							StartLine:        45,
+							EndLine:          45,
+							LineContent:      "value",
+							StartColumn:      8,
+							EndColumn:        64,
+							Value:            "value",
+							ValidationStatus: "",
+							CvssScore:        8.2,
+							RuleDescription:  "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Multiple real JWT secrets in jwt.txt",
+			report: Report{
+				TotalItemsScanned: 2,
+				TotalSecretsFound: 2,
+				Results: map[string][]*secrets.Secret{
+					"12fd8706491196cbfbdddd2fdcd650ed842dd963": {
+						{
+							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
+							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
+							RuleID:           "jwt",
+							StartLine:        1,
+							EndLine:          1,
+							LineContent:      "line content",
+							StartColumn:      129,
+							EndColumn:        232,
+							Value:            "value",
+							ValidationStatus: "",
+							CvssScore:        8.2,
+							RuleDescription:  "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+							ExtraDetails: map[string]interface{}{
+								"secretDetails": map[string]interface{}{
+									"name": "mockName2",
+									"sub":  "mockSub2",
+								},
+							},
+						},
+						{
+							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
+							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
+							RuleID:           "jwt",
+							StartLine:        2,
+							EndLine:          2,
+							LineContent:      "line Content",
+							StartColumn:      64,
+							EndColumn:        166,
+							Value:            "value",
+							ValidationStatus: "",
+							CvssScore:        8.2,
+							RuleDescription:  "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+							ExtraDetails: map[string]interface{}{
+								"secretDetails": map[string]interface{}{
+									"name": "mockName2",
+									"sub":  "mockSub2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := tc.report.GetOutput("yaml", &config.Config{Name: "report", Version: "1"})
+			assert.NoError(t, err)
+
+			var report Report
+			err = yaml.Unmarshal([]byte(output), &report)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.report, report)
+		})
+	}
 }

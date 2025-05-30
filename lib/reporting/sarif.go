@@ -9,7 +9,7 @@ import (
 	"github.com/checkmarx/2ms/lib/secrets"
 )
 
-func writeSarif(report Report, cfg *config.Config) (string, error) {
+func writeSarif(report *Report, cfg *config.Config) (string, error) {
 	sarif := Sarif{
 		Schema:  "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
 		Version: "2.1.0",
@@ -24,7 +24,7 @@ func writeSarif(report Report, cfg *config.Config) (string, error) {
 	return string(sarifReport), nil
 }
 
-func getRuns(report Report, cfg *config.Config) []Runs {
+func getRuns(report *Report, cfg *config.Config) []Runs {
 	return []Runs{
 		{
 			Tool:    getTool(report, cfg),
@@ -33,7 +33,7 @@ func getRuns(report Report, cfg *config.Config) []Runs {
 	}
 }
 
-func getTool(report Report, cfg *config.Config) Tool {
+func getTool(report *Report, cfg *config.Config) Tool {
 	tool := Tool{
 		Driver: Driver{
 			Name:            cfg.Name,
@@ -45,7 +45,7 @@ func getTool(report Report, cfg *config.Config) Tool {
 	return tool
 }
 
-func getRules(report Report) []*SarifRule {
+func getRules(report *Report) []*SarifRule {
 	uniqueRulesMap := make(map[string]*SarifRule)
 	var reportRules []*SarifRule
 	for _, reportSecrets := range report.Results {
@@ -64,15 +64,23 @@ func getRules(report Report) []*SarifRule {
 	return reportRules
 }
 
-func hasNoResults(report Report) bool {
+func hasNoResults(report *Report) bool {
 	return len(report.Results) == 0
 }
 
-func messageText(ruleName string, filePath string) string {
+func createMessageText(ruleName string, filePath string) string {
+	// maintain only the filename if the scan target is git
+	if strings.HasPrefix(filePath, "git show ") {
+		filePathParts := strings.SplitN(filePath, ":", 2)
+		if len(filePathParts) == 2 {
+			filePath = filePathParts[1]
+		}
+	}
+
 	return fmt.Sprintf("%s has detected secret for file %s.", ruleName, filePath)
 }
 
-func getResults(report Report) []Results {
+func getResults(report *Report) []Results {
 	var results []Results
 
 	// if this report has no results, ensure that it is represented as [] instead of null/nil
@@ -85,7 +93,7 @@ func getResults(report Report) []Results {
 		for _, secret := range secrets {
 			r := Results{
 				Message: Message{
-					Text: messageText(secret.RuleID, secret.Source),
+					Text: createMessageText(secret.RuleID, secret.Source),
 				},
 				RuleId:    secret.RuleID,
 				Locations: getLocation(secret),

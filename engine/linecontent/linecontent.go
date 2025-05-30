@@ -14,11 +14,11 @@ const (
 func GetLineContent(line, secret string) (string, error) {
 	lineSize := len(line)
 	if lineSize == 0 {
-		return "", fmt.Errorf("failed to get line content: line empty")
+		return "", fmt.Errorf("line empty")
 	}
 
 	if len(secret) == 0 {
-		return "", fmt.Errorf("failed to get line content: secret empty")
+		return "", fmt.Errorf("secret empty")
 	}
 
 	// Truncate lineContent to max size

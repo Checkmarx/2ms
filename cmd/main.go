@@ -9,6 +9,7 @@ import (
 	"github.com/checkmarx/2ms/lib/reporting"
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/checkmarx/2ms/plugins"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -66,17 +67,17 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.GitPlugin{},
 }
 
-var channels = plugins.Channels{
+var Channels = plugins.Channels{
 	Items:     make(chan plugins.ISourceItem),
 	Errors:    make(chan error),
 	WaitGroup: &sync.WaitGroup{},
 }
 
-var report = reporting.Init()
-var secretsChan = make(chan *secrets.Secret)
-var secretsExtrasChan = make(chan *secrets.Secret)
-var validationChan = make(chan *secrets.Secret)
-var cvssScoreWithoutValidationChan = make(chan *secrets.Secret)
+var Report = reporting.Init()
+var SecretsChan = make(chan *secrets.Secret)
+var SecretsExtrasChan = make(chan *secrets.Secret)
+var ValidationChan = make(chan *secrets.Secret)
+var CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
@@ -85,7 +86,7 @@ func Execute() (int, error) {
 	cobra.OnInitialize(initialize)
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
-	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal, none)")
 	rootCmd.PersistentFlags().StringSliceVar(&reportPathVar, reportPathFlagName, []string{}, "path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
@@ -104,7 +105,7 @@ func Execute() (int, error) {
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
 	for _, plugin := range allPlugins {
-		subCommand, err := plugin.DefineCommand(channels.Items, channels.Errors)
+		subCommand, err := plugin.DefineCommand(Channels.Items, Channels.Errors)
 		if err != nil {
 			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
@@ -116,13 +117,13 @@ func Execute() (int, error) {
 		rootCmd.AddCommand(subCommand)
 	}
 
-	listenForErrors(channels.Errors)
+	listenForErrors(Channels.Errors)
 
 	if err := rootCmd.Execute(); err != nil {
 		return 0, err
 	}
 
-	return report.TotalSecretsFound, nil
+	return Report.TotalSecretsFound, nil
 }
 
 func preRun(pluginName string, cmd *cobra.Command, args []string) error {
@@ -130,47 +131,50 @@ func preRun(pluginName string, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	engine, err := engine.Init(engineConfigVar)
+	engineInstance, err := engine.Init(engineConfigVar)
 	if err != nil {
 		return err
 	}
 
-	if err := engine.AddRegexRules(customRegexRuleVar); err != nil {
+	if err := engineInstance.AddRegexRules(customRegexRuleVar); err != nil {
 		return err
 	}
 
-	channels.WaitGroup.Add(1)
-	go processItems(engine, pluginName)
+	Channels.WaitGroup.Add(1)
+	go ProcessItems(engineInstance, pluginName)
 
-	channels.WaitGroup.Add(1)
-	go processSecrets()
+	Channels.WaitGroup.Add(1)
+	go ProcessSecrets()
 
-	channels.WaitGroup.Add(1)
-	go processSecretsExtras()
+	Channels.WaitGroup.Add(1)
+	go ProcessSecretsExtras()
 
 	if validateVar {
-		channels.WaitGroup.Add(1)
-		go processValidationAndScoreWithValidation(engine)
+		Channels.WaitGroup.Add(1)
+		go ProcessValidationAndScoreWithValidation(engineInstance)
 	} else {
-		channels.WaitGroup.Add(1)
-		go processScoreWithoutValidation(engine)
+		Channels.WaitGroup.Add(1)
+		go ProcessScoreWithoutValidation(engineInstance)
 	}
 
 	return nil
 }
 
 func postRun(cmd *cobra.Command, args []string) error {
-	channels.WaitGroup.Wait()
+	Channels.WaitGroup.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
 
-	if report.TotalItemsScanned > 0 {
-		if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
-			return err
+	if Report.TotalItemsScanned > 0 {
+
+		if zerolog.GlobalLevel() != zerolog.Disabled {
+			if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
+				return err
+			}
 		}
 
 		if len(reportPathVar) > 0 {
-			err := report.WriteFile(reportPathVar, cfg)
+			err := Report.WriteFile(reportPathVar, cfg)
 			if err != nil {
 				return fmt.Errorf("failed to create report file with error: %s", err)
 			}

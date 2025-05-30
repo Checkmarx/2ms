@@ -10,6 +10,7 @@ type ISourceItem interface {
 	GetContent() *string
 	GetID() string
 	GetSource() string
+	GetGitInfo() *GitInfo
 }
 
 type item struct {
@@ -17,7 +18,8 @@ type item struct {
 	// Unique identifier of the item
 	ID string
 	// User friendly description and/or link to the item
-	Source string
+	Source  string
+	GitInfo *GitInfo
 }
 
 var _ ISourceItem = (*item)(nil)
@@ -32,6 +34,10 @@ func (i item) GetID() string {
 
 func (i item) GetSource() string {
 	return i.Source
+}
+
+func (i item) GetGitInfo() *GitInfo {
+	return i.GitInfo
 }
 
 type Plugin struct {
