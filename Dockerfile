@@ -20,7 +20,7 @@ COPY . .
 RUN GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -a -o /app/2ms .
 
 # Runtime image
-FROM cgr.dev/chainguard/git@sha256:b0dbd0c3c6a0f44c0522663c3a7f9b47f8e62ed419c88c37199f61308f19829c
+FROM cgr.dev/chainguard/git@sha256:fb9f28194b4dda3ea74c68d731238d1f32023849bca04c5652638e8e199fb956
 
 WORKDIR /app
 
