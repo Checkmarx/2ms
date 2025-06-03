@@ -90,3 +90,7 @@ ignore-result:
   - e392318c730d4cd0a04340f1e3d41d4c61f6eb20 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
   - 8f0e0442b01c18b02cfb8e59555103f8233fc7bf # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
   - 353627158f2e7fa5bb60271cee17da80e5fbba17 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/292/commits/cc44c8f8bee92250bdcd69bf9fbaffabf0eb442a
+  - bf9302d29d7167f39041b0561ae9d1d3677faa2f # value used for testing
+  - 44912790c892213daa0df821a006e1e1659e6e24 # value used for testing
+  - ac3704513c4ab9bde3fa3539b14152c95ba5698f # value used for testing
+  - ac2d6adbeca8901c1655bcf3e0eac027ca681825 # value used for testing
