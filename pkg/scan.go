@@ -12,6 +12,7 @@ import (
 
 type ScanConfig struct {
 	IgnoreResultIds []string
+	IgnoreRules     []string
 }
 
 type scanner struct{}
@@ -37,7 +38,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 	}()
 
 	// Initialize engine configuration
-	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds}
+	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds, IgnoreList: scanConfig.IgnoreRules}
 	engineInstance, err := engine.Init(engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
@@ -93,7 +94,7 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 	errorsCh := cmd.Channels.Errors
 
 	// Initialize engine configuration.
-	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds}
+	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds, IgnoreList: scanConfig.IgnoreRules}
 	engineInstance, err := engine.Init(engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
