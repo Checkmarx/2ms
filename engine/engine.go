@@ -11,7 +11,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"sync"
+	sync "sync"
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/v3/engine/chunk"
@@ -252,13 +252,11 @@ func (e *Engine) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func (e *Engine) RegisterForValidation(secret *secrets.Secret, wg *sync.WaitGroup) {
-	defer wg.Done()
-	e.validator.RegisterForValidation(secret)
+func (s *Engine) RegisterForValidation(secret *secrets.Secret) {
+	s.validator.RegisterForValidation(secret)
 }
 
-func (e *Engine) Score(secret *secrets.Secret, validateFlag bool, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (s *Engine) Score(secret *secrets.Secret, validateFlag bool) {
 	validationStatus := secrets.UnknownResult // default validity
 	if validateFlag {
 		validationStatus = secret.ValidationStatus

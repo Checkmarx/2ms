@@ -1,14 +1,15 @@
 package score_test
 
 import (
+	"sync"
+	"testing"
+
 	. "github.com/checkmarx/2ms/v3/engine"
 	"github.com/checkmarx/2ms/v3/engine/rules"
 	"github.com/checkmarx/2ms/v3/engine/score"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	ruleConfig "github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
-	"sync"
-	"testing"
 )
 
 func TestScore(t *testing.T) {

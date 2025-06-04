@@ -13,10 +13,18 @@ import (
 func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
 
-	g, ctx := errgroup.WithContext(context.Background())
-	for item := range Channels.Items {
-		Report.TotalItemsScanned++
-		item := item
+	g := errgroup.Group{}
+	g.SetLimit(1000)
+	for item := range channels.Items {
+		report.TotalItemsScanned++
+		g.Go(func() error {
+			engine.Detect(item, secretsChan, pluginName, channels.Errors)
+			return nil
+		})
+	}
+	g.Wait()
+	close(secretsChan)
+}
 
 		switch pluginName {
 		case "filesystem":
@@ -71,37 +79,43 @@ func ProcessSecretsWithValidation() {
 func ProcessSecretsExtras() {
 	defer Channels.WaitGroup.Done()
 
-	wgExtras := &sync.WaitGroup{}
-	for secret := range SecretsExtrasChan {
-		wgExtras.Add(1)
-		go extra.AddExtraToSecret(secret, wgExtras)
+	g := errgroup.Group{}
+	g.SetLimit(10)
+	for secret := range secretsExtrasChan {
+		g.Go(func() error {
+			extra.AddExtraToSecret(secret)
+			return nil
+		})
 	}
-	wgExtras.Wait()
+	g.Wait()
 }
 
 func ProcessValidationAndScoreWithValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
 
-	wgValidation := &sync.WaitGroup{}
-	for secret := range ValidationChan {
-		wgValidation.Add(2)
-		go func(secret *secrets.Secret, wg *sync.WaitGroup) {
-			engine.RegisterForValidation(secret, wg)
-			engine.Score(secret, true, wg)
-		}(secret, wgValidation)
+	g := errgroup.Group{}
+	g.SetLimit(10)
+	for secret := range validationChan {
+		g.Go(func() error {
+			engine.RegisterForValidation(secret)
+			engine.Score(secret, true)
+			return nil
+		})
 	}
-	wgValidation.Wait()
-
+	g.Wait()
 	engine.Validate()
 }
 
 func ProcessScoreWithoutValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
 
-	wgScore := &sync.WaitGroup{}
-	for secret := range CvssScoreWithoutValidationChan {
-		wgScore.Add(1)
-		go engine.Score(secret, false, wgScore)
+	g := errgroup.Group{}
+	g.SetLimit(10)
+	for secret := range cvssScoreWithoutValidationChan {
+		g.Go(func() error {
+			engine.Score(secret, false)
+			return nil
+		})
 	}
-	wgScore.Wait()
+	g.Wait()
 }
