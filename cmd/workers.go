@@ -1,23 +1,24 @@
 package cmd
 
 import (
-	"github.com/checkmarx/2ms/lib/secrets"
-	"sync"
-
 	"github.com/checkmarx/2ms/engine"
 	"github.com/checkmarx/2ms/engine/extra"
+	"golang.org/x/sync/errgroup"
 )
 
 func processItems(engine *engine.Engine, pluginName string) {
 	defer channels.WaitGroup.Done()
 
-	wgItems := &sync.WaitGroup{}
+	g := errgroup.Group{}
+	g.SetLimit(1000)
 	for item := range channels.Items {
 		report.TotalItemsScanned++
-		wgItems.Add(1)
-		go engine.Detect(item, secretsChan, wgItems, pluginName, channels.Errors)
+		g.Go(func() error {
+			engine.Detect(item, secretsChan, pluginName, channels.Errors)
+			return nil
+		})
 	}
-	wgItems.Wait()
+	g.Wait()
 	close(secretsChan)
 }
 
@@ -42,37 +43,43 @@ func processSecrets() {
 func processSecretsExtras() {
 	defer channels.WaitGroup.Done()
 
-	wgExtras := &sync.WaitGroup{}
+	g := errgroup.Group{}
+	g.SetLimit(10)
 	for secret := range secretsExtrasChan {
-		wgExtras.Add(1)
-		go extra.AddExtraToSecret(secret, wgExtras)
+		g.Go(func() error {
+			extra.AddExtraToSecret(secret)
+			return nil
+		})
 	}
-	wgExtras.Wait()
+	g.Wait()
 }
 
 func processValidationAndScoreWithValidation(engine *engine.Engine) {
 	defer channels.WaitGroup.Done()
 
-	wgValidation := &sync.WaitGroup{}
+	g := errgroup.Group{}
+	g.SetLimit(10)
 	for secret := range validationChan {
-		wgValidation.Add(2)
-		go func(secret *secrets.Secret, wg *sync.WaitGroup) {
-			engine.RegisterForValidation(secret, wg)
-			engine.Score(secret, true, wg)
-		}(secret, wgValidation)
+		g.Go(func() error {
+			engine.RegisterForValidation(secret)
+			engine.Score(secret, true)
+			return nil
+		})
 	}
-	wgValidation.Wait()
-
+	g.Wait()
 	engine.Validate()
 }
 
 func processScoreWithoutValidation(engine *engine.Engine) {
 	defer channels.WaitGroup.Done()
 
-	wgScore := &sync.WaitGroup{}
+	g := errgroup.Group{}
+	g.SetLimit(10)
 	for secret := range cvssScoreWithoutValidationChan {
-		wgScore.Add(1)
-		go engine.Score(secret, false, wgScore)
+		g.Go(func() error {
+			engine.Score(secret, false)
+			return nil
+		})
 	}
-	wgScore.Wait()
+	g.Wait()
 }

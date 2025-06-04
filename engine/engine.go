@@ -3,13 +3,13 @@ package engine
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/checkmarx/2ms/engine/linecontent"
-	"github.com/checkmarx/2ms/engine/score"
 	"os"
 	"regexp"
 	"strings"
-	"sync"
 	"text/tabwriter"
+
+	"github.com/checkmarx/2ms/engine/linecontent"
+	"github.com/checkmarx/2ms/engine/score"
 
 	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/engine/validation"
@@ -78,9 +78,7 @@ func Init(engineConfig EngineConfig) (*Engine, error) {
 	}, nil
 }
 
-func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, wg *sync.WaitGroup, pluginName string, errors chan error) {
-	defer wg.Done()
-
+func (e *Engine) Detect(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, pluginName string, errors chan error) {
 	fragment := detect.Fragment{
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
@@ -137,13 +135,11 @@ func (e *Engine) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func (s *Engine) RegisterForValidation(secret *secrets.Secret, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (s *Engine) RegisterForValidation(secret *secrets.Secret) {
 	s.validator.RegisterForValidation(secret)
 }
 
-func (s *Engine) Score(secret *secrets.Secret, validateFlag bool, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (s *Engine) Score(secret *secrets.Secret, validateFlag bool) {
 	validationStatus := secrets.UnknownResult // default validity
 	if validateFlag {
 		validationStatus = secret.ValidationStatus

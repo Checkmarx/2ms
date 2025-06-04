@@ -1,8 +1,6 @@
 package validation
 
 import (
-	"sync"
-
 	"github.com/checkmarx/2ms/engine/extra"
 	"github.com/checkmarx/2ms/lib/secrets"
 )
@@ -35,14 +33,11 @@ func (v *Validator) RegisterForValidation(secret *secrets.Secret) {
 }
 
 func (v *Validator) Validate() {
-	wg := &sync.WaitGroup{}
 	for generalKey, bySource := range v.pairsCollector.pairs {
 		for _, byRule := range bySource {
-			wg.Add(1)
-			v.pairsCollector.validate(generalKey, byRule, wg)
+			v.pairsCollector.validate(generalKey, byRule)
 		}
 	}
-	wg.Wait()
 }
 
 func IsCanValidateRule(ruleID string) bool {
