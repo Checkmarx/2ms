@@ -3,10 +3,10 @@ package extra
 import (
 	"encoding/base64"
 	"fmt"
+	"testing"
+
 	"github.com/checkmarx/2ms/lib/secrets"
 	"github.com/stretchr/testify/assert"
-	"sync"
-	"testing"
 )
 
 func TestAddExtraToSecret(t *testing.T) {
@@ -50,10 +50,7 @@ func TestAddExtraToSecret(t *testing.T) {
 				ExtraDetails: make(map[string]interface{}),
 			}
 
-			var wg sync.WaitGroup
-			wg.Add(1)
-			AddExtraToSecret(secret, &wg)
-			wg.Wait()
+			AddExtraToSecret(secret)
 
 			assert.Equal(t, tt.expectedOutput, secret.ExtraDetails["secretDetails"])
 		})
