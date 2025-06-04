@@ -2,29 +2,20 @@ package cmd
 
 import (
 	"context"
-	"sync"
 
 	"github.com/checkmarx/2ms/v3/engine"
 	"github.com/checkmarx/2ms/v3/engine/extra"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"golang.org/x/sync/errgroup"
 )
 
 func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
 
-	g := errgroup.Group{}
+	g, ctx := errgroup.WithContext(context.Background())
 	g.SetLimit(1000)
-	for item := range channels.Items {
-		report.TotalItemsScanned++
-		g.Go(func() error {
-			engine.Detect(item, secretsChan, pluginName, channels.Errors)
-			return nil
-		})
-	}
-	g.Wait()
-	close(secretsChan)
-}
+	for item := range Channels.Items {
+		Report.TotalItemsScanned++
+		item := item
 
 		switch pluginName {
 		case "filesystem":
@@ -81,13 +72,13 @@ func ProcessSecretsExtras() {
 
 	g := errgroup.Group{}
 	g.SetLimit(10)
-	for secret := range secretsExtrasChan {
+	for secret := range SecretsExtrasChan {
 		g.Go(func() error {
 			extra.AddExtraToSecret(secret)
 			return nil
 		})
 	}
-	g.Wait()
+	_ = g.Wait()
 }
 
 func ProcessValidationAndScoreWithValidation(engine engine.IEngine) {
@@ -95,14 +86,14 @@ func ProcessValidationAndScoreWithValidation(engine engine.IEngine) {
 
 	g := errgroup.Group{}
 	g.SetLimit(10)
-	for secret := range validationChan {
+	for secret := range ValidationChan {
 		g.Go(func() error {
 			engine.RegisterForValidation(secret)
 			engine.Score(secret, true)
 			return nil
 		})
 	}
-	g.Wait()
+	_ = g.Wait()
 	engine.Validate()
 }
 
@@ -111,11 +102,11 @@ func ProcessScoreWithoutValidation(engine engine.IEngine) {
 
 	g := errgroup.Group{}
 	g.SetLimit(10)
-	for secret := range cvssScoreWithoutValidationChan {
+	for secret := range CvssScoreWithoutValidationChan {
 		g.Go(func() error {
 			engine.Score(secret, false)
 			return nil
 		})
 	}
-	g.Wait()
+	_ = g.Wait()
 }

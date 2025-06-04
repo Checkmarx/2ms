@@ -170,7 +170,7 @@ func TestGetFiles(t *testing.T) {
 			errsChan := make(chan error, 10)
 			var wg sync.WaitGroup
 
-			plugin.GetFiles(itemsChan, errsChan, &wg)
+			plugin.getFiles(itemsChan, errsChan)
 			wg.Wait()
 			close(itemsChan)
 			close(errsChan)

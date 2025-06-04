@@ -114,7 +114,7 @@ func (p *FileSystemPlugin) getItems(items chan ISourceItem, errs chan error, fil
 			return nil
 		})
 	}
-	g.Wait()
+	_ = g.Wait()
 }
 
 func (p *FileSystemPlugin) getItem(filePath string) (*item, error) {

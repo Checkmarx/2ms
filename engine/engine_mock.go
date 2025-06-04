@@ -12,7 +12,6 @@ package engine
 import (
 	context "context"
 	reflect "reflect"
-	sync "sync"
 
 	secrets "github.com/checkmarx/2ms/v3/lib/secrets"
 	plugins "github.com/checkmarx/2ms/v3/plugins"
@@ -100,27 +99,27 @@ func (mr *MockIEngineMockRecorder) GetRuleBaseRiskScore(ruleId any) *gomock.Call
 }
 
 // RegisterForValidation mocks base method.
-func (m *MockIEngine) RegisterForValidation(secret *secrets.Secret, wg *sync.WaitGroup) {
+func (m *MockIEngine) RegisterForValidation(secret *secrets.Secret) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RegisterForValidation", secret, wg)
+	m.ctrl.Call(m, "RegisterForValidation", secret)
 }
 
 // RegisterForValidation indicates an expected call of RegisterForValidation.
-func (mr *MockIEngineMockRecorder) RegisterForValidation(secret, wg any) *gomock.Call {
+func (mr *MockIEngineMockRecorder) RegisterForValidation(secret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterForValidation", reflect.TypeOf((*MockIEngine)(nil).RegisterForValidation), secret, wg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterForValidation", reflect.TypeOf((*MockIEngine)(nil).RegisterForValidation), secret)
 }
 
 // Score mocks base method.
-func (m *MockIEngine) Score(secret *secrets.Secret, validateFlag bool, wg *sync.WaitGroup) {
+func (m *MockIEngine) Score(secret *secrets.Secret, validateFlag bool) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Score", secret, validateFlag, wg)
+	m.ctrl.Call(m, "Score", secret, validateFlag)
 }
 
 // Score indicates an expected call of Score.
-func (mr *MockIEngineMockRecorder) Score(secret, validateFlag, wg any) *gomock.Call {
+func (mr *MockIEngineMockRecorder) Score(secret, validateFlag any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Score", reflect.TypeOf((*MockIEngine)(nil).Score), secret, validateFlag, wg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Score", reflect.TypeOf((*MockIEngine)(nil).Score), secret, validateFlag)
 }
 
 // Validate mocks base method.
