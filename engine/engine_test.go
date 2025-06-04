@@ -2,9 +2,9 @@ package engine
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/checkmarx/2ms/engine/rules"
 	"github.com/checkmarx/2ms/lib/secrets"
@@ -79,9 +79,7 @@ func TestDetector(t *testing.T) {
 
 		secretsChan := make(chan *secrets.Secret, 1)
 		errorsChan := make(chan error, 1)
-		wg := &sync.WaitGroup{}
-		wg.Add(1)
-		detector.Detect(i, secretsChan, wg, fsPlugin.GetName(), errorsChan)
+		detector.Detect(i, secretsChan, fsPlugin.GetName(), errorsChan)
 		close(secretsChan)
 
 		s := <-secretsChan
@@ -155,9 +153,7 @@ func TestSecrets(t *testing.T) {
 			fmt.Printf("Start test %s", name)
 			secretsChan := make(chan *secrets.Secret, 1)
 			errorsChan := make(chan error, 1)
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			detector.Detect(item{content: &secret.Content}, secretsChan, wg, fsPlugin.GetName(), errorsChan)
+			detector.Detect(item{content: &secret.Content}, secretsChan, fsPlugin.GetName(), errorsChan)
 			close(secretsChan)
 			close(errorsChan)
 

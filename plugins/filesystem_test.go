@@ -2,11 +2,12 @@ package plugins
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetItem(t *testing.T) {
@@ -58,15 +59,12 @@ func TestGetItems(t *testing.T) {
 
 	itemsChan := make(chan ISourceItem, len(fileList))
 	errsChan := make(chan error, len(fileList))
-	var wg sync.WaitGroup
 
 	plugin := &FileSystemPlugin{
 		ProjectName: "TestProject",
 	}
 
-	plugin.getItems(itemsChan, errsChan, &wg, fileList)
-
-	wg.Wait()
+	plugin.getItems(itemsChan, errsChan, fileList)
 
 	close(itemsChan)
 	close(errsChan)

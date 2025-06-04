@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -38,9 +38,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Folder plugin started")
 
-			wg := &sync.WaitGroup{}
-			p.getFiles(items, errors, wg)
-			wg.Wait()
+			p.getFiles(items, errors)
 			close(items)
 		},
 	}
@@ -60,7 +58,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 	return cmd, nil
 }
 
-func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error, wg *sync.WaitGroup) {
+func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error) {
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
@@ -98,23 +96,25 @@ func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error, wg 
 		return
 	}
 
-	p.getItems(items, errs, wg, fileList)
+	p.getItems(items, errs, fileList)
 }
 
-func (p *FileSystemPlugin) getItems(items chan ISourceItem, errs chan error, wg *sync.WaitGroup, fileList []string) {
+func (p *FileSystemPlugin) getItems(items chan ISourceItem, errs chan error, fileList []string) {
+	g := errgroup.Group{}
+	g.SetLimit(1000)
 	for _, filePath := range fileList {
-		wg.Add(1)
-		go func(filePath string) {
-			defer wg.Done()
+		g.Go(func() error {
 			actualFile, err := p.getItem(filePath)
 			if err != nil {
 				errs <- err
 				time.Sleep(time.Second) // Temporary fix for incorrect non-error exits; needs a better solution.
-				return
+				return nil
 			}
 			items <- *actualFile
-		}(filePath)
+			return nil
+		})
 	}
+	g.Wait()
 }
 
 func (p *FileSystemPlugin) getItem(filePath string) (*item, error) {
