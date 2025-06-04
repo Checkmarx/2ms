@@ -217,9 +217,9 @@ func TestScore(t *testing.T) {
 		expectedRuleScores := expectedCvssScores[secret.RuleID]
 		validityIndex := getValidityIndex(secret.ValidationStatus)
 		unknownIndex := getValidityIndex(secrets.UnknownResult)
-		engine.Score(secret, true, &wg)
+		engine.Score(secret, true)
 		assert.Equal(t, expectedRuleScores[validityIndex], secret.CvssScore, "rule: %s", secret.RuleID)
-		engine.Score(secret, false, &wg)
+		engine.Score(secret, false)
 		assert.Equal(t, expectedRuleScores[unknownIndex], secret.CvssScore, "rule: %s", secret.RuleID)
 	}
 }
