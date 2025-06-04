@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/checkmarx/2ms/lib/secrets"
 )
@@ -16,8 +15,7 @@ var ruleIDToFunction = map[string]addExtraFunc{
 	"jwt": addExtraJWT,
 }
 
-func AddExtraToSecret(secret *secrets.Secret, wg *sync.WaitGroup) {
-	defer wg.Done()
+func AddExtraToSecret(secret *secrets.Secret) {
 	if addExtra, ok := ruleIDToFunction[secret.RuleID]; ok {
 		extraData := addExtra(secret)
 		if extraData != nil && extraData != "" {
