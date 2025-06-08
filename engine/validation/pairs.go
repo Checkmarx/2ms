@@ -3,7 +3,7 @@ package validation
 import (
 	"sync"
 
-	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
 )
 
 type pairsByRuleId map[string][]*secrets.Secret

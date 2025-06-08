@@ -7,11 +7,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/checkmarx/2ms/cmd"
-	"github.com/checkmarx/2ms/lib/reporting"
-	"github.com/checkmarx/2ms/lib/secrets"
-	"github.com/checkmarx/2ms/lib/utils"
-	"github.com/checkmarx/2ms/plugins"
+	"github.com/checkmarx/2ms/v3/cmd"
+	"github.com/checkmarx/2ms/v3/lib/reporting"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
+	"github.com/checkmarx/2ms/v3/lib/utils"
+	"github.com/checkmarx/2ms/v3/plugins"
 	"github.com/stretchr/testify/assert"
 )
 

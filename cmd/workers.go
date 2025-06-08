@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/checkmarx/2ms/engine"
-	"github.com/checkmarx/2ms/engine/extra"
-	"github.com/checkmarx/2ms/lib/secrets"
-	"golang.org/x/sync/errgroup"
 	"sync"
+
+	"github.com/checkmarx/2ms/v3/engine"
+	"github.com/checkmarx/2ms/v3/engine/extra"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
+	"golang.org/x/sync/errgroup"
 )
 
 func ProcessItems(engineInstance engine.IEngine, pluginName string) {
@@ -46,6 +47,20 @@ func ProcessSecrets() {
 		} else {
 			CvssScoreWithoutValidationChan <- secret
 		}
+		Report.Results[secret.ID] = append(Report.Results[secret.ID], secret)
+	}
+	close(SecretsExtrasChan)
+	close(ValidationChan)
+	close(CvssScoreWithoutValidationChan)
+}
+
+func ProcessSecretsWithValidation() {
+	defer Channels.WaitGroup.Done()
+
+	for secret := range SecretsChan {
+		Report.TotalSecretsFound++
+		SecretsExtrasChan <- secret
+		ValidationChan <- secret
 		Report.Results[secret.ID] = append(Report.Results[secret.ID], secret)
 	}
 	close(SecretsExtrasChan)

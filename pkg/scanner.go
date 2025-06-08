@@ -1,8 +1,8 @@
 package scanner
 
 import (
-	"github.com/checkmarx/2ms/lib/reporting"
-	"github.com/checkmarx/2ms/plugins"
+	"github.com/checkmarx/2ms/v3/lib/reporting"
+	"github.com/checkmarx/2ms/v3/plugins"
 )
 
 type ScanItem struct {
@@ -33,5 +33,6 @@ func (i ScanItem) GetGitInfo() *plugins.GitInfo {
 
 type Scanner interface {
 	Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
+	ScanWithValidation(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
 	ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
 }
