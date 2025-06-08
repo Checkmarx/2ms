@@ -23,80 +23,20 @@ func NewScanner() Scanner {
 }
 
 func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
-	itemsCh := cmd.Channels.Items
-	errorsCh := cmd.Channels.Errors
-	wg := &sync.WaitGroup{}
-
-	// listener for errors
-	bufferedErrors := make(chan error, len(scanItems)+1)
-	go func() {
-		for err := range errorsCh {
-			if err != nil {
-				bufferedErrors <- err
-			}
-		}
-		close(bufferedErrors)
-	}()
-
-	// Initialize engine configuration
-	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds, IgnoreList: scanConfig.IgnoreRules}
-	engineInstance, err := engine.Init(engineConfig)
-	if err != nil {
-		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
-	}
-
-	// Start processing items
-	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessItems(engineInstance, "custom")
-
-	// Start processing secrets
-	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessSecrets()
-
-	// Start processing secrets extras
-	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessSecretsExtras()
-
-	// Start validation and scoring
-	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessScoreWithoutValidation(engineInstance)
-
-	// send items to be scanned
-	for _, scanItem := range scanItems {
-		wg.Add(1)
-		go func(item ScanItem) {
-			defer wg.Done()
-			itemsCh <- item
-		}(scanItem)
-	}
-	wg.Wait()
-	close(itemsCh)
-	cmd.Channels.WaitGroup.Wait()
-
-	close(errorsCh)
-	var errs []error
-	for err = range bufferedErrors {
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	if len(errs) > 0 {
-		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
-	}
-
-	// Finalize and generate report
-	report := cmd.Report
-	return report, nil
+	return s.runScan(scanItems, scanConfig, false)
 }
 
 func (s *scanner) ScanWithValidation(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
+	return s.runScan(scanItems, scanConfig, true)
+}
+
+func (s *scanner) runScan(scanItems []ScanItem, scanConfig ScanConfig, withValidation bool) (*reporting.Report, error) {
 	itemsCh := cmd.Channels.Items
 	errorsCh := cmd.Channels.Errors
+	bufferedErrors := make(chan error, len(scanItems)+1)
 	wg := &sync.WaitGroup{}
 
-	// listener for errors
-	bufferedErrors := make(chan error, len(scanItems)+1)
+	// Error listener
 	go func() {
 		for err := range errorsCh {
 			if err != nil {
@@ -106,55 +46,60 @@ func (s *scanner) ScanWithValidation(scanItems []ScanItem, scanConfig ScanConfig
 		close(bufferedErrors)
 	}()
 
-	// Initialize engine configuration
-	engineConfig := engine.EngineConfig{IgnoredIds: scanConfig.IgnoreResultIds, IgnoreList: scanConfig.IgnoreRules}
+	// Initialize engine
+	engineConfig := engine.EngineConfig{
+		IgnoredIds: scanConfig.IgnoreResultIds,
+		IgnoreList: scanConfig.IgnoreRules,
+	}
 	engineInstance, err := engine.Init(engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}
 
-	// Start processing items
-	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessItems(engineInstance, "custom")
+	// Start processing pipeline
+	startPipeline(engineInstance, withValidation)
 
-	// Start processing secrets
-	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessSecretsWithValidation()
-
-	// Start processing secrets extras
-	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessSecretsExtras()
-
-	// Start validation and scoring
-	cmd.Channels.WaitGroup.Add(1)
-	go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
-
-	// send items to be scanned
-	for _, scanItem := range scanItems {
+	// Send scan items
+	for _, item := range scanItems {
 		wg.Add(1)
-		go func(item ScanItem) {
+		go func(si ScanItem) {
 			defer wg.Done()
-			itemsCh <- item
-		}(scanItem)
+			itemsCh <- si
+		}(item)
 	}
 	wg.Wait()
 	close(itemsCh)
-	cmd.Channels.WaitGroup.Wait()
 
+	// Wait for all processing
+	cmd.Channels.WaitGroup.Wait()
 	close(errorsCh)
+
+	// Collect errors
 	var errs []error
 	for err = range bufferedErrors {
-		if err != nil {
-			errs = append(errs, err)
-		}
+		errs = append(errs, err)
 	}
-
 	if len(errs) > 0 {
 		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
-	report := cmd.Report
-	return report, nil
+	return cmd.Report, nil
+}
+
+func startPipeline(engineInstance engine.IEngine, withValidation bool) {
+	cmd.Channels.WaitGroup.Add(4)
+
+	go cmd.ProcessItems(engineInstance, "custom")
+
+	if withValidation {
+		go cmd.ProcessSecretsWithValidation()
+		go cmd.ProcessSecretsExtras()
+		go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
+	} else {
+		go cmd.ProcessSecrets()
+		go cmd.ProcessSecretsExtras()
+		go cmd.ProcessScoreWithoutValidation(engineInstance)
+	}
 }
 
 func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
