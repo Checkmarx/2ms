@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"runtime/pprof"
 	"sync"
 
 	"github.com/checkmarx/2ms/engine"
@@ -34,6 +36,8 @@ const (
 	ignoreOnExitFlagName       = "ignore-on-exit"
 	maxTargetMegabytesFlagName = "max-target-megabytes"
 	validate                   = "validate"
+	cpuProfileFlagName         = "cpuprofile"
+	memProfileFlagName         = "memprofile"
 )
 
 var (
@@ -44,6 +48,8 @@ var (
 	ignoreOnExitVar    = ignoreOnExitNone
 	engineConfigVar    engine.EngineConfig
 	validateVar        bool
+	cpuProfileVar      string
+	memProfileVar      string
 )
 
 var rootCmd = &cobra.Command{
@@ -51,6 +57,18 @@ var rootCmd = &cobra.Command{
 	Short:   "2ms Secrets Detection",
 	Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
 	Version: Version,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Start CPU profiling if enabled
+		if cpuProfileVar != "" {
+			startCPUProfile(cpuProfileVar)
+		}
+	},
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		// Write memory profile if enabled
+		if memProfileVar != "" {
+			writeMemProfile(memProfileVar)
+		}
+	},
 }
 
 const envPrefix = "2MS"
@@ -98,6 +116,8 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().Var(&ignoreOnExitVar, ignoreOnExitFlagName, "defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\nexample: if 'results' is set, only engine errors will make 2ms exit code different from 0")
 	rootCmd.PersistentFlags().IntVar(&engineConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0, "files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
 	rootCmd.PersistentFlags().BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
+	rootCmd.PersistentFlags().StringVar(&cpuProfileVar, cpuProfileFlagName, "", "write cpu profile to file")
+	rootCmd.PersistentFlags().StringVar(&memProfileVar, memProfileFlagName, "", "write memory profile to file")
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
 
@@ -184,4 +204,35 @@ func postRun(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// startCPUProfile starts CPU profiling and returns a stop function
+func startCPUProfile(filename string) func() {
+	f, err := os.Create(filename)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not create CPU profile")
+	}
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+		f.Close()
+		log.Fatal().Err(err).Msg("could not start CPU profile")
+	}
+
+	return func() {
+		pprof.StopCPUProfile()
+		f.Close()
+	}
+}
+
+// writeMemProfile writes memory profile to file
+func writeMemProfile(filename string) {
+	f, err := os.Create(filename)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not create memory profile")
+	}
+	defer f.Close()
+
+	if err := pprof.WriteHeapProfile(f); err != nil {
+		log.Fatal().Err(err).Msg("could not write memory profile")
+	}
 }
