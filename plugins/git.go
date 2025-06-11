@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/checkmarx/2ms/lib/utils"
+	"github.com/checkmarx/2ms/v3/lib/utils"
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"

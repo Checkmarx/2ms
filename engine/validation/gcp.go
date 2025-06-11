@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/rs/zerolog/log"
 )
 

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/checkmarx/2ms/lib/utils"
+	"github.com/checkmarx/2ms/v3/lib/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"golang.org/x/time/rate"

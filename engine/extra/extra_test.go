@@ -3,7 +3,7 @@ package extra
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"

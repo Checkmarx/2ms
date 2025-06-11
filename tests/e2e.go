@@ -11,7 +11,7 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/checkmarx/2ms/lib/reporting"
+	"github.com/checkmarx/2ms/v3/lib/reporting"
 )
 
 type cli struct {
@@ -21,7 +21,7 @@ type cli struct {
 
 func createCLI(outputDir string) (cli, error) {
 	executable := path.Join(outputDir, "2ms")
-	lib, err := build.Import("github.com/checkmarx/2ms", "", build.FindOnly)
+	lib, err := build.Import("github.com/checkmarx/2ms/v3", "", build.FindOnly)
 	if err != nil {
 		return cli{}, fmt.Errorf("failed to import 2ms: %s", err)
 	}
