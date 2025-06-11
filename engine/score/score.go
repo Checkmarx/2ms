@@ -1,8 +1,8 @@
 package score
 
 import (
-	"github.com/checkmarx/2ms/engine/rules"
-	"github.com/checkmarx/2ms/lib/secrets"
+	"github.com/checkmarx/2ms/v3/engine/rules"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"math"
 )
 

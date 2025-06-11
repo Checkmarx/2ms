@@ -1,8 +1,8 @@
 package scanner
 
 import (
-	"github.com/checkmarx/2ms/lib/reporting"
-	"github.com/checkmarx/2ms/plugins"
+	"github.com/checkmarx/2ms/v3/lib/reporting"
+	"github.com/checkmarx/2ms/v3/plugins"
 )
 
 type ScanItem struct {

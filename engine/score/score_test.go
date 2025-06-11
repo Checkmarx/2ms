@@ -1,10 +1,10 @@
 package score_test
 
 import (
-	. "github.com/checkmarx/2ms/engine"
-	"github.com/checkmarx/2ms/engine/rules"
-	"github.com/checkmarx/2ms/engine/score"
-	"github.com/checkmarx/2ms/lib/secrets"
+	. "github.com/checkmarx/2ms/v3/engine"
+	"github.com/checkmarx/2ms/v3/engine/rules"
+	"github.com/checkmarx/2ms/v3/engine/score"
+	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	ruleConfig "github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"sync"

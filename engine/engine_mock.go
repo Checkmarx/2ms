@@ -14,8 +14,8 @@ import (
 	reflect "reflect"
 	sync "sync"
 
-	secrets "github.com/checkmarx/2ms/lib/secrets"
-	plugins "github.com/checkmarx/2ms/plugins"
+	secrets "github.com/checkmarx/2ms/v3/lib/secrets"
+	plugins "github.com/checkmarx/2ms/v3/plugins"
 	gomock "go.uber.org/mock/gomock"
 )
 
