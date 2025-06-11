@@ -14,6 +14,7 @@ import (
 type ScanConfig struct {
 	IgnoreResultIds []string
 	IgnoreRules     []string
+	WithValidation  bool
 }
 
 type scanner struct{}
@@ -23,14 +24,6 @@ func NewScanner() Scanner {
 }
 
 func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
-	return s.runScan(scanItems, scanConfig, false)
-}
-
-func (s *scanner) ScanWithValidation(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
-	return s.runScan(scanItems, scanConfig, true)
-}
-
-func (s *scanner) runScan(scanItems []ScanItem, scanConfig ScanConfig, withValidation bool) (*reporting.Report, error) {
 	itemsCh := cmd.Channels.Items
 	errorsCh := cmd.Channels.Errors
 	bufferedErrors := make(chan error, len(scanItems)+1)
@@ -57,7 +50,7 @@ func (s *scanner) runScan(scanItems []ScanItem, scanConfig ScanConfig, withValid
 	}
 
 	// Start processing pipeline
-	startPipeline(engineInstance, withValidation)
+	startPipeline(engineInstance, scanConfig.WithValidation)
 
 	// Send scan items
 	for _, item := range scanItems {
@@ -93,13 +86,13 @@ func startPipeline(engineInstance engine.IEngine, withValidation bool) {
 
 	if withValidation {
 		go cmd.ProcessSecretsWithValidation()
-		go cmd.ProcessSecretsExtras()
 		go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
 	} else {
 		go cmd.ProcessSecrets()
-		go cmd.ProcessSecretsExtras()
 		go cmd.ProcessScoreWithoutValidation(engineInstance)
 	}
+
+	go cmd.ProcessSecretsExtras()
 }
 
 func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {

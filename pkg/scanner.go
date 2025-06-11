@@ -33,6 +33,5 @@ func (i ScanItem) GetGitInfo() *plugins.GitInfo {
 
 type Scanner interface {
 	Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
-	ScanWithValidation(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
 	ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error)
 }

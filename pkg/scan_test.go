@@ -605,7 +605,7 @@ func TestScanWithValidation(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.ScanWithValidation(scanItems, ScanConfig{})
+		actualReport, err := testScanner.Scan(scanItems, ScanConfig{WithValidation: true})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		expectedReportBytes, err := os.ReadFile(expectedReportWithValidationPath)
