@@ -3,7 +3,7 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM cgr.dev/chainguard/go@sha256:7f9e74e1af376a6d238077d8df037a25001997581630bc121c8aecfa5c8da8b3 AS builder
+FROM cgr.dev/chainguard/go@sha256:19a5c0545be3b79037f49428b5c9393cff3a3f3185b4261dc201c00925707f81 AS builder
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ COPY . .
 RUN GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -a -o /app/2ms .
 
 # Runtime image
-FROM cgr.dev/chainguard/git@sha256:fb9f28194b4dda3ea74c68d731238d1f32023849bca04c5652638e8e199fb956
+FROM cgr.dev/chainguard/git@sha256:88a9ee753cdd5c33542e6dbf97535d723eb99a10a974a22b78eb550b50e1aca5
 
 WORKDIR /app
 
