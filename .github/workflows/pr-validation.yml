@@ -30,7 +30,7 @@ jobs:
           git diff --exit-code
 
       - name: Go Linter
-        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run -v -E gofmt --timeout=5m
+        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run --timeout=5m
 
       - name: Go Test
         run: go test -v ./...
