@@ -52,7 +52,7 @@ func (p *SlackPlugin) DefineCommand(items chan ISourceItem, errors chan error) (
 		Long:  "Scan Slack team for sensitive information.",
 		Run: func(cmd *cobra.Command, args []string) {
 			p.getItems()
-			p.Channels.WaitGroup.Wait()
+			p.WaitGroup.Wait()
 			close(items)
 		},
 	}

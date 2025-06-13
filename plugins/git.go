@@ -58,7 +58,7 @@ func (p *GitPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*c
 		Args:  cobra.MatchAll(cobra.ExactArgs(1), validGitRepoArgs),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Git plugin started")
-			p.scanGit(args[0], p.buildScanOptions(), p.Channels.Items, p.Channels.Errors)
+			p.scanGit(args[0], p.buildScanOptions(), p.Items, p.Errors)
 			p.WaitGroup.Wait()
 			close(items)
 		},

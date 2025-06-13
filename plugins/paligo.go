@@ -73,7 +73,7 @@ func (p *PaligoPlugin) DefineCommand(items chan ISourceItem, errors chan error) 
 		Run: func(cmd *cobra.Command, args []string) {
 			// Waits for MarkFlagsOneRequired https://github.com/spf13/cobra/pull/1952
 			if p.auth == "" && (p.username == "" || p.token == "") {
-				p.Channels.Errors <- fmt.Errorf("exactly one of the flags in the group %v must be set; none were set", []string{paligoAuthFlag, paligoUsernameFlag, paligoTokenFlag})
+				p.Errors <- fmt.Errorf("exactly one of the flags in the group %v must be set; none were set", []string{paligoAuthFlag, paligoUsernameFlag, paligoTokenFlag})
 				return
 			}
 			log.Info().Msg("Paligo plugin started")
@@ -107,7 +107,7 @@ func (p *PaligoPlugin) getItems() {
 
 	foldersToProcess, err := p.getFirstProcessingFolders()
 	if err != nil {
-		p.Channels.Errors <- err
+		p.Errors <- err
 		return
 	}
 
@@ -156,14 +156,15 @@ func (p *PaligoPlugin) processFolders(foldersToProcess []PaligoItem) chan Paligo
 			folderInfo, err := p.paligoApi.showFolder(folder.ID)
 			if err != nil {
 				log.Error().Err(err).Msgf("error while getting %s '%s'", folder.Type, folder.Name)
-				p.Channels.Errors <- err
+				p.Errors <- err
 				continue
 			}
 
 			for _, child := range folderInfo.Children {
-				if child.Type == "component" {
+				switch child.Type {
+				case "component":
 					itemsChan <- child
-				} else if child.Type == "folder" {
+				case "folder":
 					foldersToProcess = append(foldersToProcess, child)
 				}
 			}
@@ -180,7 +181,7 @@ func (p *PaligoPlugin) handleComponent(paligoItem PaligoItem) {
 	document, err := p.paligoApi.showDocument(paligoItem.ID)
 	if err != nil {
 		log.Error().Err(err).Msgf("error while getting document '%s'", paligoItem.Name)
-		p.Channels.Errors <- fmt.Errorf("error while getting document '%s': %w", paligoItem.Name, err)
+		p.Errors <- fmt.Errorf("error while getting document '%s': %w", paligoItem.Name, err)
 		return
 	}
 

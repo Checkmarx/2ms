@@ -221,8 +221,6 @@ func TestWriteReportInNonExistingDir(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
-	os.RemoveAll(filepath.Join(tempDir, "test_temp_dir"))
 }
 
 func TestGetOutputSarif(t *testing.T) {

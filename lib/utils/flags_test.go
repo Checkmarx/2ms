@@ -685,7 +685,7 @@ subcommand:
 			var configFileName string
 			if tc.config != nil {
 				configFileName = writeTempFile(t, tc.config, tc.configFormat)
-				defer os.Remove(configFileName)
+				defer os.Remove(configFileName) //nolint:errcheck
 
 				tc.args = append(tc.args, "--"+configFlagName, configFileName)
 			}
