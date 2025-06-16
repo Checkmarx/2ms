@@ -290,10 +290,10 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 
 			tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
-			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
-			fmt.Fprintln(tab, "----\t----\t----\t----")
+			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check") //nolint:errcheck
+			fmt.Fprintln(tab, "----\t----\t----\t----")                  //nolint:errcheck
 			for _, rule := range *rules {
-				fmt.Fprintf(
+				fmt.Fprintf( //nolint:errcheck
 					tab,
 					"%s\t%s\t%s\t%s\n",
 					rule.Rule.RuleID,
@@ -352,7 +352,8 @@ func getStartAndEndLines(ctx context.Context, pluginName string, gitInfo *plugin
 	var startLine, endLine int
 	var err error
 
-	if pluginName == "filesystem" {
+	switch pluginName {
+	case "filesystem":
 		totalLines, totalOK := ctx.Value(totalLinesKey).(int)
 		chunkLines, chunkOK := ctx.Value(linesInChunkKey).(int)
 
@@ -363,12 +364,12 @@ func getStartAndEndLines(ctx context.Context, pluginName string, gitInfo *plugin
 
 		startLine = value.StartLine + offset
 		endLine = value.EndLine + offset
-	} else if pluginName == "git" {
+	case "git":
 		startLine, endLine, err = plugins.GetGitStartAndEndLine(gitInfo, value.StartLine, value.EndLine)
 		if err != nil {
 			return 0, 0, err
 		}
-	} else {
+	default:
 		startLine = value.StartLine
 		endLine = value.EndLine
 	}
