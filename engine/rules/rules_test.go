@@ -7,7 +7,7 @@ import (
 )
 
 func TestLoadAllRules(t *testing.T) {
-	rules := getDefaultRules()
+	rules := GetDefaultRules()
 
 	if len(*rules) <= 1 {
 		t.Error("no rules were loaded")
@@ -16,7 +16,7 @@ func TestLoadAllRules(t *testing.T) {
 
 func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 	ruleIDMap := make(map[string]bool)
-	allRules := getDefaultRules()
+	allRules := GetDefaultRules()
 
 	for _, rule := range *allRules {
 		if _, ok := ruleIDMap[rule.Rule.RuleID]; ok {
@@ -29,7 +29,7 @@ func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 
 func Test_FilterRules_SelectRules(t *testing.T) {
 	specialRule := HardcodedPassword()
-	allRules := *getDefaultRules()
+	allRules := *GetDefaultRules()
 	rulesCount := len(allRules)
 
 	tests := []struct {
