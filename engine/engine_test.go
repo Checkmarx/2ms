@@ -470,7 +470,7 @@ func writeTempFile(t *testing.T, dir string, size int, content []byte) string {
 
 	f, err := os.CreateTemp(dir, "testfile-*.tmp")
 	require.NoError(t, err, "create temp file")
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	var data []byte
 	if content != nil {

@@ -43,7 +43,7 @@ func HttpRequest(method string, url string, authorization IAuthorizationHeader, 
 		return nil, response, fmt.Errorf("unable to send http request %w", err)
 	}
 
-	defer response.Body.Close()
+	defer response.Body.Close() //nolint:errcheck
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		if retry.MaxRetries > 0 {
