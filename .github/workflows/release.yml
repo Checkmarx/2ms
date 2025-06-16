@@ -24,7 +24,7 @@ jobs:
         with:
           go-version: "^1.22"
       - name: Go Linter
-        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.61.0 golangci-lint run -v -E gofmt --timeout=5m
+        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run --timeout=5m
 
       - name: Unit Tests
         run: go test ./...
