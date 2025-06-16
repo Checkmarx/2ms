@@ -70,7 +70,7 @@ const TagPublicSecret = "public-secret"
 const TagSensitiveUrl = "sensitive-url"
 const TagWebhook = "webhook"
 
-func getDefaultRules() *[]Rule {
+func GetDefaultRules() *[]Rule {
 	allRules := &[]Rule{
 		{Rule: *rules.AdafruitAPIKey(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryIoTPlatform, RuleType: 4}},
 		{Rule: *rules.AdobeClientID(), Tags: []string{TagClientId}, ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 1}},
@@ -293,7 +293,7 @@ func FilterRules(selectedList, ignoreList, specialList []string) *[]Rule {
 		log.Warn().Msgf("Both 'rule' and 'ignoreRule' flags were provided, I will first take all in 'rule' and then remove all in 'ignoreRule' from the list.")
 	}
 
-	selectedRules := getDefaultRules()
+	selectedRules := GetDefaultRules()
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
 	}
