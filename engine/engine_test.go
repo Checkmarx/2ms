@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"go.uber.org/mock/gomock"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"go.uber.org/mock/gomock"
 
 	"github.com/checkmarx/2ms/v3/engine/chunk"
 	"github.com/checkmarx/2ms/v3/engine/rules"
