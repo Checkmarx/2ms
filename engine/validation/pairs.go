@@ -1,8 +1,6 @@
 package validation
 
 import (
-	"sync"
-
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 )
 
@@ -38,8 +36,7 @@ func (p *pairsCollector) addIfNeeded(secret *secrets.Secret) bool {
 	return true
 }
 
-func (p *pairsCollector) validate(generalKey string, rulesById pairsByRuleId, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (p *pairsCollector) validate(generalKey string, rulesById pairsByRuleId) {
 	generalKeyToValidation[generalKey](rulesById)
 }
 
