@@ -335,8 +335,13 @@ func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Fin
 	adjustedStartColumn := value.StartColumn
 	adjustedEndColumn := value.EndColumn
 	if hasNewline {
-		adjustedStartColumn--
-		adjustedEndColumn--
+		if adjustedStartColumn > 0 {
+			adjustedStartColumn--
+		}
+
+		if adjustedEndColumn > 0 {
+			adjustedEndColumn--
+		}
 	}
 
 	secret := &secrets.Secret{
