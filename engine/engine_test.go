@@ -467,7 +467,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   50,
 		},
 		{
-			name:                "empty start column with newline",
+			name:                "leading newline followed by tab indentation",
 			lineContent:         "\n	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
 			startColumn:         2,
 			endColumn:           7,
@@ -476,7 +476,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   6,
 		},
 		{
-			name:                "Special Characters with newline",
+			name:                "leading newline followed by tab indentation with special character",
 			lineContent:         "\n	let apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
 			startColumn:         2,
 			endColumn:           7,
