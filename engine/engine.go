@@ -324,16 +324,31 @@ func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Fin
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
 
+	hasNewline := strings.HasPrefix(lineContent, "\n")
+
+	cleanLineContent := lineContent
+	if hasNewline {
+		cleanLineContent = strings.TrimPrefix(cleanLineContent, "\n")
+	}
+	cleanLineContent = strings.ReplaceAll(cleanLineContent, "\r", "")
+
+	adjustedStartColumn := value.StartColumn
+	adjustedEndColumn := value.EndColumn
+	if hasNewline {
+		adjustedStartColumn--
+		adjustedEndColumn--
+	}
+
 	secret := &secrets.Secret{
 		ID:              itemId,
 		Source:          item.GetSource(),
 		RuleID:          value.RuleID,
 		StartLine:       startLine,
-		StartColumn:     value.StartColumn,
+		StartColumn:     adjustedStartColumn,
 		EndLine:         endLine,
-		EndColumn:       value.EndColumn,
+		EndColumn:       adjustedEndColumn,
 		Value:           value.Secret,
-		LineContent:     lineContent,
+		LineContent:     cleanLineContent,
 		RuleDescription: value.Description,
 	}
 	return secret, nil
