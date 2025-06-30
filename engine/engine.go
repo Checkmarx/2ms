@@ -330,11 +330,6 @@ func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Fin
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
 
-	if hasNewline {
-		lineContent = strings.TrimPrefix(lineContent, "\n")
-	}
-	lineContent = strings.ReplaceAll(lineContent, "\r", "")
-
 	adjustedStartColumn := value.StartColumn
 	adjustedEndColumn := value.EndColumn
 	if hasNewline {
