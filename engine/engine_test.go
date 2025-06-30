@@ -440,8 +440,6 @@ func TestDetectChunks(t *testing.T) {
 }
 
 func TestSecretsColumnIndex(t *testing.T) {
-	const contextLeftSizeLimit = 150
-	const contextRightSizeLimit = 150
 
 	tests := []struct {
 		name                string
@@ -489,13 +487,13 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   6,
 		},
 		{
-			name:                "newline with content larger than parse limit",
-			lineContent:         "\n" + strings.Repeat("A", 150) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 150),
-			startColumn:         801,
-			endColumn:           801 + len("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9") - 1,
-			expectedLineContent: strings.Repeat("A", contextLeftSizeLimit) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", contextRightSizeLimit),
-			expectedStartColumn: 800,
-			expectedEndColumn:   800 + len("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9") - 1,
+			name:                "newline with content larger than context limit",
+			lineContent:         "\n" + strings.Repeat("A", 500) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 500),
+			startColumn:         501,
+			endColumn:           536,
+			expectedLineContent: strings.Repeat("A", 250) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 250),
+			expectedStartColumn: 500,
+			expectedEndColumn:   535,
 		},
 	}
 	for _, tt := range tests {
@@ -506,7 +504,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 			finding := report.Finding{
 				StartColumn: tt.startColumn,
 				EndColumn:   tt.endColumn,
-				Secret:      "test-secret",
+				Secret:      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
 				RuleID:      "test-rule",
 				Description: "Test Description",
 				Line:        tt.lineContent,
