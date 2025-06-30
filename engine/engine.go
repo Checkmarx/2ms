@@ -318,19 +318,22 @@ func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Fin
 	}
 
 	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
+	hasNewline := strings.HasPrefix(value.Line, "\n")
+
+	if hasNewline {
+		value.Line = strings.TrimPrefix(value.Line, "\n")
+	}
+	value.Line = strings.ReplaceAll(value.Line, "\r", "")
 
 	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
 
-	hasNewline := strings.HasPrefix(lineContent, "\n")
-
-	cleanLineContent := lineContent
 	if hasNewline {
-		cleanLineContent = strings.TrimPrefix(cleanLineContent, "\n")
+		lineContent = strings.TrimPrefix(lineContent, "\n")
 	}
-	cleanLineContent = strings.ReplaceAll(cleanLineContent, "\r", "")
+	lineContent = strings.ReplaceAll(lineContent, "\r", "")
 
 	adjustedStartColumn := value.StartColumn
 	adjustedEndColumn := value.EndColumn
@@ -348,7 +351,7 @@ func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Fin
 		EndLine:         endLine,
 		EndColumn:       adjustedEndColumn,
 		Value:           value.Secret,
-		LineContent:     cleanLineContent,
+		LineContent:     lineContent,
 		RuleDescription: value.Description,
 	}
 	return secret, nil

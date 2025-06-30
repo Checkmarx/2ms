@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -439,6 +440,9 @@ func TestDetectChunks(t *testing.T) {
 }
 
 func TestSecretsColumnIndex(t *testing.T) {
+	const contextLeftSizeLimit = 150
+	const contextRightSizeLimit = 150
+
 	tests := []struct {
 		name                string
 		lineContent         string
@@ -477,12 +481,21 @@ func TestSecretsColumnIndex(t *testing.T) {
 		},
 		{
 			name:                "leading newline followed by tab indentation with special character",
-			lineContent:         "\n	let apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			lineContent:         "\n\tlet apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
 			startColumn:         2,
 			endColumn:           7,
 			expectedLineContent: "	let apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
 			expectedStartColumn: 1,
 			expectedEndColumn:   6,
+		},
+		{
+			name:                "newline with content larger than parse limit",
+			lineContent:         "\n" + strings.Repeat("A", 150) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 150),
+			startColumn:         801,
+			endColumn:           801 + len("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9") - 1,
+			expectedLineContent: strings.Repeat("A", contextLeftSizeLimit) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", contextRightSizeLimit),
+			expectedStartColumn: 800,
+			expectedEndColumn:   800 + len("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9") - 1,
 		},
 	}
 	for _, tt := range tests {
