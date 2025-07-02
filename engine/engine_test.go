@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -22,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
+	"github.com/zricethezav/gitleaks/v8/report"
 )
 
 var fsPlugin = &plugins.FileSystemPlugin{}
@@ -433,6 +435,89 @@ func TestDetectChunks(t *testing.T) {
 				expectedLog := fmt.Sprintf(tc.expectedLog, src)
 				require.Contains(t, loggedMessage, expectedLog)
 			}
+		})
+	}
+}
+
+func TestSecretsColumnIndex(t *testing.T) {
+
+	tests := []struct {
+		name                string
+		lineContent         string
+		startColumn         int
+		endColumn           int
+		expectedLineContent string
+		expectedStartColumn int
+		expectedEndColumn   int
+	}{
+		{
+			name:                "secret on first line without newline",
+			lineContent:         `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
+			startColumn:         14,
+			endColumn:           50,
+			expectedLineContent: `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
+			expectedStartColumn: 14,
+			expectedEndColumn:   50,
+		},
+		{
+			name:                "secret with leading newline",
+			lineContent:         "\nlet apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			startColumn:         15,
+			endColumn:           51,
+			expectedLineContent: `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
+			expectedStartColumn: 14,
+			expectedEndColumn:   50,
+		},
+		{
+			name:                "leading newline followed by tab indentation",
+			lineContent:         "\n	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			startColumn:         2,
+			endColumn:           7,
+			expectedLineContent: "	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			expectedStartColumn: 1,
+			expectedEndColumn:   6,
+		},
+		{
+			name:                "leading newline followed by tab indentation with special character",
+			lineContent:         "\n\tlet apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			startColumn:         2,
+			endColumn:           7,
+			expectedLineContent: "	let apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			expectedStartColumn: 1,
+			expectedEndColumn:   6,
+		},
+		{
+			name:                "newline with content larger than context limit",
+			lineContent:         "\n" + strings.Repeat("A", 500) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 500),
+			startColumn:         501,
+			endColumn:           536,
+			expectedLineContent: strings.Repeat("A", 250) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 250),
+			expectedStartColumn: 500,
+			expectedEndColumn:   535,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			mockItem := &item{content: &tt.lineContent, source: "test.txt"}
+
+			finding := report.Finding{
+				StartColumn: tt.startColumn,
+				EndColumn:   tt.endColumn,
+				Secret:      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+				RuleID:      "test-rule",
+				Description: "Test Description",
+				Line:        tt.lineContent,
+				StartLine:   1,
+				EndLine:     1,
+			}
+
+			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName())
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedLineContent, secret.LineContent)
+			assert.Equal(t, tt.expectedStartColumn, secret.StartColumn)
+			assert.Equal(t, tt.expectedEndColumn, secret.EndColumn)
 		})
 	}
 }
