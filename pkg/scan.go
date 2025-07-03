@@ -3,9 +3,10 @@ package scanner
 import (
 	"errors"
 	"fmt"
+	"sync"
+
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/plugins"
-	"sync"
 
 	"github.com/checkmarx/2ms/v3/lib/reporting"
 

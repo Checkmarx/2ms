@@ -151,7 +151,9 @@ func TestValidGitRepoArgs(t *testing.T) {
 				}
 				return tempDir, nil
 			},
-			expectedErr: fmt.Errorf("is not a git repository. Please make sure the root path of the provided directory contains a .git subdirectory"),
+			expectedErr: fmt.Errorf(
+				"is not a git repository. Please make sure the root path of the provided directory contains a .git subdirectory",
+			),
 		},
 		{
 			name: ".git Is Not a Directory",

@@ -23,9 +23,9 @@ const (
 	// boundaries for the secret
 	// \x60 = `
 	secretPrefixUnique       = `\b(`
-	secretPrefix             = `(?:'|\"|\s|=|\x60){0,5}(`
-	secretSuffix             = `)(?:['|\"|\n|\r|\s|\x60|;]|$)`
-	secretSuffixIncludingXml = `)(?:['|\"|\n|\r|\s|\x60|;]|$|\s{0,10}<\/string>)`
+	secretPrefix             = `(?:'|\"|\s|=|\x60){0,5}(`                         //nolint:gosec // This is a regex pattern
+	secretSuffix             = `)(?:['|\"|\n|\r|\s|\x60|;]|$)`                    //nolint:gosec // This is a regex pattern
+	secretSuffixIncludingXml = `)(?:['|\"|\n|\r|\s|\x60|;]|$|\s{0,10}<\/string>)` //nolint:gosec // This is a regex pattern
 )
 
 func generateSemiGenericRegex(identifiers []string, secretRegex string, isCaseInsensitive bool) *regexp.Regexp {
@@ -89,8 +89,8 @@ func generateUniqueTokenRegex(secretRegex string, isCaseInsensitive bool) *regex
 	return regexp.MustCompile(sb.String())
 }
 
-func generateSampleSecret(identifier string, secret string) string {
-	return fmt.Sprintf("%s_api_token = \"%s\"", identifier, secret)
+func generateSampleSecret(identifier, secret string) string {
+	return fmt.Sprintf("%s_api_token = %q", identifier, secret)
 }
 
 func alphaNumeric(size string) string {
