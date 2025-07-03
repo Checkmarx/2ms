@@ -33,9 +33,8 @@ test:
 	go tool cover -func=cover.out
 	rm cover.out.tmp
 
-COVERAGE_REQUIRED := 55
-MOCKGEN_VERSION := 0.5.2
-LINTER_VERSION := 2.1.6
+save: build
+	docker save $(image_name) > $(image_file_name)
 
 build:
 	docker build -t $(image_name) .
