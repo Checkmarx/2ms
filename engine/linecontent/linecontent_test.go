@@ -42,11 +42,14 @@ func TestGetLineContent(t *testing.T) {
 			error:    false,
 		},
 		{
-			name:     "Secret not found with secret present and line size larger than the parse limit",
-			line:     "This is the start of a big line content" + strings.Repeat("A", lineMaxParseSize) + dummySecret,
-			secret:   dummySecret,
-			expected: "This is the start of a big line content" + strings.Repeat("A", contextLeftSizeLimit+contextRightSizeLimit-len("This is the start of a big line content")),
-			error:    false,
+			name:   "Secret not found with secret present and line size larger than the parse limit",
+			line:   "This is the start of a big line content" + strings.Repeat("A", lineMaxParseSize) + dummySecret,
+			secret: dummySecret,
+			expected: "This is the start of a big line content" + strings.Repeat(
+				"A",
+				contextLeftSizeLimit+contextRightSizeLimit-len("This is the start of a big line content"),
+			),
+			error: false,
 		},
 		{
 			name:     "Secret larger than the line",
@@ -63,8 +66,14 @@ func TestGetLineContent(t *testing.T) {
 			error:    false,
 		},
 		{
-			name:     "Secret found in middle with line size smaller than the parse limit",
-			line:     "start" + strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", contextRightSizeLimit) + "end",
+			name: "Secret found in middle with line size smaller than the parse limit",
+			line: "start" + strings.Repeat(
+				"A",
+				contextLeftSizeLimit,
+			) + dummySecret + strings.Repeat(
+				"A",
+				contextRightSizeLimit,
+			) + "end",
 			secret:   dummySecret,
 			expected: strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", contextRightSizeLimit),
 			error:    false,

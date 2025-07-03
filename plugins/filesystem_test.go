@@ -25,8 +25,7 @@ func TestGetItem(t *testing.T) {
 		ProjectName: "TestProject",
 	}
 
-	it, err := plugin.getItem(tmpFile.Name())
-	assert.NoError(t, err, "getItem returned an error")
+	it := plugin.getItem(tmpFile.Name())
 
 	expectedID := fmt.Sprintf("%s-%s-%s", plugin.GetName(), plugin.ProjectName, tmpFile.Name())
 	assert.Equal(t, expectedID, it.ID, "ID should match the expected format")
@@ -57,7 +56,7 @@ func TestGetItems(t *testing.T) {
 		ProjectName: "TestProject",
 	}
 
-	plugin.getItems(itemsChan, errsChan, fileList)
+	plugin.getItems(itemsChan, fileList)
 
 	close(itemsChan)
 	close(errsChan)

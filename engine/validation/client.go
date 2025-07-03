@@ -1,11 +1,12 @@
 package validation
 
 import (
+	"context"
 	"net/http"
 )
 
-func sendValidationRequest(endpoint string, authorization string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", endpoint, nil)
+func sendValidationRequest(endpoint, authorization string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(context.Background(), "GET", endpoint, http.NoBody)
 	if err != nil {
 		return nil, err
 	}

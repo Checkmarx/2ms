@@ -39,7 +39,7 @@ func BindFlags(cmd *cobra.Command, v *viper.Viper, envPrefix string) error {
 
 		if v.IsSet(fullFlagName) {
 			val := v.Get(fullFlagName)
-			applyViperFlagToCommand(f, val, cmd)
+			applyViperFlagToCommand(f, val)
 		}
 	}
 	cmd.PersistentFlags().VisitAll(bindFlag)
@@ -63,7 +63,7 @@ func bindEnvVarIntoViper(v *viper.Viper, fullFlagName, envPrefix string) {
 	}
 }
 
-func applyViperFlagToCommand(flag *pflag.Flag, val interface{}, cmd *cobra.Command) {
+func applyViperFlagToCommand(flag *pflag.Flag, val interface{}) {
 	switch t := val.(type) {
 	case []interface{}:
 		for _, param := range t {

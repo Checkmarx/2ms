@@ -96,20 +96,15 @@ func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error) {
 		return
 	}
 
-	p.getItems(items, errs, fileList)
+	p.getItems(items, fileList)
 }
 
-func (p *FileSystemPlugin) getItems(items chan ISourceItem, errs chan error, fileList []string) {
+func (p *FileSystemPlugin) getItems(items chan ISourceItem, fileList []string) {
 	g := errgroup.Group{}
 	g.SetLimit(1000)
 	for _, filePath := range fileList {
 		g.Go(func() error {
-			actualFile, err := p.getItem(filePath)
-			if err != nil {
-				errs <- err
-				time.Sleep(time.Second) // Temporary fix for incorrect non-error exits; needs a better solution.
-				return nil
-			}
+			actualFile := p.getItem(filePath)
 			items <- *actualFile
 			return nil
 		})
@@ -117,12 +112,12 @@ func (p *FileSystemPlugin) getItems(items chan ISourceItem, errs chan error, fil
 	_ = g.Wait()
 }
 
-func (p *FileSystemPlugin) getItem(filePath string) (*item, error) {
+func (p *FileSystemPlugin) getItem(filePath string) *item {
 	log.Debug().Str("file", filePath).Msg("sending file item")
 
 	item := &item{
 		ID:     fmt.Sprintf("%s-%s-%s", p.GetName(), p.ProjectName, filePath),
 		Source: filePath,
 	}
-	return item, nil
+	return item
 }

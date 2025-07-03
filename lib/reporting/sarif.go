@@ -68,7 +68,7 @@ func hasNoResults(report *Report) bool {
 	return len(report.Results) == 0
 }
 
-func createMessageText(ruleName string, filePath string) string {
+func createMessageText(ruleName, filePath string) string {
 	// maintain only the filename if the scan target is git
 	if strings.HasPrefix(filePath, "git show ") {
 		filePathParts := strings.SplitN(filePath, ":", 2)

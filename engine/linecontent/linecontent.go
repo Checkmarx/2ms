@@ -17,7 +17,7 @@ func GetLineContent(line, secret string) (string, error) {
 		return "", fmt.Errorf("line empty")
 	}
 
-	if len(secret) == 0 {
+	if secret == "" {
 		return "", fmt.Errorf("secret empty")
 	}
 

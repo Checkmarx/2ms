@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -27,8 +28,8 @@ type RetrySettings struct {
 	ErrorCodes []int
 }
 
-func HttpRequest(method string, url string, authorization IAuthorizationHeader, retry RetrySettings) ([]byte, *http.Response, error) {
-	request, err := http.NewRequest(method, url, nil)
+func HttpRequest(method, url string, authorization IAuthorizationHeader, retry RetrySettings) ([]byte, *http.Response, error) {
+	request, err := http.NewRequestWithContext(context.Background(), method, url, http.NoBody)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
@@ -43,14 +44,17 @@ func HttpRequest(method string, url string, authorization IAuthorizationHeader, 
 		return nil, response, fmt.Errorf("unable to send http request %w", err)
 	}
 
-	defer response.Body.Close() //nolint:errcheck
-
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		if retry.MaxRetries > 0 {
 			for _, code := range retry.ErrorCodes {
 				if response.StatusCode == code {
 					log.Warn().Msgf("retrying http request %v", url)
-					return HttpRequest(method, url, authorization, RetrySettings{MaxRetries: retry.MaxRetries - 1, ErrorCodes: retry.ErrorCodes})
+					return HttpRequest(
+						method,
+						url,
+						authorization,
+						RetrySettings{MaxRetries: retry.MaxRetries - 1, ErrorCodes: retry.ErrorCodes},
+					)
 				}
 			}
 		}

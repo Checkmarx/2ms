@@ -1,9 +1,10 @@
 package score
 
 import (
+	"math"
+
 	"github.com/checkmarx/2ms/v3/engine/rules"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"math"
 )
 
 func getCategoryScore(category rules.RuleCategory) uint8 {

@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/rs/zerolog/log"
 	"os"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -19,7 +20,7 @@ func isNeedReturnErrorCodeFor(kind ignoreOnExit) bool {
 		return false
 	}
 
-	if ignoreOnExitVar != ignoreOnExit(kind) {
+	if ignoreOnExitVar != kind {
 		return true
 	}
 

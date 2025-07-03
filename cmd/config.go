@@ -13,7 +13,6 @@ import (
 )
 
 func initialize() {
-
 	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
 	if err != nil {
 		cobra.CheckErr(err)
