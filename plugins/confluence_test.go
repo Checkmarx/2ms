@@ -3,14 +3,15 @@ package plugins
 import (
 	"bytes"
 	"fmt"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"github.com/stretchr/testify/assert"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockConfluenceClient struct {
@@ -78,13 +79,19 @@ func TestGetPages(t *testing.T) {
 			name:                   "Error while getting pages before pagination is required",
 			numberOfPages:          confluenceDefaultWindow - 2,
 			firstPagesRequestError: fmt.Errorf("some error before pagination is required"),
-			expectedError:          fmt.Errorf("unexpected error creating an http request %w", fmt.Errorf("some error before pagination is required")),
+			expectedError: fmt.Errorf(
+				"unexpected error creating an http request %w",
+				fmt.Errorf("some error before pagination is required"),
+			),
 		},
 		{
 			name:                    "error while getting pages after pagination is required",
 			numberOfPages:           confluenceDefaultWindow + 2,
 			secondPagesRequestError: fmt.Errorf("some error after pagination required"),
-			expectedError:           fmt.Errorf("unexpected error creating an http request %w", fmt.Errorf("some error after pagination required")),
+			expectedError: fmt.Errorf(
+				"unexpected error creating an http request %w",
+				fmt.Errorf("some error after pagination required"),
+			),
 		},
 		{
 			name:          "pages less than confluenceDefaultWindow",
@@ -529,8 +536,11 @@ func TestScanConfluenceSpace(t *testing.T) {
 		{
 			name:                   "getPages returns error",
 			firstPagesRequestError: fmt.Errorf("some error before pagination is required"),
-			expectedError:          fmt.Errorf("unexpected error creating an http request %w", fmt.Errorf("some error before pagination is required")),
-			numberOfPages:          1,
+			expectedError: fmt.Errorf(
+				"unexpected error creating an http request %w",
+				fmt.Errorf("some error before pagination is required"),
+			),
+			numberOfPages: 1,
 		},
 		{
 			name:                   "scan confluence space with multiple pages",
@@ -790,8 +800,7 @@ func TestInitializeConfluence(t *testing.T) {
 
 			p := &ConfluencePlugin{}
 
-			err := p.initialize(tt.urlArg)
-			assert.NoError(t, err)
+			p.initialize(tt.urlArg)
 
 			assert.NotNil(t, p.client)
 			client, ok := p.client.(*confluenceClient)

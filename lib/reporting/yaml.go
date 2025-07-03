@@ -17,7 +17,6 @@ func writeYaml(report *Report) (string, error) {
 	if report.TotalSecretsFound == 0 {
 		fmt.Fprint(&builder, "results: {}\n")
 	} else {
-
 		builder.WriteString("results:\n")
 		for _, secretsList := range report.Results {
 			if len(secretsList) > 0 {
@@ -40,6 +39,7 @@ func writeYaml(report *Report) (string, error) {
 					marshaled, err := yaml.Marshal(s.ExtraDetails)
 					if err != nil {
 						fmt.Fprintf(&builder, "        error: %v\n", err)
+						return "", err
 					} else {
 						lines := strings.Split(string(marshaled), "\n")
 						for _, line := range lines {

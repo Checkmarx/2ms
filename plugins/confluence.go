@@ -63,10 +63,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errors chan err
 		Example: fmt.Sprintf("  2ms %s https://checkmarx.atlassian.net/wiki", p.GetName()),
 		Args:    cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := p.initialize(args[0])
-			if err != nil {
-				errors <- fmt.Errorf("error while initializing confluence plugin: %w", err)
-			}
+			p.initialize(args[0])
 			wg := &sync.WaitGroup{}
 			p.scanConfluence(wg)
 			wg.Wait()
@@ -83,8 +80,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errors chan err
 	return confluenceCmd, nil
 }
 
-func (p *ConfluencePlugin) initialize(urlArg string) error {
-
+func (p *ConfluencePlugin) initialize(urlArg string) {
 	url := strings.TrimRight(urlArg, "/")
 
 	if username == "" || token == "" {
@@ -93,7 +89,6 @@ func (p *ConfluencePlugin) initialize(urlArg string) error {
 	p.client = newConfluenceClient(url, token, username)
 
 	p.Limit = make(chan struct{}, confluenceMaxRequests)
-	return nil
 }
 
 func (p *ConfluencePlugin) scanConfluence(wg *sync.WaitGroup) {
@@ -261,13 +256,14 @@ func (c *confluenceClient) GetAuthorizationHeader() string {
 
 func (c *confluenceClient) getSpacesRequest(start int) (*ConfluenceSpaceResponse, error) {
 	url := fmt.Sprintf("%s/rest/api/space?start=%d", c.baseURL, start)
-	body, _, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{})
+	data, resp, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{})
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
+	defer resp.Body.Close()
 
 	response := &ConfluenceSpaceResponse{}
-	jsonErr := json.Unmarshal(body, response)
+	jsonErr := json.Unmarshal(data, response)
 	if jsonErr != nil {
 		return nil, fmt.Errorf("could not unmarshal response %w", err)
 	}
@@ -277,14 +273,14 @@ func (c *confluenceClient) getSpacesRequest(start int) (*ConfluenceSpaceResponse
 
 func (c *confluenceClient) getPagesRequest(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error) {
 	url := fmt.Sprintf("%s/rest/api/space/%s/content?start=%d", c.baseURL, space.Key, start)
-	body, _, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{})
-
+	data, resp, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{})
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
+	defer resp.Body.Close()
 
 	response := ConfluencePageResponse{}
-	jsonErr := json.Unmarshal(body, &response)
+	jsonErr := json.Unmarshal(data, &response)
 	if jsonErr != nil {
 		return nil, fmt.Errorf("could not unmarshal response %w", err)
 	}
@@ -298,15 +294,16 @@ func (c *confluenceClient) getPageContentRequest(page ConfluencePage, version in
 	// If no version given get the latest, else get the specified version
 	if version == 0 {
 		url = fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage,version,history.previousVersion", c.baseURL, page.ID)
-
 	} else {
-		url = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage,version,history.previousVersion", c.baseURL, page.ID, version)
+		url = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage,version,history.previousVersion",
+			c.baseURL, page.ID, version)
 	}
 
-	request, _, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{MaxRetries: 3, ErrorCodes: []int{500}})
+	request, resp, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{MaxRetries: 3, ErrorCodes: []int{500}})
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
 	}
+	defer resp.Body.Close()
 	pageContent := ConfluencePageContent{}
 	jsonErr := json.Unmarshal(request, &pageContent)
 	if jsonErr != nil {

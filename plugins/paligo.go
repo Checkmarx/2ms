@@ -73,7 +73,8 @@ func (p *PaligoPlugin) DefineCommand(items chan ISourceItem, errors chan error) 
 		Run: func(cmd *cobra.Command, args []string) {
 			// Waits for MarkFlagsOneRequired https://github.com/spf13/cobra/pull/1952
 			if p.auth == "" && (p.username == "" || p.token == "") {
-				p.Errors <- fmt.Errorf("exactly one of the flags in the group %v must be set; none were set", []string{paligoAuthFlag, paligoUsernameFlag, paligoTokenFlag})
+				p.Errors <- fmt.Errorf("exactly one of the flags in the group %v must be set; none were set",
+					[]string{paligoAuthFlag, paligoUsernameFlag, paligoTokenFlag})
 				return
 			}
 			log.Info().Msg("Paligo plugin started")
@@ -141,7 +142,6 @@ func (p *PaligoPlugin) getFirstProcessingFolders() ([]PaligoItem, error) {
 }
 
 func (p *PaligoPlugin) processFolders(foldersToProcess []PaligoItem) chan PaligoItem {
-
 	itemsChan := make(chan PaligoItem)
 
 	p.WaitGroup.Add(1)
@@ -176,7 +176,6 @@ func (p *PaligoPlugin) processFolders(foldersToProcess []PaligoItem) chan Paligo
 }
 
 func (p *PaligoPlugin) handleComponent(paligoItem PaligoItem) {
-
 	log.Info().Msgf("Getting component %s", paligoItem.Name)
 	document, err := p.paligoApi.showDocument(paligoItem.ID)
 	if err != nil {
@@ -299,6 +298,7 @@ func (p *PaligoClient) request(endpoint string, lim *rate.Limiter) ([]byte, erro
 		}
 		return p.request(endpoint, lim)
 	}
+	defer response.Body.Close()
 
 	return body, nil
 }

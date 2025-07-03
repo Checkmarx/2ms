@@ -1,8 +1,9 @@
 package validation
 
 import (
+	"context"
 	"crypto/hmac"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // SHA1 is required by Alibaba API for HMAC-SHA1 signatures
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 // https://www.alibabacloud.com/help/en/sdk/product-overview/rpc-mechanism#sectiondiv-y9b-x9s-wvp
 
 func validateAlibaba(secretsPairs pairsByRuleId) {
-
 	accessKeys := secretsPairs["alibaba-access-key-id"]
 	secretKeys := secretsPairs["alibaba-secret-key"]
 
@@ -41,7 +41,7 @@ func validateAlibaba(secretsPairs pairsByRuleId) {
 }
 
 func alibabaRequest(accessKey, secretKey string) (secrets.ValidationResult, error) {
-	req, err := http.NewRequest("GET", "https://ecs.aliyuncs.com/", nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", "https://ecs.aliyuncs.com/", http.NoBody)
 	if err != nil {
 		return secrets.UnknownResult, err
 	}
@@ -73,6 +73,7 @@ func alibabaRequest(accessKey, secretKey string) (secrets.ValidationResult, erro
 	if err != nil {
 		return secrets.UnknownResult, err
 	}
+	defer resp.Body.Close()
 	log.Debug().Str("service", "alibaba").Int("status_code", resp.StatusCode)
 
 	// If the access key is invalid, the response will be 404

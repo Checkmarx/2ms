@@ -68,7 +68,8 @@ func (p *SlackPlugin) DefineCommand(items chan ISourceItem, errors chan error) (
 		return nil, fmt.Errorf("error while marking flag %s as required: %w", slackTeamFlag, err)
 	}
 	command.Flags().StringSliceVar(&channelsArg, slackChannelFlag, []string{}, "Slack channels to scan")
-	command.Flags().DurationVar(&backwardDurationArg, slackBackwardDurationFlag, slackDefaultDateFrom, "Slack backward duration for messages (ex: 24h, 7d, 1M, 1y)")
+	command.Flags().DurationVar(&backwardDurationArg, slackBackwardDurationFlag, slackDefaultDateFrom,
+		"Slack backward duration for messages (ex: 24h, 7d, 1M, 1y)")
 	command.Flags().IntVar(&messagesCountArg, slackMessagesCountFlag, 0, "Slack messages count to scan (0 = all messages)")
 
 	return command, nil
@@ -95,12 +96,15 @@ func (p *SlackPlugin) getItems() {
 
 	log.Info().Msgf("Found %d channels for team %s", len(*channels), team.Name)
 	p.WaitGroup.Add(len(*channels))
-	for _, channel := range *channels {
+	for _, channel := range *channels { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
 		go p.getItemsFromChannel(slackApi, channel)
 	}
 }
 
-func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.Channel) {
+func (p *SlackPlugin) getItemsFromChannel(
+	slackApi *slack.Client,
+	channel slack.Channel, //nolint:gocritic // hugeParam: channel is heavy but needed
+) {
 	defer p.WaitGroup.Done()
 	log.Info().Msgf("Getting items from channel %s", channel.Name)
 
@@ -115,8 +119,8 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 			p.Errors <- fmt.Errorf("error while getting history for channel %s: %w", channel.Name, err)
 			return
 		}
-		for _, message := range history.Messages {
-			outOfRange, err := isMessageOutOfRange(message, backwardDurationArg, counter, messagesCountArg)
+		for i := range history.Messages {
+			outOfRange, err := isMessageOutOfRange(&history.Messages[i], backwardDurationArg, counter, messagesCountArg)
 			if err != nil {
 				p.Errors <- fmt.Errorf("error while checking message: %w", err)
 				return
@@ -124,15 +128,15 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 			if outOfRange {
 				break
 			}
-			if message.Text != "" {
-				url, err := slackApi.GetPermalink(&slack.PermalinkParameters{Channel: channel.ID, Ts: message.Timestamp})
+			if history.Messages[i].Text != "" {
+				url, err := slackApi.GetPermalink(&slack.PermalinkParameters{Channel: channel.ID, Ts: history.Messages[i].Timestamp})
 				if err != nil {
-					log.Warn().Msgf("Error while getting permalink for message %s: %s", message.Timestamp, err)
-					url = fmt.Sprintf("Channel: %s; Message: %s", channel.Name, message.Timestamp)
+					log.Warn().Msgf("Error while getting permalink for message %s: %s", history.Messages[i].Timestamp, err)
+					url = fmt.Sprintf("Channel: %s; Message: %s", channel.Name, history.Messages[i].Timestamp)
 				}
 				p.Items <- item{
-					Content: &message.Text,
-					ID:      fmt.Sprintf("%s-%s-%s", p.GetName(), channel.ID, message.Timestamp),
+					Content: &history.Messages[i].Text,
+					ID:      fmt.Sprintf("%s-%s-%s", p.GetName(), channel.ID, history.Messages[i].Timestamp),
 					Source:  url,
 				}
 			}
@@ -148,7 +152,12 @@ func (p *SlackPlugin) getItemsFromChannel(slackApi *slack.Client, channel slack.
 // Declare it to be consistent with all comparaisons
 var timeNow = time.Now()
 
-func isMessageOutOfRange(message slack.Message, backwardDuration time.Duration, currentMessagesCount int, limitMessagesCount int) (bool, error) {
+func isMessageOutOfRange(
+	message *slack.Message,
+	backwardDuration time.Duration,
+	currentMessagesCount,
+	limitMessagesCount int,
+) (bool, error) {
 	if backwardDuration != 0 {
 		timestamp, err := strconv.ParseFloat(message.Timestamp, 64)
 		if err != nil {
@@ -205,9 +214,9 @@ func getChannels(slackApi ISlackClient, teamId string, wantedChannels []string) 
 			selectedChannels = append(selectedChannels, channels...)
 		} else {
 			for _, channel := range wantedChannels {
-				for _, c := range channels {
-					if c.Name == channel || c.ID == channel {
-						selectedChannels = append(selectedChannels, c)
+				for i := range channels {
+					if channels[i].Name == channel || channels[i].ID == channel {
+						selectedChannels = append(selectedChannels, channels[i])
 					}
 				}
 			}

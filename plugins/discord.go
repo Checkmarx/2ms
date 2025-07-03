@@ -56,9 +56,24 @@ func (p *DiscordPlugin) DefineCommand(items chan ISourceItem, errors chan error)
 	if err != nil {
 		return nil, fmt.Errorf("error while marking '%s' flag as required: %w", serversFlag, err)
 	}
-	flags.StringSliceVar(&p.Channels, channelsFlag, []string{}, "Discord channels IDs to scan. If not provided, all channels will be scanned")
-	flags.DurationVar(&p.BackwardDuration, fromDateFlag, defaultDateFrom, "The time interval to scan from the current time. For example, 24h for 24 hours or 336h0m0s for 14 days.")
-	flags.IntVar(&p.Count, messagesCountFlag, 0, "The number of messages to scan. If not provided, all messages will be scanned until the fromDate flag value.")
+	flags.StringSliceVar(
+		&p.Channels,
+		channelsFlag,
+		[]string{},
+		"Discord channels IDs to scan. If not provided, all channels will be scanned",
+	)
+	flags.DurationVar(
+		&p.BackwardDuration,
+		fromDateFlag,
+		defaultDateFrom,
+		"The time interval to scan from the current time. For example, 24h for 24 hours or 336h0m0s for 14 days.",
+	)
+	flags.IntVar(
+		&p.Count,
+		messagesCountFlag,
+		0,
+		"The number of messages to scan. If not provided, all messages will be scanned until the fromDate flag value.",
+	)
 
 	discordCmd.Run = func(cmd *cobra.Command, args []string) {
 		err := p.initialize()
@@ -211,7 +226,7 @@ func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) {
 		return
 	}
 
-	messages, err := p.getMessages(channel.ID, channelLogger)
+	messages, err := p.getMessages(channel.ID, &channelLogger)
 	if err != nil {
 		channelLogger.Error().Err(err).Msg("Failed to get messages")
 		p.errChan <- err
@@ -225,7 +240,7 @@ func (p *DiscordPlugin) readChannelMessages(channel *discordgo.Channel) {
 	}
 }
 
-func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]*discordgo.Message, error) {
+func (p *DiscordPlugin) getMessages(channelID string, logger *zerolog.Logger) ([]*discordgo.Message, error) {
 	var messages []*discordgo.Message
 	threadMessages := []*discordgo.Message{}
 
@@ -238,12 +253,11 @@ func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]
 
 	lastMessage := false
 	for len(m) > 0 && !lastMessage {
-
 		for _, message := range m {
-
 			timeSince := time.Since(message.Timestamp)
 			if p.BackwardDuration > 0 && timeSince > p.BackwardDuration {
-				logger.Debug().Msgf("Reached time limit (%s). Last message is %s old", p.BackwardDuration.String(), timeSince.Round(time.Hour).String())
+				logger.Debug().
+					Msgf("Reached time limit (%s). Last message is %s old", p.BackwardDuration.String(), timeSince.Round(time.Hour).String())
 				lastMessage = true
 				break
 			}
@@ -256,7 +270,8 @@ func (p *DiscordPlugin) getMessages(channelID string, logger zerolog.Logger) ([]
 
 			if message.Thread != nil {
 				logger.Info().Msgf("Found thread %s", message.Thread.Name)
-				tMgs, err := p.getMessages(message.Thread.ID, logger.With().Str("thread", message.Thread.Name).Logger())
+				threadLogger := logger.With().Str("thread", message.Thread.Name).Logger()
+				tMgs, err := p.getMessages(message.Thread.ID, &threadLogger)
 				if err != nil {
 					return nil, err
 				}

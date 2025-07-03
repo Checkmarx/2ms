@@ -1,0 +1,11 @@
+repos:
+- repo: local
+  hooks:
+  - id: make-check
+    name: make check
+    description: Run project checks, gofmt, golangci-lint, tests and coverage
+    entry: make check
+    language: system
+    pass_filenames: false
+    types: [ go ] # Only run when Go files change
+    stages: [ pre-push ] # Explicitly run at push time
