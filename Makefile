@@ -1,5 +1,9 @@
 SHELL=/bin/bash
 
+image_label ?= latest
+image_name ?= checkmarx/2ms:$(image_label)
+image_file_name ?= checkmarx-2ms-$(image_label).tar
+
 GREEN := $(shell printf "\033[32m")
 RED := $(shell printf "\033[31m")
 RESET := $(shell printf "\033[0m")
@@ -28,6 +32,12 @@ test:
 	grep -v -e "_mock\.go:" -e "/mocks/" -e "/docs/" cover.out.tmp > cover.out
 	go tool cover -func=cover.out
 	rm cover.out.tmp
+
+save: build
+	docker save $(image_name) > $(image_file_name)
+
+build:
+	docker build -t $(image_name) .
 
 generate: check-mockgen-version
 	go generate ./...
