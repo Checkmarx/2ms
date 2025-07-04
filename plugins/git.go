@@ -24,6 +24,7 @@ const (
 	argDepth           = "depth"
 	argScanAllBranches = "all-branches"
 	argProjectName     = "project-name"
+	argBaseCommit      = "base-commit"
 	unknownCommit      = "unknown"
 )
 
@@ -33,6 +34,7 @@ type GitPlugin struct {
 	depth           int
 	scanAllBranches bool
 	projectName     string
+	baseCommit      string
 }
 
 type GitInfo struct {
@@ -67,6 +69,7 @@ func (p *GitPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*c
 	flags.BoolVar(&p.scanAllBranches, argScanAllBranches, false, "scan all branches [default: false]")
 	flags.IntVar(&p.depth, argDepth, 0, "number of commits to scan from HEAD")
 	flags.StringVar(&p.projectName, argProjectName, "", "Project name to differentiate between filesystem scans")
+	flags.StringVar(&p.baseCommit, argBaseCommit, "", "Base commit to scan commits between base and HEAD")
 	return command, nil
 }
 
@@ -75,9 +78,14 @@ func (p *GitPlugin) buildScanOptions() string {
 	if p.scanAllBranches {
 		options = append(options, "--all")
 	}
-	if p.depth > 0 {
+
+	// If base commit is specified, use commit range instead of depth
+	if p.baseCommit != "" {
+		options = append(options, fmt.Sprintf("%s..HEAD", p.baseCommit))
+	} else if p.depth > 0 {
 		options = append(options, fmt.Sprintf("-n %d", p.depth))
 	}
+
 	return strings.Join(options, " ")
 }
 
