@@ -336,6 +336,7 @@ Scans a local git repository
 | ---------------- | ----- | -------------------------------------- | -------------------------------------------------------- |
 | `--all-branches` | -     | false - only current checked in branch | scan all branches                                        |
 | `--depth`        | int   | no limit                               | limit the number of historical commits to scan from HEAD |
+| `--base-commit`  | string| -                                      | base commit to scan commits between base and HEAD        |
 
 For example
 
