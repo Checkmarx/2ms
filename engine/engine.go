@@ -84,7 +84,9 @@ type EngineConfig struct {
 }
 
 func Init(engineConfig *EngineConfig) (IEngine, error) {
+func Init(engineConfig *EngineConfig) (IEngine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
+	if len(selectedRules) == 0 {
 	if len(selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
 	}
@@ -319,6 +321,7 @@ func (e *Engine) Shutdown() error {
 		return e.detectorPool.Stop()
 	}
 	return nil
+	return nil
 }
 
 func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
@@ -338,6 +341,7 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 
 			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
 			fmt.Fprintln(tab, "----\t----\t----\t----")
+			for _, rule := range rules {
 			for _, rule := range rules {
 				fmt.Fprintf(
 					tab,
