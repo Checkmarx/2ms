@@ -30,6 +30,12 @@ import (
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
+var (
+	defaultFileWalkerWorkerPoolSize = 10
+
+	instance *Engine
+)
+
 type Engine struct {
 	rules              map[string]config.Rule
 	rulesBaseRiskScore map[string]float64
@@ -37,7 +43,7 @@ type Engine struct {
 	validator          validation.Validator
 	semaphore          semaphore.ISemaphore
 	chunk              chunk.IChunk
-	workerPool         *workerpool.WorkerPool
+	fileWalkerPool     *workerpool.WorkerPool
 
 	ignoredIds    []string
 	allowedValues []string
@@ -51,6 +57,8 @@ type IEngine interface {
 	Score(secret *secrets.Secret, validateFlag bool)
 	Validate()
 	GetRuleBaseRiskScore(ruleId string) float64
+	GetFileWalkerWorkerPool() *workerpool.WorkerPool
+	Shutdown()
 }
 
 type ctxKey string
@@ -68,13 +76,14 @@ type EngineConfig struct {
 	SpecialList  []string
 
 	MaxTargetMegabytes int
-	WorkerPoolSize     int
 
 	IgnoredIds    []string
 	AllowedValues []string
+
+	FileWalkerWorkerPoolSize int
 }
 
-func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hugeParam: engineConfig is heavy but acceptable
+func Init(engineConfig EngineConfig) (IEngine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
@@ -96,24 +105,29 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
-	// Create worker pool if size is specified
-	var pool *workerpool.WorkerPool
-	if engineConfig.WorkerPoolSize > 0 {
-		pool = workerpool.New("secret-detection", engineConfig.WorkerPoolSize)
+	fileWalkerWorkerPoolSize := defaultFileWalkerWorkerPoolSize
+	if engineConfig.FileWalkerWorkerPoolSize > 0 {
+		fileWalkerWorkerPoolSize = engineConfig.FileWalkerWorkerPoolSize
 	}
 
-	return &Engine{
+	instance = &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
 		detector:           detector,
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
 		chunk:              chunk.New(),
-		workerPool:         pool,
+		fileWalkerPool:     workerpool.New("file-walker", fileWalkerWorkerPoolSize),
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
-	}, nil
+	}
+
+	return instance, nil
+}
+
+func GetEngine() IEngine {
+	return instance
 }
 
 // DetectFragment detects secrets in the given fragment
@@ -139,9 +153,9 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 		return nil
 	}
 
-	// Check if file size exceeds the file threshold, if so, use chunking, if not, read the whole file
+	// Check if file size exceeds the file threshold, if so, use chu'king, if not, read the whole file
 	if fileSize > e.chunk.GetFileThreshold() {
-		// ChunkSize * 2             ->  raw read buffer + bufio.Reader’s internal slice
+		// ChunkSize * 2             ->  raw read buffer + bufio.Reader's internal slice
 		// + (ChunkSize+MaxPeekSize) ->  peekBuf backing slice
 		// + (ChunkSize+MaxPeekSize) ->  chunkStr copy
 		weight := int64(e.chunk.GetSize()*4 + e.chunk.GetMaxPeekSize()*2)
@@ -287,17 +301,13 @@ func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
 	return e.rulesBaseRiskScore[ruleId]
 }
 
-func (e *Engine) HasWorkerPool() bool {
-	return e.workerPool != nil
-}
-
-func (e *Engine) GetWorkerPool() *workerpool.WorkerPool {
-	return e.workerPool
+func (e *Engine) GetFileWalkerWorkerPool() *workerpool.WorkerPool {
+	return e.fileWalkerPool
 }
 
 func (e *Engine) Shutdown() {
-	if e.workerPool != nil {
-		e.workerPool.Stop()
+	if e.fileWalkerPool != nil {
+		e.fileWalkerPool.Stop()
 	}
 }
 

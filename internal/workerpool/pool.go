@@ -24,6 +24,7 @@ type WorkerPool struct {
 	name           string
 	workers        int
 	taskQueue      chan Task
+	queueClosed    atomic.Bool
 	wg             sync.WaitGroup
 	logger         zerolog.Logger
 	activeTasks    int32
@@ -60,6 +61,10 @@ func (p *WorkerPool) work(workerID int) {
 	p.logger.Debug().Int("workerID", workerID).Msg("Worker started")
 
 	for {
+		if p.queueClosed.Load() && atomic.LoadInt32(&p.activeTasks) == 0 {
+			return
+		}
+
 		task, ok := <-p.taskQueue
 		if !ok {
 			p.logger.Debug().Int("workerID", workerID).Msg("Task queue closed, worker exiting")
@@ -108,7 +113,9 @@ func (p *WorkerPool) Stop() error {
 
 		shutdownErr = p.waitForTasksWithTimeout(30 * time.Second)
 
-		close(p.taskQueue)
+		if !p.queueClosed.Load() {
+			close(p.taskQueue)
+		}
 
 		p.wg.Wait()
 
@@ -138,4 +145,15 @@ func (p *WorkerPool) waitForTasksWithTimeout(timeout time.Duration) error {
 			}
 		}
 	}
+}
+
+func (p *WorkerPool) CloseQueue() {
+	close(p.taskQueue)
+	p.queueClosed.Store(true)
+}
+
+// Wait waits for all workers to finish their tasks but it's the caller's responsibility to close the queue
+// If the queue is not closed, the workers will wait indefinitely
+func (p *WorkerPool) Wait() {
+	p.wg.Wait()
 }
