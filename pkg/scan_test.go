@@ -3,14 +3,15 @@ package scanner
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/checkmarx/2ms/v3/cmd"
 	"github.com/checkmarx/2ms/v3/engine/rules"
 	"github.com/checkmarx/2ms/v3/lib/reporting"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/lib/utils"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 const (
@@ -539,7 +540,7 @@ func TestScanDynamic(t *testing.T) {
 		// get rules to filter all and force an error
 		defaultRules := rules.GetDefaultRules()
 		var idOfRules []string
-		for _, rule := range *defaultRules {
+		for _, rule := range defaultRules {
 			idOfRules = append(idOfRules, rule.Rule.RuleID)
 		}
 

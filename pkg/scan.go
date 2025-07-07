@@ -60,7 +60,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 		IgnoredIds: scanConfig.IgnoreResultIds,
 		IgnoreList: scanConfig.IgnoreRules,
 	}
-	engineInstance, err := engine.Init(engineConfig)
+	engineInstance, err := engine.Init(&engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}
@@ -88,7 +88,9 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
-	engineInstance.Shutdown()
+	if err := engineInstance.Shutdown(); err != nil {
+		return cmd.Report, fmt.Errorf("error shutting down engine: %w", err)
+	}
 
 	return cmd.Report, nil
 }
@@ -116,7 +118,7 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 		IgnoredIds: scanConfig.IgnoreResultIds,
 		IgnoreList: scanConfig.IgnoreRules,
 	}
-	engineInstance, err := engine.Init(engineConfig)
+	engineInstance, err := engine.Init(&engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}

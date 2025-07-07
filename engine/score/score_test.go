@@ -14,10 +14,9 @@ import (
 
 func TestScore(t *testing.T) {
 	specialRule := rules.HardcodedPassword()
-	allRules := *rules.FilterRules([]string{}, []string{}, []string{specialRule.RuleID})
+	allRules := rules.FilterRules([]string{}, []string{}, []string{specialRule.RuleID})
 
-	engineConfig := EngineConfig{SpecialList: []string{specialRule.RuleID}}
-	engine, err := Init(engineConfig)
+	engine, err := Init(&EngineConfig{SpecialList: []string{specialRule.RuleID}})
 	assert.NoError(t, err)
 
 	expectedCvssScores := map[string][3]float64{ // ruleID -> Valid, Invalid, Unknown
