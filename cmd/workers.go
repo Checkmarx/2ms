@@ -12,20 +12,18 @@ import (
 func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
 
-	// Check if engine has a worker pool
-	if eng, ok := engineInstance.(*engine.Engine); ok && eng.HasWorkerPool() {
-		processItemsWithPool(eng, pluginName)
-	} else {
-		processItemsWithErrgroup(engineInstance, pluginName)
-	}
+	processItems(engineInstance, pluginName)
 
+	engineInstance.GetFileWalkerWorkerPool().Wait()
+	// TODO: refactor this so we don't need to finish work of processing items
+	// in order to continue the next step of the pipeline
 	close(SecretsChan)
 }
 
-// processItemsWithPool uses the engine's worker pool
-func processItemsWithPool(eng *engine.Engine, pluginName string) {
+// processItems uses the engine's worker pool
+func processItems(eng engine.IEngine, pluginName string) {
 	ctx := context.Background()
-	pool := eng.GetWorkerPool()
+	pool := eng.GetFileWalkerWorkerPool()
 
 	// Process items
 	for item := range Channels.Items {
@@ -50,31 +48,7 @@ func processItemsWithPool(eng *engine.Engine, pluginName string) {
 			break
 		}
 	}
-}
-
-// processItemsWithErrgroup uses the original errgroup approach
-func processItemsWithErrgroup(engineInstance engine.IEngine, pluginName string) {
-	g, ctx := errgroup.WithContext(context.Background())
-	g.SetLimit(1000)
-	for item := range Channels.Items {
-		Report.TotalItemsScanned++
-		item := item
-
-		switch pluginName {
-		case "filesystem":
-			g.Go(func() error {
-				return engineInstance.DetectFile(ctx, item, SecretsChan)
-			})
-		default:
-			g.Go(func() error {
-				return engineInstance.DetectFragment(item, SecretsChan, pluginName)
-			})
-		}
-	}
-
-	if err := g.Wait(); err != nil {
-		Channels.Errors <- err
-	}
+	pool.CloseQueue()
 }
 
 func ProcessSecrets() {

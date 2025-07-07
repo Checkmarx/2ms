@@ -196,5 +196,7 @@ func postRun(cmd *cobra.Command, args []string) error {
 		log.Info().Msg("Scan completed with empty content")
 	}
 
+	engine.GetEngine().Shutdown()
+
 	return nil
 }

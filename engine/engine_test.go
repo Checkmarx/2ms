@@ -99,16 +99,16 @@ func TestDetector(t *testing.T) {
 			source:  "path/to/go.sum",
 		}
 
-		detector, err := Init(EngineConfig{})
-		if err != nil {
-			t.Fatal(err)
-		}
+		eng, err := Init(EngineConfig{
+			FileWalkerWorkerPoolSize: 1,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, eng)
 
 		secretsChan := make(chan *secrets.Secret, 1)
-		err = detector.DetectFragment(i, secretsChan, fsPlugin.GetName())
-		if err != nil {
-			return
-		}
+		err = eng.DetectFragment(i, secretsChan, fsPlugin.GetName())
+		assert.NoError(t, err)
+
 		close(secretsChan)
 
 		s := <-secretsChan
@@ -168,7 +168,9 @@ func TestSecrets(t *testing.T) {
 		},
 	}
 
-	detector, err := Init(EngineConfig{})
+	detector, err := Init(EngineConfig{
+		FileWalkerWorkerPoolSize: 1,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

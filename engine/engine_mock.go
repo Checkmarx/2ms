@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	workerpool "github.com/checkmarx/2ms/v3/internal/workerpool"
 	secrets "github.com/checkmarx/2ms/v3/lib/secrets"
 	plugins "github.com/checkmarx/2ms/v3/plugins"
 	gomock "go.uber.org/mock/gomock"
@@ -82,6 +83,20 @@ func (m *MockIEngine) DetectFragment(item plugins.ISourceItem, secretsChannel ch
 func (mr *MockIEngineMockRecorder) DetectFragment(item, secretsChannel, pluginName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetectFragment", reflect.TypeOf((*MockIEngine)(nil).DetectFragment), item, secretsChannel, pluginName)
+}
+
+// GetFileWalkerWorkerPool mocks base method.
+func (m *MockIEngine) GetFileWalkerWorkerPool() *workerpool.WorkerPool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFileWalkerWorkerPool")
+	ret0, _ := ret[0].(*workerpool.WorkerPool)
+	return ret0
+}
+
+// GetFileWalkerWorkerPool indicates an expected call of GetFileWalkerWorkerPool.
+func (mr *MockIEngineMockRecorder) GetFileWalkerWorkerPool() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileWalkerWorkerPool", reflect.TypeOf((*MockIEngine)(nil).GetFileWalkerWorkerPool))
 }
 
 // GetRuleBaseRiskScore mocks base method.

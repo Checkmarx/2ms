@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -56,8 +57,6 @@ func TestGetItems(t *testing.T) {
 	}
 
 	plugin.sendItems(itemsChan, fileList)
-
-	close(itemsChan)
 	close(errsChan)
 
 	var items []ISourceItem
@@ -74,38 +73,39 @@ func TestGetFiles(t *testing.T) {
 	tests := []struct {
 		name        string
 		nonExistent bool
-		setup       func(t *testing.T, baseDir string) (ignoredPatterns []string, expectedFiles []string, expectedErrCount int)
+		setup       func(t *testing.T, baseDir string) (ignoredPatterns []string, expectedFiles []string)
+		err         error
 	}{
 		{
 			name:        "All valid files",
 			nonExistent: false,
-			setup: func(t *testing.T, baseDir string) ([]string, []string, int) {
+			setup: func(t *testing.T, baseDir string) ([]string, []string) {
 				file1 := filepath.Join(baseDir, "file1.txt")
 				err := os.WriteFile(file1, []byte("content1"), 0644)
 				assert.NoError(t, err)
 				file2 := filepath.Join(baseDir, "file2.txt")
 				err = os.WriteFile(file2, []byte("content2"), 0644)
 				assert.NoError(t, err)
-				return []string{}, []string{file1, file2}, 0
+				return []string{}, []string{file1, file2}
 			},
 		},
 		{
 			name:        "Skip empty files",
 			nonExistent: false,
-			setup: func(t *testing.T, baseDir string) ([]string, []string, int) {
+			setup: func(t *testing.T, baseDir string) ([]string, []string) {
 				empty := filepath.Join(baseDir, "empty.txt")
 				err := os.WriteFile(empty, []byte(""), 0644)
 				assert.NoError(t, err)
 				valid := filepath.Join(baseDir, "file.txt")
 				err = os.WriteFile(valid, []byte("content"), 0644)
 				assert.NoError(t, err)
-				return []string{}, []string{valid}, 0
+				return []string{}, []string{valid}
 			},
 		},
 		{
 			name:        "Ignore folder via global ignoredFolders",
 			nonExistent: false,
-			setup: func(t *testing.T, baseDir string) ([]string, []string, int) {
+			setup: func(t *testing.T, baseDir string) ([]string, []string) {
 				ignoredDir := filepath.Join(baseDir, "ignoredFolder")
 				err := os.Mkdir(ignoredDir, 0755)
 				assert.NoError(t, err)
@@ -117,28 +117,29 @@ func TestGetFiles(t *testing.T) {
 				valid := filepath.Join(baseDir, "file.txt")
 				err = os.WriteFile(valid, []byte("content"), 0644)
 				assert.NoError(t, err)
-				return []string{}, []string{valid}, 0
+				return []string{}, []string{valid}
 			},
 		},
 		{
 			name:        "Ignore files by pattern",
 			nonExistent: false,
-			setup: func(t *testing.T, baseDir string) ([]string, []string, int) {
+			setup: func(t *testing.T, baseDir string) ([]string, []string) {
 				ignoreFile := filepath.Join(baseDir, "skip.ignore")
 				err := os.WriteFile(ignoreFile, []byte("ignored content"), 0644)
 				assert.NoError(t, err)
 				valid := filepath.Join(baseDir, "file.txt")
 				err = os.WriteFile(valid, []byte("content"), 0644)
 				assert.NoError(t, err)
-				return []string{"*.ignore"}, []string{valid}, 0
+				return []string{"*.ignore"}, []string{valid}
 			},
 		},
 		{
 			name:        "Non-existent directory",
 			nonExistent: true,
-			setup: func(t *testing.T, baseDir string) ([]string, []string, int) {
-				return []string{}, []string{}, 1
+			setup: func(t *testing.T, baseDir string) ([]string, []string) {
+				return []string{}, []string{}
 			},
+			err: fs.ErrNotExist,
 		},
 	}
 
@@ -156,7 +157,7 @@ func TestGetFiles(t *testing.T) {
 				}(baseDir)
 			}
 
-			ignoredPatterns, expectedFiles, expectedErrCount := tc.setup(t, baseDir)
+			ignoredPatterns, expectedFiles := tc.setup(t, baseDir)
 
 			plugin := &FileSystemPlugin{
 				ProjectName: "TestProject",
@@ -168,9 +169,12 @@ func TestGetFiles(t *testing.T) {
 			errsChan := make(chan error, 10)
 
 			fileList, err := plugin.getFiles()
-			assert.NoError(t, err)
+			if tc.err != nil {
+				assert.ErrorIs(t, err, tc.err)
+				return
+			}
+
 			plugin.sendItems(itemsChan, fileList)
-			close(itemsChan)
 			close(errsChan)
 
 			var collectedFiles []string
@@ -188,12 +192,6 @@ func TestGetFiles(t *testing.T) {
 				delete(expectedMap, f)
 			}
 			assert.Equal(t, 0, len(expectedMap), "not all expected files were returned")
-
-			var collectedErrs []error
-			for e := range errsChan {
-				collectedErrs = append(collectedErrs, e)
-			}
-			assert.Equal(t, expectedErrCount, len(collectedErrs), "unexpected number of errors")
 		})
 	}
 }
