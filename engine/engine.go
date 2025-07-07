@@ -76,6 +76,7 @@ type EngineConfig struct {
 	SpecialList  []string
 
 	MaxTargetMegabytes int
+	WorkerPoolSize     int
 
 	IgnoredIds    []string
 	AllowedValues []string
