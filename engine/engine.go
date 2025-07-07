@@ -76,7 +76,6 @@ type EngineConfig struct {
 	SpecialList  []string
 
 	MaxTargetMegabytes int
-	WorkerPoolSize     int
 
 	IgnoredIds    []string
 	AllowedValues []string
@@ -112,6 +111,7 @@ func Init(engineConfig *EngineConfig) (IEngine, error) {
 	}
 
 	instance = &Engine{
+	instance = &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
 		detector:           detector,
@@ -122,6 +122,13 @@ func Init(engineConfig *EngineConfig) (IEngine, error) {
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
+	}
+
+	return instance, nil
+}
+
+func GetEngine() IEngine {
+	return instance
 	}
 
 	return instance, nil
@@ -154,8 +161,9 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 		return nil
 	}
 
-	// Check if file size exceeds the file threshold, if so, use chunking, if not, read the whole file
+	// Check if file size exceeds the file threshold, if so, use chu'king, if not, read the whole file
 	if fileSize > e.chunk.GetFileThreshold() {
+		// ChunkSize * 2             ->  raw read buffer + bufio.Reader's internal slice
 		// ChunkSize * 2             ->  raw read buffer + bufio.Reader's internal slice
 		// + (ChunkSize+MaxPeekSize) ->  peekBuf backing slice
 		// + (ChunkSize+MaxPeekSize) ->  chunkStr copy
