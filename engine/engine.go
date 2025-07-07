@@ -19,6 +19,7 @@ import (
 	"github.com/checkmarx/2ms/v3/engine/score"
 	"github.com/checkmarx/2ms/v3/engine/semaphore"
 	"github.com/checkmarx/2ms/v3/engine/validation"
+	"github.com/checkmarx/2ms/v3/internal/workerpool"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/plugins"
 	"github.com/rs/zerolog/log"
@@ -35,6 +36,7 @@ type Engine struct {
 	validator          validation.Validator
 	semaphore          semaphore.ISemaphore
 	chunk              chunk.IChunk
+	workerPool         *workerpool.WorkerPool
 
 	ignoredIds    []string
 	allowedValues []string
@@ -65,6 +67,7 @@ type EngineConfig struct {
 	SpecialList  []string
 
 	MaxTargetMegabytes int
+	WorkerPoolSize     int
 
 	IgnoredIds    []string
 	AllowedValues []string
@@ -92,6 +95,12 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
+	// Create worker pool if size is specified
+	var pool *workerpool.WorkerPool
+	if engineConfig.WorkerPoolSize > 0 {
+		pool = workerpool.New("secret-detection", engineConfig.WorkerPoolSize)
+	}
+
 	return &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
@@ -99,6 +108,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
 		chunk:              chunk.New(),
+		workerPool:         pool,
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
@@ -274,6 +284,20 @@ func (e *Engine) Validate() {
 
 func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
 	return e.rulesBaseRiskScore[ruleId]
+}
+
+func (e *Engine) HasWorkerPool() bool {
+	return e.workerPool != nil
+}
+
+func (e *Engine) GetWorkerPool() *workerpool.WorkerPool {
+	return e.workerPool
+}
+
+func (e *Engine) Shutdown() {
+	if e.workerPool != nil {
+		e.workerPool.Stop()
+	}
 }
 
 func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
