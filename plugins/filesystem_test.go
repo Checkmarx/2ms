@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +55,7 @@ func TestGetItems(t *testing.T) {
 		ProjectName: "TestProject",
 	}
 
-	plugin.getItems(itemsChan, fileList)
+	plugin.sendItems(itemsChan, fileList)
 
 	close(itemsChan)
 	close(errsChan)
@@ -167,10 +166,10 @@ func TestGetFiles(t *testing.T) {
 
 			itemsChan := make(chan ISourceItem, 10)
 			errsChan := make(chan error, 10)
-			var wg sync.WaitGroup
 
-			plugin.getFiles(itemsChan, errsChan)
-			wg.Wait()
+			fileList, err := plugin.getFiles()
+			assert.NoError(t, err)
+			plugin.sendItems(itemsChan, fileList)
 			close(itemsChan)
 			close(errsChan)
 
