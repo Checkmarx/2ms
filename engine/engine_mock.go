@@ -84,6 +84,20 @@ func (mr *MockIEngineMockRecorder) DetectFragment(item, secretsChannel, pluginNa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetectFragment", reflect.TypeOf((*MockIEngine)(nil).DetectFragment), item, secretsChannel, pluginName)
 }
 
+// GetFileWalkerWorkerPool mocks base method.
+func (m *MockIEngine) GetFileWalkerWorkerPool() *workerpool.WorkerPool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFileWalkerWorkerPool")
+	ret0, _ := ret[0].(*workerpool.WorkerPool)
+	return ret0
+}
+
+// GetFileWalkerWorkerPool indicates an expected call of GetFileWalkerWorkerPool.
+func (mr *MockIEngineMockRecorder) GetFileWalkerWorkerPool() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileWalkerWorkerPool", reflect.TypeOf((*MockIEngine)(nil).GetFileWalkerWorkerPool))
+}
+
 // GetRuleBaseRiskScore mocks base method.
 func (m *MockIEngine) GetRuleBaseRiskScore(ruleId string) float64 {
 	m.ctrl.T.Helper()
