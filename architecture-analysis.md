@@ -31,7 +31,7 @@ graph TD
 - **Location**: `plugins/`
 - **Purpose**: Discovers and yields source items (files, API responses, etc.)
 - **Current Issues**:
-  - Filesystem plugin spawns 1000 goroutines just for item collection
+  - Filesystem plugin uses an errgroup with a limit of 1000 goroutines for item collection, which is inefficient.
   - No backpressure control between discovery and processing
   - Memory inefficient item representation
 
@@ -77,17 +77,18 @@ g.SetLimit(1000)
 for _, filePath := range fileList {
     g.Go(func() error {
         // Just creates an item struct!
-        actualFile, err := p.getItem(filePath)
+        actualFile := p.getItem(filePath)
         // ...
     })
 }
 ```
 
 **Problems**:
-- Context switching overhead with 2000+ goroutines
-- Memory overhead (each goroutine uses ~8KB stack)
-- No coordination between plugin discovery and engine processing
-- Resource contention without clear benefits
+- Context switching overhead with a potential of 2000+ goroutines for two different tasks.
+- The task in the FileSystemPlugin is very lightweight (creating a struct), making the high goroutine limit particularly wasteful due to scheduling overhead.
+- Memory overhead (each goroutine uses ~2KB stack).
+- No coordination between plugin discovery and engine processing.
+- Resource contention without clear benefits.
 
 ### 2. Complex Channel Management
 ```go
@@ -132,173 +133,49 @@ func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 - No error recovery or retry mechanisms
 - Difficult to trace error sources
 
-## Proposed Refactored Architecture
+## Proposed Refactoring: An Incremental Approach
+
+The full-scale pipeline redesign described previously provides a long-term vision. However, a more practical, incremental approach will deliver value faster and with less risk. The following plan, detailed in `refactoring-plan.md`, will be followed.
 
 ### Core Principles
 
-1. **Pipeline Stages**: Clear separation of concerns with dedicated worker pools
-2. **Bounded Parallelism**: Controlled concurrency based on system resources
-3. **Backpressure**: Upstream stages respect downstream capacity
-4. **Resource Efficiency**: Optimal resource utilization without waste
+1.  **Incremental Changes**: Replace one component at a time.
+2.  **Immediate Value**: Each change should improve performance or maintainability.
+3.  **Minimal Disruption**: Keep interfaces stable where possible.
+4.  **Focused PRs**: Each Pull Request will target a single, well-defined inefficiency.
 
-### Proposed Pipeline
+### The Incremental Plan Summary
 
-```mermaid
-graph TD
-    A[File Discovery Stage] --> B[Processing Queue]
-    B --> C[File Processing Workers]
-    C --> D[Chunk Processing Queue]
-    D --> E[Detection Workers]
-    E --> F[Post-Processing Queue]
-    F --> G[Enhancement Workers]
-    G --> H[Output Aggregation]
-    
-    subgraph "Stage 1: Discovery"
-        A1[File Walker] --> A2[Size Filter] --> A3[Type Filter]
-    end
-    
-    subgraph "Stage 2: File Processing"
-        C1[File Reader] --> C2[Chunker] --> C3[Content Prep]
-    end
-    
-    subgraph "Stage 3: Detection"
-        E1[Rule Matching] --> E2[Secret Extraction] --> E3[Deduplication]
-    end
-    
-    subgraph "Stage 4: Enhancement"
-        G1[Validation] --> G2[Scoring] --> G3[Enrichment]
-    end
-```
+1.  **PR 1: Create Worker Pool Infrastructure**:
+    - **Goal**: Build a reusable worker pool that can be used throughout the application.
+    - **Solution**: Create `internal/workerpool` with a flexible, configurable worker pool implementation.
 
-### Implementation Strategy
+2.  **PR 2: Optimize ProcessItems with Worker Pool (Plugin-Agnostic)**:
+    - **Problem**: `ProcessItems` uses an `errgroup` with a limit of 1000 goroutines for processing items from ANY plugin.
+    - **Solution**: Use a single worker pool in `ProcessItems` that efficiently processes items regardless of which plugin generated them (filesystem, confluence, discord, slack, etc.).
+    - **Impact**: All plugins benefit from optimized processing without any plugin-specific changes.
 
-#### Phase 1: File Discovery and Preparation
-```go
-type FileDiscoveryStage struct {
-    workers     int           // Fixed small number (e.g., 4)
-    outputQueue chan FileItem
-    filters     []FileFilter
-}
+3.  **PR 3: Optimize Individual Plugin Implementations**:
+    - **Problem**: Different plugins use different concurrency patterns:
+      - Filesystem: errgroup with 1000 limit for simple struct creation
+      - Confluence: Unbounded goroutines with a semaphore for page scanning
+      - Discord: Ad-hoc goroutines for message reading
+    - **Solution**: Standardize all plugins to use appropriately-sized worker pools for their specific workloads.
 
-type FileItem struct {
-    Path     string
-    Size     int64
-    ModTime  time.Time
-    Metadata map[string]interface{}
-}
-```
+4.  **PR 4: Consolidate Secret Processing Channels**:
+    - **Problem**: A complex fan-out to multiple channels (`SecretsExtrasChan`, `ValidationChan`, etc.) for post-processing.
+    - **Solution**: Create a single, sequential post-processing pipeline to handle extras, validation, and scoring, eliminating the extra channels and goroutine pools.
 
-**Benefits**:
-- Single responsibility: only discovers and filters files
-- Bounded worker pool eliminates goroutine explosion
-- Rich metadata for downstream optimization decisions
+5.  **PR 5: Optimize Chunking with Better Memory Management**:
+    - **Problem**: Complex semaphore-based logic for memory management during file chunking.
+    - **Solution**: Simplify memory management by controlling the number of concurrent workers processing chunks, removing the need for fine-grained semaphores.
 
-#### Phase 2: File Processing and Chunking
-```go
-type ProcessingStage struct {
-    workers     int                    // CPU-bound workers
-    inputQueue  <-chan FileItem
-    outputQueue chan ProcessedChunk
-    chunkSize   int
-}
+6.  **Further PRs**:
+    - Introduce adaptive scaling for worker pools.
+    - Add pipeline metrics and monitoring.
+    - Final cleanup and documentation updates.
 
-type ProcessedChunk struct {
-    SourceFile string
-    ChunkID    int
-    Content    []byte
-    LineRange  [2]int
-    IsLastChunk bool
-}
-```
-
-**Benefits**:
-- Optimized chunking based on file characteristics
-- CPU-bound concurrency (workers = CPU cores)
-- Memory-efficient chunk representation
-
-#### Phase 3: Detection
-```go
-type DetectionStage struct {
-    workers     int                       // CPU-intensive
-    inputQueue  <-chan ProcessedChunk
-    outputQueue chan DetectionResult
-    rules       []DetectionRule
-}
-
-type DetectionResult struct {
-    Secret      SecretInfo
-    Context     ChunkContext
-    Confidence  float64
-    RuleMatched string
-}
-```
-
-**Benefits**:
-- Focused on detection logic only
-- Parallelism matches CPU resources
-- Rich context for downstream processing
-
-#### Phase 4: Post-Processing and Enhancement
-```go
-type EnhancementStage struct {
-    validationWorkers int                    // I/O bound
-    scoringWorkers    int                    // CPU bound  
-    inputQueue        <-chan DetectionResult
-    outputQueue       chan EnhancedSecret
-}
-```
-
-**Benefits**:
-- Separate worker pools for different workload types
-- Validation can be parallelized independently
-- Clean separation of enhancement logic
-
-### Configuration and Tuning
-
-```go
-type PipelineConfig struct {
-    DiscoveryWorkers    int `default:"2"`
-    ProcessingWorkers   int `default:"runtime.NumCPU()"`
-    DetectionWorkers    int `default:"runtime.NumCPU()"`
-    ValidationWorkers   int `default:"10"`  // I/O bound
-    ScoringWorkers      int `default:"4"`   // CPU bound
-    
-    QueueSizes struct {
-        FileQueue       int `default:"1000"`
-        ChunkQueue      int `default:"500"`
-        DetectionQueue  int `default:"200"`
-        EnhancementQueue int `default:"100"`
-    }
-    
-    ChunkingStrategy struct {
-        MaxChunkSize    int `default:"100KB"`
-        OverlapSize     int `default:"1KB"`
-        SmallFileLimit  int `default:"1MB"`
-    }
-}
-```
-
-## Performance Comparison
-
-### Current Architecture Issues
-
-| Aspect | Current Problem | Impact |
-|--------|----------------|---------|
-| Goroutines | 2000+ goroutines for simple operations | High memory overhead, context switching |
-| Memory | Complex semaphore + multiple pools | Resource contention, hard to tune |
-| Errors | Single error channel | Difficult debugging, no recovery |
-| Backpressure | None | Memory exhaustion on large scans |
-| Scaling | Linear goroutine growth | Poor performance on large repositories |
-
-### Proposed Architecture Benefits
-
-| Aspect | Improvement | Expected Benefit |
-|--------|-------------|------------------|
-| Concurrency | Fixed worker pools per stage | Predictable resource usage |
-| Memory | Stage-appropriate buffering | Better memory locality, easier tuning |
-| Error Handling | Per-stage error handling | Better debugging, recovery options |
-| Backpressure | Queue-based flow control | Stable memory usage |
-| Scaling | CPU/IO-aware worker allocation | Linear performance scaling |
+This incremental approach will systematically remove the key inefficiencies (Goroutine Overuse, Complex Channel Management) while steadily improving the architecture toward a more robust and performant system. The worker pool implementation will be designed to work seamlessly across all plugins and processing stages.
 
 ## Migration Strategy
 

@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -38,8 +36,13 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Folder plugin started")
 
-			p.getFiles(items, errors)
-			close(items)
+			fileList, err := p.getFiles()
+			if err != nil {
+				errors <- err
+				return
+			}
+			p.sendItems(items, fileList)
+
 		},
 	}
 
@@ -58,7 +61,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 	return cmd, nil
 }
 
-func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error) {
+func (p *FileSystemPlugin) getFiles() ([]string, error) {
 	fileList := make([]string, 0)
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
@@ -91,25 +94,18 @@ func (p *FileSystemPlugin) getFiles(items chan ISourceItem, errs chan error) {
 	})
 
 	if err != nil {
-		errs <- fmt.Errorf("error while walking through the directory: %w", err)
-		time.Sleep(time.Second) // Temporary fix for incorrect non-error exits; needs a better solution.
-		return
+		return fileList, fmt.Errorf("error while walking through the directory: %w", err)
 	}
 
-	p.getItems(items, fileList)
+	return fileList, nil
 }
 
-func (p *FileSystemPlugin) getItems(items chan ISourceItem, fileList []string) {
-	g := errgroup.Group{}
-	g.SetLimit(1000)
+func (p *FileSystemPlugin) sendItems(items chan ISourceItem, fileList []string) {
+	defer close(items)
 	for _, filePath := range fileList {
-		g.Go(func() error {
-			actualFile := p.getItem(filePath)
-			items <- *actualFile
-			return nil
-		})
+		actualFile := p.getItem(filePath)
+		items <- *actualFile
 	}
-	_ = g.Wait()
 }
 
 func (p *FileSystemPlugin) getItem(filePath string) *item {
