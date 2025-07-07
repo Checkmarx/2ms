@@ -41,7 +41,7 @@ func newMock(ctrl *gomock.Controller) *mock {
 }
 
 func Test_Init(t *testing.T) {
-	allRules := *rules.FilterRules([]string{}, []string{}, []string{})
+	allRules := rules.FilterRules([]string{}, []string{}, []string{})
 	specialRule := rules.HardcodedPassword()
 
 	tests := []struct {
@@ -80,7 +80,7 @@ func Test_Init(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := Init(test.engineConfig)
+			_, err := Init(&test.engineConfig)
 			if err == nil && test.expectedErr != nil {
 				t.Errorf("expected error, got nil")
 			}
@@ -99,7 +99,7 @@ func TestDetector(t *testing.T) {
 			source:  "path/to/go.sum",
 		}
 
-		eng, err := Init(EngineConfig{
+		eng, err := Init(&EngineConfig{
 			FileWalkerWorkerPoolSize: 1,
 		})
 		require.NoError(t, err)
@@ -168,7 +168,7 @@ func TestSecrets(t *testing.T) {
 		},
 	}
 
-	detector, err := Init(EngineConfig{
+	detector, err := Init(&EngineConfig{
 		FileWalkerWorkerPoolSize: 1,
 	})
 	if err != nil {
