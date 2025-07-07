@@ -37,8 +37,7 @@ func (i *mockItem) GetGitInfo() *plugins.GitInfo {
 
 func TestProcessItems(t *testing.T) {
 	totalItemsToProcess := 5
-	engineConfig := engine.EngineConfig{}
-	engineTest, err := engine.Init(engineConfig)
+	engineTest, err := engine.Init(&engine.EngineConfig{})
 	assert.NoError(t, err)
 	Report = reporting.Init()
 	Channels.Items = make(chan plugins.ISourceItem)
@@ -254,8 +253,7 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engineConfig := engine.EngineConfig{}
-			engineTest, err := engine.Init(engineConfig)
+			engineTest, err := engine.Init(&engine.EngineConfig{})
 			assert.NoError(t, err)
 			ValidationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			for _, secret := range tt.inputSecrets {
@@ -315,8 +313,7 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engineConfig := engine.EngineConfig{}
-			engineTest, err := engine.Init(engineConfig)
+			engineTest, err := engine.Init(&engine.EngineConfig{})
 			assert.NoError(t, err)
 			CvssScoreWithoutValidationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			for _, secret := range tt.inputSecrets {

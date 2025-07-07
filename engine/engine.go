@@ -58,7 +58,7 @@ type IEngine interface {
 	Validate()
 	GetRuleBaseRiskScore(ruleId string) float64
 	GetFileWalkerWorkerPool() *workerpool.WorkerPool
-	Shutdown()
+	Shutdown() error
 }
 
 type ctxKey string
@@ -83,16 +83,16 @@ type EngineConfig struct {
 	FileWalkerWorkerPoolSize int
 }
 
-func Init(engineConfig EngineConfig) (IEngine, error) {
+func Init(engineConfig *EngineConfig) (IEngine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
-	if len(*selectedRules) == 0 {
+	if len(selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
 	}
 
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
 	keywords := make(map[string]struct{})
-	for _, rule := range *selectedRules { //nolint:gocritic // TODO: refactor to use a pointer
+	for _, rule := range selectedRules { //nolint:gocritic // TODO: refactor to use a pointer
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
@@ -305,10 +305,11 @@ func (e *Engine) GetFileWalkerWorkerPool() *workerpool.WorkerPool {
 	return e.fileWalkerPool
 }
 
-func (e *Engine) Shutdown() {
+func (e *Engine) Shutdown() error {
 	if e.fileWalkerPool != nil {
-		e.fileWalkerPool.Stop()
+		return e.fileWalkerPool.Stop()
 	}
+	return nil
 }
 
 func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
@@ -328,7 +329,7 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 
 			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
 			fmt.Fprintln(tab, "----\t----\t----\t----")
-			for _, rule := range *rules { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
+			for _, rule := range rules {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",

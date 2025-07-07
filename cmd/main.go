@@ -145,7 +145,7 @@ func preRun(pluginName string, _ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	engineInstance, err := engine.Init(engineConfigVar)
+	engineInstance, err := engine.Init(&engineConfigVar)
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,9 @@ func postRun(cmd *cobra.Command, args []string) error {
 		log.Info().Msg("Scan completed with empty content")
 	}
 
-	engine.GetEngine().Shutdown()
+	if err := engine.GetEngine().Shutdown(); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -42,7 +42,6 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 				return
 			}
 			p.sendItems(items, fileList)
-
 		},
 	}
 
