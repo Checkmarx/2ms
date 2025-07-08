@@ -19,6 +19,13 @@ var (
 // Task represents a unit of work that can return an error
 type Task func(ctx context.Context) error
 
+type Pool interface {
+	Submit(task Task) error
+	Stop() error
+	Wait()
+	CloseQueue()
+}
+
 // WorkerPool manages a fixed number of workers processing tasks
 type WorkerPool struct {
 	name           string
@@ -35,7 +42,11 @@ type WorkerPool struct {
 }
 
 // New creates a new worker pool with the specified number of workers
-func New(name string, workers int) *WorkerPool {
+func New(name string, workers int) Pool {
+	return newWorkerPool(name, workers)
+}
+
+func newWorkerPool(name string, workers int) *WorkerPool {
 	ctx, cancel := context.WithCancel(context.Background())
 	pool := &WorkerPool{
 		name:      name,

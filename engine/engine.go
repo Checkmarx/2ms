@@ -1,7 +1,5 @@
 package engine
 
-//go:generate mockgen -source=$GOFILE -destination=${GOPACKAGE}_mock.go -package=${GOPACKAGE}
-
 import (
 	"bufio"
 	"context"
@@ -12,6 +10,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"text/tabwriter"
 
@@ -31,7 +30,7 @@ import (
 )
 
 var (
-	defaultFileWalkerWorkerPoolSize = 10
+	defaultFileWalkerWorkerPoolSize = runtime.GOMAXPROCS(0) * 2 // 2x the number of CPUs since the work is not totally CPU bound
 
 	instance *Engine
 )
@@ -43,7 +42,7 @@ type Engine struct {
 	validator          validation.Validator
 	semaphore          semaphore.ISemaphore
 	chunk              chunk.IChunk
-	fileWalkerPool     *workerpool.WorkerPool
+	fileWalkerPool     workerpool.Pool
 
 	ignoredIds    []string
 	allowedValues []string
@@ -57,7 +56,7 @@ type IEngine interface {
 	Score(secret *secrets.Secret, validateFlag bool)
 	Validate()
 	GetRuleBaseRiskScore(ruleId string) float64
-	GetFileWalkerWorkerPool() *workerpool.WorkerPool
+	GetFileWalkerWorkerPool() workerpool.Pool
 	Shutdown() error
 }
 
@@ -80,7 +79,7 @@ type EngineConfig struct {
 	IgnoredIds    []string
 	AllowedValues []string
 
-	FileWalkerWorkerPoolSize int
+	DetectorWorkerPoolSize int
 }
 
 func Init(engineConfig *EngineConfig) (IEngine, error) {
@@ -106,8 +105,8 @@ func Init(engineConfig *EngineConfig) (IEngine, error) {
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
 	fileWalkerWorkerPoolSize := defaultFileWalkerWorkerPoolSize
-	if engineConfig.FileWalkerWorkerPoolSize > 0 {
-		fileWalkerWorkerPoolSize = engineConfig.FileWalkerWorkerPoolSize
+	if engineConfig.DetectorWorkerPoolSize > 0 {
+		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}
 
 	instance = &Engine{
@@ -301,7 +300,7 @@ func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
 	return e.rulesBaseRiskScore[ruleId]
 }
 
-func (e *Engine) GetFileWalkerWorkerPool() *workerpool.WorkerPool {
+func (e *Engine) GetFileWalkerWorkerPool() workerpool.Pool {
 	return e.fileWalkerPool
 }
 

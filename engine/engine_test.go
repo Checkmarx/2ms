@@ -100,7 +100,7 @@ func TestDetector(t *testing.T) {
 		}
 
 		eng, err := Init(&EngineConfig{
-			FileWalkerWorkerPoolSize: 1,
+			DetectorWorkerPoolSize: 1,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, eng)
@@ -169,7 +169,7 @@ func TestSecrets(t *testing.T) {
 	}
 
 	detector, err := Init(&EngineConfig{
-		FileWalkerWorkerPoolSize: 1,
+		DetectorWorkerPoolSize: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
