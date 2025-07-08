@@ -77,7 +77,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagApiKey},
 			ScoreParameters: ScoreParameters{Category: CategoryIoTPlatform, RuleType: 4},
 		},
-		{Rule: *rules.AdobeClientID(), Tags: []string{TagClientId}, ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 1}},
+		{
+			Rule:            *rules.AdobeClientID(),
+			Tags:            []string{TagClientId},
+			ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 1},
+		},
 		{
 			Rule:            *rules.AdobeClientSecret(),
 			Tags:            []string{TagClientSecret},
@@ -164,7 +168,14 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryCryptocurrencyExchange, RuleType: 4},
 		},
-		{Rule: *Clojars(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4}},
+		{
+			Rule: *Clojars(),
+			Tags: []string{TagApiToken},
+			ScoreParameters: ScoreParameters{
+				Category: CategoryPackageManagement,
+				RuleType: 4,
+			},
+		},
 		{
 			Rule:            *rules.ConfluentAccessToken(),
 			Tags:            []string{TagAccessToken},
@@ -225,7 +236,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagClientSecret},
 			ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
 		},
-		{Rule: *rules.Doppler(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4}},
+		{
+			Rule:            *rules.Doppler(),
+			Tags:            []string{TagApiToken},
+			ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
+		},
 		{
 			Rule:            *rules.DropBoxAPISecret(),
 			Tags:            []string{TagApiToken},
@@ -246,13 +261,21 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
 		},
-		{Rule: *rules.Duffel(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
+		{
+			Rule:            *rules.Duffel(),
+			Tags:            []string{TagApiToken},
+			ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+		},
 		{
 			Rule:            *rules.Dynatrace(),
 			Tags:            []string{TagApiToken},
 			ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
 		},
-		{Rule: *rules.EasyPost(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryShipping, RuleType: 4}},
+		{
+			Rule:            *rules.EasyPost(),
+			Tags:            []string{TagApiToken},
+			ScoreParameters: ScoreParameters{Category: CategoryShipping, RuleType: 4},
+		},
 		{
 			Rule:            *rules.EasyPostTestAPI(),
 			Tags:            []string{TagApiToken},
@@ -343,7 +366,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
-		{Rule: *GitHubApp(), Tags: []string{TagAccessToken}, ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4}},
+		{
+			Rule:            *GitHubApp(),
+			Tags:            []string{TagAccessToken},
+			ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
+		},
 		{
 			Rule:            *rules.GitHubRefresh(),
 			Tags:            []string{TagRefreshToken},
@@ -399,7 +426,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagPassword},
 			ScoreParameters: ScoreParameters{Category: CategoryInfrastructureAsCode, RuleType: 4},
 		},
-		{Rule: *rules.Heroku(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 4}},
+		{
+			Rule:            *rules.Heroku(),
+			Tags:            []string{TagApiKey},
+			ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 4},
+		},
 		{
 			Rule:            *rules.HubSpot(),
 			Tags:            []string{TagApiToken, TagApiKey},
@@ -425,7 +456,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagApiToken, TagApiKey},
 			ScoreParameters: ScoreParameters{Category: CategoryCustomerSupport, RuleType: 4},
 		},
-		{Rule: *rules.JFrogAPIKey(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4}},
+		{
+			Rule:            *rules.JFrogAPIKey(),
+			Tags:            []string{TagApiKey},
+			ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
+		},
 		{
 			Rule:            *rules.JFrogIdentityToken(),
 			Tags:            []string{TagAccessToken},
@@ -481,7 +516,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagClientSecret},
 			ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
 		},
-		{Rule: *rules.LobAPIToken(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
+		{
+			Rule:            *rules.LobAPIToken(),
+			Tags:            []string{TagApiKey},
+			ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+		},
 		{
 			Rule:            *rules.LobPubAPIToken(),
 			Tags:            []string{TagApiKey},
@@ -598,7 +637,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagApiToken},
 			ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
 		},
-		{Rule: *rules.Prefect(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
+		{
+			Rule:            *rules.Prefect(),
+			Tags:            []string{TagApiToken},
+			ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+		},
 		{
 			Rule:            *PrivateKey(),
 			Tags:            []string{TagPrivateKey},
@@ -619,7 +662,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
 		},
-		{Rule: *rules.ReadMe(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4}},
+		{
+			Rule:            *rules.ReadMe(),
+			Tags:            []string{TagApiToken},
+			ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+		},
 		{
 			Rule:            *rules.RubyGemsAPIToken(),
 			Tags:            []string{TagApiToken},
@@ -756,7 +803,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
 		},
-		{Rule: *rules.Snyk(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategorySecurity, RuleType: 4}},
+		{
+			Rule:            *rules.Snyk(),
+			Tags:            []string{TagApiKey},
+			ScoreParameters: ScoreParameters{Category: CategorySecurity, RuleType: 4},
+		},
 		{
 			Rule:            *rules.TeamsWebhook(),
 			Tags:            []string{TagWebhook},
@@ -772,7 +823,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
 		},
-		{Rule: *rules.Twilio(), Tags: []string{TagApiKey}, ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4}},
+		{
+			Rule:            *rules.Twilio(),
+			Tags:            []string{TagApiKey},
+			ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		},
 		{
 			Rule:            *rules.TwitchAPIToken(),
 			Tags:            []string{TagApiToken},
