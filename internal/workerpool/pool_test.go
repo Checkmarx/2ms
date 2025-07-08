@@ -86,7 +86,7 @@ func TestWorkerPool_GracefulShutdown(t *testing.T) {
 // Test that context is cancelled when tasks don't complete in time
 // This simulates what would happen with a timeout by directly calling cancel
 func TestWorkerPool_TimeoutSimulation(t *testing.T) {
-	pool := New("timeout-test", 1)
+	pool := newWorkerPool("timeout-test", 1)
 
 	var startedTasks int32
 	var cancelledTasks int32

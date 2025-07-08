@@ -114,6 +114,10 @@ func Execute() (int, error) {
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
+	if detectorWorkerPoolSize := vConfig.GetInt("2MS_DETECTOR_WORKERPOOL_SIZE"); detectorWorkerPoolSize != 0 {
+		engineConfigVar.DetectorWorkerPoolSize = detectorWorkerPoolSize
+		log.Info().Msgf("2MS_DETECTOR_WORKERPOOL_SIZE is set to %d", detectorWorkerPoolSize)
+	}
 
 	group := "Scan Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
