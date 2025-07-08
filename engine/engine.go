@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"runtime"
 	"strings"
 	"text/tabwriter"
 
@@ -80,6 +81,7 @@ type EngineConfig struct {
 	IgnoredIds    []string
 	AllowedValues []string
 
+	DetectorWorkerPoolSize int
 	DetectorWorkerPoolSize int
 }
 
