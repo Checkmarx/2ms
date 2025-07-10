@@ -5,7 +5,7 @@ package engine
 import (
 	"bufio"
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // SHA1 is used for ID generation only, not for security
 	"fmt"
 	"io"
 	"os"
@@ -70,7 +70,7 @@ type EngineConfig struct {
 	AllowedValues []string
 }
 
-func Init(engineConfig EngineConfig) (IEngine, error) {
+func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hugeParam: engineConfig is heavy but acceptable
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
 	if len(*selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
@@ -79,7 +79,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) {
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
 	keywords := []string{}
-	for _, rule := range *selectedRules {
+	for _, rule := range *selectedRules { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
@@ -112,7 +112,7 @@ func (e *Engine) DetectFragment(item plugins.ISourceItem, secretsChannel chan *s
 		FilePath: item.GetSource(),
 	}
 
-	return e.detectSecrets(context.Background(), item, fragment, secretsChannel, pluginName)
+	return e.detectSecrets(context.Background(), item, &fragment, secretsChannel, pluginName)
 }
 
 // DetectFile reads the given file and detects secrets in it
@@ -159,7 +159,7 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 		FilePath: item.GetSource(),
 	}
 
-	return e.detectSecrets(ctx, item, fragment, secretsChannel, "filesystem")
+	return e.detectSecrets(ctx, item, &fragment, secretsChannel, "filesystem")
 }
 
 // detectChunks reads the given file in chunks and detects secrets in each chunk
@@ -199,19 +199,24 @@ func (e *Engine) detectChunks(ctx context.Context, item plugins.ISourceItem, sec
 		}
 		ctx = context.WithValue(ctx, totalLinesKey, totalLines)
 		ctx = context.WithValue(ctx, linesInChunkKey, linesInChunk)
-		if detectErr := e.detectSecrets(ctx, item, fragment, secretsChannel, "filesystem"); detectErr != nil {
+		if detectErr := e.detectSecrets(ctx, item, &fragment, secretsChannel, "filesystem"); detectErr != nil {
 			return fmt.Errorf("failed to detect secrets: %w", detectErr)
 		}
 	}
 }
 
 // detectSecrets detects secrets and sends them to the secrets channel
-func (e *Engine) detectSecrets(ctx context.Context, item plugins.ISourceItem, fragment detect.Fragment, secrets chan *secrets.Secret,
-	pluginName string) error {
+func (e *Engine) detectSecrets(
+	ctx context.Context,
+	item plugins.ISourceItem,
+	fragment *detect.Fragment,
+	secrets chan *secrets.Secret,
+	pluginName string,
+) error {
 	fragment.Raw += CxFileEndMarker + "\n"
 
-	values := e.detector.Detect(fragment)
-	for _, value := range values {
+	values := e.detector.Detect(*fragment)
+	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
 		secret, buildErr := buildSecret(ctx, item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
@@ -282,15 +287,14 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 		Short: "List all rules",
 		Long:  `List all rules`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			rules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
 
 			tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
-			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check") //nolint:errcheck
-			fmt.Fprintln(tab, "----\t----\t----\t----")                  //nolint:errcheck
-			for _, rule := range *rules {
-				fmt.Fprintf( //nolint:errcheck
+			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
+			fmt.Fprintln(tab, "----\t----\t----\t----")
+			for _, rule := range *rules { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
+				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",
 					rule.Rule.RuleID,
@@ -309,7 +313,12 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 }
 
 // buildSecret creates a secret object from the given source item and finding
-func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
+func buildSecret(
+	ctx context.Context,
+	item plugins.ISourceItem,
+	value report.Finding, //nolint:gocritic // hugeParam: value is heavy but needed
+	pluginName string,
+) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
 	startLine, endLine, err := getStartAndEndLines(ctx, pluginName, gitInfo, value)
@@ -352,13 +361,18 @@ func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Fin
 	return secret, nil
 }
 
-func getFindingId(item plugins.ISourceItem, finding report.Finding) string {
+func getFindingId(item plugins.ISourceItem, finding report.Finding) string { //nolint:gocritic // hugeParam: finding is heavy but needed
 	idParts := []string{item.GetID(), finding.RuleID, finding.Secret}
-	sha := sha1.Sum([]byte(strings.Join(idParts, "-")))
+	sha := sha1.Sum([]byte(strings.Join(idParts, "-"))) //nolint:gosec // SHA1 is used for ID generation only
 	return fmt.Sprintf("%x", sha)
 }
 
-func getStartAndEndLines(ctx context.Context, pluginName string, gitInfo *plugins.GitInfo, value report.Finding) (int, int, error) {
+func getStartAndEndLines(
+	ctx context.Context,
+	pluginName string,
+	gitInfo *plugins.GitInfo,
+	value report.Finding, //nolint:gocritic // hugeParam: value is heavy but needed
+) (int, int, error) {
 	var startLine, endLine int
 	var err error
 

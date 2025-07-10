@@ -19,3 +19,5 @@ vendor/
 
 dist
 2ms
+
+cover.out.tmp
