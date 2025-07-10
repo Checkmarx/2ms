@@ -1,56 +1,46 @@
 package cmd
 
+//go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v3/plugins ISourceItem
+
 import (
+	"math/rand"
+	"sort"
+	"strconv"
+	"sync"
+	"testing"
+
 	"github.com/checkmarx/2ms/v3/engine"
 	"github.com/checkmarx/2ms/v3/lib/reporting"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/plugins"
 	"github.com/stretchr/testify/assert"
-	"sort"
-	"strconv"
-	"sync"
-	"testing"
+	"go.uber.org/mock/gomock"
 )
-
-type mockItem struct {
-	content *string
-	id      string
-	source  string
-}
-
-func (i *mockItem) GetContent() *string {
-	return i.content
-}
-
-func (i *mockItem) GetID() string {
-	return i.id
-}
-
-func (i *mockItem) GetSource() string {
-	return i.source
-}
-
-func (i *mockItem) GetGitInfo() *plugins.GitInfo {
-	return nil
-}
 
 func TestProcessItems(t *testing.T) {
 	totalItemsToProcess := 5
-	engineConfig := engine.EngineConfig{}
-	engineTest, err := engine.Init(engineConfig)
+	engineTest, err := engine.Init(&engine.EngineConfig{})
 	assert.NoError(t, err)
 	Report = reporting.Init()
 	Channels.Items = make(chan plugins.ISourceItem)
 	SecretsChan = make(chan *secrets.Secret)
 	Channels.WaitGroup = &sync.WaitGroup{}
 	Channels.WaitGroup.Add(1)
-	go ProcessItems(engineTest, "mockPlugin")
+	pluginName := "mockPlugin"
+	if rand.Intn(2) == 0 {
+		// 50% chance of filesystem, even though a scan eithers runs on one or the other, I just want to test both
+		// so our benchmark is not biased to one.
+		pluginName = "filesystem"
+	}
+	go ProcessItems(engineTest, pluginName)
+	ctrl := gomock.NewController(t)
 	for i := 0; i < totalItemsToProcess; i++ {
 		mockData := strconv.Itoa(i)
-		Channels.Items <- &mockItem{
-			content: &mockData,
-			id:      mockData,
-		}
+		mockItem := NewMockISourceItem(ctrl)
+		mockItem.EXPECT().GetContent().Return(&mockData).AnyTimes()
+		mockItem.EXPECT().GetID().Return(mockData).AnyTimes()
+		mockItem.EXPECT().GetSource().Return(pluginName).AnyTimes()
+		Channels.Items <- mockItem
 	}
 	close(Channels.Items)
 	Channels.WaitGroup.Wait()
@@ -253,8 +243,7 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engineConfig := engine.EngineConfig{}
-			engineTest, err := engine.Init(engineConfig)
+			engineTest, err := engine.Init(&engine.EngineConfig{})
 			assert.NoError(t, err)
 			ValidationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			for _, secret := range tt.inputSecrets {
@@ -314,8 +303,7 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engineConfig := engine.EngineConfig{}
-			engineTest, err := engine.Init(engineConfig)
+			engineTest, err := engine.Init(&engine.EngineConfig{})
 			assert.NoError(t, err)
 			CvssScoreWithoutValidationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			for _, secret := range tt.inputSecrets {

@@ -114,6 +114,10 @@ func Execute() (int, error) {
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
+	if detectorWorkerPoolSize := vConfig.GetInt("2MS_DETECTOR_WORKERPOOL_SIZE"); detectorWorkerPoolSize != 0 {
+		engineConfigVar.DetectorWorkerPoolSize = detectorWorkerPoolSize
+		log.Info().Msgf("2MS_DETECTOR_WORKERPOOL_SIZE is set to %d", detectorWorkerPoolSize)
+	}
 
 	group := "Scan Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
@@ -145,7 +149,7 @@ func preRun(pluginName string, _ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	engineInstance, err := engine.Init(engineConfigVar)
+	engineInstance, err := engine.Init(&engineConfigVar)
 	if err != nil {
 		return err
 	}
@@ -194,6 +198,10 @@ func postRun(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		log.Info().Msg("Scan completed with empty content")
+	}
+
+	if err := engine.GetEngine().Shutdown(); err != nil {
+		return err
 	}
 
 	return nil
