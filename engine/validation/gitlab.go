@@ -23,6 +23,7 @@ func validateGitlab(s *secrets.Secret) (secrets.ValidationResult, string) {
 		log.Warn().Err(err).Msg("Failed to validate secret")
 		return secrets.UnknownResult, ""
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
 		bodyBytes, err := io.ReadAll(resp.Body)
