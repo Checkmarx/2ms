@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -439,80 +438,66 @@ func TestDetectChunks(t *testing.T) {
 	}
 }
 
-func TestSecretsColumnIndex(t *testing.T) {
-
+func TestBuildSecret(t *testing.T) {
 	tests := []struct {
 		name                string
-		lineContent         string
-		startColumn         int
-		endColumn           int
-		expectedLineContent string
+		finding             report.Finding
+		isLastFinding       bool
 		expectedStartColumn int
 		expectedEndColumn   int
+		expectedLineContent string
 	}{
 		{
-			name:                "secret on first line without newline",
-			lineContent:         `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
-			startColumn:         14,
-			endColumn:           50,
-			expectedLineContent: `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
-			expectedStartColumn: 14,
-			expectedEndColumn:   50,
+			name: "Normal finding, not the last one",
+			finding: report.Finding{
+				Line:        `key = "some_secret_value"`,
+				Secret:      `"some_secret_value"`,
+				StartColumn: 7,
+				EndColumn:   28,
+			},
+			isLastFinding:       false,
+			expectedStartColumn: 7,
+			expectedEndColumn:   28,
+			expectedLineContent: `key = "some_secret_value"`,
 		},
 		{
-			name:                "secret with leading newline",
-			lineContent:         "\nlet apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
-			startColumn:         15,
-			endColumn:           51,
-			expectedLineContent: `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
-			expectedStartColumn: 14,
-			expectedEndColumn:   50,
+			name: "Last finding with CxFileEndMarker should be corrected",
+			finding: report.Finding{
+				Line:        `key = "some_secret_value";cx-file-end`,
+				Secret:      `"some_secret_value"`,
+				StartColumn: 7,
+				EndColumn:   40,
+			},
+			isLastFinding:       true,
+			expectedStartColumn: 7,
+			expectedEndColumn:   28,
+			expectedLineContent: `key = "some_secret_value"`,
 		},
 		{
-			name:                "leading newline followed by tab indentation",
-			lineContent:         "\n	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
-			startColumn:         2,
-			endColumn:           7,
-			expectedLineContent: "	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
-			expectedStartColumn: 1,
-			expectedEndColumn:   6,
-		},
-		{
-			name:                "leading newline followed by tab indentation with special character",
-			lineContent:         "\n\tlet apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
-			startColumn:         2,
-			endColumn:           7,
-			expectedLineContent: "	let apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
-			expectedStartColumn: 1,
-			expectedEndColumn:   6,
-		},
-		{
-			name:                "newline with content larger than context limit",
-			lineContent:         "\n" + strings.Repeat("A", 500) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 500),
-			startColumn:         501,
-			endColumn:           536,
-			expectedLineContent: strings.Repeat("A", 250) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 250),
-			expectedStartColumn: 500,
-			expectedEndColumn:   535,
+			name: "Finding on a line with leading/trailing newlines",
+			finding: report.Finding{
+				Line:        "\nkey = \"some_secret_value\"\r\n",
+				Secret:      `"some_secret_value"`,
+				StartColumn: 7,
+				EndColumn:   28,
+			},
+			isLastFinding:       false,
+			expectedStartColumn: 7,
+			expectedEndColumn:   28,
+			expectedLineContent: `key = "some_secret_value"`,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			mockItem := &item{source: "test.txt"}
 
-			mockItem := &item{content: &tt.lineContent, source: "test.txt"}
+			tt.finding.RuleID = "test-rule"
+			tt.finding.Description = "Test Description"
+			tt.finding.StartLine = 1
+			tt.finding.EndLine = 1
 
-			finding := report.Finding{
-				StartColumn: tt.startColumn,
-				EndColumn:   tt.endColumn,
-				Secret:      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-				RuleID:      "test-rule",
-				Description: "Test Description",
-				Line:        tt.lineContent,
-				StartLine:   1,
-				EndLine:     1,
-			}
-
-			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName())
+			secret, err := buildSecret(context.Background(), mockItem, tt.finding, fsPlugin.GetName(), tt.isLastFinding)
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedLineContent, secret.LineContent)
