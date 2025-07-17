@@ -345,10 +345,9 @@ func buildSecret(
 		}
 	}
 
-	// Remove any newlines that might have been accidentally included
 	cleanLine = strings.Trim(cleanLine, "\n\r")
 
-	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
+	lineContent, err := linecontent.GetLineContent(cleanLine, value.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
