@@ -208,11 +208,15 @@ func (e *Engine) detectChunks(ctx context.Context, item plugins.ISourceItem, sec
 // detectSecrets detects secrets and sends them to the secrets channel
 func (e *Engine) detectSecrets(ctx context.Context, item plugins.ISourceItem, fragment detect.Fragment, secrets chan *secrets.Secret,
 	pluginName string) error {
-	fragment.Raw += CxFileEndMarker + "\n"
+
+	if !strings.HasSuffix(fragment.Raw, "\n") {
+		fragment.Raw += "\n"
+	}
+	fragment.Raw += CxFileEndMarker
 
 	values := e.detector.Detect(fragment)
-	for _, value := range values {
-		secret, buildErr := buildSecret(ctx, item, value, pluginName)
+	for idx, value := range values {
+		secret, buildErr := buildSecret(ctx, item, value, pluginName, idx == len(values)-1)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
@@ -309,7 +313,7 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 }
 
 // buildSecret creates a secret object from the given source item and finding
-func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Finding, pluginName string) (*secrets.Secret, error) {
+func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Finding, pluginName string, isLastFinding bool) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
 	startLine, endLine, err := getStartAndEndLines(ctx, pluginName, gitInfo, value)
@@ -317,9 +321,19 @@ func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Fin
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
-	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
+	cleanLine := value.Line
+	startColumn := value.StartColumn
+	endColumn := value.EndColumn
 
-	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
+	if isLastFinding && strings.HasSuffix(cleanLine, CxFileEndMarker) {
+		cleanLine = strings.TrimSuffix(cleanLine, CxFileEndMarker)
+	}
+
+	cleanLine = strings.Trim(cleanLine, "\n\r")
+	if startLine > 1 {
+		startColumn--
+	}
+	lineContent, err := linecontent.GetLineContent(cleanLine, value.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
@@ -329,9 +343,9 @@ func buildSecret(ctx context.Context, item plugins.ISourceItem, value report.Fin
 		Source:          item.GetSource(),
 		RuleID:          value.RuleID,
 		StartLine:       startLine,
-		StartColumn:     value.StartColumn,
+		StartColumn:     startColumn,
 		EndLine:         endLine,
-		EndColumn:       value.EndColumn,
+		EndColumn:       endColumn,
 		Value:           value.Secret,
 		LineContent:     lineContent,
 		RuleDescription: value.Description,
