@@ -141,5 +141,9 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 		}
 	}
 
+	if err := engineInstance.Shutdown(); err != nil {
+		return cmd.Report, fmt.Errorf("error shutting down engine: %w", err)
+	}
+
 	return cmd.Report, nil
 }

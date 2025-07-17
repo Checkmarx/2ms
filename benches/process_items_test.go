@@ -201,7 +201,6 @@ func ValidateInput(data []byte) bool {
 					wg := &sync.WaitGroup{}
 					wg.Add(1)
 
-					// Process items
 					go func() {
 						defer wg.Done()
 						processItemsLocal(engineTest, "mockPlugin", itemsChan, secretsChan, report)
@@ -215,16 +214,13 @@ func ValidateInput(data []byte) bool {
 					}
 					close(itemsChan)
 
-					// Wait for processing
 					wg.Wait()
 
-					// Collect secrets (simulating what the real code does)
 					secretsFound := 0
 					for range secretsChan {
 						secretsFound++
 					}
 
-					// Clean up
 					_ = engineTest.Shutdown()
 				}
 			})
@@ -272,7 +268,6 @@ func processItemsLocal(eng engine.IEngine, pluginName string, items chan plugins
 
 	for item := range items {
 		report.TotalItemsScanned++
-		item := item // capture loop variable
 
 		var task workerpool.Task
 		switch pluginName {
