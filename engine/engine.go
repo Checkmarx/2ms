@@ -215,9 +215,14 @@ func (e *Engine) detectSecrets(
 ) error {
 	fragment.Raw += CxFileEndMarker + "\n"
 
+	if !strings.HasSuffix(fragment.Raw, "\n") {
+		fragment.Raw += "\n"
+	}
+	fragment.Raw += CxFileEndMarker
+
 	values := e.detector.Detect(*fragment)
-	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
-		secret, buildErr := buildSecret(ctx, item, value, pluginName)
+	for idx, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
+		secret, buildErr := buildSecret(ctx, item, value, pluginName, idx == len(values)-1)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
@@ -318,6 +323,7 @@ func buildSecret(
 	item plugins.ISourceItem,
 	value report.Finding, //nolint:gocritic // hugeParam: value is heavy but needed
 	pluginName string,
+	isLastFinding bool,
 ) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
@@ -326,24 +332,25 @@ func buildSecret(
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
-	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
-	hasNewline := strings.HasPrefix(value.Line, "\n")
+	cleanLine := value.Line
+	startColumn := value.StartColumn
+	endColumn := value.EndColumn
 
-	if hasNewline {
-		value.Line = strings.TrimPrefix(value.Line, "\n")
+	if isLastFinding && strings.HasSuffix(cleanLine, CxFileEndMarker) {
+		cleanLine = strings.TrimSuffix(cleanLine, CxFileEndMarker)
+		newStartColumn := strings.Index(cleanLine, value.Secret) + 1
+		if newStartColumn > 0 {
+			startColumn = newStartColumn
+			endColumn = startColumn + len(value.Secret)
+		}
 	}
-	value.Line = strings.ReplaceAll(value.Line, "\r", "")
+
+	// Remove any newlines that might have been accidentally included
+	cleanLine = strings.Trim(cleanLine, "\n\r")
 
 	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
-	}
-
-	adjustedStartColumn := value.StartColumn
-	adjustedEndColumn := value.EndColumn
-	if hasNewline {
-		adjustedStartColumn--
-		adjustedEndColumn--
 	}
 
 	secret := &secrets.Secret{
@@ -351,9 +358,9 @@ func buildSecret(
 		Source:          item.GetSource(),
 		RuleID:          value.RuleID,
 		StartLine:       startLine,
-		StartColumn:     adjustedStartColumn,
+		StartColumn:     startColumn,
 		EndLine:         endLine,
-		EndColumn:       adjustedEndColumn,
+		EndColumn:       endColumn,
 		Value:           value.Secret,
 		LineContent:     lineContent,
 		RuleDescription: value.Description,
