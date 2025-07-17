@@ -351,6 +351,9 @@ func buildSecret(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
+	if startLine > 1 {
+		startColumn--
+	}
 
 	secret := &secrets.Secret{
 		ID:              itemId,
