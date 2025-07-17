@@ -28,7 +28,6 @@ func processItems(eng engine.IEngine, pluginName string) {
 	// Process items
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
-		item := item // capture loop variable
 
 		// Create task based on plugin type
 		var task workerpool.Task

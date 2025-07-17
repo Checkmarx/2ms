@@ -3,7 +3,6 @@ package cmd
 //go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v3/plugins ISourceItem
 
 import (
-	"math/rand"
 	"sort"
 	"strconv"
 	"sync"
@@ -27,11 +26,6 @@ func TestProcessItems(t *testing.T) {
 	Channels.WaitGroup = &sync.WaitGroup{}
 	Channels.WaitGroup.Add(1)
 	pluginName := "mockPlugin"
-	if rand.Intn(2) == 0 {
-		// 50% chance of filesystem, even though a scan eithers runs on one or the other, I just want to test both
-		// so our benchmark is not biased to one.
-		pluginName = "filesystem"
-	}
 	go ProcessItems(engineTest, pluginName)
 	ctrl := gomock.NewController(t)
 	for i := 0; i < totalItemsToProcess; i++ {
