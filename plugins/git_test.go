@@ -3,12 +3,13 @@ package plugins
 import (
 	"errors"
 	"fmt"
-	"github.com/gitleaks/go-gitdiff/gitdiff"
-	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/gitleaks/go-gitdiff/gitdiff"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildScanOptions(t *testing.T) {
@@ -16,37 +17,71 @@ func TestBuildScanOptions(t *testing.T) {
 		name            string
 		scanAllBranches bool
 		depth           int
+		baseCommit      string
 		expectedOptions string
 	}{
 		{
 			name:            "Default: scan every commit from checked in branch",
 			scanAllBranches: false,
 			depth:           0,
+			baseCommit:      "",
 			expectedOptions: "--full-history",
 		},
 		{
 			name:            "Scan all commits from all branches",
 			scanAllBranches: true,
 			depth:           0,
+			baseCommit:      "",
 			expectedOptions: "--full-history --all",
 		},
 		{
 			name:            "scan the last 10 commits from checked in branch",
 			scanAllBranches: false,
 			depth:           10,
+			baseCommit:      "",
 			expectedOptions: "--full-history -n 10",
 		},
 		{
 			name:            "Scan the last 10 commits of all branches",
 			scanAllBranches: true,
 			depth:           10,
+			baseCommit:      "",
 			expectedOptions: "--full-history --all -n 10",
 		},
 		{
 			name:            "Negative depth: should not include depth option",
 			scanAllBranches: true,
 			depth:           -5,
+			baseCommit:      "",
 			expectedOptions: "--full-history --all",
+		},
+		{
+			name:            "Base commit: scan commits between base and HEAD",
+			scanAllBranches: false,
+			depth:           0,
+			baseCommit:      "abc123",
+			expectedOptions: "--full-history abc123..HEAD",
+		},
+		{
+			name:            "Base commit with all branches",
+			scanAllBranches: true,
+			depth:           0,
+			baseCommit:      "def456",
+			expectedOptions: "--full-history --all def456..HEAD",
+		},
+		{
+			name:            "Base commit takes precedence over depth",
+			scanAllBranches: false,
+			depth:           10,
+			baseCommit:      "ghi789",
+			expectedOptions: "--full-history ghi789..HEAD",
+		},
+		{
+			name:            "Base commit with all branches takes precedence over depth",
+			scanAllBranches: true,
+			depth:           15,
+			baseCommit:      "jkl012",
+			expectedOptions: "--full-history --all jkl012..HEAD",
 		},
 	}
 
@@ -55,6 +90,7 @@ func TestBuildScanOptions(t *testing.T) {
 			p := &GitPlugin{
 				scanAllBranches: tt.scanAllBranches,
 				depth:           tt.depth,
+				baseCommit:      tt.baseCommit,
 			}
 			result := p.buildScanOptions()
 			assert.Equal(t, tt.expectedOptions, result)
@@ -115,7 +151,9 @@ func TestValidGitRepoArgs(t *testing.T) {
 				}
 				return tempDir, nil
 			},
-			expectedErr: fmt.Errorf("is not a git repository. Please make sure the root path of the provided directory contains a .git subdirectory"),
+			expectedErr: fmt.Errorf(
+				"is not a git repository. Please make sure the root path of the provided directory contains a .git subdirectory",
+			),
 		},
 		{
 			name: ".git Is Not a Directory",

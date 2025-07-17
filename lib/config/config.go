@@ -5,6 +5,6 @@ type Config struct {
 	Version string
 }
 
-func LoadConfig(name string, version string) *Config {
+func LoadConfig(name, version string) *Config {
 	return &Config{Name: name, Version: version}
 }

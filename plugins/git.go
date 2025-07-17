@@ -24,6 +24,7 @@ const (
 	argDepth           = "depth"
 	argScanAllBranches = "all-branches"
 	argProjectName     = "project-name"
+	argBaseCommit      = "base-commit"
 	unknownCommit      = "unknown"
 )
 
@@ -33,6 +34,7 @@ type GitPlugin struct {
 	depth           int
 	scanAllBranches bool
 	projectName     string
+	baseCommit      string
 }
 
 type GitInfo struct {
@@ -67,6 +69,7 @@ func (p *GitPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*c
 	flags.BoolVar(&p.scanAllBranches, argScanAllBranches, false, "scan all branches [default: false]")
 	flags.IntVar(&p.depth, argDepth, 0, "number of commits to scan from HEAD")
 	flags.StringVar(&p.projectName, argProjectName, "", "Project name to differentiate between filesystem scans")
+	flags.StringVar(&p.baseCommit, argBaseCommit, "", "Base commit to scan commits between base and HEAD")
 	return command, nil
 }
 
@@ -75,13 +78,18 @@ func (p *GitPlugin) buildScanOptions() string {
 	if p.scanAllBranches {
 		options = append(options, "--all")
 	}
-	if p.depth > 0 {
+
+	// If base commit is specified, use commit range instead of depth
+	if p.baseCommit != "" {
+		options = append(options, fmt.Sprintf("%s..HEAD", p.baseCommit))
+	} else if p.depth > 0 {
 		options = append(options, fmt.Sprintf("-n %d", p.depth))
 	}
+
 	return strings.Join(options, " ")
 }
 
-func (p *GitPlugin) scanGit(path string, scanOptions string, itemsChan chan ISourceItem, errChan chan error) {
+func (p *GitPlugin) scanGit(path, scanOptions string, itemsChan chan ISourceItem, errChan chan error) {
 	diffs, wait := p.readGitLog(path, scanOptions, errChan)
 	defer wait()
 
@@ -146,7 +154,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 }
 
 // extractChanges iterates over the text fragments to compile added and removed changes
-func extractChanges(fragments []*gitdiff.TextFragment) (added string, removed string) {
+func extractChanges(fragments []*gitdiff.TextFragment) (added, removed string) {
 	var addedBuilder, removedBuilder strings.Builder
 
 	for _, tf := range fragments {
@@ -169,7 +177,7 @@ func extractChanges(fragments []*gitdiff.TextFragment) (added string, removed st
 	return addedBuilder.String(), removedBuilder.String()
 }
 
-func (p *GitPlugin) readGitLog(path string, scanOptions string, errChan chan error) (<-chan *gitdiff.File, func()) {
+func (p *GitPlugin) readGitLog(path, scanOptions string, errChan chan error) (<-chan *gitdiff.File, func()) {
 	gitLog, err := git.NewGitLogCmd(path, scanOptions)
 	if err != nil {
 		errChan <- fmt.Errorf("error while scanning git repository: %w", err)
@@ -199,7 +207,10 @@ func validGitRepoArgs(cmd *cobra.Command, args []string) error {
 	gitFolder := fmt.Sprintf("%s/.git", args[0])
 	stat, err = os.Stat(gitFolder)
 	if err != nil {
-		return fmt.Errorf("%s is not a git repository. Please make sure the root path of the provided directory contains a .git subdirectory", args[0])
+		return fmt.Errorf(
+			"%s is not a git repository. Please make sure the root path of the provided directory contains a .git subdirectory",
+			args[0],
+		)
 	}
 	if !stat.IsDir() {
 		return fmt.Errorf("%s is not a git repository", args[0])
@@ -245,7 +256,9 @@ func GetGitStartAndEndLine(gitInfo *GitInfo, localStartLine, localEndLine int) (
 }
 
 // getHunkPosAndCount returns the functions to get the position and count of hunks based on the content type
-func getHunkPosAndCount(gitInfo *GitInfo) (hunkPos func(h *gitdiff.TextFragment) int, hunkCount func(h *gitdiff.TextFragment) int, matchOp gitdiff.LineOp, err error) {
+func getHunkPosAndCount( //nolint:gocritic // paramTypeCombine: complex return types make this necessary
+	gitInfo *GitInfo,
+) (hunkPos func(h *gitdiff.TextFragment) int, hunkCount func(h *gitdiff.TextFragment) int, matchOp gitdiff.LineOp, err error) {
 	switch gitInfo.ContentType {
 	case AddedContent:
 		hunkPos = func(h *gitdiff.TextFragment) int { return int(h.NewPosition) }
