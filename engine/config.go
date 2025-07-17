@@ -6,7 +6,8 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-// Taken from gitleaks config https://github.com/gitleaks/gitleaks/blob/6c52f878cc48a513849900a9aa6f9d68e1c2dbdd/config/gitleaks.toml#L15-L26
+// Taken from gitleaks config
+// https://github.com/gitleaks/gitleaks/blob/6c52f878cc48a513849900a9aa6f9d68e1c2dbdd/config/gitleaks.toml#L15-L26
 var cfg = config.Config{
 	Allowlist: config.Allowlist{
 		Paths: []*regexp.Regexp{

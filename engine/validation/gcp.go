@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -25,7 +26,7 @@ type errorResponse struct {
 func validateGCP(s *secrets.Secret) (secrets.ValidationResult, string) {
 	testURL := "https://youtube.googleapis.com/youtube/v3/search?part=snippet&key=" + s.Value
 
-	req, err := http.NewRequest("GET", testURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", testURL, http.NoBody)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to validate secret")
 		return secrets.UnknownResult, ""
@@ -37,6 +38,7 @@ func validateGCP(s *secrets.Secret) (secrets.ValidationResult, string) {
 		log.Warn().Err(err).Msg("Failed to validate secret")
 		return secrets.UnknownResult, ""
 	}
+	defer resp.Body.Close()
 
 	result, extra, err := checkGCPErrorResponse(resp)
 	if err != nil {
@@ -77,5 +79,4 @@ func checkGCPErrorResponse(resp *http.Response) (secrets.ValidationResult, strin
 	}
 
 	return secrets.UnknownResult, "", nil
-
 }

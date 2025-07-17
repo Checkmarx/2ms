@@ -5,11 +5,12 @@ package semaphore
 import (
 	"context"
 	"fmt"
-	"github.com/shirou/gopsutil/mem"
-	"golang.org/x/sync/semaphore"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/shirou/gopsutil/mem"
+	"golang.org/x/sync/semaphore"
 )
 
 type Semaphore struct {
@@ -95,7 +96,7 @@ func computeMemoryBudget(totalHost, cgroupLimit uint64) int64 {
 	if effectiveTotal > safetyMargin {
 		avail = effectiveTotal - safetyMargin
 	}
-	budget := int64(avail / 2) // use half of what remains
+	budget := int64(avail / 2) //nolint:gosec // avail is guaranteed to be within safe range by design
 	if budget < 256*1024*1024 {
 		budget = 256 * 1024 * 1024
 	}
