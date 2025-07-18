@@ -31,7 +31,7 @@ import (
 type Engine struct {
 	rules              map[string]config.Rule
 	rulesBaseRiskScore map[string]float64
-	detector           detect.Detector
+	detector           *detect.Detector
 	validator          validation.Validator
 	semaphore          semaphore.ISemaphore
 	chunk              chunk.IChunk
@@ -78,12 +78,13 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
-	keywords := []string{}
+	keywords := make(map[string]struct{})
+	//keywords := []string{}
 	for _, rule := range *selectedRules { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
-			keywords = append(keywords, strings.ToLower(keyword))
+			keywords[strings.ToLower(keyword)] = struct{}{}
 		}
 	}
 	cfg.Rules = rulesToBeApplied
@@ -95,7 +96,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 	return &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
-		detector:           *detector,
+		detector:           detector,
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
 		chunk:              chunk.New(),

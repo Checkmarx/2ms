@@ -286,11 +286,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryECommercePlatform, RuleType: 4},
 		},
-		{
-			Rule:            *rules.Facebook(),
-			Tags:            []string{TagApiToken},
-			ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
-		},
+		// {
+		// 	Rule:            *rules.Facebook(),
+		// 	Tags:            []string{TagApiToken},
+		// 	ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		// },
 		{
 			Rule:            *rules.FastlyAPIToken(),
 			Tags:            []string{TagApiToken, TagApiKey},
@@ -416,11 +416,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
 		},
-		{
-			Rule:            *rules.Hashicorp(),
-			Tags:            []string{TagApiToken},
-			ScoreParameters: ScoreParameters{Category: CategoryInfrastructureAsCode, RuleType: 4},
-		},
+		// {
+		// 	Rule:            *rules.Hashicorp(),
+		// 	Tags:            []string{TagApiToken},
+		// 	ScoreParameters: ScoreParameters{Category: CategoryInfrastructureAsCode, RuleType: 4},
+		// },
 		{
 			Rule:            *rules.HashicorpField(),
 			Tags:            []string{TagPassword},

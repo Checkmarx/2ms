@@ -36,8 +36,10 @@ func HardcodedPassword() *config.Rule {
 		},
 		Entropy:     0,
 		SecretGroup: 1,
-		Allowlist: config.Allowlist{
-			StopWords: rules.DefaultStopWords,
+		Allowlists: []*config.Allowlist{
+			{
+				StopWords: rules.DefaultStopWords,
+			},
 		},
 	}
 
