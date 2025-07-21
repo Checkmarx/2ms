@@ -213,8 +213,6 @@ func (e *Engine) detectSecrets(
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
-	fragment.Raw += CxFileEndMarker + "\n"
-
 	if !strings.HasSuffix(fragment.Raw, "\n") {
 		fragment.Raw += "\n"
 	}
