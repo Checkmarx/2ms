@@ -203,7 +203,7 @@ func ValidateInput(data []byte) bool {
 
 					go func() {
 						defer wg.Done()
-						processItemsLocal(engineTest, "mockPlugin", itemsChan, secretsChan, report)
+						processItemsLocal(engineTest, "filesystem", itemsChan, secretsChan, report)
 						engineTest.GetFileWalkerWorkerPool().Wait()
 						close(secretsChan)
 					}()

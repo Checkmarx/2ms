@@ -115,7 +115,7 @@ func Init(engineConfig *EngineConfig) (IEngine, error) {
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
 		chunk:              chunk.New(),
-		fileWalkerPool:     workerpool.New("file-walker", fileWalkerWorkerPoolSize),
+		fileWalkerPool:     workerpool.New("file-walker", workerpool.WithWorkers(fileWalkerWorkerPoolSize)),
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,

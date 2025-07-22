@@ -88,10 +88,6 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
-	if err := engineInstance.Shutdown(); err != nil {
-		return cmd.Report, fmt.Errorf("error shutting down engine: %w", err)
-	}
-
 	return cmd.Report, nil
 }
 

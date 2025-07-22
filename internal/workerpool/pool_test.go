@@ -3,6 +3,7 @@ package workerpool
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -13,11 +14,9 @@ import (
 
 // Test that the pool creates the correct number of workers
 func TestWorkerPool_Creation(t *testing.T) {
-	pool := New("test-pool", 5)
+	t.Parallel()
+	pool := New("test-pool", WithWorkers(5))
 	defer pool.Stop()
-
-	// Give workers time to start
-	time.Sleep(100 * time.Millisecond)
 
 	var processedCount int32
 	var wg sync.WaitGroup
@@ -35,6 +34,7 @@ func TestWorkerPool_Creation(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
+	// wait until all tasks have been submitted and processed
 	wg.Wait()
 
 	assert.Equal(t, int32(numTasks), atomic.LoadInt32(&processedCount))
@@ -42,19 +42,21 @@ func TestWorkerPool_Creation(t *testing.T) {
 
 // Test that pool drains queue before shutting down
 func TestWorkerPool_GracefulShutdown(t *testing.T) {
-	pool := New("graceful-shutdown", 2)
+	t.Parallel()
+	pool := New("graceful-shutdown", WithWorkers(2))
 
 	var completedTasks int32
-	var cancelledTasks int32
-	taskDuration := 100 * time.Millisecond
+	var cancelledTasks chan struct{}
+	// 1 second for each task, 2 workers, will make a total time of 2 seconds work
+	taskDuration := 1 * time.Second
 	numTasks := 4
 
 	for i := 0; i < numTasks; i++ {
 		err := pool.Submit(func(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
-				atomic.AddInt32(&cancelledTasks, 1)
-				return ctx.Err()
+				cancelledTasks <- struct{}{}
+				return nil
 			case <-time.After(taskDuration):
 				atomic.AddInt32(&completedTasks, 1)
 				return nil
@@ -65,102 +67,121 @@ func TestWorkerPool_GracefulShutdown(t *testing.T) {
 		}
 	}
 
-	// Give tasks a moment to start processing
-	time.Sleep(50 * time.Millisecond)
-
-	start := time.Now()
-	err := pool.Stop()
-	assert.NoError(t, err)
-	elapsed := time.Since(start)
-
-	// All tasks should have completed without cancellation
-	completed := atomic.LoadInt32(&completedTasks)
-	cancelled := atomic.LoadInt32(&cancelledTasks)
-
-	t.Logf("Completed: %d, Cancelled: %d, Elapsed: %v", completed, cancelled, elapsed)
-
-	assert.Equal(t, int32(numTasks), completed)
-	assert.Equal(t, int32(0), cancelled)
-}
-
-// Test that context is cancelled when tasks don't complete in time
-// This simulates what would happen with a timeout by directly calling cancel
-func TestWorkerPool_TimeoutSimulation(t *testing.T) {
-	pool := newWorkerPool("timeout-test", 1)
-
-	var startedTasks int32
-	var cancelledTasks int32
-
-	err := pool.Submit(func(ctx context.Context) error {
-		atomic.AddInt32(&startedTasks, 1)
-
-		// Simulate a very long task that checks context
-		for i := 0; i < 100; i++ {
+	close := make(chan struct{})
+	go func() {
+		for {
 			select {
-			case <-ctx.Done():
-				atomic.AddInt32(&cancelledTasks, 1)
-				return ctx.Err()
-			case <-time.After(100 * time.Millisecond):
-				// Continue work
+			case <-cancelledTasks:
+				assert.Fail(t, "task cancelled")
+				return
+			case <-close:
+				return
 			}
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("Failed to submit task: %v", err)
-	}
+	}()
+	defer func() {
+		close <- struct{}{}
+	}()
 
-	// Wait for task to start
-	for atomic.LoadInt32(&startedTasks) == 0 {
+	err := pool.Stop()
+	assert.NoError(t, err)
+
+	completed := atomic.LoadInt32(&completedTasks)
+	assert.Equal(t, int32(numTasks), completed)
+}
+
+// Test that when the context is cancelled, the pool stops, all tasks are cancelled,
+// the queue is closed and work submitted is ignored
+func TestWorkerPool_Cancel(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
+	// number of tasks should be the same of the queue size so it doesnt block on the producer
+	// since our tasks do infinite work
+	numberOfTasks := 10
+	numberOfWorkers := 2
+	pool := New("timeout-test", WithWorkers(numberOfWorkers), WithQueueSize(numberOfTasks), WithContext(ctx), WithCancel(cancel))
+
+	var cancelledTasks atomic.Int32
+	var activeTasks atomic.Int32
+	var submittedTasks atomic.Int32
+
+	for i := 0; i < numberOfTasks; i++ {
+		err := pool.Submit(func(ctx context.Context) error {
+			activeTasks.Add(1)
+			for {
+				select {
+				case <-ctx.Done():
+					cancelledTasks.Add(1)
+					return ctx.Err()
+				default:
+					time.Sleep(100 * time.Millisecond)
+				}
+			}
+		})
+		submittedTasks.Add(1)
+		assert.NoError(t, err)
+	}
+	for submittedTasks.Load() < int32(numberOfTasks) {
 		time.Sleep(10 * time.Millisecond)
 	}
+	for activeTasks.Load() < int32(numberOfWorkers) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	fmt.Println("active tasks", activeTasks.Load())
 
-	// Simulate timeout by directly cancelling context
-	// This is what would happen in waitForTasksWithTimeout after 30s
-	pool.cancel()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			if cancelledTasks.Load() == activeTasks.Load() {
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
 
-	// Give task time to react to cancellation
-	time.Sleep(200 * time.Millisecond)
-
-	// Task should have been cancelled
-	assert.Equal(t, int32(1), atomic.LoadInt32(&cancelledTasks))
-
-	// Clean up
-	pool.Stop()
+	cancel()
+	wg.Wait()
+	// we sleep here to make sure the pool did shutdown the workers
+	// and did not consume tasks from the queue in the time between the cancel and shutdown
+	// otherwise, the assertion below will fail
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, cancelledTasks.Load(), activeTasks.Load())
 }
 
 // Test that submitting after shutdown returns error
 func TestWorkerPool_SubmitAfterShutdown(t *testing.T) {
-	pool := New("submit-after-shutdown", 2)
+	t.Parallel()
+	pool := New("submit-after-shutdown", WithWorkers(2))
 
 	// Submit a task that takes some time
 	err := pool.Submit(func(ctx context.Context) error {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(10 * time.Second)
 		return nil
 	})
 	assert.NoError(t, err)
 
-	// Start shutdown in a goroutine
-	shutdownDone := make(chan error, 1)
+	// Start shutdown in a goroutine since our Stop is graceful and it waits for tasks to complete
 	go func() {
-		shutdownDone <- pool.Stop()
+		fmt.Println("stopping pool")
+		pool.Stop()
 	}()
 
-	// Give shutdown a moment to start
-	time.Sleep(50 * time.Millisecond)
+	// give some time for the goroutine to start and call the Stop method
+	time.Sleep(100 * time.Millisecond)
 
 	// Try to submit while shutting down
 	err = pool.Submit(func(ctx context.Context) error {
 		return nil
 	})
 	assert.ErrorIs(t, err, ErrPoolShuttingDown)
-
-	assert.NoError(t, <-shutdownDone)
 }
 
 // Test that task errors don't crash the worker
 func TestWorkerPool_TaskError(t *testing.T) {
-	pool := New("error-handling", 2)
+	t.Parallel()
+	pool := New("error-handling", WithWorkers(2))
 	defer pool.Stop()
 
 	expectedError := errors.New("task error")
@@ -198,7 +219,8 @@ func TestWorkerPool_TaskError(t *testing.T) {
 
 // Test that multiple calls to Stop are safe
 func TestWorkerPool_MultipleStopCalls(t *testing.T) {
-	pool := New("multiple-stop", 2)
+	t.Parallel()
+	pool := New("multiple-stop", WithWorkers(2))
 
 	// Submit a task
 	err := pool.Submit(func(ctx context.Context) error {
@@ -225,4 +247,153 @@ func TestWorkerPool_MultipleStopCalls(t *testing.T) {
 	for _, err := range errors {
 		assert.NoError(t, err)
 	}
+}
+
+// Test that Wait() blocks until all workers finish their tasks
+func TestWorkerPool_Wait(t *testing.T) {
+	t.Parallel()
+	pool := New("wait-test", WithWorkers(3))
+	defer pool.Stop()
+
+	var completedTasks int32
+	var startTime time.Time
+	taskDuration := 200 * time.Millisecond
+	numTasks := 6
+
+	startTime = time.Now()
+
+	// Submit tasks that take some time
+	for i := 0; i < numTasks; i++ {
+		err := pool.Submit(func(ctx context.Context) error {
+			time.Sleep(taskDuration)
+			atomic.AddInt32(&completedTasks, 1)
+			return nil
+		})
+		assert.NoError(t, err)
+	}
+
+	// Close the queue so the pool knows no more tasks are coming
+	pool.CloseQueue()
+
+	// Wait should block until all tasks complete
+	pool.Wait()
+
+	elapsed := time.Since(startTime)
+	completed := atomic.LoadInt32(&completedTasks)
+
+	// All tasks should be completed
+	assert.Equal(t, int32(numTasks), completed)
+	// Should take at least the time for 2 batches of tasks (since we have 3 workers and 6 tasks)
+	assert.GreaterOrEqual(t, elapsed, 2*taskDuration)
+}
+
+// Test that Wait() works correctly with concurrent task submission
+func TestWorkerPool_WaitWithConcurrentSubmission(t *testing.T) {
+	t.Parallel()
+	pool := New("wait-concurrent", WithWorkers(2))
+	defer pool.Stop()
+
+	var completedTasks int32
+	numTasks := 10
+
+	// Start submitting tasks in a goroutine
+	go func() {
+		for i := 0; i < numTasks; i++ {
+			err := pool.Submit(func(ctx context.Context) error {
+				time.Sleep(50 * time.Millisecond)
+				atomic.AddInt32(&completedTasks, 1)
+				return nil
+			})
+			if err != nil {
+				t.Errorf("Failed to submit task: %v", err)
+			}
+			time.Sleep(10 * time.Millisecond) // Small delay between submissions
+		}
+		pool.CloseQueue()
+	}()
+
+	// Wait should block until all submitted tasks complete
+	pool.Wait()
+
+	completed := atomic.LoadInt32(&completedTasks)
+	assert.Equal(t, int32(numTasks), completed)
+}
+
+// Test CloseQueue() prevents new task submission and triggers graceful shutdown
+func TestWorkerPool_CloseQueue(t *testing.T) {
+	t.Parallel()
+	pool := New("cloese-queue", WithWorkers(2))
+
+	var completedTasks int32
+	var shutdownDetected int32
+	taskDuration := 50 * time.Millisecond
+	numTasks := 3
+
+	// Submit tasks
+	for i := 0; i < numTasks; i++ {
+		err := pool.Submit(func(ctx context.Context) error {
+			time.Sleep(taskDuration)
+			atomic.AddInt32(&completedTasks, 1)
+			return nil
+		})
+		assert.NoError(t, err)
+	}
+
+	// Monitor for shutdown in a separate goroutine
+	go func() {
+		// Give some time for tasks to start
+		time.Sleep(25 * time.Millisecond)
+
+		// Close queue - this should trigger automatic shutdown when tasks finish
+		pool.CloseQueue()
+
+		// Wait and verify shutdown happened
+		pool.Wait()
+		atomic.AddInt32(&shutdownDetected, 1)
+	}()
+
+	// Give enough time for shutdown to occur
+	time.Sleep(500 * time.Millisecond)
+
+	completed := atomic.LoadInt32(&completedTasks)
+	shutdown := atomic.LoadInt32(&shutdownDetected)
+
+	assert.Equal(t, int32(numTasks), completed)
+	assert.Equal(t, int32(1), shutdown)
+}
+
+// Test CloseQueue() can be called multiple times safely
+func TestWorkerPool_CloseQueueMultipleCalls(t *testing.T) {
+	t.Parallel()
+	pool := New("multiple-close-queue", WithWorkers(2))
+
+	var completedTasks int32
+	numTasks := 2
+
+	// Submit a few tasks
+	for i := 0; i < numTasks; i++ {
+		err := pool.Submit(func(ctx context.Context) error {
+			time.Sleep(50 * time.Millisecond)
+			atomic.AddInt32(&completedTasks, 1)
+			return nil
+		})
+		assert.NoError(t, err)
+	}
+
+	// Call CloseQueue multiple times - should not panic
+	var wg sync.WaitGroup
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Multiple calls should be safe
+			pool.CloseQueue()
+		}()
+	}
+
+	wg.Wait()
+	pool.Wait()
+
+	completed := atomic.LoadInt32(&completedTasks)
+	assert.Equal(t, int32(numTasks), completed)
 }

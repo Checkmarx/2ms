@@ -62,6 +62,7 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 
 func (p *FileSystemPlugin) getFiles() ([]string, error) {
 	fileList := make([]string, 0)
+	// TODO: use concurrency for directory walk
 	err := filepath.Walk(p.Path, func(path string, fInfo os.FileInfo, err error) error {
 		if err != nil {
 			return err
