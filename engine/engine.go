@@ -1,7 +1,5 @@
 package engine
 
-//go:generate mockgen -source=$GOFILE -destination=${GOPACKAGE}_mock.go -package=${GOPACKAGE}
-
 import (
 	"bufio"
 	"context"
@@ -10,6 +8,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"text/tabwriter"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/checkmarx/2ms/v3/engine/score"
 	"github.com/checkmarx/2ms/v3/engine/semaphore"
 	"github.com/checkmarx/2ms/v3/engine/validation"
+	"github.com/checkmarx/2ms/v3/internal/workerpool"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/plugins"
 	"github.com/rs/zerolog/log"
@@ -28,6 +28,12 @@ import (
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
+var (
+	defaultFileWalkerWorkerPoolSize = runtime.GOMAXPROCS(0) * 2 // 2x the number of CPUs since the work is not totally CPU bound
+
+	instance *Engine
+)
+
 type Engine struct {
 	rules              map[string]config.Rule
 	rulesBaseRiskScore map[string]float64
@@ -35,6 +41,7 @@ type Engine struct {
 	validator          validation.Validator
 	semaphore          semaphore.ISemaphore
 	chunk              chunk.IChunk
+	fileWalkerPool     workerpool.Pool
 
 	ignoredIds    []string
 	allowedValues []string
@@ -48,6 +55,8 @@ type IEngine interface {
 	Score(secret *secrets.Secret, validateFlag bool)
 	Validate()
 	GetRuleBaseRiskScore(ruleId string) float64
+	GetFileWalkerWorkerPool() workerpool.Pool
+	Shutdown() error
 }
 
 type ctxKey string
@@ -68,18 +77,20 @@ type EngineConfig struct {
 
 	IgnoredIds    []string
 	AllowedValues []string
+
+	DetectorWorkerPoolSize int
 }
 
-func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hugeParam: engineConfig is heavy but acceptable
+func Init(engineConfig *EngineConfig) (IEngine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
-	if len(*selectedRules) == 0 {
+	if len(selectedRules) == 0 {
 		return nil, fmt.Errorf("no rules were selected")
 	}
 
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
 	keywords := []string{}
-	for _, rule := range *selectedRules { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
+	for _, rule := range selectedRules {
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
@@ -92,17 +103,29 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
-	return &Engine{
+	fileWalkerWorkerPoolSize := defaultFileWalkerWorkerPoolSize
+	if engineConfig.DetectorWorkerPoolSize > 0 {
+		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
+	}
+
+	instance = &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
 		detector:           *detector,
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
 		chunk:              chunk.New(),
+		fileWalkerPool:     workerpool.New("file-walker", workerpool.WithWorkers(fileWalkerWorkerPoolSize)),
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
-	}, nil
+	}
+
+	return instance, nil
+}
+
+func GetEngine() IEngine {
+	return instance
 }
 
 // DetectFragment detects secrets in the given fragment
@@ -130,7 +153,7 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 
 	// Check if file size exceeds the file threshold, if so, use chunking, if not, read the whole file
 	if fileSize > e.chunk.GetFileThreshold() {
-		// ChunkSize * 2             ->  raw read buffer + bufio.Reader’s internal slice
+		// ChunkSize * 2             ->  raw read buffer + bufio.Reader's internal slice
 		// + (ChunkSize+MaxPeekSize) ->  peekBuf backing slice
 		// + (ChunkSize+MaxPeekSize) ->  chunkStr copy
 		weight := int64(e.chunk.GetSize()*4 + e.chunk.GetMaxPeekSize()*2)
@@ -276,6 +299,17 @@ func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
 	return e.rulesBaseRiskScore[ruleId]
 }
 
+func (e *Engine) GetFileWalkerWorkerPool() workerpool.Pool {
+	return e.fileWalkerPool
+}
+
+func (e *Engine) Shutdown() error {
+	if e.fileWalkerPool != nil {
+		return e.fileWalkerPool.Stop()
+	}
+	return nil
+}
+
 func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 	canValidateDisplay := map[bool]string{
 		true:  "V",
@@ -293,7 +327,7 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 
 			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
 			fmt.Fprintln(tab, "----\t----\t----\t----")
-			for _, rule := range *rules { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
+			for _, rule := range rules {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",
