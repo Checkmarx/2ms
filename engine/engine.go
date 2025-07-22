@@ -151,7 +151,7 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 		return nil
 	}
 
-	// Check if file size exceeds the file threshold, if so, use chu'king, if not, read the whole file
+	// Check if file size exceeds the file threshold, if so, use chunking, if not, read the whole file
 	if fileSize > e.chunk.GetFileThreshold() {
 		// ChunkSize * 2             ->  raw read buffer + bufio.Reader's internal slice
 		// + (ChunkSize+MaxPeekSize) ->  peekBuf backing slice
