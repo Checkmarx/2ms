@@ -218,6 +218,9 @@ func (e *Engine) detectSecrets(
 	}
 	fragment.Raw += CxFileEndMarker
 
+	fmt.Println("FRAGMENT RAW BEFORE DETECT:")
+	fmt.Println(fragment.Raw)
+
 	values := e.detector.Detect(*fragment)
 	for idx, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
 		secret, buildErr := buildSecret(ctx, item, value, pluginName, idx == len(values)-1)
@@ -330,27 +333,27 @@ func buildSecret(
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
-	cleanLine := value.Line
-	startColumn := value.StartColumn
-	endColumn := value.EndColumn
+	if isLastFinding && strings.HasSuffix(value.Email, CxFileEndMarker) {
+		value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
+	}
+	hasNewline := strings.HasPrefix(value.Line, "\n")
 
-	if isLastFinding && strings.HasSuffix(cleanLine, CxFileEndMarker) {
-		cleanLine = strings.TrimSuffix(cleanLine, CxFileEndMarker)
-		newStartColumn := strings.Index(cleanLine, value.Secret) + 1
-		if newStartColumn > 0 {
-			startColumn = newStartColumn
-			endColumn = startColumn + len(value.Secret)
-		}
+	if hasNewline {
+		value.Line = strings.Trim(value.Line, "\n\r")
 	}
 
-	cleanLine = strings.Trim(cleanLine, "\n\r")
-
-	lineContent, err := linecontent.GetLineContent(cleanLine, value.Secret)
+	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
-	if startLine > 1 {
-		startColumn--
+
+	adjustedStartColumn := value.StartColumn
+	adjustedEndColumn := value.EndColumn
+	if hasNewline {
+		adjustedStartColumn--
+		if isLastFinding {
+			adjustedEndColumn--
+		}
 	}
 
 	secret := &secrets.Secret{
@@ -358,9 +361,9 @@ func buildSecret(
 		Source:          item.GetSource(),
 		RuleID:          value.RuleID,
 		StartLine:       startLine,
-		StartColumn:     startColumn,
+		StartColumn:     adjustedStartColumn,
 		EndLine:         endLine,
-		EndColumn:       endColumn,
+		EndColumn:       adjustedEndColumn,
 		Value:           value.Secret,
 		LineContent:     lineContent,
 		RuleDescription: value.Description,
