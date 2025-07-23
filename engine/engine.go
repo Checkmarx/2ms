@@ -213,13 +213,7 @@ func (e *Engine) detectSecrets(
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
-	if !strings.HasSuffix(fragment.Raw, "\n") {
-		fragment.Raw += "\n"
-	}
-	fragment.Raw += CxFileEndMarker
-
-	fmt.Println("FRAGMENT RAW BEFORE DETECT:")
-	fmt.Println(fragment.Raw)
+	fragment.Raw += CxFileEndMarker + "\n"
 
 	values := e.detector.Detect(*fragment)
 	for idx, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
