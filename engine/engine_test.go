@@ -512,7 +512,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 				EndLine:     1,
 			}
 
-			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName())
+			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName(), false)
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedLineContent, secret.LineContent)

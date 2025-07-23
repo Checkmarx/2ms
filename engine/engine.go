@@ -216,8 +216,8 @@ func (e *Engine) detectSecrets(
 	fragment.Raw += CxFileEndMarker + "\n"
 
 	values := e.detector.Detect(*fragment)
-	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
-		secret, buildErr := buildSecret(ctx, item, value, pluginName)
+	for idx, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
+		secret, buildErr := buildSecret(ctx, item, value, pluginName, idx == len(values)-1)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
@@ -318,6 +318,7 @@ func buildSecret(
 	item plugins.ISourceItem,
 	value report.Finding, //nolint:gocritic // hugeParam: value is heavy but needed
 	pluginName string,
+	isLastFinding bool,
 ) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
 	itemId := getFindingId(item, value)
@@ -326,13 +327,14 @@ func buildSecret(
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
-	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
+	if isLastFinding && strings.HasSuffix(value.Email, CxFileEndMarker) {
+		value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
+	}
 	hasNewline := strings.HasPrefix(value.Line, "\n")
 
 	if hasNewline {
-		value.Line = strings.TrimPrefix(value.Line, "\n")
+		value.Line = strings.Trim(value.Line, "\n\r")
 	}
-	value.Line = strings.ReplaceAll(value.Line, "\r", "")
 
 	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 	if err != nil {
@@ -343,7 +345,9 @@ func buildSecret(
 	adjustedEndColumn := value.EndColumn
 	if hasNewline {
 		adjustedStartColumn--
-		adjustedEndColumn--
+		if isLastFinding {
+			adjustedEndColumn--
+		}
 	}
 
 	secret := &secrets.Secret{
