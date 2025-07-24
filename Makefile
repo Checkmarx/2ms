@@ -26,9 +26,7 @@ modtidy:
 
 .PHONY: test
 test:
-	## We have several race condition warnings (as expected), but those will be fixed on the next PRs
-	## GO_ENABLED=1 go test -race -count=1 -vet all -coverprofile=cover.out.tmp ./...
-	go test -count=1 -vet all -coverprofile=cover.out.tmp ./...
+	GO_ENABLED=1 go test -race -count=1 -vet all -coverprofile=cover.out.tmp ./...
 	grep -v -e "_mock\.go:" -e "/mocks/" -e "/docs/" cover.out.tmp > cover.out
 	go tool cover -func=cover.out
 	rm cover.out.tmp
