@@ -7,11 +7,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/cmd"
+	"github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/engine/rules"
 	"github.com/checkmarx/2ms/v4/lib/reporting"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/lib/utils"
+	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -199,14 +200,17 @@ func TestScan(t *testing.T) {
 			},
 		}
 
+		pluginChannels := plugins.NewChannels(func(c *plugins.Channels) {
+			c.Errors = make(chan error, 2)
+		})
 		testScanner := NewScanner()
-		cmd.Channels.Errors = make(chan error, 2)
 
 		go func() {
-			cmd.Channels.Errors <- fmt.Errorf("mock processing error 1")
-			cmd.Channels.Errors <- fmt.Errorf("mock processing error 2")
+			errorsCh := pluginChannels.GetErrorsCh()
+			errorsCh <- fmt.Errorf("mock processing error 1")
+			errorsCh <- fmt.Errorf("mock processing error 2")
 		}()
-		report, err := testScanner.Scan(scanItems, ScanConfig{})
+		report, err := testScanner.Scan(scanItems, ScanConfig{}, engine.WithPluginChannels(pluginChannels))
 
 		assert.Equal(t, &reporting.Report{}, report)
 		assert.NotNil(t, err)
@@ -352,6 +356,8 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		testScanner := NewScanner()
+		assert.NoError(t, err, "failed to create scanner")
+
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
@@ -395,6 +401,7 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		testScanner := NewScanner()
+
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
 			IgnoreResultIds: []string{
 				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
@@ -442,6 +449,8 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		testScanner := NewScanner()
+		assert.NoError(t, err, "failed to create scanner")
+
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
 			IgnoreRules: []string{
 				"github-pat",
@@ -469,10 +478,11 @@ func TestScanDynamic(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
+
 		report, err := testScanner.ScanDynamic(itemsIn, ScanConfig{IgnoreRules: idOfRules})
 
 		assert.Error(t, err)
-		assert.Equal(t, "error initializing engine: no rules were selected", err.Error())
+		assert.ErrorIs(t, err, engine.ErrNoRulesSelected)
 		assert.Equal(t, &reporting.Report{
 			TotalItemsScanned: 0,
 			TotalSecretsFound: 0,
@@ -483,6 +493,7 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		testScanner := NewScanner()
+
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)

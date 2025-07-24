@@ -51,6 +51,45 @@ type Channels struct {
 	WaitGroup *sync.WaitGroup
 }
 
+type PluginChannels interface {
+	GetItemsCh() chan ISourceItem
+	GetErrorsCh() chan error
+	GetWaitGroup() *sync.WaitGroup
+	AddWaitGroup(n int)
+}
+
+type Option func(*Channels)
+
+func NewChannels(opts ...Option) PluginChannels {
+	channels := &Channels{
+		Items:     make(chan ISourceItem, 1),
+		Errors:    make(chan error, 1),
+		WaitGroup: &sync.WaitGroup{},
+	}
+
+	for _, opt := range opts {
+		opt(channels)
+	}
+
+	return channels
+}
+
+func (c *Channels) GetItemsCh() chan ISourceItem {
+	return c.Items
+}
+
+func (c *Channels) GetErrorsCh() chan error {
+	return c.Errors
+}
+
+func (c *Channels) GetWaitGroup() *sync.WaitGroup {
+	return c.WaitGroup
+}
+
+func (c *Channels) AddWaitGroup(n int) {
+	c.WaitGroup.Add(n)
+}
+
 type IPlugin interface {
 	GetName() string
 	DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error)

@@ -11,8 +11,9 @@ import (
 	"os"
 	"regexp"
 	"runtime"
-	"runtime"
+	"slices"
 	"strings"
+	"sync"
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/v4/engine/chunk"
@@ -29,12 +30,18 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
 	defaultDetectorWorkerPoolSize = runtime.GOMAXPROCS(0) * 2 // 2x the number of CPUs based on benchmark
 
 	instance *Engine
+
+	mu sync.RWMutex
+
+	ErrNoRulesSelected          = fmt.Errorf("no rules were selected")
+	ErrFailedToCompileRegexRule = fmt.Errorf("failed to compile regex rule")
 )
 
 type Engine struct {
@@ -48,6 +55,15 @@ type Engine struct {
 
 	ignoredIds    []string
 	allowedValues []string
+
+	pluginChannels plugins.PluginChannels
+
+	secretsChan                    chan *secrets.Secret
+	secretsExtrasChan              chan *secrets.Secret
+	validationChan                 chan *secrets.Secret
+	cvssScoreWithoutValidationChan chan *secrets.Secret
+
+	Report reporting.IReport
 }
 
 type IEngine interface {
@@ -59,6 +75,19 @@ type IEngine interface {
 	Validate()
 	GetRuleBaseRiskScore(ruleId string) float64
 	GetDetectorWorkerPool() workerpool.Pool
+	ProcessItems(pluginName string)
+	ProcessSecrets(validateVar bool)
+	ProcessSecretsWithValidation()
+	ProcessSecretsExtras()
+	ProcessValidationAndScoreWithValidation()
+	ProcessScoreWithoutValidation()
+	GetReport() reporting.IReport
+	AddWaitGroup(n int)
+	GetPluginChannels() plugins.PluginChannels
+	SetPluginChannels(pluginChannels plugins.PluginChannels)
+	GetErrorsCh() chan error
+
+	ResetInstance()
 	Shutdown() error
 }
 
@@ -85,12 +114,18 @@ type EngineConfig struct {
 	DetectorWorkerPoolSize int
 }
 
-func Init(engineConfig *EngineConfig) (IEngine, error) {
-func Init(engineConfig *EngineConfig) (IEngine, error) {
+type EngineOption func(*Engine)
+
+func WithPluginChannels(pluginChannels plugins.PluginChannels) EngineOption {
+	return func(e *Engine) {
+		e.pluginChannels = pluginChannels
+	}
+}
+
+func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
 	if len(selectedRules) == 0 {
-	if len(selectedRules) == 0 {
-		return nil, fmt.Errorf("no rules were selected")
+		return nil, ErrNoRulesSelected
 	}
 
 	rulesToBeApplied := make(map[string]config.Rule)
@@ -126,20 +161,43 @@ func Init(engineConfig *EngineConfig) (IEngine, error) {
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
+
+		secretsChan:                    make(chan *secrets.Secret),
+		secretsExtrasChan:              make(chan *secrets.Secret),
+		validationChan:                 make(chan *secrets.Secret),
+		cvssScoreWithoutValidationChan: make(chan *secrets.Secret),
+
+		pluginChannels: plugins.NewChannels(),
+		Report:         reporting.Init(),
+	}
+
+	for _, opt := range opts {
+		opt(instance)
 	}
 
 	return instance, nil
 }
 
-func GetEngine() IEngine {
-	return instance
-	}
+func GetInstance() (IEngine, error) {
+	mu.RLock()
+	defer mu.RUnlock()
 
+	if instance == nil {
+		return nil, fmt.Errorf("engine not initialized")
+	}
 	return instance, nil
 }
 
-func GetEngine() IEngine {
-	return instance
+func (e *Engine) ResetInstance() {
+	mu.Lock()
+	defer mu.Unlock()
+
+	e.pluginChannels = plugins.NewChannels()
+	e.Report = reporting.Init()
+	e.secretsChan = make(chan *secrets.Secret)
+	e.secretsExtrasChan = make(chan *secrets.Secret)
+	e.validationChan = make(chan *secrets.Secret)
+	e.cvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 }
 
 // DetectFragment detects secrets in the given fragment
@@ -281,7 +339,7 @@ func (e *Engine) AddRegexRules(patterns []string) error {
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
-			return fmt.Errorf("failed to compile regex rule %s: %w", pattern, err)
+			return fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
 		}
 		rule := config.Rule{
 			Description: "Custom Regex Rule From User",
@@ -319,10 +377,13 @@ func (e *Engine) GetDetectorWorkerPool() workerpool.Pool {
 }
 
 func (e *Engine) Shutdown() error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	if e.detectorPool != nil {
 		return e.detectorPool.Stop()
 	}
-	return nil
+
 	return nil
 }
 
@@ -474,10 +535,139 @@ func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string
 			return true
 		}
 	}
-	for _, ignoredId := range *ignoredIds {
-		if secret.ID == ignoredId {
-			return true
+	return slices.Contains(*ignoredIds, secret.ID)
+}
+
+func (e *Engine) ProcessItems(pluginName string) {
+	defer e.pluginChannels.GetWaitGroup().Done()
+
+	e.processItems(pluginName)
+
+	e.GetFileWalkerWorkerPool().Wait()
+	// TODO: refactor this so we don't need to finish work of processing items
+	// in order to continue the next step of the pipeline
+	close(e.secretsChan)
+}
+
+// processItems uses the engine's worker pool
+func (e *Engine) processItems(pluginName string) {
+	ctx := context.Background()
+	pool := e.GetFileWalkerWorkerPool()
+
+	// Process items
+	for item := range e.pluginChannels.GetItemsCh() {
+		e.Report.IncTotalItemsScanned(1)
+
+		// Create task based on plugin type
+		var task workerpool.Task
+		switch pluginName {
+		case "filesystem":
+			task = func(context.Context) error {
+				return e.DetectFile(ctx, item, e.secretsChan)
+			}
+		default:
+			task = func(context.Context) error {
+				return e.DetectFragment(item, e.secretsChan, pluginName)
+			}
+		}
+
+		if err := pool.Submit(task); err != nil {
+			e.pluginChannels.GetErrorsCh() <- err
+			// TODO: Should we break here?
+			break
 		}
 	}
-	return false
+	pool.CloseQueue()
+}
+
+func (e *Engine) ProcessSecrets(validateVar bool) {
+	defer e.pluginChannels.GetWaitGroup().Done()
+
+	for secret := range e.secretsChan {
+		e.Report.IncTotalSecretsFound(1)
+		e.secretsExtrasChan <- secret
+		if validateVar {
+			e.validationChan <- secret
+		} else {
+			e.cvssScoreWithoutValidationChan <- secret
+		}
+		results := e.Report.GetResults()
+		results[secret.ID] = append(results[secret.ID], secret)
+	}
+	close(e.secretsExtrasChan)
+	close(e.validationChan)
+	close(e.cvssScoreWithoutValidationChan)
+}
+
+func (e *Engine) ProcessSecretsWithValidation() {
+	defer e.pluginChannels.GetWaitGroup().Done()
+
+	for secret := range e.secretsChan {
+		e.Report.IncTotalSecretsFound(1)
+		e.secretsExtrasChan <- secret
+		e.validationChan <- secret
+		results := e.Report.GetResults()
+		results[secret.ID] = append(results[secret.ID], secret)
+	}
+	close(e.secretsExtrasChan)
+	close(e.validationChan)
+	close(e.cvssScoreWithoutValidationChan)
+}
+
+func (e *Engine) ProcessSecretsExtras() {
+	defer e.pluginChannels.GetWaitGroup().Done()
+
+	for secret := range e.secretsExtrasChan {
+		extra.AddExtraToSecret(secret)
+	}
+}
+
+func (e *Engine) ProcessValidationAndScoreWithValidation() {
+	defer e.pluginChannels.GetWaitGroup().Done()
+
+	g := errgroup.Group{}
+	g.SetLimit(10)
+	for secret := range e.validationChan {
+		g.Go(func() error {
+			e.RegisterForValidation(secret)
+			e.Score(secret, true)
+			return nil
+		})
+	}
+	_ = g.Wait()
+	e.Validate()
+}
+
+func (e *Engine) ProcessScoreWithoutValidation() {
+	defer e.pluginChannels.GetWaitGroup().Done()
+
+	g := errgroup.Group{}
+	g.SetLimit(10)
+	for secret := range e.cvssScoreWithoutValidationChan {
+		g.Go(func() error {
+			e.Score(secret, false)
+			return nil
+		})
+	}
+	_ = g.Wait()
+}
+
+func (e *Engine) GetReport() reporting.IReport {
+	return e.Report
+}
+
+func (e *Engine) AddWaitGroup(n int) {
+	e.pluginChannels.AddWaitGroup(n)
+}
+
+func (e *Engine) GetPluginChannels() plugins.PluginChannels {
+	return e.pluginChannels
+}
+
+func (e *Engine) SetPluginChannels(pluginChannels plugins.PluginChannels) {
+	e.pluginChannels = pluginChannels
+}
+
+func (e *Engine) GetErrorsCh() chan error {
+	return e.pluginChannels.GetErrorsCh()
 }

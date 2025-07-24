@@ -17,13 +17,24 @@ const (
 	sarifFormat     = "sarif"
 )
 
+type IReport interface {
+	ShowReport(format string, cfg *config.Config) error
+	WriteFile(reportPath []string, cfg *config.Config) error
+	GetOutput(format string, cfg *config.Config) (string, error)
+	GetResults() map[string][]*secrets.Secret
+	GetTotalItemsScanned() int
+	GetTotalSecretsFound() int
+	IncTotalItemsScanned(n int)
+	IncTotalSecretsFound(n int)
+}
+
 type Report struct {
 	TotalItemsScanned int                          `json:"totalItemsScanned"`
 	TotalSecretsFound int                          `json:"totalSecretsFound"`
 	Results           map[string][]*secrets.Secret `json:"results"`
 }
 
-func Init() *Report {
+func Init() IReport {
 	return &Report{
 		Results: make(map[string][]*secrets.Secret),
 	}
@@ -77,4 +88,24 @@ func (r *Report) GetOutput(format string, cfg *config.Config) (string, error) {
 		output, err = writeSarif(r, cfg)
 	}
 	return output, err
+}
+
+func (r *Report) GetTotalItemsScanned() int {
+	return r.TotalItemsScanned
+}
+
+func (r *Report) GetTotalSecretsFound() int {
+	return r.TotalSecretsFound
+}
+
+func (r *Report) IncTotalItemsScanned(n int) {
+	r.TotalItemsScanned += n
+}
+
+func (r *Report) IncTotalSecretsFound(n int) {
+	r.TotalSecretsFound += n
+}
+
+func (r *Report) GetResults() map[string][]*secrets.Secret {
+	return r.Results
 }

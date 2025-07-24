@@ -93,8 +93,8 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("failed to get report: %s", err)
 		}
 
-		if len(report.Results) != 1 {
-			t.Errorf("expected one result, got %d", len(report.Results))
+		if report.GetTotalItemsScanned() != 1 {
+			t.Errorf("expected one result, got %d", report.GetTotalItemsScanned())
 		}
 	})
 
@@ -110,11 +110,11 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("failed to get report: %s", err)
 		}
 
-		if len(report.Results) < 2 {
-			t.Errorf("expected at least two results, got %d", len(report.Results))
+		if report.GetTotalItemsScanned() < 2 {
+			t.Errorf("expected at least two results, got %d", report.GetTotalItemsScanned())
 		}
 
-		for _, result := range report.Results {
+		for _, result := range report.GetResults() {
 			for _, secret := range result {
 				if secret.ValidationStatus == "" {
 					t.Errorf("expected validation status, got empty")
@@ -138,10 +138,7 @@ func TestIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to get report: %s", err)
 		}
-
-		if len(report.Results) != 0 {
-			t.Errorf("expected no results, got %d", len(report.Results))
-		}
+		assert.Equal(t, 0, len(report.GetResults()))
 	})
 }
 
@@ -222,16 +219,16 @@ func TestSecretsScans(t *testing.T) {
 	}
 }
 
-func (c *cli) getReport() (reporting.Report, error) {
+func (c *cli) getReport() (reporting.IReport, error) {
 	report := reporting.Init()
 
 	content, err := os.ReadFile(c.resultsPath)
 	if err != nil {
-		return reporting.Report{}, err
+		return nil, err
 	}
 	if err := json.Unmarshal(content, &report); err != nil {
-		return reporting.Report{}, err
+		return nil, err
 	}
 
-	return *report, nil
+	return report, nil
 }
