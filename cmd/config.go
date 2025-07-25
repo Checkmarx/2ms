@@ -12,6 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	errInvalidOutputFormat    = fmt.Errorf("invalid output format")
+	errInvalidReportExtension = fmt.Errorf("invalid report extension")
+)
+
 func initialize() {
 	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
 	if err != nil {
@@ -44,14 +49,14 @@ func initialize() {
 func validateFormat(stdout string, reportPath []string) error {
 	r := regexp.MustCompile(outputFormatRegexpPattern)
 	if !(r.MatchString(stdout)) {
-		return fmt.Errorf(`invalid output format: %s, available formats are: json, yaml and sarif`, stdout)
+		return fmt.Errorf(`%w: %s, available formats are: json, yaml and sarif`, errInvalidOutputFormat, stdout)
 	}
 
 	for _, path := range reportPath {
 		fileExtension := filepath.Ext(path)
 		format := strings.TrimPrefix(fileExtension, ".")
 		if !(r.MatchString(format)) {
-			return fmt.Errorf(`invalid report extension: %s, available extensions are: json, yaml and sarif`, format)
+			return fmt.Errorf(`%w: %s, available extensions are: json, yaml and sarif`, errInvalidReportExtension, format)
 		}
 	}
 
