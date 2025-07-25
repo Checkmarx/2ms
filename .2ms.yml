@@ -86,4 +86,3 @@ ignore-result:
 - d8901c5a580965cd0c1ad89aec17e94a9286ee01 # test data from multi_line_secret_report.json
 - cd186f025418cb008f61dcf881b62926be892f71 # test data from expectedReportWithValidation.json
 - cfb862dc1f06113443c9c0b908f6322f139754f6 # test data from expectedReportWithValidation.json
--
