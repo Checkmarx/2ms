@@ -1,142 +1,89 @@
 log-level: info
 ignore-result:
-- 4f1d13e1bbebef31175ffe9a8d752609b9edc174 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R21
-- 65706aeda7939dca8035f4b0a3446babffc7fcef # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R20
-- d696fe501f3860f76cf768c7ebbccc416db6e4d2 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR373
-- d766d69fed184582fc0cba1515f9beef7901e7a1 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R22
-- deddd58b4aa4999419d6b9046dffa9fffdfd4860 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR378
-- e7bf294c124122a6cf919edbffa40bf6572927b6 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R22
-- 0b217706e100e9a05bbaa8427070d181bb2e2465 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR388
-- 1e68cf841873862527a00ee5ef8d7957e319b6bc # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 4d358e6dd9e2f21c647dad571f13dde3fd77d107 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/2aa7733a457a145725aa11f99f05f60ddc6b09a1#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040
-- 7c73d41f23ba8e59a1c8d744594dbb54f87197b4 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R38
-- 9c6853ebe9b5e20774224ba6e5ea739191330e53 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/e6e8b8ea07078ae7b66db70c91693d293f813ad6#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR380
-- 59f8916ff79257c8f86207d6e89767cc8e156814 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R40
-- a3a83b7224e7e98e3cca6bd2cd138dbca831e06d # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R45
-- ba1f0517b77a5b451d1d55078218cd23d96b686e # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R39
-- c5748512948b492f5c07849ae2e69e7e831d36d3 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/e6e8b8ea07078ae7b66db70c91693d293f813ad6#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR375
-- 5e73b4b73bf4a59b11f37066829af01478879067 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/c6868197ae0910b1ae34a19822b32ae9d8eb7fdd#diff-d712d2256df359061d691b711ca7ed30ba408199b1e3801cef289779778d8badR36
-- 255853e2044119bf502261713e2f892265d4b5c1 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/45a5c9d35ff910dfec5e5a76cdedb8977da5dd34#diff-d761ee3cdf26960bab9cc0e88d92015b3c38c0bd480c60d7d58755dea5421e36R24
-- a324bc00bebfbd268b1b9e4cddcd095da1193cd2 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/757c4af1608ec63a3f758f4b2b2b3be915cfbedc#diff-cbf9ce27965b15f1e13be995f164fd6b33a19381364c4be3e8c047d528994495R66
-- cf413577a1df23446f1916be0b6c31679f2042a8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/4bf7a43e33f3f27bedc97a35e9d74dc95026cf28#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R18
-- 4a2ce0e91c76ae86ead9a17a66ae071258d592f9 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/56e1558a97196afd0531be028a43a09e571622f5/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R26
-- 8ad1f44906b41c1f4abf613b30bc2da89949cb7e # value used for testing, found at https://github.com/Checkmarx/2ms/commit/56e1558a97196afd0531be028a43a09e571622f5/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R22
-- 37bd36009d49856cecfe7df2063e1bdc6d28e707 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/56e1558a97196afd0531be028a43a09e571622f5/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R19
-- e53a3a4e8c0665454eb9a4c36eaf040e9317e450 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/2aa7733a457a145725aa11f99f05f60ddc6b09a1/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R9
-- ffc22deda44ebb0d4633bed184c5e26e99657084 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 4d5a3dd11c58b7b471ec087ab589b1995f09891e # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
-- 05ab8f76aebbca7ea76b904ce4f4f7cf287f16c3 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/engine/extra/extra_test.go
-- 33a14f1d1e4a1201a3e0062ebf09079fe8c84714 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
-- da610673906f695e3e85bda6fc0a916762f01a70 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
-- f8da5c56428cf708773be38269932c46aaf44cd4 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
-- 0fed4aed1a63c270c410840e01c957025fe2e7b9 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 1e829f2d6236716cecb4683af3d26236fe4d5467 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 2d2c9ddd21109c7d4909e166c18d570eadc95812 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 2fbcd323e560798376c79e73a78938b8edd294d8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 4e243aa393011da09ff2bc4a598c2879e967abb8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 09f677494966f740534bc70d6194529a96d59a69 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 10abdf40e0d14bdfb965f9a5be9056a09c7eb40d # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 4632bbfa56424359e6386b56d05bcec49b16548a # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 489123e817ab17accc3d47a6d39cdb17e37b6c97 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 14472805c7de45b2c3b5caf92f19effcba98c386 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- acf7fa74f45c792f8ab3f701609a0b6ba4283b91 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- bc457e70eee50d9edd5ec8194bc7749fa95fde34 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- ca6b0f5b7f055a1ae52c2f34ad5d0409f7625c85 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- d7cf637e896d585946966d95d7b04910569a0191 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- d9207d5fa344d2423e97384f45014c87c0c91d4f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- f858b057df65752e0030854331dd1e5e8e41856b # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
-- 670491bf5e759f4c03bf0e47f519deaccdc9ac44 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
-- 1bf24590387167e7ade218952eaf168758acc0d6 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
-- 30ea5ee224b162075bf512dbf5854002b6c5e727 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
-- 51a6f4e3c7e3a79c9722abb7541b4902098e526b # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
-- 53803ee7e880952e926898a434acff4483fec67e # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
-- aa52405f239a8be1284d933025c557b071b24036 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
-- 61a50a3d783926ae08307cc9727e9b1830f4044d # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- b8fddbf33e0da0db4714425e2baedbc74865b72e # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- 9d88a51fcfe0bba421e3ab285c0bcd5884889520 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- ad5cd04241f630992be8c34e2626d2372dbd7690 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- 0648cbaed8d23cd128f7e9111b51d739d1f5769b # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- 27ba3f4fed916199f4f65f30ffc111b8ee3dc3db # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- 52ab4ec04145a57835d9ee91380c8a559b34706e # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- 35a133edb564767157c6bd807f57009a9ee78349 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- 0b43a67f6eb1f2d1b744b5813eec4eb9f167023d # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- ba04dd95db7fd550ebb0f295d80fce4e281529fb # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- 35a133edb564767157c6bd807f57009a9ee78349 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
-- 854547fc6e35c0d1f63c0f4d426aebd4d64679fc # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/45a5c9d35ff910dfec5e5a76cdedb8977da5dd34#diff-d712d2256df359061d691b711ca7ed30ba408199b1e3801cef289779778d8bad
-- ae0f7e65c291d7f0ea998dfa77485bfc632e5d62 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 99f9ffb901cb72a0282ce32cf7dc050e5225cd81 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- bdd20706ea03aa38c8c9f3f87200cf6ab9010a53 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 1bd84965941175ee61639964adbff6170bea7703 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- f86543794ab8c77a54adc91581dcf72bfef6bf78 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 0f80a32cc85ea5c04b65dbf7d6db6ddb8c2e4d29 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 29a593e19a06c138d63468b8a028696ccdfc7eb2 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 8149f62cd847f3c4ba5ffc502bdcb8d66e800c7f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- e3b354d102fe73cd4f4016e1ee17e468256d2ae8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 5c2e640a480ca64c809133e1b157fd97960356bf # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 92b1996f9815a2fbd9299a1997ce0bc2c153624f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 7b7c1a0b1c5760490d843e0b9bfe540665d20b28 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- c9ae034a5a03a540d50a2686f74fcbb5117f181c # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- b7c3ac03d8a24892a2c4be5810ce73ffdf6ba3ae # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- f40881f8369f0d90670fc22a719ecd0ba9cb2f02 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- b7c3ac03d8a24892a2c4be5810ce73ffdf6ba3ae # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- f40881f8369f0d90670fc22a719ecd0ba9cb2f02 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 35a5080cb11d663e33e3ced8f39a24920ca44c8a # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 7b7c1a0b1c5760490d843e0b9bfe540665d20b28 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 92b1996f9815a2fbd9299a1997ce0bc2c153624f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- bf2e01278453a987f05b69e6c536358cab343322 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- c9ae034a5a03a540d50a2686f74fcbb5117f181c # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- f9e5e0b35a39914c67ee1660191a356d3c7ab1db # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 777f3d460d69a70e2ce760ca757b18f2aa984392 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- e392318c730d4cd0a04340f1e3d41d4c61f6eb20 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 8f0e0442b01c18b02cfb8e59555103f8233fc7bf # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
-- 353627158f2e7fa5bb60271cee17da80e5fbba17 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/292/commits/cc44c8f8bee92250bdcd69bf9fbaffabf0eb442a
-- bf9302d29d7167f39041b0561ae9d1d3677faa2f # value used for testing
-- 44912790c892213daa0df821a006e1e1659e6e24 # value used for testing
-- ac3704513c4ab9bde3fa3539b14152c95ba5698f # value used for testing
-- ac2d6adbeca8901c1655bcf3e0eac027ca681825 # value used for testing
-- cfb06617a386e8c6a6fd25cf2dee18d88dfecbdd # value used for testing
-- 33269ddd7e8734ef20906f888fcd4c971d1483bc # value used for testing
-- 48b64922d5f628b4d57839f044c63f7000d0f840 # value used for testing
-- 38f3e9d8932aa9fc51a6a20295f8f1a95efc7799 # value used for testing
-- 1b14f7b1653e85b0c4e4b08b8ba5b508a896d102 # value used for testing
-- 8180b128c17dac4e375c712c9f265612ac528824 # value used for testing
-- 5b1a634de50b1ecbe1df038e02dbce5487083d54 # value used for testing
-- fc9d1484bb5c0c8cdd34b9790ebf90609674bb3d # value used for testing
-- af16d5223104c029475f82cd780fd57115ed1e2f # value used for testing
-- 91bc1fc92b04c56c5f746d50df5759e39b956146 # value used for testing
-- 4d4af54fd6e3e1209094e5838f339b6c95636f79 # value used for testing
-- fabcbd067a3bbf3cd5951d03ed4f17918241316a # value used for testing
-- cd186f025418cb008f61dcf881b62926be892f71 # value used for testing
-- 3a2c9e23253b0e5b8a83deaea772d93396e4f350 # value used for testing
-- 754506f714ffc10628e6fe6dd05affa486d78234 # value used for testing
-- eebd28cd68ee73b9a1f68b85453575498c12c5b8 # value used for testing
-- 14f5cf9d2716f2cec7daf95ab86e1a4feaf7ba41 # value used for testing
-- d8901c5a580965cd0c1ad89aec17e94a9286ee01 # value used for testing
-- cf3ce6be9ae0c492bafeeac34978dcda9a5fb7b9 # value used for testing
-- df951402e6372dd78d4ed845e3b89ff6ac8b98ef # value used for testing
-- 62cf656ad2a1f6e82f31df38ced303c9e860428f # value used for testing
-- cfb862dc1f06113443c9c0b908f6322f139754f6 # value used for testing
-- feb671ccd2fb03b181aa8bb64455441cea4070e0 # value used for testing
-- d1a56c3e06ef27d9dbd0bcb6c38416935ee7aed1 # value used for testing
-- 7054f43a4dcd4954c3353800167e41a927934620 # value used for testing
-- 9d94eb297ac8cb2613d3091e1ee4d085bc3ce218 # value used for testing
-- 2d06c941743a66ec44d96c5db4b3b1e6e07a1eee # value used for testing
-- 9343373de08c9a35cb8f2d7695b02b5141de29d8 # value used for testing
-- 071b6cb8c1affc7e1c49137ead1b875cc5d08876 # value used for testing
-- f0dbf084d67ad8d1a132b1b77f3186df939ccb6f # value used for testing
-- 36421c2650a6f6ed3ed52ac013c8e73fc47a95da # value used for testing
-- e7feb20ae9d14a4cdfce9d4a5451313ffc92253b # value used for testing
-- 7c0c039771d4cc8eb455d3bbdccf8131fdd6e45e # value used for testing
-- 9a8177d80f9aa9a32759ba7710725b8a1fd3343a # value used for testing
-- 82ff8052d87e4cedb3dee7db569fcb181e6caf88 # value used for testing
-- 44eca14299c23849c83a7a84fdaa35b8a6a0de34 # value used for testing
-- 374eb22f69352d768e8096f9d55299c4dfd8888c # value used for testing
-- bd69025b337716ee008f80192523d3cb1c11ed09 # value used for testing
-- abee8cb648ac1d20c88db6ec5a4ae079c7d29ea8 # value used for testing
-- b8e323e82ffb1a6cd55f6f21c05ac963c2586c8f # value used for testing
-- 53fea9d5c1718a37457bc484d5a0c8336ef7ab75 # value used for testing
-- 4666bc0670fcfa15e706f53abdc59eff2674854f # value used for testing
-- f701cd699fcb706453af869581c74a7133a5a317 # value used for testing
-- b3f999807edd036ffd73f14a2ca43c543bcf366d # value used for testing
-- 7585409b82ac064a256b70d9e526a011ebfb0411 # value used for testing
-- f4d8d834faf54a9551b2a1d937a436bea498506e # value used for testing
+- b6eba187700446eeabec4c25dbf7b1178984e261 # test data from multi_line_secret_report.json
+- 94704e6c1bee0eb9bdbadb2f8345b0c8cb646860 # test data from expectedReportWithValidation.json
+- 804b3a704acc6c1de3570c00b28bab5e87d98fb3 # test data from secret_at_end_with_newline.txt
+- be95aa8800d98dbe449131fd31fcdb7fc2467c02 # test data from expectedReportWithIgnoredResults.json
+- d377db8f8a2a3b35dbb7c890263d74228ed02d61 # test/development data from privateKey.go
+- 14560534c6804eba03888b4dfed9d6c32f174777 # unit test from engine_test.go
+- 8b0a2007799c48f25a1cbca16c667a4567d929d5 # test data from expectedReport.json
+- 6381cab5b005f67a4b5cc1ac772344cf8504366c # test data from expectedReportWithIgnoredRule.json
+- e17530df123c834f664cdc406cbbb57e91740bc0 # test data from secret_at_end.txt
+- 51d8e3f68ff5ccacb22ce27b1bc5cf166f8570e7 # test/development data from authenticated_url.go
+- beb1c909ff7ea6398ca76f862f7de7548f88f9cb # unit test from report_test.go
+- 90900eacdae0dff52cc29537b386b41587b0110c # test data from github-pat.txt
+- 1420305630f33f23400755298dc5323dcaa8a303 # unit test from secrets_test.go
+- f58272317c7b1607b1a33c19ae010e545a0c9d15 # test data from expectedReportWithValidation.json
+- ebe80c08713e426daef70870a2c8fd297044ef75 # test/development data from secrets.go
+- 259567da22a11edd5165ee4cee2117df894d544c # test data from expectedReportWithValidation.json
+- cde73827d5258fbd22221c7fed24a5a045725374 # test data from expectedReport.json
+- dd8e8f39052ccd3b25714c680898e507b4828083 # test data from expectedReport.json
+- 4f1c8414bb3bff2adc4843e475a245d17db4ab81 # test data from expectedReport.json
+- 99b01d122f4c834da6846b9ab6e97d8f49a469cf # test data from expectedReportWithIgnoredResults.json
+- 385e4274a9dc85b1b60afe85457481b01ca1ab7d # test data from expectedReportWithIgnoredRule.json
+- 52cb22a0de0fc5fecb1f6939d270cefb4ce9c44b # unit test from workers_test.go
+- 2035e72a99cba967cce9d583e184c0014c92f4c1 # unit test from workers_test.go
+- 0a33793962e6d5e0d4e7ea6dcf01fee04ab98a2f # unit test from secrets_test.go
+- a0d8f3c3c995ab194f38cc53d81c6d2ffd971d59 # test/development data from rules.go
+- 9ab011bfabbff53875a01e31d189c11eb3d9e950 # unit test from report_test.go
+- 233d0c4f93ac448e368b14cc227357b1b91152a8 # test data from expectedReportWithIgnoredRule.json
+- b1fabc91396348f5afd2deceeefc83d364ca4032 # test/development data from privateKey.go
+- 48e7c1dca0d44704578346c437cbf44fac0b53d4 # test/development data from generic-key.go
+- 379ac3caac4f893f45059495a99b7ecc410bbfb4 # test/development data from privateKey.go
+- 2d4a9d309ba9a066aaf371b9dfc98b728d05857f # unit test from secrets_test.go
+- f626f0e70b2c857ea969a4d21159f04fd3d1f655 # test data from multi_line_secret.txt
+- 1a8ddd4b573b178bb4c600e328bf4f276a093453 # test data from expectedReportWithIgnoredResults.json
+- c8feff0e8ec5261039566bed4072f933e87dbc3a # test data from jwt.txt
+- 41a10d234379a32091aa04b4e0914475d4ad89f0 # unit test from extra_test.go
+- ee2dfecc5c4fd77432da57b0f696587da8c0c81d # test/development data from hardcodedPassword.go
+- b8dd1bb0375f602fb7f482db9d1f5e69e6b76d0a # test/development data from authenticated_url.go
+- 1b94ae53900be23821fb1af608238c6ba7615e34 # test data from expectedReport.json
+- 167ed4df2596183c766f4a3345974d9e41e9309d # test data from expectedReportWithValidation.json
+- e84d7f8fb310400b7354bc41b1af216fc3b575fc # test data from secret_at_end_with_newline.txt
+- c0feaad74e976139c8a8f91fc4f4211e83f46022 # test/development data from generic-key.go
+- 90fff59e417eb8b4e2f7e7482bbc540d9807beb3 # test data from expectedReport.json
+- 8edacde6a8430d8991c5803f8688a275e6894bd1 # unit test from workers_test.go
+- 521658722bb8f70fcf53d68ec1508506771c3223 # unit test from secrets_test.go
+- ca5ce696e7ccb35a8e149d91af1c6fe74012a592 # unit test from engine_test.go
+- 07cc783bae9aadf70b98b02d67b060ddfcb5442e # unit test from secrets_test.go
+- 1b3a3d6efd8b92558f9061e93fce4692ae6a91d1 # test/development data from secrets.go
+- 8070b246e99c8159005c89407a9fe8b1cbf9306c # test data from expectedReportWithValidation.json
+- b683fb1b338f97bc9f8bedfb0a97a36f20180401 # test data from expectedReport.json
+- f93ed1ccbbd914f36861efe4c09570bb89ec243c # test data from github-pat.txt
+- 5b0d5d6001aa614c03ff318d891bd0fd0a4b4e02 # unit test from workers_test.go
+- 659717153ad0a563bc8a8b6f5eedd75169badbb5 # test/development data from authenticated_url.go
+- 93b2258f798cbaa6aee235906f8c2084bd6a7ba1 # test/development data from generic-key.go
+- c6be096b2bebd1b3c17e7ee4e0c8575b128581f9 # test data from expectedReport.json
+- 94169e4306f2d1c83bd82c74ba73f8e77a3abaed # test data from expectedReportWithValidation.json
+- a31c45df71d91a1e1b00b3d51aff045a04a190f4 # test data from multi_line_secret_report.json
+- 938b4333e9f0837644e89add6fd3c1184440225b # test/development data from generic-key.go
+- b855af057434ebd96b15b26bf10fa5ad884441cc # test data from github-pat.txt
+- 9316dcfddec5df1eac32708418e911a63893975b # test data from jwt.txt
+- 07167ae672cd487a2ff261021ff8038c3933cc60 # test data from expectedReportWithIgnoredResults.json
+- c53f00661d588b751750e877257b1ff491657ec5 # unit test from report_test.go
+- da8394731123098d9d76cf984c9e708dcba0dcf7 # test data from multi_line_secret_report.json
+- cb53aa1981c03d071821c20f7547a4143a2c862f # test data from multi_line_secret.txt
+- cae0fd35b5a7739e0327891524fb492c3df4e3fb # test/development data from generic-key.go
+- ee6810a0a0b9585030e60ab113580a84b3edffe3 # test data from expectedReport.json
+- 2227678335c1fbeb1ce0cdcb6934a9a435d622cb # test/development data from hardcodedPassword.go
+- c50a8f7e86dfa24988b0f0386206c4dace8cef88 # test data from expectedReportWithValidation.json
+- 3a688342b545a23e6d38ab46bba4b4dd26308aea # test data from multi_line_secret.txt
+- c19bd48e0c705dc106fb4349f9013a53260b6000 # test data from secret_at_end.txt
+- 84df267a69adf004beb88feab37fe1ecd58fd427 # test/development data from hardcodedPassword.go
+- b876a9e44a321b3ccd4bbd32b9df0697eb6dd650 # test/development data from hardcodedPassword.go
+- 43b3f5938c8fd428f2c90c514d47c8e6acc4c440 # unit test from secrets_test.go
+- 7054f43a4dcd4954c3353800167e41a927934620 # test data from expectedReport.json
+- df951402e6372dd78d4ed845e3b89ff6ac8b98ef # test data from multi_line_secret_report.json
+- 14f5cf9d2716f2cec7daf95ab86e1a4feaf7ba41 # test data from expectedReportWithValidation.json
+- cfb06617a386e8c6a6fd25cf2dee18d88dfecbdd # test data from expectedReportWithIgnoredRule.json
+- feb671ccd2fb03b181aa8bb64455441cea4070e0 # test data from expectedReportWithIgnoredRule.json
+- cf3ce6be9ae0c492bafeeac34978dcda9a5fb7b9 # test data from expectedReportWithValidation.json
+- 62cf656ad2a1f6e82f31df38ced303c9e860428f # unit test from engine_test.go
+- 3a2c9e23253b0e5b8a83deaea772d93396e4f350 # test data from expectedReportWithValidation.json
+- cfb862dc1f06113443c9c0b908f6322f139754f6 # test data from expectedReportWithValidation.json
+- d8901c5a580965cd0c1ad89aec17e94a9286ee01 # test data from multi_line_secret_report.json
+- eebd28cd68ee73b9a1f68b85453575498c12c5b8 # test data from expectedReportWithValidation.json
+- cd186f025418cb008f61dcf881b62926be892f71 # test data from expectedReportWithValidation.json
+- 754506f714ffc10628e6fe6dd05affa486d78234 # test data from expectedReportWithValidation.json
+- 33269ddd7e8734ef20906f888fcd4c971d1483bc # test data from expectedReportWithIgnoredRule.json
+- d1a56c3e06ef27d9dbd0bcb6c38416935ee7aed1 # test data from expectedReport.json
