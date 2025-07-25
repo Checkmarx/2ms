@@ -5,7 +5,9 @@ package engine
 import (
 	"bufio"
 	"context"
-	"crypto/sha1" //nolint:gosec // SHA1 is used for ID generation only, not for security
+	"crypto/hkdf"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -320,7 +322,11 @@ func buildSecret(
 	pluginName string,
 ) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
-	itemId := getFindingId(item, value)
+	itemId, err := getFindingId(item, &value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get finding ID: %w", err)
+	}
+
 	startLine, endLine, err := getStartAndEndLines(ctx, pluginName, gitInfo, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
@@ -361,10 +367,21 @@ func buildSecret(
 	return secret, nil
 }
 
-func getFindingId(item plugins.ISourceItem, finding report.Finding) string { //nolint:gocritic // hugeParam: finding is heavy but needed
-	idParts := []string{item.GetID(), finding.RuleID, finding.Secret}
-	sha := sha1.Sum([]byte(strings.Join(idParts, "-"))) //nolint:gosec // SHA1 is used for ID generation only
-	return fmt.Sprintf("%x", sha)
+func getFindingId(item plugins.ISourceItem, finding *report.Finding) (string, error) {
+	// Context includes only non-sensitive metadata
+	context := fmt.Sprintf("finding:%s:%s", item.GetID(), finding.RuleID)
+
+	// Use secret hash as input key material
+	secretHash := sha256.Sum256([]byte(finding.Secret))
+
+	// Use the newer HKDF API - Key function does both extract and expand
+	// Using 20 bytes to match the old SHA1 output length (40 hex characters)
+	id, err := hkdf.Key(sha256.New, secretHash[:], nil, context, 20)
+	if err != nil {
+		return "", fmt.Errorf("HKDF derivation failed: %w", err)
+	}
+
+	return hex.EncodeToString(id), nil
 }
 
 func getStartAndEndLines(

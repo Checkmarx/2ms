@@ -1,11 +1,11 @@
 {
   "results": {
-    "40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7": [
+    "0e9588a11a5355676b9baaa6e722211b8fea767d": [
       {
         "cvssScore": 5.2,
         "endColumn": 102,
         "endLine": 1,
-        "id": "40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+        "id": "0e9588a11a5355676b9baaa6e722211b8fea767d",
         "lineContent": "           Text_Example =                                     ghp_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
         "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
         "ruleId": "github-pat",
@@ -16,12 +16,12 @@
         "value": "ghp_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
       }
     ],
-    "6949272451f77dc4a38d5f35d583cf56023cd2c1": [
+    "f42942cf20440b920aa2730fa7f3aa607f379aa5": [
       {
         "cvssScore": 5.2,
         "endColumn": 51,
         "endLine": 0,
-        "id": "6949272451f77dc4a38d5f35d583cf56023cd2c1",
+        "id": "f42942cf20440b920aa2730fa7f3aa607f379aa5",
         "lineContent": "TextExampleghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATextExampleghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBTextExample",
         "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
         "ruleId": "github-pat",
@@ -32,7 +32,7 @@
         "value": "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
       }
     ],
-    "a0cd293e6e122a1c7384d5a56781e39ba350c54b": [
+    "dac14c6111d3a02a23c4fc31ee4759387a7395cd": [
       {
         "cvssScore": 8.2,
         "endColumn": 232,
@@ -43,7 +43,7 @@
             "sub": "mockSub2"
           }
         },
-        "id": "a0cd293e6e122a1c7384d5a56781e39ba350c54b",
+        "id": "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
         "lineContent": "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
         "ruleId": "jwt",
@@ -63,7 +63,7 @@
             "sub": "mockSub2"
           }
         },
-        "id": "a0cd293e6e122a1c7384d5a56781e39ba350c54b",
+        "id": "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
         "lineContent": "           Text_Example =                                     eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
         "ruleId": "jwt",
@@ -74,7 +74,7 @@
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2"
       }
     ],
-    "f29abe9eacc233a8e5e9c7762bca48589d9c76a2": [
+    "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c": [
       {
         "cvssScore": 8.2,
         "endColumn": 116,
@@ -85,7 +85,7 @@
             "sub": "mockSub1"
           }
         },
-        "id": "f29abe9eacc233a8e5e9c7762bca48589d9c76a2",
+        "id": "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c",
         "lineContent": "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
         "ruleId": "jwt",
@@ -96,12 +96,12 @@
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1"
       }
     ],
-    "fc17c755f40062dcb3f16eb6299f9afc7eccbc56": [
+    "e2cfea40ef825d8b520329982641deebc9c81418": [
       {
         "cvssScore": 5.2,
         "endColumn": 102,
         "endLine": 0,
-        "id": "fc17c755f40062dcb3f16eb6299f9afc7eccbc56",
+        "id": "e2cfea40ef825d8b520329982641deebc9c81418",
         "lineContent": "TextExampleghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATextExampleghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBTextExample",
         "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
         "ruleId": "github-pat",
