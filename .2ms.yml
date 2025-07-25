@@ -72,3 +72,18 @@ ignore-result:
 - cd186f025418cb008f61dcf881b62926be892f71 # test data from expectedReportWithValidation.json
 - cfb862dc1f06113443c9c0b908f6322f139754f6 # test data from expectedReportWithValidation.json
 - 14f5cf9d2716f2cec7daf95ab86e1a4feaf7ba41 # test data from expectedReportWithValidation.json
+- d1a56c3e06ef27d9dbd0bcb6c38416935ee7aed1 # test data from expectedReport.json
+- feb671ccd2fb03b181aa8bb64455441cea4070e0 # test data from expectedReportWithIgnoredRule.json
+- 3a2c9e23253b0e5b8a83deaea772d93396e4f350 # test data from expectedReportWithValidation.json
+- eebd28cd68ee73b9a1f68b85453575498c12c5b8 # test data from expectedReportWithValidation.json
+- 7054f43a4dcd4954c3353800167e41a927934620 # test data from expectedReport.json
+- cf3ce6be9ae0c492bafeeac34978dcda9a5fb7b9 # test data from expectedReportWithValidation.json
+- 754506f714ffc10628e6fe6dd05affa486d78234 # test data from expectedReportWithValidation.json
+- 33269ddd7e8734ef20906f888fcd4c971d1483bc # test data from expectedReportWithIgnoredRule.json
+- cfb06617a386e8c6a6fd25cf2dee18d88dfecbdd # test data from expectedReportWithIgnoredRule.json
+- 62cf656ad2a1f6e82f31df38ced303c9e860428f # unit test from engine_test.go
+- df951402e6372dd78d4ed845e3b89ff6ac8b98ef # test data from multi_line_secret_report.json
+- d8901c5a580965cd0c1ad89aec17e94a9286ee01 # test data from multi_line_secret_report.json
+- cd186f025418cb008f61dcf881b62926be892f71 # test data from expectedReportWithValidation.json
+- cfb862dc1f06113443c9c0b908f6322f139754f6 # test data from expectedReportWithValidation.json
+-
