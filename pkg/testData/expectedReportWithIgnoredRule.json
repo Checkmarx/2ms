@@ -2,8 +2,8 @@
   "totalItemsScanned" : 3,
   "totalSecretsFound" : 3,
   "results" : {
-    "a0cd293e6e122a1c7384d5a56781e39ba350c54b" : [ {
-      "id" : "a0cd293e6e122a1c7384d5a56781e39ba350c54b",
+    "dac14c6111d3a02a23c4fc31ee4759387a7395cd" : [ {
+      "id" : "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
       "source" : "testData/secrets/jwt.txt",
       "ruleId" : "jwt",
       "startLine" : 0,
@@ -21,7 +21,7 @@
       },
       "cvssScore" : 8.2
     }, {
-      "id" : "a0cd293e6e122a1c7384d5a56781e39ba350c54b",
+      "id" : "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
       "source" : "testData/secrets/jwt.txt",
       "ruleId" : "jwt",
       "startLine" : 1,
@@ -39,8 +39,8 @@
       },
       "cvssScore" : 8.2
     } ],
-    "f29abe9eacc233a8e5e9c7762bca48589d9c76a2" : [ {
-      "id" : "f29abe9eacc233a8e5e9c7762bca48589d9c76a2",
+    "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c" : [ {
+      "id" : "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c",
       "source" : "testData/secrets/jwt.txt",
       "ruleId" : "jwt",
       "startLine" : 0,

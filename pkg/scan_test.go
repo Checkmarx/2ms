@@ -3,14 +3,15 @@ package scanner
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/checkmarx/2ms/v3/cmd"
 	"github.com/checkmarx/2ms/v3/engine/rules"
 	"github.com/checkmarx/2ms/v3/lib/reporting"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/lib/utils"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 const (
@@ -113,8 +114,8 @@ func TestScan(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan(scanItems, ScanConfig{
 			IgnoreResultIds: []string{
-				"a0cd293e6e122a1c7384d5a56781e39ba350c54b",
-				"40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
+				"0e9588a11a5355676b9baaa6e722211b8fea767d",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -300,8 +301,8 @@ func TestScan(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.Scan(scanItems, ScanConfig{
 			IgnoreResultIds: []string{
-				"a0cd293e6e122a1c7384d5a56781e39ba350c54b",
-				"40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
+				"0e9588a11a5355676b9baaa6e722211b8fea767d",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -432,8 +433,8 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
 			IgnoreResultIds: []string{
-				"a0cd293e6e122a1c7384d5a56781e39ba350c54b",
-				"40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
+				"0e9588a11a5355676b9baaa6e722211b8fea767d",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -633,8 +634,8 @@ func TestScanDynamic(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.ScanDynamic(itemsIn2, ScanConfig{
 			IgnoreResultIds: []string{
-				"a0cd293e6e122a1c7384d5a56781e39ba350c54b",
-				"40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
+				"0e9588a11a5355676b9baaa6e722211b8fea767d",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
