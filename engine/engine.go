@@ -372,10 +372,11 @@ func getFindingId(item plugins.ISourceItem, finding *report.Finding) (string, er
 	context := fmt.Sprintf("finding:%s:%s", item.GetID(), finding.RuleID)
 
 	// Use secret hash as input key material
+	// to avoid errors in FIPS 140-only mode
+	// which requires the use of keys longer than 112 bits
 	secretHash := sha256.Sum256([]byte(finding.Secret))
 
 	// Use the newer HKDF API - Key function does both extract and expand
-	// Using 20 bytes to match the old SHA1 output length (40 hex characters)
 	id, err := hkdf.Key(sha256.New, secretHash[:], nil, context, 20)
 	if err != nil {
 		return "", fmt.Errorf("HKDF derivation failed: %w", err)
