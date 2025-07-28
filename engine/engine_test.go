@@ -591,10 +591,7 @@ func TestGetFindingId(t *testing.T) {
 				id:     "",
 				source: "test-source.txt",
 			},
-			finding: &report.Finding{
-				RuleID: "rule-id-1",
-				Secret: "my-secret-value",
-			},
+			finding: finding1,
 			description: "Empty item ID should still work",
 		},
 		{
