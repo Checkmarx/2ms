@@ -666,14 +666,11 @@ func TestGetFindingId(t *testing.T) {
 		finding := finding1
 
 		var ids []string
-		for i := 0; i < 10; i++ {
+                firstId, err := getFindingId(item, finding)
+		for i := 1; i < 10; i++ {
 			id, err := getFindingId(item, finding)
 			require.NoError(t, err)
-			ids = append(ids, id)
-		}
-
-		for i := 1; i < len(ids); i++ {
-			assert.Equal(t, ids[0], ids[i], "Multiple calls with same inputs should produce identical results")
+			assert.Equal(t, firstID, id, "Multiple calls with same inputs should produce identical results")
 		}
 	})
 
