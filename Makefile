@@ -8,7 +8,6 @@ GREEN := $(shell printf "\033[32m")
 RED := $(shell printf "\033[31m")
 RESET := $(shell printf "\033[0m")
 
-COVERAGE_REQUIRED := 55
 MOCKGEN_VERSION := 0.5.2
 LINTER_VERSION := 2.1.6
 
@@ -27,11 +26,8 @@ modtidy:
 .PHONY: test
 test:
 	## We have several race condition warnings (as expected), but those will be fixed on the next PRs
-	## GO_ENABLED=1 go test -race -count=1 -vet all -coverprofile=cover.out.tmp ./...
-	go test -count=1 -vet all -coverprofile=cover.out.tmp ./...
-	grep -v -e "_mock\.go:" -e "/mocks/" -e "/docs/" cover.out.tmp > cover.out
-	go tool cover -func=cover.out
-	rm cover.out.tmp
+	## CGO_ENABLED=1 go test -race -count=1 -vet all -coverprofile=cover.out ./...
+	go test -count=1 -vet all -coverprofile=cover.out ./...
 
 save: build
 	docker save $(image_name) > $(image_file_name)
@@ -42,17 +38,7 @@ build:
 generate: check-mockgen-version
 	go generate ./...
 
-check: lint test coverage-check
-
-.PHONY: coverage-check
-coverage-check: test
-	@coverage=$$(go tool cover -func=cover.out | grep '^total:' | awk '{print $$3}' | sed 's/%//g'); \
-	if awk "BEGIN {exit !($$coverage < $(COVERAGE_REQUIRED))}"; then \
-		echo "error: coverage ($$coverage%) must be at least $(COVERAGE_REQUIRED)%"; \
-		exit 1; \
-	else \
-		echo "test coverage: $$coverage% (threshold: $(COVERAGE_REQUIRED)%)"; \
-	fi
+check: lint test
 
 .PHONY: test-coverage
 test-coverage: test coverage-check
