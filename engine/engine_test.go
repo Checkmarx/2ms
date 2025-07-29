@@ -591,7 +591,7 @@ func TestGetFindingId(t *testing.T) {
 				id:     "",
 				source: "test-source.txt",
 			},
-			finding: finding1,
+			finding:     finding1,
 			description: "Empty item ID should still work",
 		},
 		{
@@ -665,8 +665,9 @@ func TestGetFindingId(t *testing.T) {
 		item := mockItem1
 		finding := finding1
 
-		var ids []string
-                firstId, err := getFindingId(item, finding)
+		firstID, err := getFindingId(item, finding)
+		require.NoError(t, err)
+
 		for i := 1; i < 10; i++ {
 			id, err := getFindingId(item, finding)
 			require.NoError(t, err)
