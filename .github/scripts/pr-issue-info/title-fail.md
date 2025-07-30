@@ -1,4 +1,6 @@
-Please, follow the guideline for a pull request title: 
+# Pull Request Title Guideline
+
+Please, follow the guideline for a pull request title:
 
 `<type>(<scope>): <title starting with lowercase letter>`
 

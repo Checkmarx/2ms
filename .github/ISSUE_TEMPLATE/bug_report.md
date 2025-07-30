@@ -9,7 +9,6 @@ assignees: ''
 
 Found a bug? You're welcome to [![GitHub Discussions](https://img.shields.io/badge/chat-discussions-blue.svg?style=flat-square)](https://github.com/Checkmarx/2ms/discussions)
 
-
 - **Please make sure to:**
   - Describe in details what the problem is
   - Attach a log file with relevant data preferably in DEBUG level (`--log-level=DEBUG`)
@@ -20,27 +19,22 @@ Found a bug? You're welcome to [![GitHub Discussions](https://img.shields.io/bad
 
 (Which results are expected from 2ms?)
 
-
-
-
 ### Actual Behavior
 
 (Formatted logs and samples helps us to better understand the issue)
-
-
-
 
 ### Steps to Reproduce the Problem
 
 (Command line arguments and flags used)
 
-1.  step 1
-2.  step 2
-3.  step 3
+1. step 1
+2. step 2
+3. step 3
 
 ### Specifications
+
 (N/A if not applicable)
 
--   Version:
--   Platform:
--   Subsystem: 
+- Version:
+- Platform:
+- Subsystem:
