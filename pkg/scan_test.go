@@ -6,11 +6,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/checkmarx/2ms/v3/cmd"
+	"github.com/checkmarx/2ms/v3/engine"
 	"github.com/checkmarx/2ms/v3/engine/rules"
 	"github.com/checkmarx/2ms/v3/lib/reporting"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/lib/utils"
+	"github.com/checkmarx/2ms/v3/plugins"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +24,7 @@ const (
 	expectedReportResultsIgnoredRulePath    = "testData/expectedReportWithIgnoredRule.json"
 )
 
-func TestScan(t *testing.T) {
+func TestScanYo(t *testing.T) {
 	t.Run("Successful Scan with Multiple Items", func(t *testing.T) {
 		githubPatBytes, err := os.ReadFile(githubPatPath)
 		assert.NoError(t, err, "failed to read github-pat file")
@@ -215,14 +216,17 @@ func TestScan(t *testing.T) {
 			},
 		}
 
+		pluginChannels := plugins.NewChannels(func(c *plugins.Channels) {
+			c.Errors = make(chan error, 2)
+		})
 		testScanner := NewScanner()
-		cmd.Channels.Errors = make(chan error, 2)
 
 		go func() {
-			cmd.Channels.Errors <- fmt.Errorf("mock processing error 1")
-			cmd.Channels.Errors <- fmt.Errorf("mock processing error 2")
+			errorsCh := pluginChannels.GetErrorsCh()
+			errorsCh <- fmt.Errorf("mock processing error 1")
+			errorsCh <- fmt.Errorf("mock processing error 2")
 		}()
-		report, err := testScanner.Scan(scanItems, ScanConfig{})
+		report, err := testScanner.Scan(scanItems, ScanConfig{}, engine.WithPluginChannels(pluginChannels))
 
 		assert.Equal(t, &reporting.Report{}, report)
 		assert.NotNil(t, err)
@@ -368,6 +372,8 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		testScanner := NewScanner()
+		assert.NoError(t, err, "failed to create scanner")
+
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
@@ -431,6 +437,7 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		testScanner := NewScanner()
+
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
 			IgnoreResultIds: []string{
 				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
@@ -498,6 +505,8 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		testScanner := NewScanner()
+		assert.NoError(t, err, "failed to create scanner")
+
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
 			IgnoreRules: []string{
 				"github-pat",
@@ -545,10 +554,11 @@ func TestScanDynamic(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
+
 		report, err := testScanner.ScanDynamic(itemsIn, ScanConfig{IgnoreRules: idOfRules})
 
 		assert.Error(t, err)
-		assert.Equal(t, "error initializing engine: no rules were selected", err.Error())
+		assert.ErrorIs(t, err, engine.ErrNoRulesSelected)
 		assert.Equal(t, &reporting.Report{
 			TotalItemsScanned: 0,
 			TotalSecretsFound: 0,
@@ -559,6 +569,7 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		testScanner := NewScanner()
+
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)

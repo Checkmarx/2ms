@@ -1,13 +1,10 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/checkmarx/2ms/v3/engine"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/plugins"
-	"github.com/stretchr/testify/assert"
-	"sync"
 	"testing"
+
+	"github.com/checkmarx/2ms/v3/engine"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPreRun(t *testing.T) {
@@ -27,7 +24,7 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{},
 			validateVar:        false,
-			expectedErr:        fmt.Errorf("invalid output format: invalid, available formats are: json, yaml and sarif"),
+			expectedErr:        errInvalidOutputFormat,
 		},
 		{
 			name:            "error in engine.Init",
@@ -38,7 +35,7 @@ func TestPreRun(t *testing.T) {
 			},
 			customRegexRuleVar: []string{},
 			validateVar:        false,
-			expectedErr:        fmt.Errorf("no rules were selected"),
+			expectedErr:        engine.ErrNoRulesSelected,
 		},
 		{
 			name:               "error in engine.AddRegexRules",
@@ -47,7 +44,7 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{"[a-z"},
 			validateVar:        false,
-			expectedErr:        fmt.Errorf("failed to compile regex rule [a-z: error parsing regexp: missing closing ]: `[a-z`"),
+			expectedErr:        engine.ErrFailedToCompileRegexRule,
 		},
 		{
 			name:               "successfully started go routines with validateVar enabled",
@@ -76,24 +73,13 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar = tt.engineConfigVar
 			customRegexRuleVar = tt.customRegexRuleVar
 			validateVar = tt.validateVar
-			Channels.Items = make(chan plugins.ISourceItem)
-			Channels.Errors = make(chan error)
-			Channels.WaitGroup = &sync.WaitGroup{}
-			SecretsChan = make(chan *secrets.Secret)
-			SecretsExtrasChan = make(chan *secrets.Secret)
-			ValidationChan = make(chan *secrets.Secret)
-			CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
 			err := preRun("mock", nil, nil)
-			close(Channels.Items)
-			close(Channels.Errors)
-			Channels.WaitGroup.Wait()
-			if tt.expectedErr != nil {
-				assert.Error(t, err)
-				assert.EqualError(t, err, tt.expectedErr.Error())
-			} else {
-				assert.NoError(t, err)
-				assert.Empty(t, Channels.Errors)
-			}
+			assert.ErrorIs(t, err, tt.expectedErr)
+
+			// close(Channels.Items)
+			// close(Channels.Errors)
+			// Channels.WaitGroup.Wait()
+			// assert.Empty(t, Channels.Errors)
 		})
 	}
 }
