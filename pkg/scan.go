@@ -118,7 +118,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig, opts ...engi
 	}
 
 	if err := engineInstance.Shutdown(); err != nil {
-		return cmd.Report, fmt.Errorf("error shutting down engine: %w", err)
+		return engineInstance.GetReport(), fmt.Errorf("error shutting down engine: %w", err)
 	}
 
 	return engineInstance.GetReport(), nil
