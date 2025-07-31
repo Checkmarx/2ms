@@ -2,8 +2,8 @@
  "totalItemsScanned" : 3,
  "totalSecretsFound" : 6,
  "results" : {
-  "40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7" : [ {
-   "id" : "40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+  "0e9588a11a5355676b9baaa6e722211b8fea767d" : [ {
+   "id" : "0e9588a11a5355676b9baaa6e722211b8fea767d",
    "source" : "testData/secrets/github-pat.txt",
    "ruleId" : "github-pat",
    "startLine" : 1,
@@ -15,8 +15,8 @@
    "ruleDescription" : "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
    "cvssScore" : 8.2
   } ],
-  "a0cd293e6e122a1c7384d5a56781e39ba350c54b" : [ {
-   "id" : "a0cd293e6e122a1c7384d5a56781e39ba350c54b",
+  "dac14c6111d3a02a23c4fc31ee4759387a7395cd" : [ {
+   "id" : "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
    "source" : "testData/secrets/jwt.txt",
    "ruleId" : "jwt",
    "startLine" : 0,
@@ -34,7 +34,7 @@
    },
    "cvssScore" : 8.2
   }, {
-   "id" : "a0cd293e6e122a1c7384d5a56781e39ba350c54b",
+   "id" : "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
    "source" : "testData/secrets/jwt.txt",
    "ruleId" : "jwt",
    "startLine" : 1,
@@ -52,8 +52,8 @@
    },
    "cvssScore" : 8.2
   } ],
-  "6949272451f77dc4a38d5f35d583cf56023cd2c1" : [ {
-   "id" : "6949272451f77dc4a38d5f35d583cf56023cd2c1",
+  "f42942cf20440b920aa2730fa7f3aa607f379aa5" : [ {
+   "id" : "f42942cf20440b920aa2730fa7f3aa607f379aa5",
    "source" : "testData/secrets/github-pat.txt",
    "ruleId" : "github-pat",
    "startLine" : 0,
@@ -65,8 +65,8 @@
    "ruleDescription" : "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
    "cvssScore" : 8.2
   } ],
-  "f29abe9eacc233a8e5e9c7762bca48589d9c76a2" : [ {
-   "id" : "f29abe9eacc233a8e5e9c7762bca48589d9c76a2",
+  "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c" : [ {
+   "id" : "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c",
    "source" : "testData/secrets/jwt.txt",
    "ruleId" : "jwt",
    "startLine" : 0,
@@ -84,8 +84,8 @@
    },
    "cvssScore" : 8.2
   } ],
-  "fc17c755f40062dcb3f16eb6299f9afc7eccbc56" : [ {
-   "id" : "fc17c755f40062dcb3f16eb6299f9afc7eccbc56",
+  "e2cfea40ef825d8b520329982641deebc9c81418" : [ {
+   "id" : "e2cfea40ef825d8b520329982641deebc9c81418",
    "source" : "testData/secrets/github-pat.txt",
    "ruleId" : "github-pat",
    "startLine" : 0,
