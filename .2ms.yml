@@ -371,3 +371,14 @@ ignore-result:
 - c38c565fc1422c74eff5a0b7a24629183e4bdc20 # tests/testData/config/allow_global_aws_re.toml - aws-access-token
 - 7a688e807f1c42b1b9dadcea277e919d5a5c6bfb # engine/detect/detect_test.go - pypi-upload-token
 - 54f32cfb047240ab6c052d06b205881f14b87e37 # engine/detect/detect_test.go - aws-access-token
+- 63724b4af9dd449dcbe623377e3314e1d9d5a2b0 # engine/engine_test.go - jfrog-api-key
+- 68e6db68e336a98fe80d4ae52a2e53716fb1f42c # engine/detect/detect_test.go - sidekiq-secret
+- c62aee57b319e53a5077e9a83b29ac8fe33bf8a2 # engine/detect/detect_test.go - aws-access-token
+- ee892683cf62c5fcb40d8721e206f67b6bf27a77 # engine/detect/detect_test.go - pypi-upload-token
+- c4cc5b5f0b3fb3928a392df5cbb807c15f708bb1 # engine/detect/detect_test.go - sidekiq-sensitive-url
+- 9ee706d9ff5f204565c75ecbcddf468398fd0847 # engine/detect/detect_test.go - authenticated-url
+- 5771ee546b0a7b940c4d7faeec4b49e698ebf56d # engine/engine_test.go - generic-api-key
+- f96a7ed264f7a8cc81e1edee6b380615bc898a00 # tests/testData/config/allow_aws_re.toml - aws-access-token
+- 1e16cbbc563653b822410e6f0e55ca8b8d4d33f8 # tests/testData/config/allow_global_aws_re.toml - aws-access-token
+- 92c6131468686fe9c75a4926f40ce2419690eea9 # engine/detect/detect_test.go - aws-access-token
+- 48121878ef71a52cf74d58d47281c7e6ef61f1eb # engine/detect/detect_test.go - discord-api-token
