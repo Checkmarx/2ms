@@ -382,3 +382,16 @@ ignore-result:
 - 1e16cbbc563653b822410e6f0e55ca8b8d4d33f8 # tests/testData/config/allow_global_aws_re.toml - aws-access-token
 - 92c6131468686fe9c75a4926f40ce2419690eea9 # engine/detect/detect_test.go - aws-access-token
 - 48121878ef71a52cf74d58d47281c7e6ef61f1eb # engine/detect/detect_test.go - discord-api-token
+- d71c196cba01dbc9d63e6dac903dc73cb89ab364 # tests/testData/config/allow_global_aws_re.toml - aws-access-token
+- 23ec036979703e35bc6de6e245758c2c535a6050 # engine/detect/detect_test.go - generic-api-key (Discord_Public_Key)
+- 88df9fdeb4a81cb1edc2339bcb4751628c49dfda # engine/engine_test.go - generic-api-key
+- 722c75bcbb827536f81215baba9b28a1a13d3fda # engine/detect/detect_test.go - authenticated-url
+- 5597e2e7ce843de5bf3431fd7946384e17cce968 # engine/detect/detect_test.go - discord-api-token
+- 334b2420da8a61d313885b4d2944d71a675f431b # engine/detect/detect_test.go - pypi-upload-token
+- b36ede0b35f4f865094cf43282010db4f520bf46 # engine/detect/detect_test.go - sidekiq-secret
+- 0efff6637b75274b7a14d2318251b57d24fe42a9 # engine/detect/detect_test.go - sidekiq-sensitive-url
+- 8d39148ef1417a3d8202a4076ccefa25a9551b63 # engine/detect/detect_test.go - aws-access-token
+- f7f4241dd209ce6559b138eaf2c6e87961a7ada0 # engine/detect/detect_test.go - aws-access-token
+- 3ef803586748159b09ce7b289532fde583fdf76b # engine/engine_test.go - generic-api-key (imagePullSecretJfrog)
+- 4187d3ce4469a2ead5ffa2268c180d7a3cca2570 # engine/engine_test.go - jfrog-api-key
+- 2277b1700fe84cca320612711e271f7bc21f5ca3 # tests/testData/config/allow_aws_re.toml - aws-access-token
