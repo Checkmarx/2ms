@@ -24,6 +24,9 @@ type cli struct {
 
 func createCLI(outputDir string) (cli, error) {
 	executable := path.Join(outputDir, "2ms")
+	if runtime.GOOS == "windows" {
+		executable += ".exe"
+	}
 	lib, err := build.Import("github.com/checkmarx/2ms/v3", "", build.FindOnly)
 	if err != nil {
 		return cli{}, fmt.Errorf("failed to import 2ms: %s", err)
@@ -93,8 +96,8 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("failed to get report: %s", err)
 		}
 
-		if len(report.Results) != 1 {
-			t.Errorf("expected one result, got %d", len(report.Results))
+		if len(report.Results) != 2 {
+			t.Errorf("expected two results (multiple rules can match the same secret), got %d", len(report.Results))
 		}
 	})
 

@@ -9,10 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"go.uber.org/mock/gomock"
 
 	"github.com/checkmarx/2ms/v3/engine/chunk"
+	"github.com/checkmarx/2ms/v3/engine/detect"
 	"github.com/checkmarx/2ms/v3/engine/rules"
 	"github.com/checkmarx/2ms/v3/engine/semaphore"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
@@ -22,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -157,13 +158,13 @@ func TestSecrets(t *testing.T) {
 			ShouldFind: false,
 		},
 		{
-			Content:    "--set imagePullSecretJfrog.password=AKCp8kqqfQbYifrbyvqusjyk6N3QKprXTv9B8HTitLbJzXT1kW7dDticXTsJpCrbqtizAwK4D \\",
-			Name:       "JFROG Secret with keyword (real example)",
+			Content:    "--docker-password=AKCp8kqX8yeKBTqgm2XExHsp8yVdJn6SAgQmS1nJMfMDmzxEqX74rUGhedaWu7Eovid3VsMwb",
+			Name:       "JFROG Secret as kubectl argument",
 			ShouldFind: true,
 		},
 		{
-			Content:    "--docker-password=AKCp8kqX8yeKBTqgm2XExHsp8yVdJn6SAgQmS1nJMfMDmzxEqX74rUGhedaWu7Eovid3VsMwb",
-			Name:       "JFROG Secret as kubectl argument",
+			Content:    "--set imagePullSecretJfrog.password=AKCp8kqqfQbYifrbyvqusjyk6N3QKprXTv9B8HTitLbJzXT1kW7dDticXTsJpCrbqtizAwK4D ",
+			Name:       "JFROG Secret with keyword (real example)",
 			ShouldFind: true,
 		},
 	}
@@ -180,19 +181,29 @@ func TestSecrets(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
-			secretsChan := make(chan *secrets.Secret, 1)
+			secretsChan := make(chan *secrets.Secret, 2)
 			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, fsPlugin.GetName())
 			if err != nil {
 				return
 			}
-			close(secretsChan)
 
-			s := <-secretsChan
+			var s *secrets.Secret
+			select {
+			case s = <-secretsChan:
+			case <-time.After(2 * time.Second):
+				// Fail if timeout is reached, unless we expect not to find a secret
+				if secret.ShouldFind {
+					t.Fatal("timeout waiting for secret on channel")
+				}
+			}
 
 			if secret.ShouldFind {
-				assert.Equal(t, s.LineContent, secret.Content)
+				assert.NotNil(t, s, "expected to find a secret, but got nil")
+				if s != nil {
+					assert.Equal(t, secret.Content, s.LineContent)
+				}
 			} else {
-				assert.Nil(t, s)
+				assert.Nil(t, s, "expected not to find a secret, but got one")
 			}
 		})
 	}
@@ -315,7 +326,7 @@ func TestDetectFile(t *testing.T) {
 
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = []string{}
-			detector := detect.NewDetector(cfg)
+			detector := detect.NewDetector(&cfg)
 			detector.MaxTargetMegaBytes = tc.maxMegabytes
 			engine := &Engine{
 				rules: nil,
@@ -415,7 +426,7 @@ func TestDetectChunks(t *testing.T) {
 
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = []string{}
-			detector := detect.NewDetector(cfg)
+			detector := detect.NewDetector(&cfg)
 			engine := &Engine{
 				rules: nil,
 
@@ -512,7 +523,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 				EndLine:     1,
 			}
 
-			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName())
+			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName(), false)
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedLineContent, secret.LineContent)
@@ -520,6 +531,187 @@ func TestSecretsColumnIndex(t *testing.T) {
 			assert.Equal(t, tt.expectedEndColumn, secret.EndColumn)
 		})
 	}
+}
+
+func TestGetFindingId(t *testing.T) {
+	// Test data setup
+	mockItem1 := &item{
+		id:     "test-item-1",
+		source: "test-source-1.txt",
+	}
+
+	mockItem2 := &item{
+		id:     "test-item-2",
+		source: "test-source-2.txt",
+	}
+
+	finding1 := &report.Finding{
+		RuleID: "rule-id-1",
+		Secret: "my-secret-value",
+	}
+
+	finding2 := &report.Finding{
+		RuleID: "rule-id-2",
+		Secret: "my-secret-value",
+	}
+
+	finding3 := &report.Finding{
+		RuleID: "rule-id-1",
+		Secret: "different-secret-value",
+	}
+
+	tests := []struct {
+		name        string
+		item        plugins.ISourceItem
+		finding     *report.Finding
+		description string
+	}{
+		{
+			name:        "same_inputs_consistent_id",
+			item:        mockItem1,
+			finding:     finding1,
+			description: "Same inputs should always produce the same ID",
+		},
+		{
+			name:        "same_inputs_consistent_id_duplicate",
+			item:        mockItem1,
+			finding:     finding1,
+			description: "Duplicate test to verify consistency",
+		},
+		{
+			name:        "different_item_id_different_result",
+			item:        mockItem2,
+			finding:     finding1,
+			description: "Different item ID should produce different result",
+		},
+		{
+			name:        "different_rule_id_different_result",
+			item:        mockItem1,
+			finding:     finding2,
+			description: "Different rule ID should produce different result",
+		},
+		{
+			name:        "different_secret_different_result",
+			item:        mockItem1,
+			finding:     finding3,
+			description: "Different secret should produce different result",
+		},
+		{
+			name: "empty_item_id",
+			item: &item{
+				id:     "",
+				source: "test-source.txt",
+			},
+			finding:     finding1,
+			description: "Empty item ID should still work",
+		},
+		{
+			name: "empty_rule_id",
+			item: mockItem1,
+			finding: &report.Finding{
+				RuleID: "",
+				Secret: "my-secret-value",
+			},
+			description: "Empty rule ID should still work",
+		},
+		{
+			name: "empty_secret",
+			item: mockItem1,
+			finding: &report.Finding{
+				RuleID: "rule-id-1",
+				Secret: "",
+			},
+			description: "Empty secret should still work",
+		},
+		{
+			name: "unicode_characters",
+			item: &item{
+				id:     "test-item-unicode🔑🚀🔐",
+				source: "test-source-🔑🚀🔐.txt",
+			},
+			finding: &report.Finding{
+				RuleID: "rule-unicode",
+				Secret: "secret-with-unicode🔑🚀🔐",
+			},
+			description: "Unicode characters should be handled properly",
+		},
+		{
+			name: "special_characters",
+			item: &item{
+				id:     "test-item-special-!@#$%^&*()",
+				source: "test-source-special.txt",
+			},
+			finding: &report.Finding{
+				RuleID: "rule-special-!@#$%",
+				Secret: "secret-with-special-chars-[]{}|\\:;\"'<>?,./",
+			},
+			description: "Special characters should be handled properly",
+		},
+		{
+			name: "very_long_values",
+			item: &item{
+				id:     strings.Repeat("a", 1000),
+				source: "test-source-long.txt",
+			},
+			finding: &report.Finding{
+				RuleID: strings.Repeat("b", 1000),
+				Secret: strings.Repeat("c", 10000),
+			},
+			description: "Very long values should be handled properly",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id, err := getFindingId(tt.item, tt.finding)
+
+			assert.NoError(t, err, tt.description)
+			assert.NotEmpty(t, id, "ID should not be empty")
+			assert.Len(t, id, 40, "ID should be 40 characters long (20 bytes as hex)")
+			assert.Regexp(t, "^[a-f0-9]+$", id, "ID should be valid lowercase hex")
+		})
+	}
+
+	t.Run("multiple_calls_consistency", func(t *testing.T) {
+		item := mockItem1
+		finding := finding1
+
+		firstID, err := getFindingId(item, finding)
+		require.NoError(t, err)
+
+		for i := 1; i < 10; i++ {
+			id, err := getFindingId(item, finding)
+			require.NoError(t, err)
+			assert.Equal(t, firstID, id, "Multiple calls with same inputs should produce identical results")
+		}
+	})
+
+	// Test that different combinations produce different IDs
+	t.Run("different_combinations_produce_different_ids", func(t *testing.T) {
+		combinations := []struct {
+			item    plugins.ISourceItem
+			finding *report.Finding
+		}{
+			{mockItem1, finding1},
+			{mockItem1, finding2},
+			{mockItem1, finding3},
+			{mockItem2, finding1},
+			{mockItem2, finding2},
+			{mockItem2, finding3},
+		}
+
+		seenIDs := make(map[string]bool)
+
+		for i, combo := range combinations {
+			id, err := getFindingId(combo.item, combo.finding)
+			require.NoError(t, err, "Combination %d should not error", i)
+
+			assert.False(t, seenIDs[id], "ID %s should be unique, but was seen before for combination %d", id, i)
+			seenIDs[id] = true
+		}
+
+		assert.Len(t, seenIDs, len(combinations), "All combinations should produce unique IDs")
+	})
 }
 
 type item struct {

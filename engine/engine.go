@@ -5,7 +5,9 @@ package engine
 import (
 	"bufio"
 	"context"
-	"crypto/sha1" //nolint:gosec // SHA1 is used for ID generation only, not for security
+	"crypto/hkdf"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -14,6 +16,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/v3/engine/chunk"
+	"github.com/checkmarx/2ms/v3/engine/detect"
 	"github.com/checkmarx/2ms/v3/engine/linecontent"
 	"github.com/checkmarx/2ms/v3/engine/rules"
 	"github.com/checkmarx/2ms/v3/engine/score"
@@ -24,7 +27,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -54,7 +56,6 @@ type ctxKey string
 
 const (
 	customRegexRuleIdFormat        = "custom-regex-%d"
-	CxFileEndMarker                = ";cx-file-end"
 	totalLinesKey           ctxKey = "totalLines"
 	linesInChunkKey         ctxKey = "linesInChunk"
 )
@@ -89,7 +90,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 	cfg.Rules = rulesToBeApplied
 	cfg.Keywords = keywords
 
-	detector := detect.NewDetector(cfg)
+	detector := detect.NewDetector(&cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
 	return &Engine{
@@ -213,11 +214,10 @@ func (e *Engine) detectSecrets(
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
-	fragment.Raw += CxFileEndMarker + "\n"
-
-	values := e.detector.Detect(*fragment)
+	values := e.detector.Detect(fragment)
 	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
-		secret, buildErr := buildSecret(ctx, item, value, pluginName)
+		isLastLine := value.EndLine == strings.Count(fragment.Raw, "\n")
+		secret, buildErr := buildSecret(ctx, item, value, pluginName, isLastLine)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
@@ -318,32 +318,33 @@ func buildSecret(
 	item plugins.ISourceItem,
 	value report.Finding, //nolint:gocritic // hugeParam: value is heavy but needed
 	pluginName string,
+	isLastLine bool,
 ) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
-	itemId := getFindingId(item, value)
+	itemId, err := getFindingId(item, &value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get finding ID: %w", err)
+	}
+
 	startLine, endLine, err := getStartAndEndLines(ctx, pluginName, gitInfo, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
-
-	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
 	hasNewline := strings.HasPrefix(value.Line, "\n")
-
 	if hasNewline {
-		value.Line = strings.TrimPrefix(value.Line, "\n")
+		value.Line = strings.Trim(value.Line, "\n\r")
 	}
-	value.Line = strings.ReplaceAll(value.Line, "\r", "")
 
 	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
 
-	adjustedStartColumn := value.StartColumn
-	adjustedEndColumn := value.EndColumn
 	if hasNewline {
-		adjustedStartColumn--
-		adjustedEndColumn--
+		value.StartColumn--
+		if !isLastLine {
+			value.EndColumn--
+		}
 	}
 
 	secret := &secrets.Secret{
@@ -351,9 +352,9 @@ func buildSecret(
 		Source:          item.GetSource(),
 		RuleID:          value.RuleID,
 		StartLine:       startLine,
-		StartColumn:     adjustedStartColumn,
+		StartColumn:     value.StartColumn,
 		EndLine:         endLine,
-		EndColumn:       adjustedEndColumn,
+		EndColumn:       value.EndColumn,
 		Value:           value.Secret,
 		LineContent:     lineContent,
 		RuleDescription: value.Description,
@@ -361,10 +362,22 @@ func buildSecret(
 	return secret, nil
 }
 
-func getFindingId(item plugins.ISourceItem, finding report.Finding) string { //nolint:gocritic // hugeParam: finding is heavy but needed
-	idParts := []string{item.GetID(), finding.RuleID, finding.Secret}
-	sha := sha1.Sum([]byte(strings.Join(idParts, "-"))) //nolint:gosec // SHA1 is used for ID generation only
-	return fmt.Sprintf("%x", sha)
+func getFindingId(item plugins.ISourceItem, finding *report.Finding) (string, error) {
+	// Context includes only non-sensitive metadata
+	context := fmt.Sprintf("finding:%s:%s", item.GetID(), finding.RuleID)
+
+	// Use secret hash as input key material
+	// to avoid errors in FIPS 140-only mode
+	// which requires the use of keys longer than 112 bits
+	secretHash := sha256.Sum256([]byte(finding.Secret))
+
+	// Use the newer HKDF API - Key function does both extract and expand
+	id, err := hkdf.Key(sha256.New, secretHash[:], nil, context, 20)
+	if err != nil {
+		return "", fmt.Errorf("HKDF derivation failed: %w", err)
+	}
+
+	return hex.EncodeToString(id), nil
 }
 
 func getStartAndEndLines(
