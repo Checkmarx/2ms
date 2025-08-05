@@ -33,8 +33,10 @@ func GenericCredential() *config.Rule {
 			"access",
 		},
 		Entropy: 3.5,
-		Allowlist: config.Allowlist{
-			StopWords: rules.DefaultStopWords,
+		Allowlists: []*config.Allowlist{
+			{
+				StopWords: rules.DefaultStopWords,
+			},
 		},
 	}
 
