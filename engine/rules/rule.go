@@ -28,11 +28,16 @@ func validate(r config.Rule, truePositives []string, falsePositives []string) *c
 	}
 	r.Keywords = keywords
 
+	detectorKeywords := make(map[string]struct{})
+	for _, k := range keywords {
+		detectorKeywords[k] = struct{}{}
+	}
+
 	rules := make(map[string]config.Rule)
 	rules[r.RuleID] = r
 	d := detect.NewDetector(config.Config{
 		Rules:    rules,
-		Keywords: keywords,
+		Keywords: detectorKeywords,
 	})
 	for _, tp := range truePositives {
 		if len(d.DetectString(tp)) != 1 {

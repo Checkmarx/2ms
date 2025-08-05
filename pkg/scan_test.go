@@ -114,8 +114,8 @@ func TestScan(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan(scanItems, ScanConfig{
 			IgnoreResultIds: []string{
-				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
-				"0e9588a11a5355676b9baaa6e722211b8fea767d",
+				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
+				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -301,8 +301,8 @@ func TestScan(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.Scan(scanItems, ScanConfig{
 			IgnoreResultIds: []string{
-				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
-				"0e9588a11a5355676b9baaa6e722211b8fea767d",
+				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
+				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -433,8 +433,8 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
 			IgnoreResultIds: []string{
-				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
-				"0e9588a11a5355676b9baaa6e722211b8fea767d",
+				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
+				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -634,8 +634,8 @@ func TestScanDynamic(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.ScanDynamic(itemsIn2, ScanConfig{
 			IgnoreResultIds: []string{
-				"dac14c6111d3a02a23c4fc31ee4759387a7395cd",
-				"0e9588a11a5355676b9baaa6e722211b8fea767d",
+				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
+				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")

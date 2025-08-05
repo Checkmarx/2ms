@@ -14,8 +14,10 @@ func AuthenticatedURL() *config.Rule {
 		Regex:       regex,
 		Keywords:    []string{"://"},
 		SecretGroup: 1,
-		Allowlist: config.Allowlist{
-			StopWords: []string{"password", "pass"},
+		Allowlists: []*config.Allowlist{
+			{
+				StopWords: []string{"password", "pass"},
+			},
 		},
 	}
 

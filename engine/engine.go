@@ -33,7 +33,7 @@ import (
 type Engine struct {
 	rules              map[string]config.Rule
 	rulesBaseRiskScore map[string]float64
-	detector           detect.Detector
+	detector           *detect.Detector
 	validator          validation.Validator
 	semaphore          semaphore.ISemaphore
 	chunk              chunk.IChunk
@@ -80,12 +80,12 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
-	keywords := []string{}
-	for _, rule := range *selectedRules { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
+	keywords := make(map[string]struct{})
+	for _, rule := range *selectedRules { //nolint:rangeValCopy // TODO: refactor to use a pointer
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
-			keywords = append(keywords, strings.ToLower(keyword))
+			keywords[strings.ToLower(keyword)] = struct{}{}
 		}
 	}
 	cfg.Rules = rulesToBeApplied
@@ -97,7 +97,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 	return &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
-		detector:           *detector,
+		detector:           detector,
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
 		chunk:              chunk.New(),
@@ -109,7 +109,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 
 // DetectFragment detects secrets in the given fragment
 func (e *Engine) DetectFragment(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, pluginName string) error {
-	fragment := detect.Fragment{
+	fragment := detect.Fragment{ //nolint:staticcheck // TODO: detect.Fragment is deprecated
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
@@ -156,7 +156,7 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 	if err != nil {
 		return fmt.Errorf("read small file %q: %w", item.GetSource(), err)
 	}
-	fragment := detect.Fragment{
+	fragment := detect.Fragment{ //nolint:staticcheck // TODO: detect.Fragment is deprecated
 		Raw:      string(data),
 		FilePath: item.GetSource(),
 	}
@@ -195,7 +195,7 @@ func (e *Engine) detectChunks(ctx context.Context, item plugins.ISourceItem, sec
 		totalLines += linesInChunk
 
 		// Detect secrets in the chunk
-		fragment := detect.Fragment{
+		fragment := detect.Fragment{ //nolint:staticcheck // TODO: detect.Fragment is deprecated
 			Raw:      chunkStr,
 			FilePath: item.GetSource(),
 		}
@@ -211,7 +211,7 @@ func (e *Engine) detectChunks(ctx context.Context, item plugins.ISourceItem, sec
 func (e *Engine) detectSecrets(
 	ctx context.Context,
 	item plugins.ISourceItem,
-	fragment *detect.Fragment,
+	fragment *detect.Fragment, //nolint:staticcheck // TODO: detect.Fragment is deprecated
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
