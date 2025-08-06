@@ -5,17 +5,13 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-// AtlassianFixed returns a corrected Atlassian rule that fixes the token validation issue.
-// This overrides the default GitLeaks Atlassian rule to fix the 25-character vs 24-character pattern mismatch.
-func AtlassianFixed() *config.Rule {
+// Atlassian returns a corrected Atlassian rule that fixes the token validation issue.
+// This overrides the default GitLeaks Atlassian rule to fix validation bugs.
+func Atlassian() *config.Rule {
 	// define rule - same as GitLeaks but with corrected validation
 	r := config.Rule{
-		Description: `
-			Detected an Atlassian API token, 
-			posing a threat to project management and collaboration tool security and data confidentiality.
-			GitLeaks has a bug in its regex that causes it to not match the correct pattern.
-		`,
-		RuleID: "atlassian-api-token",
+		Description: "Detected an Atlassian API token, posing a threat to project management and collaboration tool security and data confidentiality.",
+		RuleID:      "atlassian-api-token",
 		Regex: utils.MergeRegexps(
 			utils.GenerateSemiGenericRegex(
 				[]string{"(?-i:ATLASSIAN|[Aa]tlassian)", "(?-i:CONFLUENCE|[Cc]onfluence)", "(?-i:JIRA|[Jj]ira)"},
