@@ -81,7 +81,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
 	keywords := make(map[string]struct{})
-	for _, rule := range *selectedRules { //nolint:rangeValCopy // TODO: refactor to use a pointer
+	for _, rule := range *selectedRules { //nolint:gocritic // TODO: refactor to use a pointer
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
