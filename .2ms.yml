@@ -183,3 +183,11 @@ ignore-result:
 - f3011a1799eefe69b524ef4df9ac2873ef7b79cd # test/development data from sumologic.go
 - f7e32c4a84236701c7e237f08f6a8baf21340b60 # test data from expectedReport.json
 - ff9106f954892b9936136b17a397488c9b21bf96 # test data from github-pat.txt
+- 376e410c00aac1a2d21764ae4c501585197aa4b2 # test/development data from sumologic.go
+- 3fcab497275f38f476446bcca53594355d825b68 # test/development data from sumologic.go
+- 5ed682c7434969ba7befda5b1fc314f396ee5c6e # test/development data from atlassian_override.go
+- 962d05b7b06d7cbce580959e52e3ff303bfce3fb # test/development data from sumologic.go
+- a58764634f1ab0d61bf2a146317df941b16d3d82 # test/development data from atlassian.go
+- bb946d912848c7d7b28172770c8fc8dbe90d508e # test/development data from atlassian_override.go
+- c96880e34792526de6cdf25333cb1230ae1a9f46 # test/development data from sumologic.go
+- efe8adde3033760b79ad5e13bcbf5b09b933eba3 # secret found in alibaba.go
