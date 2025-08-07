@@ -4,6 +4,7 @@ go 1.24.6
 
 replace (
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.26.0 => golang.org/x/oauth2 v0.30.0
 	google.golang.org/grpc => google.golang.org/grpc v1.72.2
 )
 
