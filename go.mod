@@ -3,6 +3,9 @@ module github.com/checkmarx/2ms/v4
 go 1.24.4
 
 replace (
+	// Fix mapstructure vulnerability from gitleaks dependency
+	github.com/mitchellh/mapstructure v1.5.0 => github.com/mitchellh/mapstructure v1.5.1-0.20230418172516-63cde0dfe248
+
 	// Replace all oauth2 versions with safe v0.30.0 to fix vulnerabilities
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.30.0
 	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421 => golang.org/x/oauth2 v0.30.0
