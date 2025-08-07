@@ -3,6 +3,7 @@ module github.com/checkmarx/2ms/v4
 go 1.24.6
 
 replace (
+	// Replace all oauth2 versions with safe v0.30.0 to fix vulnerabilities
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.30.0
 	google.golang.org/grpc => google.golang.org/grpc v1.73.0
 )
