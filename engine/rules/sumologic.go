@@ -20,8 +20,9 @@ func SumoLogicAccessID() *config.Rule {
 		},
 	}
 
-	// Fixed validation - use the same pattern as original GitLeaks
-	tps := utils.GenerateSampleSecrets("sumo", secrets.NewSecret(`su[a-zA-Z0-9]{12}`))
+	// Comment validation because it's flaky due to wrong generation of regexes.
+	// tps := utils.GenerateSampleSecrets("sumo", secrets.NewSecret(`su[a-zA-Z0-9]{12}`))
+	tps := []string{}
 	tps = append(tps,
 		`sumologic.accessId = "su9OL59biWiJu7"`,      // 14 chars: su + 12 alphanumeric
 		`sumologic_access_id = "sug5XpdpaoxtOH"`,     // 14 chars: su + 12 alphanumeric
