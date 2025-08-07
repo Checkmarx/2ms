@@ -3,42 +3,7 @@ module github.com/checkmarx/2ms/v4
 go 1.24.6
 
 replace (
-	// Fix mapstructure vulnerability from gitleaks dependency
-	github.com/mitchellh/mapstructure v1.5.0 => github.com/mitchellh/mapstructure v1.5.1-0.20230418172516-63cde0dfe248
-
-	// Replace all oauth2 versions with safe v0.30.0 to fix vulnerabilities
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20201109201403-9fd604954f58 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20210218202405-ba52d332ba99 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20210805134026-6f1e6394065a => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20221006150949-b44042a4b9c1 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.26.0 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.4.0 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.5.0 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.6.0 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.7.0 => golang.org/x/oauth2 v0.30.0
-	golang.org/x/oauth2 v0.8.0 => golang.org/x/oauth2 v0.30.0
-
 	google.golang.org/grpc => google.golang.org/grpc v1.73.0
 )
 
