@@ -6,11 +6,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/checkmarx/2ms/v3/cmd"
-	"github.com/checkmarx/2ms/v3/engine/rules"
-	"github.com/checkmarx/2ms/v3/lib/reporting"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/lib/utils"
+	"github.com/checkmarx/2ms/v4/cmd"
+	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -12,11 +12,11 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	"github.com/checkmarx/2ms/v3/engine/chunk"
-	"github.com/checkmarx/2ms/v3/engine/rules"
-	"github.com/checkmarx/2ms/v3/engine/semaphore"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/plugins"
+	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/semaphore"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"

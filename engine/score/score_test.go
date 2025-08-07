@@ -4,10 +4,10 @@ import (
 	"sync"
 	"testing"
 
-	. "github.com/checkmarx/2ms/v3/engine"
-	"github.com/checkmarx/2ms/v3/engine/rules"
-	"github.com/checkmarx/2ms/v3/engine/score"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
+	. "github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/score"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	ruleConfig "github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 )
