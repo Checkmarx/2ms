@@ -25,5 +25,5 @@ func main() {
 
 func listenForInterrupt(stopScan chan os.Signal) {
 	<-stopScan
-	log.Fatal().Msg("Interrupt signal received. Exiting...") // lint:ignore We want to exit immediately
+	log.Error().Msg("Interrupt signal received. Exiting...")
 }
