@@ -5,34 +5,49 @@ import (
 
 	"github.com/checkmarx/2ms/v3/engine"
 	"github.com/checkmarx/2ms/v3/engine/extra"
+	"github.com/checkmarx/2ms/v3/internal/workerpool"
 	"golang.org/x/sync/errgroup"
 )
 
 func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
 
-	g, ctx := errgroup.WithContext(context.Background())
-	g.SetLimit(1000)
+	processItems(engineInstance, pluginName)
+
+	engineInstance.GetFileWalkerWorkerPool().Wait()
+	// TODO: refactor this so we don't need to finish work of processing items
+	// in order to continue the next step of the pipeline
+	close(SecretsChan)
+}
+
+// processItems uses the engine's worker pool
+func processItems(eng engine.IEngine, pluginName string) {
+	ctx := context.Background()
+	pool := eng.GetFileWalkerWorkerPool()
+
+	// Process items
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
-		item := item
 
+		// Create task based on plugin type
+		var task workerpool.Task
 		switch pluginName {
 		case "filesystem":
-			g.Go(func() error {
-				return engineInstance.DetectFile(ctx, item, SecretsChan)
-			})
+			task = func(context.Context) error {
+				return eng.DetectFile(ctx, item, SecretsChan)
+			}
 		default:
-			g.Go(func() error {
-				return engineInstance.DetectFragment(item, SecretsChan, pluginName)
-			})
+			task = func(context.Context) error {
+				return eng.DetectFragment(item, SecretsChan, pluginName)
+			}
+		}
+
+		if err := pool.Submit(task); err != nil {
+			Channels.Errors <- err
+			break
 		}
 	}
-
-	if err := g.Wait(); err != nil {
-		Channels.Errors <- err
-	}
-	close(SecretsChan)
+	pool.CloseQueue()
 }
 
 func ProcessSecrets() {

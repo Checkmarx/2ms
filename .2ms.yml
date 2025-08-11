@@ -146,3 +146,7 @@ ignore-result:
 - 07167ae672cd487a2ff261021ff8038c3933cc60 # test data from expectedReportWithIgnoredResults.json
 - 90900eacdae0dff52cc29537b386b41587b0110c # test data from github-pat.txt
 - 233d0c4f93ac448e368b14cc227357b1b91152a8 # test data from expectedReportWithIgnoredRule.json
+- 14eb3127e90836cb3de0a045abaad82b8cb01d44 # test data from benches/process_items_test.go
+- 67af969d2563c864ea61250054321629201485b1 # test data from benches/process_items_test.go
+- e668aaa230b78da5927019d9563d8aa6ffbf8325 # test data from benches/process_items_test.go
+- 2640f69c23ba3f5e4ce7bb1ac1bd6bfa92b6a130 # test data from benches/process_items_test.go
