@@ -1,80 +1,125 @@
 package rules
 
 import (
+	"regexp"
+
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
 func GenericCredential() *config.Rule {
-	// define rule
-	r := config.Rule{
+	return &config.Rule{
 		RuleID:      "generic-api-key",
 		Description: "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
-		Regex: generateSemiGenericRegexIncludingXml([]string{
-			"key",
-			"api",
-			"token",
-			"secret",
-			"client",
-			"passwd",
-			"password",
-			"auth",
+		Regex: utils.GenerateSemiGenericRegex([]string{
 			"access",
-		}, `[0-9a-z\-_.=]{10,150}`, true),
+			"auth",
+			`(?-i:[Aa]pi|API)`,
+			"credential",
+			"creds",
+			"key",
+			"passw(?:or)?d",
+			"secret",
+			"token",
+		}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true),
 		Keywords: []string{
-			"key",
+			"access",
 			"api",
-			"token",
-			"secret",
-			"client",
+			"auth",
+			"key",
+			"credential",
+			"creds",
 			"passwd",
 			"password",
-			"auth",
-			"access",
+			"secret",
+			"token",
 		},
 		Entropy: 3.5,
 		Allowlists: []*config.Allowlist{
 			{
-				StopWords: rules.DefaultStopWords,
+				// NOTE: this is a goofy hack to get around the fact there golang's regex engine does not support positive lookaheads.
+				// Ideally we would want to ensure the secret contains both numbers and alphabetical characters, not just alphabetical characters.
+				Regexes: []*regexp.Regexp{
+					regexp.MustCompile(`^[a-zA-Z_.-]+$`),
+				},
+			},
+			{
+				Description:    "Allowlist for Generic API Keys",
+				MatchCondition: config.AllowlistMatchOr,
+				RegexTarget:    "match",
+				Regexes: []*regexp.Regexp{
+					regexp.MustCompile(`(?i)(?:` +
+						// Access
+						`access(?:ibility|or)` +
+						`|access[_.-]?id` +
+						`|random[_.-]?access` +
+						// API
+						`|api[_.-]?(?:id|name|version)` + // id/name/version -> not a secret
+						`|rapid|capital` + // common words containing "api"
+						`|[a-z0-9-]*?api[a-z0-9-]*?:jar:` + // Maven META-INF dependencies that contain "api" in the name.
+						// Auth
+						`|author` +
+						`|X-MS-Exchange-Organization-Auth` + // email header
+						`|Authentication-Results` + // email header
+						// Credentials
+						`|(?:credentials?[_.-]?id|withCredentials)` + // Jenkins plugins
+						// Key
+						`|(?:bucket|foreign|hot|idx|natural|primary|pub(?:lic)?|schema|sequence)[_.-]?key` +
+						`|(?:turkey)` +
+						`|key[_.-]?(?:alias|board|code|frame|id|length|mesh|name|pair|press(?:ed)?|ring|selector|signature|size|stone|storetype|word|up|down|left|right)` + //nolint:lll
+						// Azure KeyVault
+						`|key[_.-]?vault[_.-]?(?:id|name)|keyVaultToStoreSecrets` +
+						`|key(?:store|tab)[_.-]?(?:file|path)` +
+						`|issuerkeyhash` + // part of ssl cert
+						`|(?-i:[DdMm]onkey|[DM]ONKEY)|keying` + // common words containing "key"
+						// Secret
+						`|(?:secret)[_.-]?(?:length|name|size)` + // name of e.g. env variable
+						`|UserSecretsId` + // https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-8.0&tabs=linux
+
+						// Token
+						`|(?:csrf)[_.-]?token` +
+
+						// Maven library coordinates. (e.g., https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt)
+						`|(?:io\.jsonwebtoken[ \t]?:[ \t]?[\w-]+)` +
+
+						// General
+						`|(?:api|credentials|token)[_.-]?(?:endpoint|ur[il])` +
+						`|public[_.-]?token` +
+						`|(?:key|token)[_.-]?file` +
+						// Empty variables capturing the next line (e.g., .env files)
+						`|(?-i:(?:[A-Z_]+=\n[A-Z_]+=|[a-z_]+=\n[a-z_]+=)(?:\n|\z))` +
+						`|(?-i:(?:[A-Z.]+=\n[A-Z.]+=|[a-z.]+=\n[a-z.]+=)(?:\n|\z))` +
+						`)`),
+				},
+				StopWords: append(rules.DefaultStopWords,
+					"6fe4476ee5a1832882e326b506d14126", // https://github.com/yarnpkg/berry/issues/6201
+				),
+			},
+			{
+				RegexTarget: "line",
+				Regexes: []*regexp.Regexp{
+					// Docker build secrets (https://docs.docker.com/build/building/secrets/#using-build-secrets).
+					regexp.MustCompile(`--mount=type=secret,`),
+					//  https://github.com/gitleaks/gitleaks/issues/1800
+					regexp.MustCompile(`import[ \t]+{[ \t\w,]+}[ \t]+from[ \t]+['"][^'"]+['"]`),
+				},
+			},
+			{
+				MatchCondition: config.AllowlistMatchAnd,
+				RegexTarget:    "line",
+				Regexes: []*regexp.Regexp{
+					regexp.MustCompile(`LICENSE[^=]*=\s*"[^"]+`),
+					regexp.MustCompile(`LIC_FILES_CHKSUM[^=]*=\s*"[^"]+`),
+					regexp.MustCompile(`SRC[^=]*=\s*"[a-zA-Z0-9]+`),
+				},
+				Paths: []*regexp.Regexp{
+					regexp.MustCompile(`\.bb$`),
+					regexp.MustCompile(`\.bbappend$`),
+					regexp.MustCompile(`\.bbclass$`),
+					regexp.MustCompile(`\.inc$`),
+				},
 			},
 		},
 	}
-
-	// validate
-	tps := []string{
-		generateSampleSecret("generic", "CLOJARS_34bf0e88955ff5a1c328d6a7491acc4f48e865a7b8dd4d70a70749037443"),
-		generateSampleSecret("generic", "Zf3D0LXCM3EIMbgJpUNnkRtOfOueHznB"),
-		`"client_id" : "0afae57f3ccfd9d7f5767067bc48b30f719e271ba470488056e37ab35d4b6506"`,
-		`"client_secret" : "6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",`,
-
-		`<key>client_secret</key>
-		<string>6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde</string>`,
-
-		`<key>password</key>
-		<string>bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI=</string>`,
-
-		`<key>password</key>
-		<string>bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI=</string>`,
-
-		`<key>access_key_FOR_X_SERVICES</key>
-		<string>kgfur834kmjfdoi34i9</string>`,
-	}
-	fps := []string{
-		`client_vpn_endpoint_id = aws_ec2_client_vpn_endpoint.client-vpn-endpoint.id`,
-		`password combination.
-
-R5: Regulatory--21`,
-
-		`<key>AD_UNIT_ID_FOR_BANNER_TEST</key>
-<string>ca-app-pub-3940256099942544/2934735716</string>`,
-		`<key>AD_UNIT_ID_FOR_INTERSTITIAL_TEST</key>
-<string>ca-app-pub-3940256099942544/4411468910</string>`,
-		`<key>CLIENT_ID</key>
-<string>407966239993-b1h97alknrmf0g846um5pr3a25s9qmeu.apps.googleusercontent.com</string>`,
-		`<key>REVERSED_CLIENT_ID</key>
-<string>com.googleusercontent.apps.407966239993-b1h97alknrmf0g846um5pr3a25s9qmeu</string>`,
-		`<key>GOOGLE_APP_ID</key>
-<string>1:407966239993:ios:0d7534f14f8cfe19</string>`,
-	}
-	return validate(r, tps, fps)
 }

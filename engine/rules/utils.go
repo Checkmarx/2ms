@@ -46,31 +46,6 @@ func generateSemiGenericRegex(identifiers []string, secretRegex string, isCaseIn
 	sb.WriteString(secretSuffix)
 	return regexp.MustCompile(sb.String())
 }
-func generateSemiGenericRegexIncludingXml(identifiers []string, secretRegex string, isCaseInsensitive bool) *regexp.Regexp {
-	var sb strings.Builder
-	// The identifiers should always be case-insensitive.
-	// This is inelegant but prevents an extraneous `(?i:)` from being added to the pattern; it could be removed.
-	if isCaseInsensitive {
-		sb.WriteString(caseInsensitive)
-		writeIdentifiersIncludinXml(&sb, identifiers)
-	} else {
-		sb.WriteString(identifierCaseInsensitivePrefix)
-		writeIdentifiers(&sb, identifiers)
-		sb.WriteString(identifierCaseInsensitiveSuffix)
-	}
-	sb.WriteString(operator)
-	sb.WriteString(secretPrefix)
-	sb.WriteString(secretRegex)
-	sb.WriteString(secretSuffixIncludingXml)
-
-	return regexp.MustCompile(sb.String())
-}
-
-func writeIdentifiersIncludinXml(sb *strings.Builder, identifiers []string) {
-	sb.WriteString(identifierPrefix)
-	sb.WriteString(strings.Join(identifiers, "|"))
-	sb.WriteString(identifierSuffixIncludingXml)
-}
 
 func writeIdentifiers(sb *strings.Builder, identifiers []string) {
 	sb.WriteString(identifierPrefix)
@@ -89,14 +64,6 @@ func generateUniqueTokenRegex(secretRegex string, isCaseInsensitive bool) *regex
 	return regexp.MustCompile(sb.String())
 }
 
-func generateSampleSecret(identifier, secret string) string {
-	return fmt.Sprintf("%s_api_token = %q", identifier, secret)
-}
-
 func alphaNumeric(size string) string {
 	return fmt.Sprintf(`[a-z0-9]{%s}`, size)
-}
-
-func alphaNumericExtendedShort(size string) string {
-	return fmt.Sprintf(`[a-z0-9_-]{%s}`, size)
 }
