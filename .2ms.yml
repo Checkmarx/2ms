@@ -1,5 +1,183 @@
 log-level: info
 ignore-result:
+- 4f1d13e1bbebef31175ffe9a8d752609b9edc174 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R21
+- 65706aeda7939dca8035f4b0a3446babffc7fcef # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R20
+- d696fe501f3860f76cf768c7ebbccc416db6e4d2 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR373
+- d766d69fed184582fc0cba1515f9beef7901e7a1 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R22
+- deddd58b4aa4999419d6b9046dffa9fffdfd4860 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR378
+- e7bf294c124122a6cf919edbffa40bf6572927b6 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-99df3a2722b4e0b13959d54e29d73ef7b84aae7fbba329b1bfd4f88178bbf010R22
+- 0b217706e100e9a05bbaa8427070d181bb2e2465 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/8156dfa1eb31c74665a15532af06ae8f33173c92#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR388
+- 1e68cf841873862527a00ee5ef8d7957e319b6bc # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 4d358e6dd9e2f21c647dad571f13dde3fd77d107 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/2aa7733a457a145725aa11f99f05f60ddc6b09a1#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040
+- 7c73d41f23ba8e59a1c8d744594dbb54f87197b4 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R38
+- 9c6853ebe9b5e20774224ba6e5ea739191330e53 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/e6e8b8ea07078ae7b66db70c91693d293f813ad6#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR380
+- 59f8916ff79257c8f86207d6e89767cc8e156814 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R40
+- a3a83b7224e7e98e3cca6bd2cd138dbca831e06d # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R45
+- ba1f0517b77a5b451d1d55078218cd23d96b686e # value used for testing, found at https://github.com/Checkmarx/2ms/commit/69e93832d8c0e27554c0185c5a11cbb894c9dc9d#diff-d9ca2cf3e88d3b3d6d58f12bc171e8e64feca51a3c851df62e51fb0bf269fa33R39
+- c5748512948b492f5c07849ae2e69e7e831d36d3 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/e6e8b8ea07078ae7b66db70c91693d293f813ad6#diff-d135844ba25069f53a866a454c13f82f25b4f22fe3a67310125e4529a72fd50bR375
+- 5e73b4b73bf4a59b11f37066829af01478879067 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/c6868197ae0910b1ae34a19822b32ae9d8eb7fdd#diff-d712d2256df359061d691b711ca7ed30ba408199b1e3801cef289779778d8badR36
+- 255853e2044119bf502261713e2f892265d4b5c1 # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/45a5c9d35ff910dfec5e5a76cdedb8977da5dd34#diff-d761ee3cdf26960bab9cc0e88d92015b3c38c0bd480c60d7d58755dea5421e36R24
+- a324bc00bebfbd268b1b9e4cddcd095da1193cd2 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/757c4af1608ec63a3f758f4b2b2b3be915cfbedc#diff-cbf9ce27965b15f1e13be995f164fd6b33a19381364c4be3e8c047d528994495R66
+- cf413577a1df23446f1916be0b6c31679f2042a8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/4bf7a43e33f3f27bedc97a35e9d74dc95026cf28#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R18
+- 4a2ce0e91c76ae86ead9a17a66ae071258d592f9 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/56e1558a97196afd0531be028a43a09e571622f5/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R26
+- 8ad1f44906b41c1f4abf613b30bc2da89949cb7e # value used for testing, found at https://github.com/Checkmarx/2ms/commit/56e1558a97196afd0531be028a43a09e571622f5/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R22
+- 37bd36009d49856cecfe7df2063e1bdc6d28e707 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/56e1558a97196afd0531be028a43a09e571622f5/engine/rules/privateKey.go#diff-878a64a63b9c3845d915db9e5b182aba76adfffde863994b3840f76c4046f8f2R19
+- e53a3a4e8c0665454eb9a4c36eaf040e9317e450 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/2aa7733a457a145725aa11f99f05f60ddc6b09a1/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R9
+- ffc22deda44ebb0d4633bed184c5e26e99657084 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 4d5a3dd11c58b7b471ec087ab589b1995f09891e # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
+- 05ab8f76aebbca7ea76b904ce4f4f7cf287f16c3 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/engine/extra/extra_test.go
+- 33a14f1d1e4a1201a3e0062ebf09079fe8c84714 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
+- da610673906f695e3e85bda6fc0a916762f01a70 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
+- f8da5c56428cf708773be38269932c46aaf44cd4 # value used for testing, found at https://github.com/Checkmarx/2ms/commits/d093b7ca36fdacd2f895dd9afd088fad05d77600/cmd/workers_test.go
+- 0fed4aed1a63c270c410840e01c957025fe2e7b9 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 1e829f2d6236716cecb4683af3d26236fe4d5467 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 2d2c9ddd21109c7d4909e166c18d570eadc95812 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 2fbcd323e560798376c79e73a78938b8edd294d8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 4e243aa393011da09ff2bc4a598c2879e967abb8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 09f677494966f740534bc70d6194529a96d59a69 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 10abdf40e0d14bdfb965f9a5be9056a09c7eb40d # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 4632bbfa56424359e6386b56d05bcec49b16548a # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 489123e817ab17accc3d47a6d39cdb17e37b6c97 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 14472805c7de45b2c3b5caf92f19effcba98c386 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- acf7fa74f45c792f8ab3f701609a0b6ba4283b91 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- bc457e70eee50d9edd5ec8194bc7749fa95fde34 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- ca6b0f5b7f055a1ae52c2f34ad5d0409f7625c85 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- d7cf637e896d585946966d95d7b04910569a0191 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- d9207d5fa344d2423e97384f45014c87c0c91d4f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- f858b057df65752e0030854331dd1e5e8e41856b # value used for testing, found at https://github.com/Checkmarx/2ms/commit/d093b7ca36fdacd2f895dd9afd088fad05d77600
+- 670491bf5e759f4c03bf0e47f519deaccdc9ac44 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
+- 1bf24590387167e7ade218952eaf168758acc0d6 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/files#diff-918450788fde1467e3fe71000c32f812131f7dcd7dafcb0310c8c9910ffea848 
+- 30ea5ee224b162075bf512dbf5854002b6c5e727 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+- 51a6f4e3c7e3a79c9722abb7541b4902098e526b # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+- 53803ee7e880952e926898a434acff4483fec67e # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+- aa52405f239a8be1284d933025c557b071b24036 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/280/commits/829d4260f43f399499fa78031eda897e8d5fc1a4
+- 61a50a3d783926ae08307cc9727e9b1830f4044d # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- b8fddbf33e0da0db4714425e2baedbc74865b72e # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- 9d88a51fcfe0bba421e3ab285c0bcd5884889520 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- ad5cd04241f630992be8c34e2626d2372dbd7690 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- 0648cbaed8d23cd128f7e9111b51d739d1f5769b # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- 27ba3f4fed916199f4f65f30ffc111b8ee3dc3db # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- 52ab4ec04145a57835d9ee91380c8a559b34706e # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- 35a133edb564767157c6bd807f57009a9ee78349 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- 0b43a67f6eb1f2d1b744b5813eec4eb9f167023d # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- ba04dd95db7fd550ebb0f295d80fce4e281529fb # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- 35a133edb564767157c6bd807f57009a9ee78349 # value used for testing, found at https://github.com/Checkmarx/2ms/pull/288/commits/2cdf66865f2bdf006869b8a84f448bec3525bfa0
+- 854547fc6e35c0d1f63c0f4d426aebd4d64679fc # False positive, see https://github.com/gitleaks/gitleaks/pull/1358, found at https://github.com/Checkmarx/2ms/commit/45a5c9d35ff910dfec5e5a76cdedb8977da5dd34#diff-d712d2256df359061d691b711ca7ed30ba408199b1e3801cef289779778d8bad
+- ae0f7e65c291d7f0ea998dfa77485bfc632e5d62 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 99f9ffb901cb72a0282ce32cf7dc050e5225cd81 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- bdd20706ea03aa38c8c9f3f87200cf6ab9010a53 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 1bd84965941175ee61639964adbff6170bea7703 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- f86543794ab8c77a54adc91581dcf72bfef6bf78 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 0f80a32cc85ea5c04b65dbf7d6db6ddb8c2e4d29 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 29a593e19a06c138d63468b8a028696ccdfc7eb2 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 8149f62cd847f3c4ba5ffc502bdcb8d66e800c7f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- e3b354d102fe73cd4f4016e1ee17e468256d2ae8 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 5c2e640a480ca64c809133e1b157fd97960356bf # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 92b1996f9815a2fbd9299a1997ce0bc2c153624f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 7b7c1a0b1c5760490d843e0b9bfe540665d20b28 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- c9ae034a5a03a540d50a2686f74fcbb5117f181c # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- b7c3ac03d8a24892a2c4be5810ce73ffdf6ba3ae # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- f40881f8369f0d90670fc22a719ecd0ba9cb2f02 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- b7c3ac03d8a24892a2c4be5810ce73ffdf6ba3ae # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- f40881f8369f0d90670fc22a719ecd0ba9cb2f02 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 35a5080cb11d663e33e3ced8f39a24920ca44c8a # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 7b7c1a0b1c5760490d843e0b9bfe540665d20b28 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 92b1996f9815a2fbd9299a1997ce0bc2c153624f # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- bf2e01278453a987f05b69e6c536358cab343322 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- c9ae034a5a03a540d50a2686f74fcbb5117f181c # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- f9e5e0b35a39914c67ee1660191a356d3c7ab1db # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 777f3d460d69a70e2ce760ca757b18f2aa984392 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- e392318c730d4cd0a04340f1e3d41d4c61f6eb20 # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 8f0e0442b01c18b02cfb8e59555103f8233fc7bf # value used for testing, found at https://github.com/Checkmarx/2ms/commit/07aab5bb214c03fd9e75e46cebe2b407c88d4f73/reporting/report_test.go#diff-31d71ec2c2ba169dce79b1c2de097e30b43f1695ce364054ee7d6b33896c7040R10
+- 353627158f2e7fa5bb60271cee17da80e5fbba17 # value used as true positive, found at https://github.com/Checkmarx/2ms/pull/292/commits/cc44c8f8bee92250bdcd69bf9fbaffabf0eb442a
+- bf9302d29d7167f39041b0561ae9d1d3677faa2f # value used for testing
+- 44912790c892213daa0df821a006e1e1659e6e24 # value used for testing
+- ac3704513c4ab9bde3fa3539b14152c95ba5698f # value used for testing
+- ac2d6adbeca8901c1655bcf3e0eac027ca681825 # value used for testing
+- cfb06617a386e8c6a6fd25cf2dee18d88dfecbdd # value used for testing
+- 33269ddd7e8734ef20906f888fcd4c971d1483bc # value used for testing
+- 48b64922d5f628b4d57839f044c63f7000d0f840 # value used for testing
+- 38f3e9d8932aa9fc51a6a20295f8f1a95efc7799 # value used for testing
+- 1b14f7b1653e85b0c4e4b08b8ba5b508a896d102 # value used for testing
+- 8180b128c17dac4e375c712c9f265612ac528824 # value used for testing
+- 5b1a634de50b1ecbe1df038e02dbce5487083d54 # value used for testing
+- fc9d1484bb5c0c8cdd34b9790ebf90609674bb3d # value used for testing
+- af16d5223104c029475f82cd780fd57115ed1e2f # value used for testing
+- 91bc1fc92b04c56c5f746d50df5759e39b956146 # value used for testing
+- 4d4af54fd6e3e1209094e5838f339b6c95636f79 # value used for testing
+- fabcbd067a3bbf3cd5951d03ed4f17918241316a # value used for testing
+- cd186f025418cb008f61dcf881b62926be892f71 # value used for testing
+- 3a2c9e23253b0e5b8a83deaea772d93396e4f350 # value used for testing
+- 754506f714ffc10628e6fe6dd05affa486d78234 # value used for testing
+- eebd28cd68ee73b9a1f68b85453575498c12c5b8 # value used for testing
+- 14f5cf9d2716f2cec7daf95ab86e1a4feaf7ba41 # value used for testing
+- d8901c5a580965cd0c1ad89aec17e94a9286ee01 # value used for testing
+- cf3ce6be9ae0c492bafeeac34978dcda9a5fb7b9 # value used for testing
+- df951402e6372dd78d4ed845e3b89ff6ac8b98ef # value used for testing
+- 62cf656ad2a1f6e82f31df38ced303c9e860428f # value used for testing
+- cfb862dc1f06113443c9c0b908f6322f139754f6 # value used for testing
+- feb671ccd2fb03b181aa8bb64455441cea4070e0 # value used for testing
+- d1a56c3e06ef27d9dbd0bcb6c38416935ee7aed1 # value used for testing
+- 7054f43a4dcd4954c3353800167e41a927934620 # value used for testing
+- 9d94eb297ac8cb2613d3091e1ee4d085bc3ce218 # value used for testing
+- 2d06c941743a66ec44d96c5db4b3b1e6e07a1eee # value used for testing
+- 9343373de08c9a35cb8f2d7695b02b5141de29d8 # value used for testing
+- 071b6cb8c1affc7e1c49137ead1b875cc5d08876 # value used for testing
+- f0dbf084d67ad8d1a132b1b77f3186df939ccb6f # value used for testing
+- 36421c2650a6f6ed3ed52ac013c8e73fc47a95da # value used for testing
+- e7feb20ae9d14a4cdfce9d4a5451313ffc92253b # value used for testing
+- 7c0c039771d4cc8eb455d3bbdccf8131fdd6e45e # value used for testing
+- 9a8177d80f9aa9a32759ba7710725b8a1fd3343a # value used for testing
+- 82ff8052d87e4cedb3dee7db569fcb181e6caf88 # value used for testing
+- 44eca14299c23849c83a7a84fdaa35b8a6a0de34 # value used for testing
+- 374eb22f69352d768e8096f9d55299c4dfd8888c # value used for testing
+- bd69025b337716ee008f80192523d3cb1c11ed09 # value used for testing
+- abee8cb648ac1d20c88db6ec5a4ae079c7d29ea8 # value used for testing
+- b8e323e82ffb1a6cd55f6f21c05ac963c2586c8f # value used for testing
+- 53fea9d5c1718a37457bc484d5a0c8336ef7ab75 # value used for testing
+- 4666bc0670fcfa15e706f53abdc59eff2674854f # value used for testing
+- f701cd699fcb706453af869581c74a7133a5a317 # value used for testing
+- b3f999807edd036ffd73f14a2ca43c543bcf366d # value used for testing
+- 7585409b82ac064a256b70d9e526a011ebfb0411 # value used for testing
+- f4d8d834faf54a9551b2a1d937a436bea498506e # value used for testing
+- 3bddc52a5b6aff995b3829eeba5f87626f2b7f7f # value used for testing
+- 531b49a6f6f43623b8971948c53cc082304dcc2b # value used for testing
+- a439aa5bbae6f094100481d0b6d87744524eff15 # value used for testing
+- 30f3898634851d3b981defe7e75ded299ee9530e # value used for testing
+- df291d1e6c760ae2a6ffec5b25c147c754c4cb77 # value used for testing
+- ff4f05a3f1528baa4b4fb91fb15ca676cf13b464 # value used for testing
+- 59aa978a876ea2b13fedcbea67e7b55f6ccafede # value used for testing
+- 4e6d7ff4d583c4c2cb5a5a5cfe667844e39cff00 # value used for testing
+- 1e4a59dc529e21bde7a7a46c42988e890c7a60c0 # value used for testing
+- 8609df53e5a89d3d0e416c6c1ecb9880b6975590 # value used for testing
+- 695ffd03463749a414e321d715897a7c4c9ad226 # value used for testing
+- 060edd23b363a635e117ba0391554c2d579c28fa # value used for testing
+- 440c11b6ca9ba4cec96f92955e28d99253ac799d # value used for testing
+- 65812acbb0b28020978bfd3518769f9c7c5dcc5d # value used for testing
+- 74eaaa8c2376af5dbfc3533e477c6e5ece9938d7 # value used for testing
+- 90769e2fc97e5a376dd101cbe54ece3e09de90a8 # value used for testing
+- 5f977ef254f7109e1b421c8f7f14e01fa0a19bbf # value used for testing
+- 4e9e15fb0b09fc20706797968baa569a9e4c8eba # value used for testing
+- 984bd1736c9bb3a002f915002f6ef29132211495 # value used for testing
+- e176d40f89b4b24f5c1f370f0958ea2faf2a4083 # value used for testing
+- 6c5a7ecbc9d44e6b90092346196cc9cd79889632 # value used for testing
+- 5525dfc852da8dfa26fdc37885190faff7b9ee5e # value used for testing
+- b8775b699c7ddb9cdea349f5e4190ca733ab986d # value used for testing
+- a04eac50810b66a055df05984ab338a8c494a578 # value used for testing
+- 152613bc2fe61c0a9e70d4682ce55f4d52bb4965 # value used for testing
+- bc582d65e164c9ba42a9e1fa7c8aafe5833da55a # value used for testing
+- 660ab191041768525e7a13a153d6c997cdf58a3e # value used for testing
+- 3003dd847b2c587e2451a9883f42b73cb32f15e4 # value used for testing
+- 1beb3a59c22a5fd8d7c205e404016f7c7d06f262 # value used for testing
+- 0609506c0e8435fddbcd37bbcafda1d76b18134a # value used for testing
+- 0609506c0e8435fddbcd37bbcafda1d76b18134a # value used for testing
+- 618837d3cb846fd621ae50803dec892db150f807 # value used for testing
+- b630c78ead3aea9db9f2e40757aaffc5dbb7f5e1 # value used for testing
+- 07269afcf8cbb841bc27b38ce59344346257f202 # value used for testing
+- 9857e431ac8bd495f850fb3d1fad5455ee7d88d8 # value used for testing
+- f59aa7b1240a40448c4ae1cd41f75418b2c59218 # value used for testing
+- 2ef051908f6244a3136d12fcf69173b21ae48850 # value used for testing
+- ad586867369a33cafc7f9487f66ad3458ce88ec8 # value used for testing
 - 4f1d13e1bbebef31175ffe9a8d752609b9edc174 # test/development data from authenticated_url.go
 - 99f9ffb901cb72a0282ce32cf7dc050e5225cd81 # test data from multi_line_secret_report.json
 - 8149f62cd847f3c4ba5ffc502bdcb8d66e800c7f # test data from multi_line_secret.txt
@@ -146,3 +324,74 @@ ignore-result:
 - 07167ae672cd487a2ff261021ff8038c3933cc60 # test data from expectedReportWithIgnoredResults.json
 - 90900eacdae0dff52cc29537b386b41587b0110c # test data from github-pat.txt
 - 233d0c4f93ac448e368b14cc227357b1b91152a8 # test data from expectedReportWithIgnoredRule.json
+- d464b0d17e3e815753f42aa7f304156cf8d18df0 # test data from enginetest.go
+- 77da2d7528dfceca9e57fc13fd9a9aa29923e794 # test data from enginetest.go
+- 6c218984ee92a9591ff2b6549de7eab6c7c03c5e # test data from enginetest.go
+- 7d5f35e1380a6489b65fbe15565d60e5397019de # test data from toml's files
+- 075ab88033e5094007024de956355c253ebf06da # test data from toml's files
+- d79b591ba4cae80f32a1269d9ea15ea54110b678 # test data from toml's files
+- cebe152f53b7016c365c63eed80219cf26e4f5b0 # test data from toml's files
+- 575e3c49aca4eec6aa381f88652360007b74b138 # test data from toml's files
+- 1ffb338e34da94d95fb2e02075112474dfe428dc # test data from toml's files
+- c9fa578f7e55343096a83f2a09945111117295de # test data from toml's files
+- dada497649a1526011e77ed9f2fdea56a5649172 # test data from toml's files
+- b884ec426eff369efb692c790269294c58e4692e # test data from toml's files
+- 8cdbfa8df41140e9e89b95a00d47114fafdf9346 # test data from toml's files
+- ded52b133cefcf863d0ffe8a4f654792f7b1425b # test data from toml's files
+- 90e89edc154dac13b12025374d679e380a3b342b # test data from toml's files
+- 83a7ac9ce51c275f23a90e1aaac3b2325582061e # test data from toml's files
+- 3445d6af4dfea8abf4e44d3f3dd539f127e0a269 # test data from toml's files
+- 026e6c6513f4d73a812a3f843f0aeabbf0916cb7 # test data from toml's files
+- 9e50197e35d7f00db64c95d7febb8f05c95a82a2 # test data from toml's files
+- 04d1301fa403b5731ff7594d79986e83751e23d9 # test data from toml's files
+- 58a283269cf669dc46f0cfde893b3c4709796964 # test data from toml's files
+- 1ec3c048d065a365ad027ac804bb0261b131c844 # test data from toml's files
+- d093b1eb15d00ed495269328c7d60ae64301c6e9 # test data from toml's files
+- db76779649f63f254708ec7862ce1bf152ef389b # test data from toml's files
+- 299e8e01252e92e8268fb105c55cba41d61d14c7 # test data from toml's files
+- 0a58ae877927fad8c4f26ebefda0e2ea74d83355 # test data from toml's files
+- e3a0bf29eb184ef678a34bcb9c39d5b5be16780e # test data from toml's files
+- a2bfb7441052f2ffb1ea0d54cbb656760254d062 # test data from toml's files
+- 1708bcaf82860032acc133e572bad0c7e9171158 # test data from toml's files
+- 8a03adb54b650e46dc131fc489e7b5a26f56ead3 # test data from toml's files
+- 999a40b0a6b9d1aa3a0d12a0f13fa80f84500690 # test data from toml's files
+- ef543c0bce63bd21a4d27df6a6d2762f31bcf9c7 # test data from toml's files
+- 8d42615a78d80100c93cb211b696a9d8dc4cae52 # test data from toml's files
+- 11a01f5f59e11504cda26fadc1cde1d7869e346e # test data from toml's files
+- 772960543873c38fd49747b70d34302bc7744528 # test data from toml's files
+- 152006c3dc742f77b2ee1de6575694a3e4393979 # test data from toml's files
+- 304660186ce2139e1d35519f110d874d42a9a9cc # engine/detect/detect_test.go - authenticated-url
+- 8004c3c8e053958a857d534f5e5013573a1b5487 # engine/detect/detect_test.go - sidekiq-sensitive-url
+- 1c18d9549224b0e87ca88d52ea29c28d16d88fc0 # engine/detect/detect_test.go - discord-api-token
+- 76419bff3245573f476e8810dd51d2dc5505fae8 # engine/detect/detect_test.go - sidekiq-secret
+- d7416e501be97e378bfe156bf46a712487901a7e # engine/detect/detect_test.go - aws-access-token
+- be73c0549f927433e81284de4b3d1094fc3e0e20 # engine/engine_test.go - generic-api-key
+- 234b995eeac64bf996c32397906ff8ce1aacbe10 # engine/engine_test.go - jfrog-api-key
+- 08681ea90c9f89fb22de8022c2fd1c05c2065695 # tests/testData/config/allow_aws_re.toml - aws-access-token
+- c38c565fc1422c74eff5a0b7a24629183e4bdc20 # tests/testData/config/allow_global_aws_re.toml - aws-access-token
+- 7a688e807f1c42b1b9dadcea277e919d5a5c6bfb # engine/detect/detect_test.go - pypi-upload-token
+- 54f32cfb047240ab6c052d06b205881f14b87e37 # engine/detect/detect_test.go - aws-access-token
+- 63724b4af9dd449dcbe623377e3314e1d9d5a2b0 # engine/engine_test.go - jfrog-api-key
+- 68e6db68e336a98fe80d4ae52a2e53716fb1f42c # engine/detect/detect_test.go - sidekiq-secret
+- c62aee57b319e53a5077e9a83b29ac8fe33bf8a2 # engine/detect/detect_test.go - aws-access-token
+- ee892683cf62c5fcb40d8721e206f67b6bf27a77 # engine/detect/detect_test.go - pypi-upload-token
+- c4cc5b5f0b3fb3928a392df5cbb807c15f708bb1 # engine/detect/detect_test.go - sidekiq-sensitive-url
+- 9ee706d9ff5f204565c75ecbcddf468398fd0847 # engine/detect/detect_test.go - authenticated-url
+- 5771ee546b0a7b940c4d7faeec4b49e698ebf56d # engine/engine_test.go - generic-api-key
+- f96a7ed264f7a8cc81e1edee6b380615bc898a00 # tests/testData/config/allow_aws_re.toml - aws-access-token
+- 1e16cbbc563653b822410e6f0e55ca8b8d4d33f8 # tests/testData/config/allow_global_aws_re.toml - aws-access-token
+- 92c6131468686fe9c75a4926f40ce2419690eea9 # engine/detect/detect_test.go - aws-access-token
+- 48121878ef71a52cf74d58d47281c7e6ef61f1eb # engine/detect/detect_test.go - discord-api-token
+- d71c196cba01dbc9d63e6dac903dc73cb89ab364 # tests/testData/config/allow_global_aws_re.toml - aws-access-token
+- 23ec036979703e35bc6de6e245758c2c535a6050 # engine/detect/detect_test.go - generic-api-key (Discord_Public_Key)
+- 88df9fdeb4a81cb1edc2339bcb4751628c49dfda # engine/engine_test.go - generic-api-key
+- 722c75bcbb827536f81215baba9b28a1a13d3fda # engine/detect/detect_test.go - authenticated-url
+- 5597e2e7ce843de5bf3431fd7946384e17cce968 # engine/detect/detect_test.go - discord-api-token
+- 334b2420da8a61d313885b4d2944d71a675f431b # engine/detect/detect_test.go - pypi-upload-token
+- b36ede0b35f4f865094cf43282010db4f520bf46 # engine/detect/detect_test.go - sidekiq-secret
+- 0efff6637b75274b7a14d2318251b57d24fe42a9 # engine/detect/detect_test.go - sidekiq-sensitive-url
+- 8d39148ef1417a3d8202a4076ccefa25a9551b63 # engine/detect/detect_test.go - aws-access-token
+- f7f4241dd209ce6559b138eaf2c6e87961a7ada0 # engine/detect/detect_test.go - aws-access-token
+- 3ef803586748159b09ce7b289532fde583fdf76b # engine/engine_test.go - generic-api-key (imagePullSecretJfrog)
+- 4187d3ce4469a2ead5ffa2268c180d7a3cca2570 # engine/engine_test.go - jfrog-api-key
+- 2277b1700fe84cca320612711e271f7bc21f5ca3 # tests/testData/config/allow_aws_re.toml - aws-access-token

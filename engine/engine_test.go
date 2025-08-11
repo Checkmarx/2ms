@@ -9,10 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"go.uber.org/mock/gomock"
 
 	"github.com/checkmarx/2ms/v3/engine/chunk"
+	"github.com/checkmarx/2ms/v3/engine/detect"
 	"github.com/checkmarx/2ms/v3/engine/rules"
 	"github.com/checkmarx/2ms/v3/engine/semaphore"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
@@ -22,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -157,13 +158,13 @@ func TestSecrets(t *testing.T) {
 			ShouldFind: false,
 		},
 		{
-			Content:    "--set imagePullSecretJfrog.password=AKCp8kqqfQbYifrbyvqusjyk6N3QKprXTv9B8HTitLbJzXT1kW7dDticXTsJpCrbqtizAwK4D \\",
-			Name:       "JFROG Secret with keyword (real example)",
+			Content:    "--docker-password=AKCp8kqX8yeKBTqgm2XExHsp8yVdJn6SAgQmS1nJMfMDmzxEqX74rUGhedaWu7Eovid3VsMwb",
+			Name:       "JFROG Secret as kubectl argument",
 			ShouldFind: true,
 		},
 		{
-			Content:    "--docker-password=AKCp8kqX8yeKBTqgm2XExHsp8yVdJn6SAgQmS1nJMfMDmzxEqX74rUGhedaWu7Eovid3VsMwb",
-			Name:       "JFROG Secret as kubectl argument",
+			Content:    "--set imagePullSecretJfrog.password=AKCp8kqqfQbYifrbyvqusjyk6N3QKprXTv9B8HTitLbJzXT1kW7dDticXTsJpCrbqtizAwK4D ",
+			Name:       "JFROG Secret with keyword (real example)",
 			ShouldFind: true,
 		},
 	}
@@ -180,19 +181,29 @@ func TestSecrets(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
-			secretsChan := make(chan *secrets.Secret, 1)
+			secretsChan := make(chan *secrets.Secret, 2)
 			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, fsPlugin.GetName())
 			if err != nil {
 				return
 			}
-			close(secretsChan)
 
-			s := <-secretsChan
+			var s *secrets.Secret
+			select {
+			case s = <-secretsChan:
+			case <-time.After(2 * time.Second):
+				// Fail if timeout is reached, unless we expect not to find a secret
+				if secret.ShouldFind {
+					t.Fatal("timeout waiting for secret on channel")
+				}
+			}
 
 			if secret.ShouldFind {
-				assert.Equal(t, s.LineContent, secret.Content)
+				assert.NotNil(t, s, "expected to find a secret, but got nil")
+				if s != nil {
+					assert.Equal(t, secret.Content, s.LineContent)
+				}
 			} else {
-				assert.Nil(t, s)
+				assert.Nil(t, s, "expected not to find a secret, but got one")
 			}
 		})
 	}
@@ -315,7 +326,7 @@ func TestDetectFile(t *testing.T) {
 
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = []string{}
-			detector := detect.NewDetector(cfg)
+			detector := detect.NewDetector(&cfg)
 			detector.MaxTargetMegaBytes = tc.maxMegabytes
 			engine := &Engine{
 				rules: nil,
@@ -415,7 +426,7 @@ func TestDetectChunks(t *testing.T) {
 
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = []string{}
-			detector := detect.NewDetector(cfg)
+			detector := detect.NewDetector(&cfg)
 			engine := &Engine{
 				rules: nil,
 
@@ -512,7 +523,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 				EndLine:     1,
 			}
 
-			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName())
+			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName(), false)
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedLineContent, secret.LineContent)
