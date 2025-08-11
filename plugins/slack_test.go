@@ -312,6 +312,7 @@ func TestGetTeam(t *testing.T) {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErrSubstr)
 			}
+
 		})
 	}
 }
