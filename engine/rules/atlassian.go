@@ -5,10 +5,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-// Atlassian returns a corrected Atlassian rule that fixes the token validation issue.
-// This overrides the default GitLeaks Atlassian rule to fix validation bugs.
 func Atlassian() *config.Rule {
-	// define rule - same as GitLeaks but without validation
 	return &config.Rule{
 		Description: `Detected an Atlassian API token, 
 			posing a threat to project management and 
