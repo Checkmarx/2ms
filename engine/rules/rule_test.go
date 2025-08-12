@@ -91,10 +91,6 @@ func validateGenericCredential() {
 	var (
 		newPlausibleSecret = func(regex string) string {
 			allowList := &config.Allowlist{StopWords: gitleaksrules.DefaultStopWords}
-			// attempt to generate a random secret,
-			// retrying until it contains at least one digit and no stop words
-			// TODO: currently the DefaultStopWords list contains many short words,
-			//  so there is a significant chance of generating a secret that contains a stop word
 			for {
 				secret := secrets.NewSecret(regex)
 				if !regexp.MustCompile(`[1-9]`).MatchString(secret) {
@@ -107,6 +103,26 @@ func validateGenericCredential() {
 			}
 		}
 	)
+	xml := `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AD_UNIT_ID_FOR_BANNER_TEST</key>
+	<string>asdfasdfasd</string>
+	<key>AD_UNIT_ID_FOR_INTERSTITIAL_TEST</key>
+	<string>asdffasdf</string>
+	<key>CLIENT_ID</key>
+	<string>asdk34ofko3kdl,3o,kodk3ok3dd3e</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>asdfasdfasdf</string>
+	<key>API_KEY</key>
+	<string>AIzaSyATDL7Wz3De6BUF12v3fVVth30vkyis21h</string>
+	<key>GCM_SENDER_ID</key>
+	<string>407966239993</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+</dict>
+</plist>`
 
 	tps := utils.GenerateSampleSecrets("generic", "CLOJARS_34bf0e88955ff5a1c328d6a7491acc4f48e865a7b8dd4d70a70749037443") //gitleaks:allow
 	tps = append(tps, utils.GenerateSampleSecrets("generic", "Zf3D0LXCM3EIMbgJpUNnkRtOfOueHznB")...)
@@ -135,6 +151,7 @@ func validateGenericCredential() {
 		`"client_secret" : "6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",`,
 		`mySecretString=`+newPlausibleSecret(`[a-zA-Z0-9]{30}`),
 		`todo_secret_do_not_commit = `+newPlausibleSecret(`[a-zA-Z0-9]{30}`),
+		xml,
 
 		// Token
 		` utils.GetEnvOrDefault("api_token", "dafa7817-e246-48f3-91a7-e87653d587b8")`,
