@@ -7,7 +7,6 @@ import (
 )
 
 func Clojars() *config.Rule {
-	// define rule
 	return &config.Rule{
 		Description: "Uncovered a possible Clojars API token, risking unauthorized access to Clojure libraries and potential code manipulation.",
 		RuleID:      "clojars-api-token",

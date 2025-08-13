@@ -7,7 +7,6 @@ import (
 )
 
 func GitHubApp() *config.Rule {
-	// define rule
 	return &config.Rule{
 		Description: "Identified a GitHub App Token, which may compromise GitHub application integrations and source code security.",
 		RuleID:      "github-app-token",
