@@ -5,10 +5,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-// SumoLogicAccessID returns a corrected SumoLogic Access ID rule that fixes the token validation issue.
-// This overrides the default GitLeaks SumoLogic rule to fix validation bugs.
 func SumoLogicAccessID() *config.Rule {
-	// define rule - same as GitLeaks but with corrected validation
 	return &config.Rule{
 		RuleID:      "sumologic-access-id",
 		Description: "Discovered a SumoLogic Access ID, potentially compromising log management services and data analytics integrity.",
@@ -20,10 +17,7 @@ func SumoLogicAccessID() *config.Rule {
 	}
 }
 
-// SumoLogicAccessToken returns a corrected SumoLogic Access Token rule that fixes the token validation issue.
-// This overrides the default GitLeaks SumoLogic rule to fix validation bugs.
 func SumoLogicAccessToken() *config.Rule {
-	// define rule - same as GitLeaks but with corrected validation
 	return &config.Rule{
 		RuleID:      "sumologic-access-token",
 		Description: "Uncovered a SumoLogic Access Token, which could lead to unauthorized access to log data and analytics insights.",
