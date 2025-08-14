@@ -13,8 +13,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	secrets "github.com/checkmarx/2ms/v3/lib/secrets"
-	plugins "github.com/checkmarx/2ms/v3/plugins"
+	secrets "github.com/checkmarx/2ms/v4/lib/secrets"
+	plugins "github.com/checkmarx/2ms/v4/plugins"
 	gomock "go.uber.org/mock/gomock"
 )
 

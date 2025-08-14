@@ -4,10 +4,10 @@ import (
 	"sync"
 	"testing"
 
-	. "github.com/checkmarx/2ms/v3/engine"
-	"github.com/checkmarx/2ms/v3/engine/rules"
-	"github.com/checkmarx/2ms/v3/engine/score"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
+	. "github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/score"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	ruleConfig "github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 )
@@ -29,9 +29,11 @@ func TestScore(t *testing.T) {
 		ruleConfig.AlgoliaApiKey().RuleID:                   {7.6, 1.6, 4.6},
 		ruleConfig.AlibabaAccessKey().RuleID:                {7.6, 1.6, 4.6},
 		ruleConfig.AlibabaSecretKey().RuleID:                {10, 5.2, 8.2},
+		ruleConfig.AnthropicAdminApiKey().RuleID:            {7.6, 1.6, 4.6},
+		ruleConfig.AnthropicApiKey().RuleID:                 {7.6, 1.6, 4.6},
 		ruleConfig.AsanaClientID().RuleID:                   {4, 1, 1},
 		ruleConfig.AsanaClientSecret().RuleID:               {7.6, 1.6, 4.6},
-		ruleConfig.Atlassian().RuleID:                       {9.4, 3.4, 6.4},
+		rules.Atlassian().RuleID:                            {9.4, 3.4, 6.4},
 		ruleConfig.Authress().RuleID:                        {10, 7, 10},
 		ruleConfig.AWS().RuleID:                             {10, 7, 10},
 		ruleConfig.BitBucketClientID().RuleID:               {7.6, 1.6, 4.6},
@@ -64,7 +66,9 @@ func TestScore(t *testing.T) {
 		ruleConfig.EasyPost().RuleID:                        {9.4, 3.4, 6.4},
 		ruleConfig.EasyPostTestAPI().RuleID:                 {9.4, 3.4, 6.4},
 		ruleConfig.EtsyAccessToken().RuleID:                 {7.6, 1.6, 4.6},
-		ruleConfig.Facebook().RuleID:                        {7.6, 1.6, 4.6},
+		ruleConfig.FacebookAccessToken().RuleID:             {7.6, 1.6, 4.6},
+		ruleConfig.FacebookPageAccessToken().RuleID:         {7.6, 1.6, 4.6},
+		ruleConfig.FacebookSecret().RuleID:                  {7.6, 1.6, 4.6},
 		ruleConfig.FastlyAPIToken().RuleID:                  {9.4, 3.4, 6.4},
 		ruleConfig.FinicityClientSecret().RuleID:            {10, 7, 10},
 		ruleConfig.FinicityAPIToken().RuleID:                {10, 7, 10},
@@ -90,7 +94,7 @@ func TestScore(t *testing.T) {
 		ruleConfig.GrafanaApiKey().RuleID:                   {7.6, 1.6, 4.6},
 		ruleConfig.GrafanaCloudApiToken().RuleID:            {7.6, 1.6, 4.6},
 		ruleConfig.GrafanaServiceAccountToken().RuleID:      {7.6, 1.6, 4.6},
-		ruleConfig.Hashicorp().RuleID:                       {10, 5.2, 8.2},
+		ruleConfig.HashiCorpTerraform().RuleID:              {10, 5.2, 8.2},
 		ruleConfig.HashicorpField().RuleID:                  {10, 5.2, 8.2},
 		ruleConfig.Heroku().RuleID:                          {9.4, 3.4, 6.4},
 		ruleConfig.HubSpot().RuleID:                         {7.6, 1.6, 4.6},
@@ -167,8 +171,8 @@ func TestScore(t *testing.T) {
 		ruleConfig.StripeAccessToken().RuleID:               {10, 7, 10},
 		ruleConfig.SquareAccessToken().RuleID:               {10, 7, 10},
 		ruleConfig.SquareSpaceAccessToken().RuleID:          {10, 5.2, 8.2},
-		ruleConfig.SumoLogicAccessID().RuleID:               {7.6, 1.6, 4.6},
-		ruleConfig.SumoLogicAccessToken().RuleID:            {7.6, 1.6, 4.6},
+		rules.SumoLogicAccessID().RuleID:                    {7.6, 1.6, 4.6},
+		rules.SumoLogicAccessToken().RuleID:                 {7.6, 1.6, 4.6},
 		ruleConfig.Snyk().RuleID:                            {10, 7, 10},
 		ruleConfig.TeamsWebhook().RuleID:                    {7.6, 1.6, 4.6},
 		ruleConfig.TelegramBotToken().RuleID:                {7.6, 1.6, 4.6},

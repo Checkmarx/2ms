@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/checkmarx/2ms/v3/lib/secrets"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
 )
 
 type addExtraFunc = func(*secrets.Secret) interface{}

@@ -1,8 +1,8 @@
 package validation
 
 import (
-	"github.com/checkmarx/2ms/v3/engine/extra"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
+	"github.com/checkmarx/2ms/v4/engine/extra"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
 )
 
 type validationFunc = func(*secrets.Secret) (secrets.ValidationResult, string)

@@ -3,8 +3,8 @@ package cmd
 import (
 	"context"
 
-	"github.com/checkmarx/2ms/v3/engine"
-	"github.com/checkmarx/2ms/v3/engine/extra"
+	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v4/engine/extra"
 	"golang.org/x/sync/errgroup"
 )
 

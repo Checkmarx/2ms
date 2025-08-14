@@ -23,7 +23,7 @@ The following sections explain how to install 2ms using the following methods:
 
 ## Download and Install Precompiled Binaries
 
-You can download 2ms precompiled binaries for amd64 architecture from our [releases page](https://github.com/Checkmarx/2ms/releases).  
+You can download 2ms precompiled binaries for amd64 architecture and others from our [releases page](https://github.com/Checkmarx/2ms/releases).  
 The following links can be used to download the "latest" version, for each supported OS.
 
 - [Download for Windows](https://github.com/checkmarx/2ms/releases/latest/download/windows-amd64.zip)

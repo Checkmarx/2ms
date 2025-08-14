@@ -1,15 +1,16 @@
 package cmd
 
 import (
-	"github.com/checkmarx/2ms/v3/engine"
-	"github.com/checkmarx/2ms/v3/lib/reporting"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/plugins"
-	"github.com/stretchr/testify/assert"
 	"sort"
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockItem struct {

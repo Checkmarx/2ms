@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/checkmarx/2ms/v3/lib/reporting"
-	"github.com/checkmarx/2ms/v3/lib/utils"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
+	"github.com/checkmarx/2ms/v4/lib/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +24,7 @@ type cli struct {
 
 func createCLI(outputDir string) (cli, error) {
 	executable := path.Join(outputDir, "2ms")
-	lib, err := build.Import("github.com/checkmarx/2ms/v3", "", build.FindOnly)
+	lib, err := build.Import("github.com/checkmarx/2ms/v4", "", build.FindOnly)
 	if err != nil {
 		return cli{}, fmt.Errorf("failed to import 2ms: %s", err)
 	}
