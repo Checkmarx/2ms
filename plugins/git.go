@@ -128,14 +128,6 @@ func (p *GitPlugin) getFileName(file *gitdiff.File) string {
 	return "new-file"
 }
 
-// getSource generates source string for gitdiff.File with nil safety
-func (p *GitPlugin) getSource(file *gitdiff.File, fileName string) string {
-	if file == nil || file.PatchHeader == nil {
-		return fmt.Sprintf("git show unknown:%s", fileName)
-	}
-	return fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
-}
-
 func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize, preAllocCount int) *StringBuilderPool {
 	sbPool := &StringBuilderPool{
 		builderType: builderType,
@@ -355,7 +347,9 @@ func (p *GitPlugin) scanGit(path, scanOptions string, itemsChan chan ISourceItem
 	}
 
 	// Print pool statistics after scan completes
-	p.gitChangesPool.Print()
+	if log.Trace().Enabled() {
+		p.gitChangesPool.Print()
+	}
 }
 
 // processFileDiff handles processing a single diff file with chunked processing.
@@ -381,15 +375,19 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 
 	chunks := extractChanges(p.gitChangesPool, file.TextFragments)
 
-	for i, chunk := range chunks {
-		chunkId := fmt.Sprintf("%s-%s-%s-%s-chunk-%d",
-			p.GetName(), p.projectName, file.PatchHeader.SHA, fileName, i)
-		source := p.getSource(file, fileName)
+	for _, chunk := range chunks {
+		fileName := file.NewName
+		if file.IsDelete {
+			fileName = file.OldName
+		}
+
+		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
+		source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
 
 		if chunk.Added != "" {
 			itemsChan <- item{
 				Content: &chunk.Added,
-				ID:      chunkId,
+				ID:      id,
 				Source:  source,
 				GitInfo: &GitInfo{
 					Hunks:       file.TextFragments,
@@ -401,7 +399,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		if chunk.Removed != "" {
 			itemsChan <- item{
 				Content: &chunk.Removed,
-				ID:      chunkId + "-removed",
+				ID:      id + "-removed",
 				Source:  source,
 				GitInfo: &GitInfo{
 					Hunks:       file.TextFragments,
