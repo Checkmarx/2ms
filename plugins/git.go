@@ -111,23 +111,6 @@ func (p *GitPlugin) GetName() string {
 	return "git"
 }
 
-// getFileName extracts filename from gitdiff.File with nil safety
-func (p *GitPlugin) getFileName(file *gitdiff.File) string {
-	if file == nil {
-		return "unknown"
-	}
-	if file.IsDelete {
-		if file.OldName != "" {
-			return file.OldName
-		}
-		return "deleted-file"
-	}
-	if file.NewName != "" {
-		return file.NewName
-	}
-	return "new-file"
-}
-
 func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize, preAllocCount int) *StringBuilderPool {
 	sbPool := &StringBuilderPool{
 		builderType: builderType,
@@ -353,8 +336,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		file.PatchHeader.SHA = unknownCommit
 	}
 
-	fileName := p.getFileName(file)
-	log.Debug().Msgf("file: %s; Commit: %s", fileName, file.PatchHeader.Title)
+	log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
 
 	// Skip binary files
 	if file.IsBinary {
