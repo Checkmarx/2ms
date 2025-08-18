@@ -128,15 +128,6 @@ func (p *GitPlugin) getFileName(file *gitdiff.File) string {
 	return "new-file"
 }
 
-// getSource generates the git show command source string with nil safety
-func (p *GitPlugin) getSource(file *gitdiff.File, fileName string) string {
-	sha := unknownCommit
-	if file != nil && file.PatchHeader != nil && file.PatchHeader.SHA != "" {
-		sha = file.PatchHeader.SHA
-	}
-	return fmt.Sprintf("git show %s:%s", sha, fileName)
-}
-
 func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize, preAllocCount int) *StringBuilderPool {
 	sbPool := &StringBuilderPool{
 		builderType: builderType,
@@ -233,16 +224,10 @@ func (p *gitChangesPool) Stats() (gets, puts, discards, news int64, efficiency f
 
 // PrintPoolStats logs the current efficiency statistics for all pools
 func (p *gitChangesPool) Print() {
-	log.Info().Msg("=== Object Pool Statistics ===")
-
-	// STRING BUILDER POOLS (for content accumulation)
-	log.Info().Msg("--- String Builder Pools ---")
-
-	// Added content string builder pool
 	getsA, putsA, discardsA, newsA, effA := addedPool.Stats()
-	log.Info().
+	log.Trace().
 		Str("pool_type", "string_builder").
-		Str("content_type", "added").
+		Str("content_type", string(added)).
 		Int64("news", newsA).
 		Int64("gets", getsA).
 		Int64("puts", putsA).
@@ -250,11 +235,10 @@ func (p *gitChangesPool) Print() {
 		Float64("efficiency_percent", effA).
 		Msg("Added content string builders")
 
-	// Removed content string builder pool
 	getsR, putsR, discardsR, newsR, effR := removedPool.Stats()
-	log.Info().
+	log.Trace().
 		Str("pool_type", "string_builder").
-		Str("content_type", "removed").
+		Str("content_type", string(removed)).
 		Int64("news", newsR).
 		Int64("gets", getsR).
 		Int64("puts", putsR).
@@ -262,11 +246,9 @@ func (p *gitChangesPool) Print() {
 		Float64("efficiency_percent", effR).
 		Msg("Removed content string builders")
 
-	log.Info().Msg("--- Git Changes Pool ---")
-
 	sliceGets, slicePuts, sliceDiscards, sliceNews, sliceEff := p.Stats()
 
-	log.Info().
+	log.Trace().
 		Str("pool_type", "gitdiffChunk").
 		Int64("gets", sliceGets).
 		Int64("puts", slicePuts).
@@ -274,9 +256,6 @@ func (p *gitChangesPool) Print() {
 		Int64("new_allocations", sliceNews).
 		Float64("efficiency_percent", sliceEff).
 		Msg("gitdiffChunk slice arrays")
-
-	// COMBINED SUMMARY
-	log.Info().Msg("--- Combined Summary ---")
 
 	stringBuilderGets := getsA + getsR
 	stringBuilderPuts := putsA + putsR
@@ -286,7 +265,7 @@ func (p *gitChangesPool) Print() {
 		stringBuilderEff = float64(stringBuilderPuts) / float64(stringBuilderGets) * 100
 	}
 
-	log.Info().
+	log.Trace().
 		Str("summary_type", "string_builders").
 		Int64("total_gets", stringBuilderGets).
 		Int64("total_puts", stringBuilderPuts).
@@ -294,7 +273,7 @@ func (p *gitChangesPool) Print() {
 		Float64("combined_efficiency_percent", stringBuilderEff).
 		Msg("All string builder pools combined")
 
-	log.Info().
+	log.Trace().
 		Str("summary_type", "slices").
 		Int64("total_gets", sliceGets).
 		Int64("total_puts", slicePuts).
@@ -390,13 +369,8 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 			fileName = file.OldName
 		}
 
-		sha := unknownCommit
-		if file.PatchHeader != nil && file.PatchHeader.SHA != "" {
-			sha = file.PatchHeader.SHA
-		}
-
-		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, sha, fileName)
-		source := p.getSource(file, fileName)
+		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
+		source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
 
 		if chunk.Added != "" {
 			itemsChan <- item{
