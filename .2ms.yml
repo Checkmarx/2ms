@@ -151,3 +151,13 @@ ignore-result:
 - 80fa9bfa31b3488b04b07983e636651b38bb1e11 # test data from testData/input/secret_at_end.txt
 - a5ad0c6af65f27d470931b60d78c122e59dc3f07 # test data from testData/input/multi_line_secret.txt
 - bc98bd8fae8e5b167ac3b692a75b1c9a794a0143 # test data from testData/input/multi_line_secret.txt
+- 0a562d69c00d4e0ffa888d430fd87e9cda6ead14 # test data from testData/input/secret_at_end_with_newline.txt
+- 249f1901c9f535c974f27d212d788d1888a2ef8a # unit test from reporting/report_test.go
+- 386e95ebd0d7791514dfdc07ca9dc9ff16dae99f # test data from pkg/testData/expectedReportWithValidation.json
+- 45b8c8a6ea2bba79952563808ecdb7048fbc6532 # test data from pkg/testData/expectedReport.json
+- 6049d500822079ae19117235ecd367048b171bd9 # test data from pkg/testData/expectedReportWithValidation.json
+- 62cd097a873e6f379b34ae000a4048af51b05b7f # test data from pkg/testData/expectedReportWithIgnoredRule.json
+- a402a2baed1c1264c99d80208b2ae356121652fa # test data from pkg/testData/expectedReport.json
+- c53e89d8e304567465d7b3818d07f4258c797fb1 # test data from pkg/testData/expectedReport.json
+- cb03869b12a443b2794c2c3ab120ac68d764b4aa # test data from testData/expectedReport/multi_line_secret_report.json
+- f84c54804652fdd36e1e0fc122db67401f75a489 # test data from pkg/testData/expectedReport.json
