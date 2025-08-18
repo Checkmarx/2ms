@@ -531,7 +531,7 @@ func TestGetSource(t *testing.T) {
 }
 
 func TestGitChangesPool(t *testing.T) {
-	pool := newGitChangesPool()
+	pool := newGitChangesPool(0)
 
 	// Test getting a slice
 	slice1 := pool.getSlice()
@@ -625,7 +625,7 @@ func TestExtractChanges(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			changesPool := newGitChangesPool()
+			changesPool := newGitChangesPool(0)
 			chunks := extractChanges(changesPool, tt.fragments)
 
 			assert.Equal(t, tt.expectedChunks, len(chunks), tt.description)
@@ -655,7 +655,7 @@ func TestProcessFileDiff(t *testing.T) {
 	plugin := &GitPlugin{
 		Plugin:         Plugin{},
 		projectName:    "test-project",
-		gitChangesPool: newGitChangesPool(),
+		gitChangesPool: newGitChangesPool(0),
 	}
 
 	// Create test file with large diff
@@ -688,7 +688,7 @@ func TestProcessFileDiff(t *testing.T) {
 }
 
 func TestStringBuilderPool(t *testing.T) {
-	pool := newStringBuilderPool(added, 1024, 64*1024) // 1KB initial, 64KB max
+	pool := newStringBuilderPool(added, 1024, 64*1024, 0) // 1KB initial, 64KB max
 
 	// Test basic get/put operations
 	sb1 := pool.Get()
@@ -713,7 +713,7 @@ func TestStringBuilderPool(t *testing.T) {
 	assert.Equal(t, int64(0), discards, "Should have no discards for normal-sized builders")
 	assert.Equal(t, 100.0, efficiency, "Should have 100% efficiency")
 	t.Run("test oversize handling", func(t *testing.T) {
-		pool := newStringBuilderPool(removed, 1024, 8*1024) // 1KB initial, 8KB max
+		pool := newStringBuilderPool(removed, 1024, 8*1024, 0) // 1KB initial, 8KB max
 
 		sb := pool.Get()
 
