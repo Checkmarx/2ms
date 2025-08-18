@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -32,8 +33,6 @@ const (
 
 	added   stringBuilderType = "added"
 	removed stringBuilderType = "removed"
-
-	defaultPreAllocCount = 900
 )
 
 type stringBuilderType string
@@ -50,7 +49,7 @@ type GitPlugin struct {
 
 func NewGitPlugin() IPlugin {
 	return &GitPlugin{
-		gitChangesPool: newGitChangesPool(defaultPreAllocCount),
+		gitChangesPool: newGitChangesPool(),
 	}
 }
 
@@ -85,7 +84,7 @@ type gitChangesPool struct {
 	slicePoolNews     atomic.Int64
 }
 
-func newGitChangesPool(preAllocCount int) *gitChangesPool {
+func newGitChangesPool() *gitChangesPool {
 	pool := &gitChangesPool{}
 	pool.Pool = sync.Pool{
 		New: func() interface{} {
@@ -95,23 +94,47 @@ func newGitChangesPool(preAllocCount int) *gitChangesPool {
 		},
 	}
 
-	for i := 0; i < preAllocCount; i++ {
-		pool.getSlice()
-	}
-
 	return pool
 }
 
 var (
-	addedPool   = newStringBuilderPool(added, 4096, 512*1024, defaultPreAllocCount)   // 4KB initial, 512KB max, 900 pre-allocated
-	removedPool = newStringBuilderPool(removed, 4096, 512*1024, defaultPreAllocCount) // 4KB initial, 512KB max, 900 pre-allocated
+	addedPool   = newStringBuilderPool(added, 4096, 512*1024)   // 4KB initial, 512KB max
+	removedPool = newStringBuilderPool(removed, 4096, 512*1024) // 4KB initial, 512KB max
+
+	// gitChangesPool stats
 )
 
 func (p *GitPlugin) GetName() string {
 	return "git"
 }
 
-func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize, preAllocCount int) *StringBuilderPool {
+// getFileName extracts filename from gitdiff.File with nil safety
+func (p *GitPlugin) getFileName(file *gitdiff.File) string {
+	if file == nil {
+		return "unknown"
+	}
+	if file.IsDelete {
+		if file.OldName != "" {
+			return file.OldName
+		}
+		return "deleted-file"
+	}
+	if file.NewName != "" {
+		return file.NewName
+	}
+	return "new-file"
+}
+
+// getSource generates source string for gitdiff.File with nil safety
+func (p *GitPlugin) getSource(file *gitdiff.File, fileName string) string {
+	if file == nil || file.PatchHeader == nil {
+		return fmt.Sprintf("git show unknown:%s", fileName)
+	}
+	return fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
+}
+
+// newStringBuilderPool creates a new string builder pool with specified parameters
+func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize int) *StringBuilderPool {
 	sbPool := &StringBuilderPool{
 		builderType: builderType,
 		maxSize:     maxSize,
@@ -123,15 +146,6 @@ func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize, pr
 			sb.Grow(initialCap) // Pre-allocate to reduce early growth
 			return sb
 		},
-	}
-
-	// Pre-populate the pool with builders to avoid initial allocation pressure
-	if preAllocCount > 0 {
-		for i := 0; i < preAllocCount; i++ {
-			sb := &strings.Builder{}
-			sb.Grow(initialCap)
-			sbPool.pool.Put(sb)
-		}
 	}
 
 	return sbPool
@@ -192,25 +206,18 @@ func (p *gitChangesPool) putSlice(chunks []gitdiffChunk) {
 	p.Put(&chunks)
 }
 
-func (p *gitChangesPool) Stats() (gets, puts, discards, news int64, efficiency float64) {
-	g := p.slicePoolGets.Load()
-	pt := p.slicePoolPuts.Load()
-	d := p.slicePoolDiscards.Load()
-	n := p.slicePoolNews.Load()
-
-	if g > 0 {
-		eff := float64(pt) / float64(g) * 100
-		return g, pt, d, n, eff
-	}
-	return g, pt, d, n, 0.0
-}
-
 // PrintPoolStats logs the current efficiency statistics for all pools
 func (p *gitChangesPool) Print() {
+	log.Info().Msg("=== Object Pool Statistics ===")
+
+	// STRING BUILDER POOLS (for content accumulation)
+	log.Info().Msg("--- String Builder Pools ---")
+
+	// Added content string builder pool
 	getsA, putsA, discardsA, newsA, effA := addedPool.Stats()
-	log.Trace().
+	log.Info().
 		Str("pool_type", "string_builder").
-		Str("content_type", string(added)).
+		Str("content_type", "added").
 		Int64("news", newsA).
 		Int64("gets", getsA).
 		Int64("puts", putsA).
@@ -218,10 +225,11 @@ func (p *gitChangesPool) Print() {
 		Float64("efficiency_percent", effA).
 		Msg("Added content string builders")
 
+	// Removed content string builder pool
 	getsR, putsR, discardsR, newsR, effR := removedPool.Stats()
-	log.Trace().
+	log.Info().
 		Str("pool_type", "string_builder").
-		Str("content_type", string(removed)).
+		Str("content_type", "removed").
 		Int64("news", newsR).
 		Int64("gets", getsR).
 		Int64("puts", putsR).
@@ -229,16 +237,29 @@ func (p *gitChangesPool) Print() {
 		Float64("efficiency_percent", effR).
 		Msg("Removed content string builders")
 
-	sliceGets, slicePuts, sliceDiscards, sliceNews, sliceEff := p.Stats()
+	log.Info().Msg("--- Git Changes Pool ---")
 
-	log.Trace().
-		Str("pool_type", "gitdiffChunk").
+	sliceGets := p.slicePoolGets.Load()
+	slicePuts := p.slicePoolPuts.Load()
+	sliceDiscards := p.slicePoolDiscards.Load()
+	sliceNews := p.slicePoolNews.Load()
+	var sliceEff float64
+	if sliceGets > 0 {
+		sliceEff = float64(slicePuts) / float64(sliceGets) * 100
+	}
+
+	log.Info().
+		Str("pool_type", "slice").
+		Str("content_type", "chunked_content_array").
 		Int64("gets", sliceGets).
 		Int64("puts", slicePuts).
 		Int64("discards", sliceDiscards).
 		Int64("new_allocations", sliceNews).
 		Float64("efficiency_percent", sliceEff).
-		Msg("gitdiffChunk slice arrays")
+		Msg("ChunkedContent slice arrays")
+
+	// COMBINED SUMMARY
+	log.Info().Msg("--- Combined Summary ---")
 
 	stringBuilderGets := getsA + getsR
 	stringBuilderPuts := putsA + putsR
@@ -248,7 +269,7 @@ func (p *gitChangesPool) Print() {
 		stringBuilderEff = float64(stringBuilderPuts) / float64(stringBuilderGets) * 100
 	}
 
-	log.Trace().
+	log.Info().
 		Str("summary_type", "string_builders").
 		Int64("total_gets", stringBuilderGets).
 		Int64("total_puts", stringBuilderPuts).
@@ -256,7 +277,7 @@ func (p *gitChangesPool) Print() {
 		Float64("combined_efficiency_percent", stringBuilderEff).
 		Msg("All string builder pools combined")
 
-	log.Trace().
+	log.Info().
 		Str("summary_type", "slices").
 		Int64("total_gets", sliceGets).
 		Int64("total_puts", slicePuts).
@@ -318,9 +339,7 @@ func (p *GitPlugin) scanGit(path, scanOptions string, itemsChan chan ISourceItem
 	}
 
 	// Print pool statistics after scan completes
-	if log.Trace().Enabled() {
-		p.gitChangesPool.Print()
-	}
+	p.gitChangesPool.Print()
 }
 
 // processFileDiff handles processing a single diff file with chunked processing.
@@ -336,11 +355,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		file.PatchHeader.SHA = unknownCommit
 	}
 
-	fileName := file.NewName
-	if file.IsDelete {
-		fileName = file.OldName
-	}
-
+	fileName := p.getFileName(file)
 	log.Debug().Msgf("file: %s; Commit: %s", fileName, file.PatchHeader.Title)
 
 	// Skip binary files
@@ -348,16 +363,18 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		return
 	}
 
-	chunks := extractChanges(p.gitChangesPool, file.TextFragments)
+	changesPool := newGitChangesPool()
+	chunks := extractChanges(changesPool, file.TextFragments)
 
-	for _, chunk := range chunks {
-		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
-		source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
+	for i, chunk := range chunks {
+		chunkId := fmt.Sprintf("%s-%s-%s-%s-chunk-%d",
+			p.GetName(), p.projectName, file.PatchHeader.SHA, fileName, i)
+		source := p.getSource(file, fileName)
 
 		if chunk.Added != "" {
 			itemsChan <- item{
 				Content: &chunk.Added,
-				ID:      id,
+				ID:      chunkId,
 				Source:  source,
 				GitInfo: &GitInfo{
 					Hunks:       file.TextFragments,
@@ -369,7 +386,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		if chunk.Removed != "" {
 			itemsChan <- item{
 				Content: &chunk.Removed,
-				ID:      id + "-removed",
+				ID:      chunkId + "-removed",
 				Source:  source,
 				GitInfo: &GitInfo{
 					Hunks:       file.TextFragments,
@@ -379,6 +396,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		}
 	}
 
+	// Return chunk slice to pool
 	p.gitChangesPool.putSlice(chunks)
 }
 
@@ -419,6 +437,11 @@ func extractChanges(changesPool *gitChangesPool, fragments []*gitdiff.TextFragme
 				currentAdded.Reset()
 				currentRemoved.Reset()
 				currentSize = 0
+
+				// Force GC hint for large chunks
+				if len(chunks)%10 == 0 {
+					runtime.GC()
+				}
 			}
 
 			switch tf.Lines[i].Op {
@@ -430,7 +453,7 @@ func extractChanges(changesPool *gitChangesPool, fragments []*gitdiff.TextFragme
 				currentSize += lineSize
 			}
 
-			// Clear line immediately to free memory
+			// Critical: Clear line immediately to free memory
 			tf.Lines[i].Line = ""
 		}
 	}

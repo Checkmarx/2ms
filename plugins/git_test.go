@@ -432,8 +432,106 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 	}
 }
 
+func TestGetFileName(t *testing.T) {
+	p := &GitPlugin{}
+
+	tests := []struct {
+		name     string
+		file     *gitdiff.File
+		expected string
+	}{
+		{
+			name:     "Nil file",
+			file:     nil,
+			expected: "unknown",
+		},
+		{
+			name: "Deleted file with OldName",
+			file: &gitdiff.File{
+				IsDelete: true,
+				OldName:  "deleted.txt",
+			},
+			expected: "deleted.txt",
+		},
+		{
+			name: "Deleted file without OldName",
+			file: &gitdiff.File{
+				IsDelete: true,
+				OldName:  "",
+			},
+			expected: "deleted-file",
+		},
+		{
+			name: "New file with NewName",
+			file: &gitdiff.File{
+				IsDelete: false,
+				NewName:  "new.txt",
+			},
+			expected: "new.txt",
+		},
+		{
+			name: "File without NewName",
+			file: &gitdiff.File{
+				IsDelete: false,
+				NewName:  "",
+			},
+			expected: "new-file",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := p.getFileName(tt.file)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetSource(t *testing.T) {
+	p := &GitPlugin{}
+
+	tests := []struct {
+		name     string
+		file     *gitdiff.File
+		fileName string
+		expected string
+	}{
+		{
+			name:     "Nil file",
+			file:     nil,
+			fileName: "test.txt",
+			expected: "git show unknown:test.txt",
+		},
+		{
+			name: "File with nil PatchHeader",
+			file: &gitdiff.File{
+				PatchHeader: nil,
+			},
+			fileName: "test.txt",
+			expected: "git show unknown:test.txt",
+		},
+		{
+			name: "File with PatchHeader and SHA",
+			file: &gitdiff.File{
+				PatchHeader: &gitdiff.PatchHeader{
+					SHA: "abc123",
+				},
+			},
+			fileName: "test.txt",
+			expected: "git show abc123:test.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := p.getSource(tt.file, tt.fileName)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestGitChangesPool(t *testing.T) {
-	pool := newGitChangesPool(0)
+	pool := newGitChangesPool()
 
 	// Test getting a slice
 	slice1 := pool.getSlice()
@@ -527,7 +625,7 @@ func TestExtractChanges(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			changesPool := newGitChangesPool(0)
+			changesPool := newGitChangesPool()
 			chunks := extractChanges(changesPool, tt.fragments)
 
 			assert.Equal(t, tt.expectedChunks, len(chunks), tt.description)
@@ -557,7 +655,7 @@ func TestProcessFileDiff(t *testing.T) {
 	plugin := &GitPlugin{
 		Plugin:         Plugin{},
 		projectName:    "test-project",
-		gitChangesPool: newGitChangesPool(0),
+		gitChangesPool: newGitChangesPool(),
 	}
 
 	// Create test file with large diff
@@ -582,6 +680,7 @@ func TestProcessFileDiff(t *testing.T) {
 		itemCount++
 		assert.NotNil(t, item.GetContent(), "Item content should not be nil")
 		assert.NotEmpty(t, item.GetID(), "Item ID should not be empty")
+		assert.Contains(t, item.GetID(), "chunk-", "Item ID should contain chunk identifier")
 	}
 
 	// Should have created multiple chunks and therefore multiple items
@@ -589,7 +688,7 @@ func TestProcessFileDiff(t *testing.T) {
 }
 
 func TestStringBuilderPool(t *testing.T) {
-	pool := newStringBuilderPool(added, 1024, 64*1024, 0) // 1KB initial, 64KB max
+	pool := newStringBuilderPool(added, 1024, 64*1024) // 1KB initial, 64KB max
 
 	// Test basic get/put operations
 	sb1 := pool.Get()
@@ -614,7 +713,7 @@ func TestStringBuilderPool(t *testing.T) {
 	assert.Equal(t, int64(0), discards, "Should have no discards for normal-sized builders")
 	assert.Equal(t, 100.0, efficiency, "Should have 100% efficiency")
 	t.Run("test oversize handling", func(t *testing.T) {
-		pool := newStringBuilderPool(removed, 1024, 8*1024, 0) // 1KB initial, 8KB max
+		pool := newStringBuilderPool(removed, 1024, 8*1024) // 1KB initial, 8KB max
 
 		sb := pool.Get()
 
