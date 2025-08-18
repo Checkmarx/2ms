@@ -3,8 +3,10 @@ package plugins
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/checkmarx/2ms/v3/lib/utils"
 	"github.com/gitleaks/go-gitdiff/gitdiff"
@@ -18,6 +20,8 @@ type DiffType int
 const (
 	AddedContent DiffType = iota
 	RemovedContent
+
+	maxChunkSize = 1024 * 1024 // 1MB max chunk size for git diff content
 )
 
 const (
@@ -26,7 +30,12 @@ const (
 	argProjectName     = "project-name"
 	argBaseCommit      = "base-commit"
 	unknownCommit      = "unknown"
+
+	added   stringBuilderType = "added"
+	removed stringBuilderType = "removed"
 )
+
+type stringBuilderType string
 
 type GitPlugin struct {
 	Plugin
@@ -35,6 +44,13 @@ type GitPlugin struct {
 	scanAllBranches bool
 	projectName     string
 	baseCommit      string
+	gitChangesPool  *gitChangesPool
+}
+
+func NewGitPlugin() IPlugin {
+	return &GitPlugin{
+		gitChangesPool: newGitChangesPool(),
+	}
 }
 
 type GitInfo struct {
@@ -42,8 +58,233 @@ type GitInfo struct {
 	ContentType DiffType
 }
 
+// gitdiffChunk represents a chunk of git diff content
+type gitdiffChunk struct {
+	Added   string
+	Removed string
+}
+
+// StringBuilderPool provides thread-safe object pooling for string builders
+type StringBuilderPool struct {
+	pool        sync.Pool
+	gets        atomic.Int64
+	puts        atomic.Int64
+	discards    atomic.Int64
+	news        atomic.Int64
+	maxSize     int
+	builderType stringBuilderType
+}
+
+type gitChangesPool struct {
+	sync.Pool
+
+	slicePoolGets     atomic.Int64
+	slicePoolPuts     atomic.Int64
+	slicePoolDiscards atomic.Int64
+	slicePoolNews     atomic.Int64
+}
+
+func newGitChangesPool() *gitChangesPool {
+	pool := &gitChangesPool{}
+	pool.Pool = sync.Pool{
+		New: func() interface{} {
+			pool.slicePoolNews.Add(1)
+			slice := make([]gitdiffChunk, 0, 16) // Initial capacity for 16 chunks
+			return &slice
+		},
+	}
+
+	return pool
+}
+
+var (
+	addedPool   = newStringBuilderPool(added, 4096, 512*1024)   // 4KB initial, 512KB max
+	removedPool = newStringBuilderPool(removed, 4096, 512*1024) // 4KB initial, 512KB max
+
+	// gitChangesPool stats
+)
+
 func (p *GitPlugin) GetName() string {
 	return "git"
+}
+
+// getFileName extracts filename from gitdiff.File with nil safety
+func (p *GitPlugin) getFileName(file *gitdiff.File) string {
+	if file == nil {
+		return "unknown"
+	}
+	if file.IsDelete {
+		if file.OldName != "" {
+			return file.OldName
+		}
+		return "deleted-file"
+	}
+	if file.NewName != "" {
+		return file.NewName
+	}
+	return "new-file"
+}
+
+// getSource generates source string for gitdiff.File with nil safety
+func (p *GitPlugin) getSource(file *gitdiff.File, fileName string) string {
+	if file == nil || file.PatchHeader == nil {
+		return fmt.Sprintf("git show unknown:%s", fileName)
+	}
+	return fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
+}
+
+// newStringBuilderPool creates a new string builder pool with specified parameters
+func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize int) *StringBuilderPool {
+	sbPool := &StringBuilderPool{
+		builderType: builderType,
+		maxSize:     maxSize,
+	}
+	sbPool.pool = sync.Pool{
+		New: func() interface{} {
+			sbPool.news.Add(1)
+			sb := &strings.Builder{}
+			sb.Grow(initialCap) // Pre-allocate to reduce early growth
+			return sb
+		},
+	}
+
+	return sbPool
+}
+
+// Get retrieves a string builder from the pool
+func (p *StringBuilderPool) Get() *strings.Builder {
+	p.gets.Add(1)
+	sb := p.pool.Get().(*strings.Builder)
+	sb.Reset() // Ensure clean state
+	return sb
+}
+
+// Put returns a string builder to the pool with size limits
+func (p *StringBuilderPool) Put(sb *strings.Builder) {
+	if sb == nil {
+		return
+	}
+
+	// Don't pool builders that grew too large (prevents memory bloat)
+	if sb.Cap() > p.maxSize {
+		p.discards.Add(1)
+		return
+	}
+
+	// Reset content but keep capacity
+	sb.Reset()
+	p.puts.Add(1)
+	p.pool.Put(sb)
+}
+
+// Stats returns pool efficiency statistics
+func (p *StringBuilderPool) Stats() (gets, puts, discards, news int64, efficiency float64) {
+	g := p.gets.Load()
+	pt := p.puts.Load()
+	d := p.discards.Load()
+	n := p.news.Load()
+
+	if g > 0 {
+		eff := float64(pt) / float64(g) * 100
+		return g, pt, d, n, eff
+	}
+	return g, pt, d, n, 0.0
+}
+
+func (p *gitChangesPool) getSlice() []gitdiffChunk {
+	p.slicePoolGets.Add(1)
+	return *p.Get().(*[]gitdiffChunk)
+}
+
+func (p *gitChangesPool) putSlice(chunks []gitdiffChunk) {
+	if cap(chunks) > 32 { // Don't pool slices larger than 64 elements
+		p.slicePoolDiscards.Add(1)
+		return
+	}
+	chunks = chunks[:0] // Reset length but keep capacity
+	p.slicePoolPuts.Add(1)
+	p.Put(&chunks)
+}
+
+// PrintPoolStats logs the current efficiency statistics for all pools
+func (p *gitChangesPool) Print() {
+	log.Info().Msg("=== Object Pool Statistics ===")
+
+	// STRING BUILDER POOLS (for content accumulation)
+	log.Info().Msg("--- String Builder Pools ---")
+
+	// Added content string builder pool
+	getsA, putsA, discardsA, newsA, effA := addedPool.Stats()
+	log.Info().
+		Str("pool_type", "string_builder").
+		Str("content_type", "added").
+		Int64("news", newsA).
+		Int64("gets", getsA).
+		Int64("puts", putsA).
+		Int64("discards", discardsA).
+		Float64("efficiency_percent", effA).
+		Msg("Added content string builders")
+
+	// Removed content string builder pool
+	getsR, putsR, discardsR, newsR, effR := removedPool.Stats()
+	log.Info().
+		Str("pool_type", "string_builder").
+		Str("content_type", "removed").
+		Int64("news", newsR).
+		Int64("gets", getsR).
+		Int64("puts", putsR).
+		Int64("discards", discardsR).
+		Float64("efficiency_percent", effR).
+		Msg("Removed content string builders")
+
+	log.Info().Msg("--- Git Changes Pool ---")
+
+	sliceGets := p.slicePoolGets.Load()
+	slicePuts := p.slicePoolPuts.Load()
+	sliceDiscards := p.slicePoolDiscards.Load()
+	sliceNews := p.slicePoolNews.Load()
+	var sliceEff float64
+	if sliceGets > 0 {
+		sliceEff = float64(slicePuts) / float64(sliceGets) * 100
+	}
+
+	log.Info().
+		Str("pool_type", "slice").
+		Str("content_type", "chunked_content_array").
+		Int64("gets", sliceGets).
+		Int64("puts", slicePuts).
+		Int64("discards", sliceDiscards).
+		Int64("new_allocations", sliceNews).
+		Float64("efficiency_percent", sliceEff).
+		Msg("ChunkedContent slice arrays")
+
+	// COMBINED SUMMARY
+	log.Info().Msg("--- Combined Summary ---")
+
+	stringBuilderGets := getsA + getsR
+	stringBuilderPuts := putsA + putsR
+	stringBuilderDiscards := discardsA + discardsR
+	var stringBuilderEff float64
+	if stringBuilderGets > 0 {
+		stringBuilderEff = float64(stringBuilderPuts) / float64(stringBuilderGets) * 100
+	}
+
+	log.Info().
+		Str("summary_type", "string_builders").
+		Int64("total_gets", stringBuilderGets).
+		Int64("total_puts", stringBuilderPuts).
+		Int64("total_discards", stringBuilderDiscards).
+		Float64("combined_efficiency_percent", stringBuilderEff).
+		Msg("All string builder pools combined")
+
+	log.Info().
+		Str("summary_type", "slices").
+		Int64("total_gets", sliceGets).
+		Int64("total_puts", slicePuts).
+		Int64("total_discards", sliceDiscards).
+		Int64("total_new_allocations", sliceNews).
+		Float64("efficiency_percent", sliceEff).
+		Msg("Slice pool summary")
 }
 
 func (p *GitPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
@@ -96,10 +337,17 @@ func (p *GitPlugin) scanGit(path, scanOptions string, itemsChan chan ISourceItem
 	for file := range diffs {
 		p.processFileDiff(file, itemsChan)
 	}
+
+	// Print pool statistics after scan completes
+	p.gitChangesPool.Print()
 }
 
-// processFileDiff handles processing a single diff file.
+// processFileDiff handles processing a single diff file with chunked processing.
 func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceItem) {
+	if file == nil {
+		return
+	}
+
 	if file.PatchHeader == nil {
 		// When parsing the PatchHeader, the token size limit may be exceeded, resulting in a nil value
 		// This scenario is unlikely but may cause the scan to never complete
@@ -107,74 +355,118 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		file.PatchHeader.SHA = unknownCommit
 	}
 
-	log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
+	fileName := p.getFileName(file)
+	log.Debug().Msgf("file: %s; Commit: %s", fileName, file.PatchHeader.Title)
 
 	// Skip binary files
 	if file.IsBinary {
 		return
 	}
 
-	// Extract the changes (added and removed) from the text fragments
-	addedChanges, removedChanges := extractChanges(file.TextFragments)
+	changesPool := newGitChangesPool()
+	chunks := extractChanges(changesPool, file.TextFragments)
 
-	var fileName string
-	if file.IsDelete {
-		fileName = file.OldName
-	} else {
-		fileName = file.NewName
-	}
-	id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
-	source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
+	for i, chunk := range chunks {
+		chunkId := fmt.Sprintf("%s-%s-%s-%s-chunk-%d",
+			p.GetName(), p.projectName, file.PatchHeader.SHA, fileName, i)
+		source := p.getSource(file, fileName)
 
-	// If there are added changes, send an item with added content
-	if addedChanges != "" {
-		itemsChan <- item{
-			Content: &addedChanges,
-			ID:      id,
-			Source:  source,
-			GitInfo: &GitInfo{
-				Hunks:       file.TextFragments,
-				ContentType: AddedContent,
-			},
+		if chunk.Added != "" {
+			itemsChan <- item{
+				Content: &chunk.Added,
+				ID:      chunkId,
+				Source:  source,
+				GitInfo: &GitInfo{
+					Hunks:       file.TextFragments,
+					ContentType: AddedContent,
+				},
+			}
+		}
+
+		if chunk.Removed != "" {
+			itemsChan <- item{
+				Content: &chunk.Removed,
+				ID:      chunkId + "-removed",
+				Source:  source,
+				GitInfo: &GitInfo{
+					Hunks:       file.TextFragments,
+					ContentType: RemovedContent,
+				},
+			}
 		}
 	}
 
-	// If there are removed changes, send an item with removed content
-	if removedChanges != "" {
-		itemsChan <- item{
-			Content: &removedChanges,
-			ID:      id,
-			Source:  source,
-			GitInfo: &GitInfo{
-				Hunks:       file.TextFragments,
-				ContentType: RemovedContent,
-			},
-		}
-	}
+	// Return chunk slice to pool
+	p.gitChangesPool.putSlice(chunks)
 }
 
-// extractChanges iterates over the text fragments to compile added and removed changes
-func extractChanges(fragments []*gitdiff.TextFragment) (added, removed string) {
-	var addedBuilder, removedBuilder strings.Builder
+// extractChanges performs memory-bounded chunked processing of git diff fragments
+func extractChanges(changesPool *gitChangesPool, fragments []*gitdiff.TextFragment) []gitdiffChunk {
+	chunks := changesPool.getSlice()
+	currentAdded := addedPool.Get()
+	defer addedPool.Put(currentAdded)
+	currentRemoved := removedPool.Get()
+	defer removedPool.Put(currentRemoved)
+
+	currentSize := 0
 
 	for _, tf := range fragments {
 		if tf == nil {
 			continue
 		}
+
 		for i := range tf.Lines {
+			line := tf.Lines[i].Line
+			lineSize := len(line)
+
+			// Skip excessively large lines (potential issue)
+			if lineSize > 1024*1024 { // 1MB line limit
+				tf.Lines[i].Line = "" // Clear line to free memory
+				continue
+			}
+
+			// Check if adding this line would exceed chunk size
+			if currentSize > 0 && currentSize+lineSize > maxChunkSize {
+				// Create chunk with current content before adding this line
+				chunks = append(chunks, gitdiffChunk{
+					Added:   currentAdded.String(),
+					Removed: currentRemoved.String(),
+				})
+
+				// Reset builders for next chunk
+				currentAdded.Reset()
+				currentRemoved.Reset()
+				currentSize = 0
+
+				// Force GC hint for large chunks
+				if len(chunks)%10 == 0 {
+					runtime.GC()
+				}
+			}
+
 			switch tf.Lines[i].Op {
 			case gitdiff.OpAdd:
-				addedBuilder.WriteString(tf.Lines[i].Line)
+				currentAdded.WriteString(line)
+				currentSize += lineSize
 			case gitdiff.OpDelete:
-				removedBuilder.WriteString(tf.Lines[i].Line)
-			default:
+				currentRemoved.WriteString(line)
+				currentSize += lineSize
 			}
-			// Clean up the line content to free memory
+
+			// Critical: Clear line immediately to free memory
 			tf.Lines[i].Line = ""
 		}
 	}
 
-	return addedBuilder.String(), removedBuilder.String()
+	// Final chunk
+	if currentSize > 0 {
+		chunks = append(chunks, gitdiffChunk{
+			Added:   currentAdded.String(),
+			Removed: currentRemoved.String(),
+		})
+	}
+
+	return chunks
 }
 
 func (p *GitPlugin) readGitLog(path, scanOptions string, errChan chan error) (<-chan *gitdiff.File, func()) {

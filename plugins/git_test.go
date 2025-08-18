@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gitleaks/go-gitdiff/gitdiff"
@@ -431,6 +432,138 @@ func TestGetGitStartAndEndLine(t *testing.T) {
 	}
 }
 
+func TestGetFileName(t *testing.T) {
+	p := &GitPlugin{}
+
+	tests := []struct {
+		name     string
+		file     *gitdiff.File
+		expected string
+	}{
+		{
+			name:     "Nil file",
+			file:     nil,
+			expected: "unknown",
+		},
+		{
+			name: "Deleted file with OldName",
+			file: &gitdiff.File{
+				IsDelete: true,
+				OldName:  "deleted.txt",
+			},
+			expected: "deleted.txt",
+		},
+		{
+			name: "Deleted file without OldName",
+			file: &gitdiff.File{
+				IsDelete: true,
+				OldName:  "",
+			},
+			expected: "deleted-file",
+		},
+		{
+			name: "New file with NewName",
+			file: &gitdiff.File{
+				IsDelete: false,
+				NewName:  "new.txt",
+			},
+			expected: "new.txt",
+		},
+		{
+			name: "File without NewName",
+			file: &gitdiff.File{
+				IsDelete: false,
+				NewName:  "",
+			},
+			expected: "new-file",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := p.getFileName(tt.file)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetSource(t *testing.T) {
+	p := &GitPlugin{}
+
+	tests := []struct {
+		name     string
+		file     *gitdiff.File
+		fileName string
+		expected string
+	}{
+		{
+			name:     "Nil file",
+			file:     nil,
+			fileName: "test.txt",
+			expected: "git show unknown:test.txt",
+		},
+		{
+			name: "File with nil PatchHeader",
+			file: &gitdiff.File{
+				PatchHeader: nil,
+			},
+			fileName: "test.txt",
+			expected: "git show unknown:test.txt",
+		},
+		{
+			name: "File with PatchHeader and SHA",
+			file: &gitdiff.File{
+				PatchHeader: &gitdiff.PatchHeader{
+					SHA: "abc123",
+				},
+			},
+			fileName: "test.txt",
+			expected: "git show abc123:test.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := p.getSource(tt.file, tt.fileName)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGitChangesPool(t *testing.T) {
+	pool := newGitChangesPool()
+
+	// Test getting a slice
+	slice1 := pool.getSlice()
+	assert.NotNil(t, slice1)
+	assert.Equal(t, 0, len(slice1))
+	assert.GreaterOrEqual(t, cap(slice1), 16)
+
+	// Add some data
+	slice1 = append(slice1, gitdiffChunk{Added: "test", Removed: "old"})
+
+	// Put it back
+	pool.putSlice(slice1)
+
+	// Get another slice
+	slice2 := pool.getSlice()
+	assert.NotNil(t, slice2)
+	assert.Equal(t, 0, len(slice2)) // Should be reset
+
+	// Test oversized slice discard
+	largeSlice := make([]gitdiffChunk, 0, 100)
+	pool.putSlice(largeSlice) // Should be discarded due to size
+
+	// Check stats
+	gets := pool.slicePoolGets.Load()
+	puts := pool.slicePoolPuts.Load()
+	discards := pool.slicePoolDiscards.Load()
+
+	assert.Equal(t, int64(2), gets)
+	assert.Equal(t, int64(1), puts)     // Only the first slice was put back
+	assert.Equal(t, int64(1), discards) // Large slice was discarded
+}
+
 func createMockHunk(oldPos, oldLines, newPos, newLines, linesAdded, linesDeleted int64, lines []gitdiff.Line) *gitdiff.TextFragment {
 	if lines == nil {
 		for i := int64(0); i < linesDeleted; i++ {
@@ -448,5 +581,200 @@ func createMockHunk(oldPos, oldLines, newPos, newLines, linesAdded, linesDeleted
 		LinesAdded:   linesAdded,
 		LinesDeleted: linesDeleted,
 		Lines:        lines,
+	}
+}
+
+func TestExtractChanges(t *testing.T) {
+	tests := []struct {
+		name           string
+		fragments      []*gitdiff.TextFragment
+		expectedChunks int
+		description    string
+	}{
+		{
+			name:           "Large diff chunked properly",
+			fragments:      createLargeTestFragments(2 * 1024 * 1024), // 2MB total
+			expectedChunks: 2,
+			description:    "Should create 2 chunks for 2MB of data with 1MB chunk size",
+		},
+		{
+			name:           "Small diff single chunk",
+			fragments:      createSmallTestFragments(500 * 1024), // 500KB total
+			expectedChunks: 1,
+			description:    "Should create 1 chunk for 500KB of data with 1MB chunk size",
+		},
+		{
+			name:           "Empty fragments",
+			fragments:      []*gitdiff.TextFragment{},
+			expectedChunks: 0,
+			description:    "Should create no chunks for empty fragments",
+		},
+		{
+			name:           "Nil fragment handling",
+			fragments:      []*gitdiff.TextFragment{nil, createSmallTestFragments(100)[0], nil},
+			expectedChunks: 1,
+			description:    "Should handle nil fragments gracefully",
+		},
+		{
+			name:           "Mixed operations",
+			fragments:      createMixedOperationFragments(256 * 1024), // 256KB each add/delete (total ~640KB)
+			expectedChunks: 1,
+			description:    "Should handle mixed add/delete operations in single chunk",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			changesPool := newGitChangesPool()
+			chunks := extractChanges(changesPool, tt.fragments)
+
+			assert.Equal(t, tt.expectedChunks, len(chunks), tt.description)
+
+			// Verify memory is freed for non-nil fragments
+			for _, fragment := range tt.fragments {
+				if fragment != nil {
+					for _, line := range fragment.Lines {
+						assert.Empty(t, line.Line, "Line content should be cleared to free memory")
+					}
+				}
+			}
+
+			// Verify chunks contain expected content types
+			for _, chunk := range chunks {
+				if tt.expectedChunks > 0 {
+					// At least one chunk should have some content
+					hasContent := chunk.Added != "" || chunk.Removed != ""
+					assert.True(t, hasContent, "Chunk should contain added or removed content")
+				}
+			}
+		})
+	}
+}
+
+func TestProcessFileDiff(t *testing.T) {
+	plugin := &GitPlugin{
+		Plugin:         Plugin{},
+		projectName:    "test-project",
+		gitChangesPool: newGitChangesPool(),
+	}
+
+	// Create test file with large diff
+	file := &gitdiff.File{
+		NewName: "test-file.go",
+		OldName: "test-file.go",
+		PatchHeader: &gitdiff.PatchHeader{
+			SHA:   "abc123",
+			Title: "Test commit",
+		},
+		TextFragments: createLargeTestFragments(2 * 1024 * 1024), // 2MB
+	}
+
+	items := make(chan ISourceItem, 100)
+
+	plugin.processFileDiff(file, items)
+	close(items)
+
+	// Collect all items
+	var itemCount int
+	for item := range items {
+		itemCount++
+		assert.NotNil(t, item.GetContent(), "Item content should not be nil")
+		assert.NotEmpty(t, item.GetID(), "Item ID should not be empty")
+		assert.Contains(t, item.GetID(), "chunk-", "Item ID should contain chunk identifier")
+	}
+
+	// Should have created multiple chunks and therefore multiple items
+	assert.Greater(t, itemCount, 1, "Should create multiple items for large file")
+}
+
+func TestStringBuilderPool(t *testing.T) {
+	pool := newStringBuilderPool(added, 1024, 64*1024) // 1KB initial, 64KB max
+
+	// Test basic get/put operations
+	sb1 := pool.Get()
+	assert.NotNil(t, sb1, "Should get valid string builder")
+	assert.Equal(t, 0, sb1.Len(), "Builder should be empty/reset")
+
+	sb1.WriteString("test content")
+	pool.Put(sb1)
+
+	// Get another builder (may or may not be the same instance)
+	sb2 := pool.Get()
+	assert.NotNil(t, sb2, "Should get valid string builder")
+	assert.Equal(t, 0, sb2.Len(), "Builder should be empty/reset")
+
+	pool.Put(sb2)
+
+	// Check stats
+	gets, puts, discards, news, efficiency := pool.Stats()
+	assert.Equal(t, int64(2), gets, "Should track gets")
+	assert.Equal(t, int64(2), puts, "Should track puts")
+	assert.Equal(t, int64(1), news, "Should track news")
+	assert.Equal(t, int64(0), discards, "Should have no discards for normal-sized builders")
+	assert.Equal(t, 100.0, efficiency, "Should have 100% efficiency")
+	t.Run("test oversize handling", func(t *testing.T) {
+		pool := newStringBuilderPool(removed, 1024, 8*1024) // 1KB initial, 8KB max
+
+		sb := pool.Get()
+
+		// Create content larger than max size
+		largeContent := strings.Repeat("x", 16*1024) // 16KB > 8KB max
+		sb.WriteString(largeContent)
+
+		pool.Put(sb) // Should discard due to size
+
+		gets, puts, discards, news, efficiency := pool.Stats()
+		assert.Equal(t, int64(1), gets, "Should track gets")
+		assert.Equal(t, int64(1), news, "Should track news")
+		assert.Equal(t, int64(0), puts, "Should not put oversized builder")
+		assert.Equal(t, int64(1), discards, "Should track discard")
+		assert.Equal(t, 0.0, efficiency, "Should have 0% efficiency due to discard")
+	})
+}
+
+func createLargeTestFragments(totalSize int) []*gitdiff.TextFragment {
+	lineSize := 1024 // 1KB per line
+	numLines := totalSize / lineSize
+	lines := make([]gitdiff.Line, numLines)
+
+	for i := 0; i < numLines; i++ {
+		op := gitdiff.OpAdd
+		if i%2 == 0 {
+			op = gitdiff.OpDelete
+		}
+		lines[i] = gitdiff.Line{
+			Op:   op,
+			Line: strings.Repeat("a", lineSize),
+		}
+	}
+
+	return []*gitdiff.TextFragment{
+		{
+			Lines: lines,
+		},
+	}
+}
+
+func createSmallTestFragments(totalSize int) []*gitdiff.TextFragment {
+	line := strings.Repeat("x", totalSize)
+	return []*gitdiff.TextFragment{
+		{
+			Lines: []gitdiff.Line{
+				{Op: gitdiff.OpAdd, Line: line},
+			},
+		},
+	}
+}
+
+func createMixedOperationFragments(sizePerOp int) []*gitdiff.TextFragment {
+	return []*gitdiff.TextFragment{
+		{
+			Lines: []gitdiff.Line{
+				{Op: gitdiff.OpAdd, Line: strings.Repeat("a", sizePerOp)},
+				{Op: gitdiff.OpDelete, Line: strings.Repeat("d", sizePerOp)},
+				{Op: gitdiff.OpContext, Line: "context line"},
+				{Op: gitdiff.OpAdd, Line: strings.Repeat("a", sizePerOp/2)},
+			},
+		},
 	}
 }
