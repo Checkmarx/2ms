@@ -146,3 +146,8 @@ ignore-result:
 - 07167ae672cd487a2ff261021ff8038c3933cc60 # test data from expectedReportWithIgnoredResults.json
 - 90900eacdae0dff52cc29537b386b41587b0110c # test data from github-pat.txt
 - 233d0c4f93ac448e368b14cc227357b1b91152a8 # test data from expectedReportWithIgnoredRule.json
+- 0a444c3960dbca51baeacf6d5193f64b5ddf0d66 # test data from secret_at_end.txt
+- 4871552fe2d7c5767ac450e62651de0f39132be2 # test data from secret.txt
+- 80fa9bfa31b3488b04b07983e636651b38bb1e11 # test data from secret_at_end.txt
+- a5ad0c6af65f27d470931b60d78c122e59dc3f07 # test data from multi_line_secret.txt
+- bc98bd8fae8e5b167ac3b692a75b1c9a794a0143 # test data from multi_line_secret.txt
