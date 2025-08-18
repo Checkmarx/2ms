@@ -336,7 +336,12 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		file.PatchHeader.SHA = unknownCommit
 	}
 
-	log.Debug().Msgf("file: %s; Commit: %s", file.NewName, file.PatchHeader.Title)
+	fileName := file.NewName
+	if file.IsDelete {
+		fileName = file.OldName
+	}
+
+	log.Debug().Msgf("file: %s; Commit: %s", fileName, file.PatchHeader.Title)
 
 	// Skip binary files
 	if file.IsBinary {
@@ -346,10 +351,6 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 	chunks := extractChanges(p.gitChangesPool, file.TextFragments)
 
 	for _, chunk := range chunks {
-		fileName := file.NewName
-		if file.IsDelete {
-			fileName = file.OldName
-		}
 
 		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
 		source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
