@@ -128,6 +128,15 @@ func (p *GitPlugin) getFileName(file *gitdiff.File) string {
 	return "new-file"
 }
 
+// getSource generates the git show command source string with nil safety
+func (p *GitPlugin) getSource(file *gitdiff.File, fileName string) string {
+	sha := unknownCommit
+	if file != nil && file.PatchHeader != nil && file.PatchHeader.SHA != "" {
+		sha = file.PatchHeader.SHA
+	}
+	return fmt.Sprintf("git show %s:%s", sha, fileName)
+}
+
 func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize, preAllocCount int) *StringBuilderPool {
 	sbPool := &StringBuilderPool{
 		builderType: builderType,
@@ -381,8 +390,13 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 			fileName = file.OldName
 		}
 
-		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
-		source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
+		sha := unknownCommit
+		if file.PatchHeader != nil && file.PatchHeader.SHA != "" {
+			sha = file.PatchHeader.SHA
+		}
+
+		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, sha, fileName)
+		source := p.getSource(file, fileName)
 
 		if chunk.Added != "" {
 			itemsChan <- item{
