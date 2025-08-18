@@ -351,7 +351,6 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 	chunks := extractChanges(p.gitChangesPool, file.TextFragments)
 
 	for _, chunk := range chunks {
-
 		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
 		source := fmt.Sprintf("git show %s:%s", file.PatchHeader.SHA, fileName)
 
