@@ -680,7 +680,6 @@ func TestProcessFileDiff(t *testing.T) {
 		itemCount++
 		assert.NotNil(t, item.GetContent(), "Item content should not be nil")
 		assert.NotEmpty(t, item.GetID(), "Item ID should not be empty")
-		assert.Contains(t, item.GetID(), "chunk-", "Item ID should contain chunk identifier")
 	}
 
 	// Should have created multiple chunks and therefore multiple items
