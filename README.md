@@ -257,7 +257,7 @@ This command is used to scan a [Confluence](https://www.atlassian.com/software/c
 
 | Flag         | Type  | Default                        | Description                                                                      |
 | ------------ | ----- | ------------------------------ | -------------------------------------------------------------------------------- |
-| `<url>`      | string | -                              | Confluence instance URL, in the following format: `https://<company id>.atlassian.net/wiki` |
+| `<url>`      | string | -                              | Confluence instance URL in the following format: `https://<company id>.atlassian.net/wiki` |
 | `--history`  | -      | Doesn't scan history revisions | Scans pages history revisions                                                    |
 | `--spaces`   | string | all spaces                     | The names or IDs of the Confluence spaces to scan                                |
 | `--token`    | string | -                              | The Confluence API token for authentication                                      |
