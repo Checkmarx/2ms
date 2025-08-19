@@ -12,7 +12,7 @@ var cfg = config.Config{
 	Allowlist: config.Allowlist{
 		Paths: []*regexp.Regexp{
 			regexp.MustCompile(`gitleaks.toml`),
-			regexp.MustCompile(`(.*?)(jpg|gif|doc|docx|zip|xls|pdf|bin|svg|socket|vsidx|v2|suo|wsuo|.dll|pdb|exe)$`),
+			regexp.MustCompile(`(.*?)(jpg|gif|doc|docx|zip|xls|pdf|bin|svg|socket|vsidx|\.v2|suo|wsuo|.dll|pdb|exe)$`),
 			regexp.MustCompile(`(go.mod|go.sum)$`),
 			regexp.MustCompile(`gradle.lockfile`),
 			regexp.MustCompile(`node_modules`),
