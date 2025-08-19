@@ -20,7 +20,7 @@ const (
 	AddedContent DiffType = iota
 	RemovedContent
 
-	maxChunkSize = 1024 * 1024 // 1MB max chunk size for git diff content
+	maxChunkSize = 256 * 1024 // 256KB max chunk size for git diff content (optimized for regexp)
 )
 
 const (
@@ -369,7 +369,7 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		if chunk.Removed != "" {
 			itemsChan <- item{
 				Content: &chunk.Removed,
-				ID:      id + "-removed",
+				ID:      id,
 				Source:  source,
 				GitInfo: &GitInfo{
 					Hunks:       file.TextFragments,

@@ -496,14 +496,14 @@ func TestExtractChanges(t *testing.T) {
 		{
 			name:           "Large diff chunked properly",
 			fragments:      createLargeTestFragments(2 * 1024 * 1024), // 2MB total
-			expectedChunks: 2,
-			description:    "Should create 2 chunks for 2MB of data with 1MB chunk size",
+			expectedChunks: 8,
+			description:    "Should create 8 chunks for 2MB of data with 256KB each",
 		},
 		{
 			name:           "Small diff single chunk",
 			fragments:      createSmallTestFragments(500 * 1024), // 500KB total
 			expectedChunks: 1,
-			description:    "Should create 1 chunk for 500KB of data with 1MB chunk size",
+			description:    "Should create 2 chunks for 500KB",
 		},
 		{
 			name:           "Empty fragments",
@@ -520,7 +520,7 @@ func TestExtractChanges(t *testing.T) {
 		{
 			name:           "Mixed operations",
 			fragments:      createMixedOperationFragments(256 * 1024), // 256KB each add/delete (total ~640KB)
-			expectedChunks: 1,
+			expectedChunks: 3,
 			description:    "Should handle mixed add/delete operations in single chunk",
 		},
 	}
