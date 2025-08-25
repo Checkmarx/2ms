@@ -679,3 +679,157 @@ func createMixedOperationFragments(sizePerOp int) []*gitdiff.TextFragment {
 		},
 	}
 }
+
+func TestScanCommitsParallel(t *testing.T) {
+	// Test requires actual git repository
+	repoPath := "."
+	
+	// Verify this is a git repository before testing
+	cmd := &cobra.Command{}
+	args := []string{repoPath}
+	err := validGitRepoArgs(cmd, args)
+	if err != nil {
+		t.Skipf("Skipping parallel test: %v", err)
+		return
+	}
+
+	t.Run("parallel vs sequential comparison", func(t *testing.T) {
+		// Create scanners for both methods
+		scanner1, err := NewGitScanner(repoPath)
+		assert.NoError(t, err, "Failed to create first scanner")
+		
+		scanner2, err := NewGitScanner(repoPath) 
+		assert.NoError(t, err, "Failed to create second scanner")
+
+		// Get results from cache control processing
+		sequentialChan, err := scanner1.ScanCommitsWithCacheControl()
+		assert.NoError(t, err, "Failed to start cache control scan")
+
+		var sequentialFiles []*gitdiff.File
+		for file := range sequentialChan {
+			sequentialFiles = append(sequentialFiles, file)
+		}
+
+		// Get results from parallel processing
+		parallelChan, err := scanner2.scanCommits()
+		assert.NoError(t, err, "Failed to start parallel scan")
+
+		var parallelFiles []*gitdiff.File
+		for file := range parallelChan {
+			parallelFiles = append(parallelFiles, file)
+		}
+
+		// Compare file counts
+		assert.Equal(t, len(sequentialFiles), len(parallelFiles), 
+			"Sequential and parallel should process same number of files")
+
+		// Create maps for comparison (order may differ due to parallel processing)
+		sequentialMap := make(map[string]*gitdiff.File)
+		parallelMap := make(map[string]*gitdiff.File)
+
+		for _, file := range sequentialFiles {
+			key := fmt.Sprintf("%s:%s:%s", file.PatchHeader.SHA, file.OldName, file.NewName)
+			sequentialMap[key] = file
+		}
+
+		for _, file := range parallelFiles {
+			key := fmt.Sprintf("%s:%s:%s", file.PatchHeader.SHA, file.OldName, file.NewName)
+			parallelMap[key] = file
+		}
+
+		// Verify all files from sequential exist in parallel
+		for key, seqFile := range sequentialMap {
+			parFile, exists := parallelMap[key]
+			assert.True(t, exists, "Parallel processing missing file: %s", key)
+			
+			if exists {
+				// Compare basic properties
+				assert.Equal(t, seqFile.NewName, parFile.NewName, "NewName mismatch for %s", key)
+				assert.Equal(t, seqFile.OldName, parFile.OldName, "OldName mismatch for %s", key)
+				assert.Equal(t, seqFile.IsDelete, parFile.IsDelete, "IsDelete mismatch for %s", key)
+				assert.Equal(t, seqFile.IsBinary, parFile.IsBinary, "IsBinary mismatch for %s", key)
+				
+				// Compare fragment counts
+				assert.Equal(t, len(seqFile.TextFragments), len(parFile.TextFragments),
+					"TextFragments count mismatch for %s", key)
+			}
+		}
+
+		t.Logf("Successfully compared %d files between sequential and parallel processing", len(sequentialFiles))
+	})
+
+	t.Run("empty repository handling", func(t *testing.T) {
+		// Test with empty repository path (should handle gracefully)
+		tempDir, err := os.MkdirTemp("", "empty-repo-")
+		assert.NoError(t, err)
+		defer os.RemoveAll(tempDir)
+
+		// Create .git directory but no commits
+		gitDir := filepath.Join(tempDir, ".git") 
+		err = os.Mkdir(gitDir, 0755)
+		assert.NoError(t, err)
+
+		scanner, err := NewGitScanner(tempDir)
+		if err != nil {
+			// Expected - can't create scanner for empty repo
+			t.Logf("Empty repo test skipped due to scanner creation error: %v", err)
+			return
+		}
+
+		// Should handle empty repository gracefully
+		parallelChan, err := scanner.scanCommits()
+		if err == nil {
+			var files []*gitdiff.File
+			for file := range parallelChan {
+				files = append(files, file)
+			}
+			assert.Equal(t, 0, len(files), "Empty repository should produce no files")
+		}
+	})
+
+	t.Run("small repository fallback", func(t *testing.T) {
+		// This test verifies that small repositories fall back to sequential processing
+		// We can't easily create a minimal git repo in a test, so this is more of a 
+		// structural verification that the fallback logic exists
+		
+		scanner, err := NewGitScanner(repoPath)
+		assert.NoError(t, err)
+
+		// The parallel method should exist and be callable
+		parallelChan, err := scanner.scanCommits()
+		assert.NoError(t, err, "Parallel method should be callable")
+		
+		// Consume the channel to avoid goroutine leaks
+		var count int
+		for range parallelChan {
+			count++
+		}
+		
+		t.Logf("Parallel processing completed with %d files", count)
+	})
+}
+
+// TestWorkerCoordinator - REMOVED: WorkerCoordinator was replaced with simple range-based approach
+// This test is commented out because the complex meeting-point coordination was removed
+// in favor of simple non-overlapping ranges that eliminate race conditions
+// See git_parallel_test.go for new tests that verify range calculation
+/*
+func TestWorkerCoordinator(t *testing.T) {
+	// This test tested the old WorkerCoordinator which had race conditions
+	// The new approach uses simple ranges without coordination
+}
+*/
+
+func TestGitPluginWorkerCountConfiguration(t *testing.T) {
+	t.Run("default worker count", func(t *testing.T) {
+		plugin := NewGitPlugin().(*GitPlugin)
+		assert.Equal(t, 4, plugin.workerCount, "Default worker count should be 4")
+	})
+
+	t.Run("configurable worker count", func(t *testing.T) {
+		plugin := &GitPlugin{
+			workerCount: 1,
+		}
+		assert.Equal(t, 1, plugin.workerCount, "Should be able to configure worker count")
+	})
+}

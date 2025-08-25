@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/checkmarx/2ms/v3/engine"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/plugins"
 	"github.com/stretchr/testify/assert"
-	"sync"
-	"testing"
 )
 
 func TestPreRun(t *testing.T) {
@@ -71,8 +72,8 @@ func TestPreRun(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stdoutFormatVar = tt.stdoutFormatVar
-			reportPathVar = tt.reportPath
+			StdoutFormatVar = tt.stdoutFormatVar
+			ReportPathVar = tt.reportPath
 			engineConfigVar = tt.engineConfigVar
 			customRegexRuleVar = tt.customRegexRuleVar
 			validateVar = tt.validateVar
@@ -83,7 +84,7 @@ func TestPreRun(t *testing.T) {
 			SecretsExtrasChan = make(chan *secrets.Secret)
 			ValidationChan = make(chan *secrets.Secret)
 			CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
-			err := preRun("mock", nil, nil)
+			err := PreRun("mock", nil, nil)
 			close(Channels.Items)
 			close(Channels.Errors)
 			Channels.WaitGroup.Wait()

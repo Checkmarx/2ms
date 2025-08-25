@@ -48,7 +48,7 @@ func Exit(resultsCount int, err error) {
 	os.Exit(exitCodeIfError(err) + exitCodeIfResults(resultsCount))
 }
 
-func listenForErrors(errors chan error) {
+func ListenForErrors(errors chan error) {
 	go func() {
 		err := <-errors
 		Exit(0, err)

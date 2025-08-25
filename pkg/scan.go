@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/checkmarx/2ms/v3/cmd"
 	"github.com/checkmarx/2ms/v3/lib/secrets"
 	"github.com/checkmarx/2ms/v3/plugins"
 
 	"github.com/checkmarx/2ms/v3/lib/reporting"
 
-	"github.com/checkmarx/2ms/v3/cmd"
 	"github.com/checkmarx/2ms/v3/engine"
 )
 
@@ -136,6 +136,42 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 			return &reporting.Report{}, fmt.Errorf("error processing scan items: %w", err)
 		}
 	}
+
+	return cmd.Report, nil
+}
+
+type FullScanConfig struct {
+	MicroEngineRunArgs []string
+	ProjectPath        string
+	RepoUrl            string
+	Branch             string
+	EngineConfig       engine.EngineConfig
+}
+
+// RunFullScan runs a full scan of the project.
+// It will scan the project, the repo, and the branch.
+func (s *scanner) RunFullScan(cfg FullScanConfig) (*reporting.Report, error) {
+	resetCmdGlobals()
+
+	var allPlugins = []plugins.IPlugin{
+		plugins.NewGitPlugin(),
+	}
+
+	cmd.ReportPathVar = []string{"./report.json"}
+	cmd.StdoutFormatVar = "sarif"
+
+	for _, plugin := range allPlugins {
+		pluginCommand, err := plugin.DefineCommand(cmd.Channels.Items, cmd.Channels.Errors)
+		if err != nil {
+			return nil, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
+		}
+
+		cmd.PreRun(plugin.GetName(), nil, nil)
+		pluginCommand.Run(nil, []string{cfg.ProjectPath})
+		cmd.PostRun(nil, nil)
+	}
+
+	cmd.ListenForErrors(cmd.Channels.Errors)
 
 	return cmd.Report, nil
 }

@@ -3,6 +3,7 @@ package reporting
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/checkmarx/2ms/v3/lib/config"
@@ -105,6 +106,10 @@ func getResults(report *Report) []Results {
 			results = append(results, r)
 		}
 	}
+	// sort results by ruleId
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].RuleId < results[j].RuleId
+	})
 	return results
 }
 

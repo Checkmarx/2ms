@@ -38,8 +38,8 @@ const (
 
 var (
 	logLevelVar        string
-	reportPathVar      []string
-	stdoutFormatVar    string
+	ReportPathVar      []string
+	StdoutFormatVar    string
 	customRegexRuleVar []string
 	ignoreOnExitVar    = ignoreOnExitNone
 	engineConfigVar    engine.EngineConfig
@@ -88,10 +88,10 @@ func Execute() (int, error) {
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal, none)")
 	rootCmd.PersistentFlags().
-		StringSliceVar(&reportPathVar, reportPathFlagName, []string{},
+		StringSliceVar(&ReportPathVar, reportPathFlagName, []string{},
 			"path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 	rootCmd.PersistentFlags().
-		StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
+		StringVar(&StdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 	rootCmd.PersistentFlags().
 		StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
 	rootCmd.PersistentFlags().
@@ -125,13 +125,13 @@ func Execute() (int, error) {
 		}
 		subCommand.GroupID = group
 		subCommand.PreRunE = func(cmd *cobra.Command, args []string) error {
-			return preRun(plugin.GetName(), cmd, args)
+			return PreRun(plugin.GetName(), cmd, args)
 		}
-		subCommand.PostRunE = postRun
+		subCommand.PostRunE = PostRun
 		rootCmd.AddCommand(subCommand)
 	}
 
-	listenForErrors(Channels.Errors)
+	ListenForErrors(Channels.Errors)
 
 	if err := rootCmd.Execute(); err != nil {
 		return 0, err
@@ -140,8 +140,8 @@ func Execute() (int, error) {
 	return Report.TotalSecretsFound, nil
 }
 
-func preRun(pluginName string, _ *cobra.Command, _ []string) error {
-	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
+func PreRun(pluginName string, _ *cobra.Command, _ []string) error {
+	if err := validateFormat(StdoutFormatVar, ReportPathVar); err != nil {
 		return err
 	}
 
@@ -174,20 +174,20 @@ func preRun(pluginName string, _ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func postRun(cmd *cobra.Command, args []string) error {
+func PostRun(cmd *cobra.Command, args []string) error {
 	Channels.WaitGroup.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
 
 	if Report.TotalItemsScanned > 0 {
 		if zerolog.GlobalLevel() != zerolog.Disabled {
-			if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
+			if err := Report.ShowReport(StdoutFormatVar, cfg); err != nil {
 				return err
 			}
 		}
 
-		if len(reportPathVar) > 0 {
-			err := Report.WriteFile(reportPathVar, cfg)
+		if len(ReportPathVar) > 0 {
+			err := Report.WriteFile(ReportPathVar, cfg)
 			if err != nil {
 				return fmt.Errorf("failed to create report file with error: %s", err)
 			}
