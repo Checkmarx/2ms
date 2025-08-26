@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/checkmarx/2ms/v3/lib/utils"
+	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog"
 )
 

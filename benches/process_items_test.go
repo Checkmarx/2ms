@@ -8,11 +8,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/checkmarx/2ms/v3/engine"
-	"github.com/checkmarx/2ms/v3/internal/workerpool"
-	"github.com/checkmarx/2ms/v3/lib/reporting"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/plugins"
+	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v4/internal/workerpool"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/plugins"
 )
 
 type mockItem struct {
