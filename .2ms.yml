@@ -266,3 +266,4 @@ ignore-result:
 - fee4dfce5c3baef7043606a1e01f00c63ec46cb3 # test/development data from atlassian.go
 - ff3e512a42590245c84e5d6aba8f536a54c8189c # test data from expectedReportWithIgnoredResults.json
 - ff79fa9a6519f1f15a48ce8c5b8a45c56747995c # test/development data from generic-key.go
+- 6910c38cb2325e18b06a9b03cf13c311b9c12a1d # test/development data from sumologic.go
