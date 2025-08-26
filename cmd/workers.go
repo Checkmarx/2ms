@@ -5,6 +5,7 @@ import (
 
 	"github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/engine/extra"
+	"github.com/checkmarx/2ms/v4/internal/workerpool"
 	"golang.org/x/sync/errgroup"
 )
 

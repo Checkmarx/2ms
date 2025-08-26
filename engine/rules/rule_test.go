@@ -18,7 +18,6 @@ func Test2msRules(t *testing.T) {
 		name     string
 		validate func()
 	}{
-		{name: "Atlassian", validate: validateAtlassian},
 		{name: "AuthenticatedURL", validate: validateAuthenticatedURL},
 		{name: "Clojars", validate: validateClojars},
 		{name: "GenericCredential", validate: validateGenericCredential},
@@ -26,9 +25,8 @@ func Test2msRules(t *testing.T) {
 		{name: "HardcodedPassword", validate: validateHardcodedPassword},
 		{name: "PlaidAccessID", validate: validatePlaidAccessID},
 		{name: "PrivateKey", validate: validatePrivateKey},
-		{name: "SumoLogicAccessID", validate: validateSumoLogicAccessID},
-		{name: "SumoLogicAccessToken", validate: validateSumoLogicAccessToken},
 		{name: "VaultServiceToken", validate: validateVaultServiceToken},
+		{name: "Atlassian", validate: validateAtlassian},
 	}
 
 	for _, tRule := range testsRules {

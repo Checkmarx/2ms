@@ -20,6 +20,7 @@ import (
 	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/checkmarx/2ms/v4/engine/semaphore"
 	"github.com/checkmarx/2ms/v4/engine/validation"
+	"github.com/checkmarx/2ms/v4/internal/workerpool"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog/log"
@@ -91,7 +92,7 @@ func Init(engineConfig *EngineConfig) (IEngine, error) {
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
 	keywords := make(map[string]struct{})
-	for _, rule := range selectedRules { //nolint:gocritic // TODO: refactor to use a pointer
+	for _, rule := range selectedRules {
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {

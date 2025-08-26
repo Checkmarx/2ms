@@ -1,6 +1,6 @@
 package cmd
 
-//go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v3/plugins ISourceItem
+//go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v4/plugins ISourceItem
 
 import (
 	"sort"
