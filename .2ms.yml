@@ -268,3 +268,7 @@ ignore-result:
 - ff3e512a42590245c84e5d6aba8f536a54c8189c # test data from expectedReportWithIgnoredResults.json
 - ff79fa9a6519f1f15a48ce8c5b8a45c56747995c # test/development data from generic-key.go
 - 6910c38cb2325e18b06a9b03cf13c311b9c12a1d # test/development data from sumologic.go
+- 16727037dbc5160493eefeef2dad047663619212 # unit test from process_items_test.go
+- 55d8c72116b241866603ca46e9b5bcbdb3add0e6 # unit test from process_items_test.go
+- 98e2c12b6256af7fbff0746019efbdda5b408055 # unit test from process_items_test.go
+- a0f0f4a186813fed000cf6fbb3bf845e9f9991dc # unit test from process_items_test.go
