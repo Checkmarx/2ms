@@ -39,6 +39,9 @@ save: build
 build:
 	docker build -t $(image_name) .
 
+build-local:
+	GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w" -a -o ./2ms .
+
 generate: check-mockgen-version
 	go generate ./...
 

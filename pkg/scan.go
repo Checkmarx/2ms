@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/plugins"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/plugins"
 
-	"github.com/checkmarx/2ms/v3/lib/reporting"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
 
-	"github.com/checkmarx/2ms/v3/cmd"
-	"github.com/checkmarx/2ms/v3/engine"
+	"github.com/checkmarx/2ms/v4/cmd"
+	"github.com/checkmarx/2ms/v4/engine"
 )
 
 type ScanConfig struct {
