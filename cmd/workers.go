@@ -5,39 +5,48 @@ import (
 
 	"github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/engine/extra"
-	"golang.org/x/sync/errgroup"
+	"github.com/checkmarx/2ms/v4/internal/workerpool"
 )
 
 func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
+	processItems(engineInstance, pluginName)
 
-	g, ctx := errgroup.WithContext(context.Background())
-	g.SetLimit(1000)
+	pool := engineInstance.GetDetectorWorkerPool()
+	// TODO: This will be removed on the next PR
+	pool.Wait()
+	pool.CloseQueue()
+	close(SecretsChan)
+}
+
+func processItems(eng engine.IEngine, pluginName string) {
+	ctx := context.Background()
+	pool := eng.GetDetectorWorkerPool()
+
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
-		item := item
 
+		var task workerpool.Task
 		switch pluginName {
 		case "filesystem":
-			g.Go(func() error {
-				return engineInstance.DetectFile(ctx, item, SecretsChan)
-			})
+			task = func(context.Context) error {
+				return eng.DetectFile(ctx, item, SecretsChan)
+			}
 		default:
-			g.Go(func() error {
-				return engineInstance.DetectFragment(item, SecretsChan, pluginName)
-			})
+			task = func(context.Context) error {
+				return eng.DetectFragment(item, SecretsChan, pluginName)
+			}
+		}
+
+		if err := pool.Submit(task); err != nil {
+			Channels.Errors <- err
+			break
 		}
 	}
-
-	if err := g.Wait(); err != nil {
-		Channels.Errors <- err
-	}
-	close(SecretsChan)
 }
 
 func ProcessSecrets() {
 	defer Channels.WaitGroup.Done()
-
 	for secret := range SecretsChan {
 		Report.TotalSecretsFound++
 		SecretsExtrasChan <- secret
@@ -55,7 +64,6 @@ func ProcessSecrets() {
 
 func ProcessSecretsWithValidation() {
 	defer Channels.WaitGroup.Done()
-
 	for secret := range SecretsChan {
 		Report.TotalSecretsFound++
 		SecretsExtrasChan <- secret
@@ -69,44 +77,23 @@ func ProcessSecretsWithValidation() {
 
 func ProcessSecretsExtras() {
 	defer Channels.WaitGroup.Done()
-
-	g := errgroup.Group{}
-	g.SetLimit(10)
 	for secret := range SecretsExtrasChan {
-		g.Go(func() error {
-			extra.AddExtraToSecret(secret)
-			return nil
-		})
+		extra.AddExtraToSecret(secret)
 	}
-	_ = g.Wait()
 }
 
 func ProcessValidationAndScoreWithValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
-
-	g := errgroup.Group{}
-	g.SetLimit(10)
 	for secret := range ValidationChan {
-		g.Go(func() error {
-			engine.RegisterForValidation(secret)
-			engine.Score(secret, true)
-			return nil
-		})
+		engine.RegisterForValidation(secret)
+		engine.Score(secret, true)
 	}
-	_ = g.Wait()
 	engine.Validate()
 }
 
 func ProcessScoreWithoutValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
-
-	g := errgroup.Group{}
-	g.SetLimit(10)
 	for secret := range CvssScoreWithoutValidationChan {
-		g.Go(func() error {
-			engine.Score(secret, false)
-			return nil
-		})
+		engine.Score(secret, false)
 	}
-	_ = g.Wait()
 }
