@@ -12,7 +12,7 @@ func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
 	processItems(engineInstance, pluginName)
 
-	pool := engineInstance.GetFileWalkerWorkerPool()
+	pool := engineInstance.GetDetectorWorkerPool()
 	pool.Wait()
 	pool.CloseQueue()
 	close(SecretsChan)
@@ -21,7 +21,7 @@ func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 // processItems uses the engine's worker pool
 func processItems(eng engine.IEngine, pluginName string) {
 	ctx := context.Background()
-	pool := eng.GetFileWalkerWorkerPool()
+	pool := eng.GetDetectorWorkerPool()
 
 	// Process items
 	for item := range Channels.Items {
