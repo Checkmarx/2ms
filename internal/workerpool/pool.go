@@ -165,7 +165,6 @@ func (p *workerPool) Submit(task Task) error {
 		return ErrQueueClosed
 	}
 
-	// Track task submission
 	p.submittedTasks.Add(1)
 
 	// Submit to pond pool
@@ -187,7 +186,7 @@ func (p *workerPool) CloseQueue() {
 }
 
 func (p *workerPool) Wait() {
-	ticker := time.NewTicker(50 * time.Millisecond)
+	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
 	for range ticker.C {
