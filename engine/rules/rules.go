@@ -73,16 +73,6 @@ const TagWebhook = "webhook"
 func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all rule definitions
 	allRules := &[]Rule{
 		{
-			Rule:            *rules.OnePasswordSecretKey(),
-			Tags:            []string{TagPrivateKey},
-			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
-		},
-		{
-			Rule:            *rules.OnePasswordServiceAccountToken(),
-			Tags:            []string{TagAccessToken},
-			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
-		},
-		{
 			Rule:            *rules.AdafruitAPIKey(),
 			Tags:            []string{TagApiKey},
 			ScoreParameters: ScoreParameters{Category: CategoryIoTPlatform, RuleType: 4},
@@ -187,7 +177,10 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagSecretKey},
 			ScoreParameters: ScoreParameters{Category: CategoryCryptocurrencyExchange, RuleType: 4},
 		},
-		{Rule: *rules.Beamer(), Tags: []string{TagApiToken}, ScoreParameters: ScoreParameters{Category: CategoryNewsAndMedia, RuleType: 4}},
+		{
+			Rule:            *rules.Beamer(),
+			Tags:            []string{TagApiToken},
+			ScoreParameters: ScoreParameters{Category: CategoryNewsAndMedia, RuleType: 4}},
 		{
 			Rule:            *rules.CodecovAccessToken(),
 			Tags:            []string{TagAccessToken},
@@ -785,6 +778,16 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 		},
 		{
 			Rule:            *rules.OktaAccessToken(),
+			Tags:            []string{TagAccessToken},
+			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
+		},
+		{
+			Rule:            *rules.OnePasswordSecretKey(),
+			Tags:            []string{TagPrivateKey},
+			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
+		},
+		{
+			Rule:            *rules.OnePasswordServiceAccountToken(),
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
