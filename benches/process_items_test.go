@@ -122,16 +122,13 @@ func setupBenchmarkFiles() error {
 }
 
 // BenchmarkProcessItems benchmarks ProcessItems with realistic content that includes actual secrets
-//
-// Note: This benchmark will produce logging output because the worker pool logs at Info level.
-// To run without log spam, put somewhere zerolog.SetGlobalLevel(zerolog.Disabled)
 func BenchmarkProcessItems(b *testing.B) {
 	nCPU := runtime.GOMAXPROCS(0)
 	fmt.Println("nCPU", nCPU)
 	workerSizes := []int{nCPU / 2, nCPU, nCPU * 2, nCPU * 4, nCPU * 8, nCPU * 16, nCPU * 32}
 	itemSizes := []int{50, 100, 500, 1000, 10000}
 
-	zerolog.SetGlobalLevel(zerolog.Disabled)
+	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 
 	for _, workers := range workerSizes {
 		for _, items := range itemSizes {

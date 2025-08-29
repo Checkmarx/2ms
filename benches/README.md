@@ -39,6 +39,3 @@ go test -timeout 0 -bench BenchmarkProcessItems -count 5 -run=^$
 - `-bench BenchmarkProcessItems`: Runs only this specific benchmark
 - `-count 5`: Runs the benchmark 5 times for better statistical significance
 - `-run=^$`: Skips regular tests (only runs benchmarks)
-
-#### Note
-The benchmark will produce logging output by default. To disable logs during benchmarking, you can set the zerolog global level to Disabled before running.
