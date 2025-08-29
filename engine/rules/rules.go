@@ -133,7 +133,7 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryProjectManagement, RuleType: 4},
 		},
 		{
-			Rule:            *Atlassian(),
+			Rule:            *AtlassianFixed(), // Use our fixed version instead of rules.Atlassian()
 			Tags:            []string{TagApiToken},
 			ScoreParameters: ScoreParameters{Category: CategorySoftwareDevelopment, RuleType: 4},
 		},
@@ -820,6 +820,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Rule:            *rules.SquareSpaceAccessToken(),
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryWebHostingAndDeployment, RuleType: 4},
+		},
+		{
+			Rule:            *rules.SumoLogicAccessID(),
+			Tags:            []string{TagAccessId},
+			ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
 		},
 		{
 			Rule:            *SumoLogicAccessID(),
