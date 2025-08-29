@@ -43,7 +43,7 @@ type Engine struct {
 	validator          validation.Validator
 	semaphore          semaphore.ISemaphore
 	chunk              chunk.IChunk
-	fileWalkerPool     workerpool.Pool
+	detectorPool       workerpool.Pool
 
 	ignoredIds    []string
 	allowedValues []string
@@ -57,7 +57,7 @@ type IEngine interface {
 	Score(secret *secrets.Secret, validateFlag bool)
 	Validate()
 	GetRuleBaseRiskScore(ruleId string) float64
-	GetFileWalkerWorkerPool() workerpool.Pool
+	GetDetectorWorkerPool() workerpool.Pool
 	Shutdown() error
 }
 
@@ -117,7 +117,7 @@ func Init(engineConfig *EngineConfig) (IEngine, error) {
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
 		chunk:              chunk.New(),
-		fileWalkerPool:     workerpool.New("file-walker", workerpool.WithWorkers(fileWalkerWorkerPoolSize)),
+		detectorPool:       workerpool.New("detector", workerpool.WithWorkers(fileWalkerWorkerPoolSize)),
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
@@ -301,13 +301,13 @@ func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
 	return e.rulesBaseRiskScore[ruleId]
 }
 
-func (e *Engine) GetFileWalkerWorkerPool() workerpool.Pool {
-	return e.fileWalkerPool
+func (e *Engine) GetDetectorWorkerPool() workerpool.Pool {
+	return e.detectorPool
 }
 
 func (e *Engine) Shutdown() error {
-	if e.fileWalkerPool != nil {
-		return e.fileWalkerPool.Stop()
+	if e.detectorPool != nil {
+		return e.detectorPool.Stop()
 	}
 	return nil
 }
