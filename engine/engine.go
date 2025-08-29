@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	defaultFileWalkerWorkerPoolSize = runtime.GOMAXPROCS(0) * 2 // 2x the number of CPUs since the work is not totally CPU bound
+	defaultDetectorWorkerPoolSize = runtime.GOMAXPROCS(0) * 2 // 2x the number of CPUs based on benchmark
 
 	instance *Engine
 )
@@ -105,7 +105,7 @@ func Init(engineConfig *EngineConfig) (IEngine, error) {
 	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
-	fileWalkerWorkerPoolSize := defaultFileWalkerWorkerPoolSize
+	fileWalkerWorkerPoolSize := defaultDetectorWorkerPoolSize
 	if engineConfig.DetectorWorkerPoolSize > 0 {
 		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}

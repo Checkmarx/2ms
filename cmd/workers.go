@@ -13,21 +13,19 @@ func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	processItems(engineInstance, pluginName)
 
 	pool := engineInstance.GetDetectorWorkerPool()
+	// TODO: This will be removed on the next PR
 	pool.Wait()
 	pool.CloseQueue()
 	close(SecretsChan)
 }
 
-// processItems uses the engine's worker pool
 func processItems(eng engine.IEngine, pluginName string) {
 	ctx := context.Background()
 	pool := eng.GetDetectorWorkerPool()
 
-	// Process items
 	for item := range Channels.Items {
 		Report.TotalItemsScanned++
 
-		// Create task based on plugin type
 		var task workerpool.Task
 		switch pluginName {
 		case "filesystem":

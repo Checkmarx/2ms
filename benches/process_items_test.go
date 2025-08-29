@@ -24,36 +24,6 @@ var (
 	maxItems     = 10000
 )
 
-type mockItem struct {
-	content *string
-	id      string
-	source  string
-}
-
-func (i *mockItem) GetContent() *string {
-	return i.content
-}
-
-func (i *mockItem) GetID() string {
-	return i.id
-}
-
-func (i *mockItem) GetSource() string {
-	return i.source
-}
-
-func (i *mockItem) GetGitInfo() *plugins.GitInfo {
-	return nil
-}
-
-// getFileExtension returns the appropriate file extension based on content template index
-func getFileExtension(templateIndex int) string {
-	if templateIndex < len(FileExtensions) {
-		return FileExtensions[templateIndex]
-	}
-	return ".txt"
-}
-
 // TestMain sets up and tears down benchmark files
 func TestMain(m *testing.M) {
 	err := setupBenchmarkFiles()
@@ -125,7 +95,7 @@ func setupBenchmarkFiles() error {
 func BenchmarkProcessItems(b *testing.B) {
 	nCPU := runtime.GOMAXPROCS(0)
 	fmt.Println("nCPU", nCPU)
-	workerSizes := []int{nCPU / 2, nCPU, nCPU * 2, nCPU * 4, nCPU * 8, nCPU * 16, nCPU * 32}
+	workerSizes := []int{nCPU / 2, nCPU, nCPU * 2, nCPU * 4, nCPU * 8, nCPU * 16}
 	itemSizes := []int{50, 100, 500, 1000, 10000}
 
 	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
@@ -227,4 +197,34 @@ func processItemsLocal(eng engine.IEngine, pluginName string, items chan plugins
 	}
 	pool.Wait()
 	pool.CloseQueue()
+}
+
+// getFileExtension returns the appropriate file extension based on content template index
+func getFileExtension(templateIndex int) string {
+	if templateIndex < len(FileExtensions) {
+		return FileExtensions[templateIndex]
+	}
+	return ".txt"
+}
+
+type mockItem struct {
+	content *string
+	id      string
+	source  string
+}
+
+func (i *mockItem) GetContent() *string {
+	return i.content
+}
+
+func (i *mockItem) GetID() string {
+	return i.id
+}
+
+func (i *mockItem) GetSource() string {
+	return i.source
+}
+
+func (i *mockItem) GetGitInfo() *plugins.GitInfo {
+	return nil
 }
