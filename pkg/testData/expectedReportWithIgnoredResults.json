@@ -1,51 +1,112 @@
 {
- "totalItemsScanned" : 3,
- "totalSecretsFound" : 3,
- "results" : {
-  "6949272451f77dc4a38d5f35d583cf56023cd2c1" : [ {
-   "id" : "6949272451f77dc4a38d5f35d583cf56023cd2c1",
-   "source" : "testData/secrets/github-pat.txt",
-   "ruleId" : "github-pat",
-   "startLine" : 0,
-   "endLine" : 0,
-   "lineContent" : "TextExampleghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATextExampleghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBTextExample\r",
-   "startColumn" : 12,
-   "endColumn" : 51,
-   "value" : "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-   "ruleDescription" : "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
-   "cvssScore" : 8.2
-  } ],
-  "f29abe9eacc233a8e5e9c7762bca48589d9c76a2" : [ {
-   "id" : "f29abe9eacc233a8e5e9c7762bca48589d9c76a2",
-   "source" : "testData/secrets/jwt.txt",
-   "ruleId" : "jwt",
-   "startLine" : 0,
-   "endLine" : 0,
-   "lineContent" : "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample\r",
-   "startColumn" : 13,
-   "endColumn" : 116,
-   "value" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
-   "ruleDescription" : "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
-   "extraDetails" : {
-    "secretDetails" : {
-     "name" : "mockName1",
-     "sub" : "mockSub1"
-    }
-   },
-   "cvssScore" : 8.2
-  } ],
-  "fc17c755f40062dcb3f16eb6299f9afc7eccbc56" : [ {
-   "id" : "fc17c755f40062dcb3f16eb6299f9afc7eccbc56",
-   "source" : "testData/secrets/github-pat.txt",
-   "ruleId" : "github-pat",
-   "startLine" : 0,
-   "endLine" : 0,
-   "lineContent" : "TextExampleghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATextExampleghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBTextExample\r",
-   "startColumn" : 63,
-   "endColumn" : 102,
-   "value" : "ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-   "ruleDescription" : "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
-   "cvssScore" : 8.2
-  } ]
- }
+  "totalItemsScanned": 3,
+  "totalSecretsFound": 6,
+  "results": {
+    "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c": [
+      {
+        "id": "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c",
+        "source": "testData/secrets/jwt.txt",
+        "ruleId": "jwt",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample",
+        "startColumn": 13,
+        "endColumn": 116,
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
+        "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName1",
+            "sub": "mockSub1"
+          }
+        },
+        "cvssScore": 8.2
+      }
+    ],
+    "6d1959886d3a01308b495ccc9d6a30444016aaad": [
+      {
+        "id": "6d1959886d3a01308b495ccc9d6a30444016aaad",
+        "source": "testData/secrets/github-pat.txt",
+        "ruleId": "github-pat",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "TextExampleghp_1234567890abcdefghijklmnopqrstuvwxyzTextExampleghp_abcdefghijklmnopqrstuvwxyz1234567890TextExample",
+        "startColumn": 12,
+        "endColumn": 51,
+        "value": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+        "cvssScore": 8.2
+      }
+    ],
+    "7eb9787a837e56bf0ee0be36497fdb671b2b9041": [
+      {
+        "id": "7eb9787a837e56bf0ee0be36497fdb671b2b9041",
+        "source": "testData/secrets/github-pat.txt",
+        "ruleId": "github-pat",
+        "startLine": 1,
+        "endLine": 1,
+        "lineContent": "           Text_Example =                                     ghp_9876543210zyxwvutsrqponmlkjihgfedcba",
+        "startColumn": 63,
+        "endColumn": 102,
+        "value": "ghp_9876543210zyxwvutsrqponmlkjihgfedcba",
+        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+        "cvssScore": 8.2
+      }
+    ],
+    "dac14c6111d3a02a23c4fc31ee4759387a7395cd": [
+      {
+        "id": "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
+        "source": "testData/secrets/jwt.txt",
+        "ruleId": "jwt",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample",
+        "startColumn": 129,
+        "endColumn": 232,
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+        "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName2",
+            "sub": "mockSub2"
+          }
+        },
+        "cvssScore": 8.2
+      },
+      {
+        "id": "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
+        "source": "testData/secrets/jwt.txt",
+        "ruleId": "jwt",
+        "startLine": 1,
+        "endLine": 1,
+        "lineContent": "           Text_Example =                                     eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+        "startColumn": 63,
+        "endColumn": 166,
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+        "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName2",
+            "sub": "mockSub2"
+          }
+        },
+        "cvssScore": 8.2
+      }
+    ],
+    "dfe5ea720d7c38631079841b754a34df29c25d93": [
+      {
+        "id": "dfe5ea720d7c38631079841b754a34df29c25d93",
+        "source": "testData/secrets/github-pat.txt",
+        "ruleId": "github-pat",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "TextExampleghp_1234567890abcdefghijklmnopqrstuvwxyzTextExampleghp_abcdefghijklmnopqrstuvwxyz1234567890TextExample",
+        "startColumn": 63,
+        "endColumn": 102,
+        "value": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+        "cvssScore": 8.2
+      }
+    ]
+  }
 }

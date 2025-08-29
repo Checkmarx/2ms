@@ -8,14 +8,18 @@ Here is a complete list of all the rules that are currently implemented.
 | adafruit-api-key | Identified a potential Adafruit API Key, which could lead to unauthorized access to Adafruit services and sensitive data exposure. | api-key |  |
 | adobe-client-id | Detected a pattern that resembles an Adobe OAuth Web Client ID, posing a risk of compromised Adobe integrations and data breaches. | client-id |  |
 | adobe-client-secret | Discovered a potential Adobe Client Secret, which, if exposed, could allow unauthorized Adobe service access and data manipulation. | client-secret |  |
-| age secret key | Discovered a potential Age encryption tool secret key, risking data decryption and unauthorized access to sensitive information. | secret-key |  |
+| age-secret-key | Discovered a potential Age encryption tool secret key, risking data decryption and unauthorized access to sensitive information. | secret-key |  |
 | airtable-api-key | Uncovered a possible Airtable API Key, potentially compromising database access and leading to data leakage or alteration. | api-key |  |
 | algolia-api-key | Identified an Algolia API Key, which could result in unauthorized search operations and data exposure on Algolia-managed platforms. | api-key |  |
 | alibaba-access-key-id | Detected an Alibaba Cloud AccessKey ID, posing a risk of unauthorized cloud resource access and potential data compromise. | access-key,access-id | V |
 | alibaba-secret-key | Discovered a potential Alibaba Cloud Secret Key, potentially allowing unauthorized operations and data access within Alibaba Cloud. | secret-key | V |
+| anthropic-admin-api-key | Detected an Anthropic Admin API Key, risking unauthorized access to administrative functions and sensitive AI model configurations. | api-key |  |
+| anthropic-api-key | Identified an Anthropic API Key, which may compromise AI assistant integrations and expose sensitive data to unauthorized access. | api-key |  |
 | asana-client-id | Discovered a potential Asana Client ID, risking unauthorized access to Asana projects and sensitive task information. | client-id |  |
 | asana-client-secret | Identified an Asana Client Secret, which could lead to compromised project management integrity and unauthorized access. | client-secret |  |
-| atlassian-api-token | Detected an Atlassian API token, posing a threat to project management and collaboration tool security and data confidentiality. | api-token |  |
+| atlassian-api-token | Detected an Atlassian API token,  |  |  |
+|  | posing a threat to project management and  |  |  |
+|  | collaboration tool security and data confidentiality. | api-token |  |
 | authress-service-client-access-key | Uncovered a possible Authress Service Client Access Key, which may compromise access control services and sensitive data. | access-token |  |
 | aws-access-token | Identified a pattern that may indicate AWS credentials, risking unauthorized cloud resource access and data breaches on AWS platforms. | access-token |  |
 | bitbucket-client-id | Discovered a potential Bitbucket Client ID, risking unauthorized repository access and potential codebase exposure. | client-id |  |
@@ -48,7 +52,9 @@ Here is a complete list of all the rules that are currently implemented.
 | easypost-api-token | Identified an EasyPost API token, which could lead to unauthorized postal and shipment service access and data exposure. | api-token |  |
 | easypost-test-api-token | Detected an EasyPost test API token, risking exposure of test environments and potentially sensitive shipment data. | api-token |  |
 | etsy-access-token | Found an Etsy Access Token, potentially compromising Etsy shop management and customer data. | access-token |  |
-| facebook | Discovered a Facebook Access Token, posing a risk of unauthorized access to Facebook accounts and personal data exposure. | api-token |  |
+| facebook-access-token | Discovered a Facebook Access Token, posing a risk of unauthorized access to Facebook accounts and personal data exposure. | api-token |  |
+| facebook-page-access-token | Discovered a Facebook Page Access Token, posing a risk of unauthorized access to Facebook accounts and personal data exposure. | api-token |  |
+| facebook-secret | Discovered a Facebook Application secret, posing a risk of unauthorized access to Facebook accounts and personal data exposure. | secret-key |  |
 | fastly-api-token | Uncovered a Fastly API key, which may compromise CDN and edge cloud services, leading to content delivery and security issues. | api-token,api-key |  |
 | finicity-client-secret | Identified a Finicity Client Secret, which could lead to compromised financial service integrations and data breaches. | client-secret |  |
 | finicity-api-token | Detected a Finicity API token, potentially risking financial data access and unauthorized financial operations. | api-token |  |
@@ -113,6 +119,8 @@ Here is a complete list of all the rules that are currently implemented.
 | okta-access-token | Identified an Okta Access Token, which may compromise identity management services and user authentication data. | access-token |  |
 | openai-api-key | Found an OpenAI API Key, posing a risk of unauthorized access to AI services and data manipulation. | api-key |  |
 | plaid-client-id | Uncovered a Plaid Client ID, which could lead to unauthorized financial service integrations and data breaches. | client-id |  |
+| plaid-secret-key | Detected a Plaid Secret key, risking unauthorized access to financial accounts and sensitive transaction data. | secret-key |  |
+| plaid-api-token | Discovered a Plaid API Token, potentially compromising financial data aggregation and banking services. | api-token |  |
 | planetscale-password | Discovered a PlanetScale password, which could lead to unauthorized database operations and data breaches. | password |  |
 | planetscale-api-token | Identified a PlanetScale API token, potentially compromising database management and operations. | api-token |  |
 | planetscale-oauth-token | Found a PlanetScale OAuth token, posing a risk to database access control and sensitive data integrity. | access-token |  |
@@ -124,11 +132,12 @@ Here is a complete list of all the rules that are currently implemented.
 | rapidapi-access-token | Uncovered a RapidAPI Access Token, which could lead to unauthorized access to various APIs and data services. | access-token |  |
 | readme-api-token | Detected a Readme API token, risking unauthorized documentation management and content exposure. | api-token |  |
 | rubygems-api-token | Identified a Rubygem API token, potentially compromising Ruby library distribution and package management. | api-token |  |
+| scalingo-api-token | Found a Scalingo API token, posing a risk to cloud platform services and application deployment security. | api-token |  |
 | sendbird-access-id | Discovered a Sendbird Access ID, which could compromise chat and messaging platform integrations. | access-id |  |
 | sendbird-access-token | Uncovered a Sendbird Access Token, potentially risking unauthorized access to communication services and user data. | access-token |  |
 | sendgrid-api-token | Detected a SendGrid API token, posing a risk of unauthorized email service operations and data exposure. | api-token |  |
 | sendinblue-api-token | Identified a Sendinblue API token, which may compromise email marketing services and subscriber data privacy. | api-token |  |
-| sentry-access-token | Found a Sentry Access Token, risking unauthorized access to error tracking services and sensitive application data. | access-token |  |
+| sentry-access-token | Found a Sentry.io Access Token (old format), risking unauthorized access to error tracking services and sensitive application data. | access-token |  |
 | shippo-api-token | Discovered a Shippo API token, potentially compromising shipping services and customer order data. | api-token |  |
 | shopify-access-token | Uncovered a Shopify access token, which could lead to unauthorized e-commerce platform access and data breaches. | access-token |  |
 | shopify-custom-access-token | Detected a Shopify custom access token, potentially compromising custom app integrations and e-commerce data security. | access-token |  |
@@ -148,6 +157,7 @@ Here is a complete list of all the rules that are currently implemented.
 | stripe-access-token | Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data. | access-token |  |
 | square-access-token | Detected a Square Access Token, risking unauthorized payment processing and financial transaction exposure. | access-token |  |
 | squarespace-access-token | Identified a Squarespace Access Token, which may compromise website management and content control on Squarespace. | access-token |  |
+| sumologic-access-id | Discovered a SumoLogic Access ID, potentially compromising log management services and data analytics integrity. | access-id |  |
 | sumologic-access-token | Uncovered a SumoLogic Access Token, which could lead to unauthorized access to log data and analytics insights. | access-token |  |
 | snyk-api-token | Uncovered a Snyk API token, potentially compromising software vulnerability scanning and code security. | api-key |  |
 | microsoft-teams-webhook | Uncovered a Microsoft Teams Webhook, which could lead to unauthorized access to team collaboration tools and data leaks. | webhook |  |

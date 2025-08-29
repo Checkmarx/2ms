@@ -3,14 +3,15 @@ package scanner
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/checkmarx/2ms/v3/cmd"
-	"github.com/checkmarx/2ms/v3/engine/rules"
-	"github.com/checkmarx/2ms/v3/lib/reporting"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/lib/utils"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/checkmarx/2ms/v4/cmd"
+	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/lib/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -113,8 +114,8 @@ func TestScan(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan(scanItems, ScanConfig{
 			IgnoreResultIds: []string{
-				"a0cd293e6e122a1c7384d5a56781e39ba350c54b",
-				"40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
+				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -300,8 +301,8 @@ func TestScan(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.Scan(scanItems, ScanConfig{
 			IgnoreResultIds: []string{
-				"a0cd293e6e122a1c7384d5a56781e39ba350c54b",
-				"40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
+				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -432,8 +433,8 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
 			IgnoreResultIds: []string{
-				"a0cd293e6e122a1c7384d5a56781e39ba350c54b",
-				"40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
+				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -633,8 +634,8 @@ func TestScanDynamic(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.ScanDynamic(itemsIn2, ScanConfig{
 			IgnoreResultIds: []string{
-				"a0cd293e6e122a1c7384d5a56781e39ba350c54b",
-				"40483a2b07fa3beaf234d1a0b5d0931d7b7ae9f7",
+				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
+				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")

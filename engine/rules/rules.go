@@ -123,6 +123,16 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
 		},
 		{
+			Rule:            *rules.AnthropicAdminApiKey(),
+			Tags:            []string{TagApiKey},
+			ScoreParameters: ScoreParameters{Category: CategoryAIAndMachineLearning, RuleType: 4},
+		},
+		{
+			Rule:            *rules.AnthropicApiKey(),
+			Tags:            []string{TagApiKey},
+			ScoreParameters: ScoreParameters{Category: CategoryAIAndMachineLearning, RuleType: 4},
+		},
+		{
 			Rule:            *rules.AsanaClientID(),
 			Tags:            []string{TagClientId},
 			ScoreParameters: ScoreParameters{Category: CategoryProjectManagement, RuleType: 1},
@@ -133,7 +143,7 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryProjectManagement, RuleType: 4},
 		},
 		{
-			Rule:            *rules.Atlassian(),
+			Rule:            *Atlassian(),
 			Tags:            []string{TagApiToken},
 			ScoreParameters: ScoreParameters{Category: CategorySoftwareDevelopment, RuleType: 4},
 		},
@@ -798,12 +808,16 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagClientId},
 			ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 1},
 		},
-		// {Rule: *rules.PlaidSecretKey(), Tags: []string{TagSecretKey},
-		//  ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4}},
-		//  https://github.com/Checkmarx/2ms/issues/226
-		// {Rule: *rules.PlaidAccessToken(), Tags: []string{TagApiToken},
-		//  ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4}},
-		//  https://github.com/Checkmarx/2ms/issues/226
+		{
+			Rule:            *rules.PlaidSecretKey(),
+			Tags:            []string{TagSecretKey},
+			ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4},
+		},
+		{
+			Rule:            *rules.PlaidAccessToken(),
+			Tags:            []string{TagApiToken},
+			ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4},
+		},
 		{
 			Rule:            *rules.PlanetScalePassword(),
 			Tags:            []string{TagPassword},
@@ -869,9 +883,11 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagApiToken},
 			ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4},
 		},
-		// {Rule: *rules.ScalingoAPIToken(), Tags: []string{TagApiToken},
-		//  ScoreParameters: ScoreParameters{Category: CategoryWebHostingAndDeployment, RuleType: 4}},
-		//  https://github.com/Checkmarx/2ms/issues/226
+		{
+			Rule:            *rules.ScalingoAPIToken(),
+			Tags:            []string{TagApiToken},
+			ScoreParameters: ScoreParameters{Category: CategoryWebHostingAndDeployment, RuleType: 4},
+		},
 		{
 			Rule:            *rules.SendbirdAccessID(),
 			Tags:            []string{TagAccessId},
@@ -1017,11 +1033,13 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryWebHostingAndDeployment, RuleType: 4},
 		},
-		// {Rule: *rules.SumoLogicAccessID(), Tags: []string{TagAccessId},
-		//  ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4}},
-		//  https://github.com/Checkmarx/2ms/issues/226
 		{
-			Rule:            *rules.SumoLogicAccessToken(),
+			Rule:            *SumoLogicAccessID(),
+			Tags:            []string{TagAccessId},
+			ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
+		},
+		{
+			Rule:            *SumoLogicAccessToken(),
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
 		},

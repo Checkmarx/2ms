@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/checkmarx/2ms/v3/engine"
-	"github.com/checkmarx/2ms/v3/lib/config"
-	"github.com/checkmarx/2ms/v3/lib/reporting"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/plugins"
+	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v4/lib/config"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -64,7 +64,7 @@ var allPlugins = []plugins.IPlugin{
 	&plugins.FileSystemPlugin{},
 	&plugins.SlackPlugin{},
 	&plugins.PaligoPlugin{},
-	&plugins.GitPlugin{},
+	plugins.NewGitPlugin(),
 }
 
 var Channels = plugins.Channels{

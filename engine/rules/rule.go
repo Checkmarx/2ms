@@ -1,11 +1,7 @@
 package rules
 
 import (
-	"strings"
-
-	"github.com/rs/zerolog/log"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
 )
 
 type ScoreParameters struct {
@@ -18,6 +14,7 @@ type Rule struct {
 	Tags            []string
 	ScoreParameters ScoreParameters
 }
+<<<<<<< HEAD
 
 // Copied from https://github.com/gitleaks/gitleaks/blob/463d24618fa42fc7629dc30c9744ebe36c5df1ab/cmd/generate/config/rules/rule.go
 func validate(r config.Rule, truePositives []string, falsePositives []string) *config.Rule { //nolint:gocritic // hugeParam: r needed
@@ -59,3 +56,5 @@ func validate(r config.Rule, truePositives []string, falsePositives []string) *c
 	}
 	return &r
 }
+=======
+>>>>>>> master

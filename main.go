@@ -4,8 +4,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/checkmarx/2ms/v3/cmd"
-	"github.com/checkmarx/2ms/v3/lib/utils"
+	"github.com/checkmarx/2ms/v4/cmd"
+	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -25,5 +25,6 @@ func main() {
 
 func listenForInterrupt(stopScan chan os.Signal) {
 	<-stopScan
-	log.Fatal().Msg("Interrupt signal received. Exiting...") // lint:ignore We want to exit immediately
+	log.Error().Msg("Interrupt signal received. Exiting...")
+	os.Exit(1)
 }
