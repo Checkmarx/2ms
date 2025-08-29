@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"github.com/checkmarx/2ms/v3/lib/secrets"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
 )
 
 type pairsByRuleId map[string][]*secrets.Secret

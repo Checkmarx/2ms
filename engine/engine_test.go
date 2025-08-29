@@ -12,11 +12,11 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	"github.com/checkmarx/2ms/v3/engine/chunk"
-	"github.com/checkmarx/2ms/v3/engine/rules"
-	"github.com/checkmarx/2ms/v3/engine/semaphore"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/plugins"
+	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/semaphore"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -314,7 +314,7 @@ func TestDetectFile(t *testing.T) {
 			tc.mockFunc(m)
 
 			cfg.Rules = make(map[string]config.Rule)
-			cfg.Keywords = []string{}
+			cfg.Keywords = make(map[string]struct{})
 			detector := detect.NewDetector(cfg)
 			detector.MaxTargetMegaBytes = tc.maxMegabytes
 			engine := &Engine{
@@ -322,7 +322,7 @@ func TestDetectFile(t *testing.T) {
 
 				semaphore: m.semaphore,
 				chunk:     m.chunk,
-				detector:  *detector,
+				detector:  detector,
 			}
 
 			tmp := t.TempDir()
@@ -414,14 +414,14 @@ func TestDetectChunks(t *testing.T) {
 			tc.mockFunc(m)
 
 			cfg.Rules = make(map[string]config.Rule)
-			cfg.Keywords = []string{}
+			cfg.Keywords = make(map[string]struct{})
 			detector := detect.NewDetector(cfg)
 			engine := &Engine{
 				rules: nil,
 
 				semaphore: m.semaphore,
 				chunk:     m.chunk,
-				detector:  *detector,
+				detector:  detector,
 			}
 			tmp := t.TempDir()
 			src := tc.makeFile(tmp)
