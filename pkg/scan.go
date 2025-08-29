@@ -18,6 +18,7 @@ type ScanConfig struct {
 	IgnoreResultIds []string
 	IgnoreRules     []string
 	WithValidation  bool
+	PluginName      string
 }
 
 type scanner struct{}
@@ -65,7 +66,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}
 
-	startPipeline(engineInstance, scanConfig.WithValidation)
+	startPipeline(engineInstance, scanConfig.WithValidation, scanConfig.PluginName)
 
 	for _, item := range scanItems {
 		wg.Add(1)
@@ -91,11 +92,9 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 	return cmd.Report, nil
 }
 
-func startPipeline(engineInstance engine.IEngine, withValidation bool) {
+func startPipeline(engineInstance engine.IEngine, withValidation bool, pluginName string) {
 	cmd.Channels.WaitGroup.Add(4)
-
-	go cmd.ProcessItems(engineInstance, "custom")
-
+	go cmd.ProcessItems(engineInstance, pluginName)
 	if withValidation {
 		go cmd.ProcessSecretsWithValidation()
 		go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
@@ -119,7 +118,7 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}
 
-	startPipeline(engineInstance, false)
+	startPipeline(engineInstance, false, scanConfig.PluginName)
 
 	go func() {
 		for item := range itemsIn {

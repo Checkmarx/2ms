@@ -28,7 +28,7 @@ func TestProcessItems(t *testing.T) {
 	pluginName := "mockPlugin"
 	go ProcessItems(engineTest, pluginName)
 	ctrl := gomock.NewController(t)
-	for i := 0; i < totalItemsToProcess; i++ {
+	for i := range totalItemsToProcess {
 		mockData := strconv.Itoa(i)
 		mockItem := NewMockISourceItem(ctrl)
 		mockItem.EXPECT().GetContent().Return(&mockData).AnyTimes()

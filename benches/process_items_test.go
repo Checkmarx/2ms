@@ -3,6 +3,8 @@ package benches
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -13,6 +15,13 @@ import (
 	"github.com/checkmarx/2ms/v4/lib/reporting"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/rs/zerolog"
+)
+
+var (
+	benchmarkDir string
+	allMockItems []*mockItem
+	maxItems     = 10000
 )
 
 type mockItem struct {
@@ -37,6 +46,81 @@ func (i *mockItem) GetGitInfo() *plugins.GitInfo {
 	return nil
 }
 
+// getFileExtension returns the appropriate file extension based on content template index
+func getFileExtension(templateIndex int) string {
+	if templateIndex < len(FileExtensions) {
+		return FileExtensions[templateIndex]
+	}
+	return ".txt"
+}
+
+// TestMain sets up and tears down benchmark files
+func TestMain(m *testing.M) {
+	err := setupBenchmarkFiles()
+	if err != nil {
+		fmt.Printf("Failed to setup benchmark files: %v\n", err)
+		os.Exit(1)
+	}
+
+	code := m.Run()
+
+	os.RemoveAll(benchmarkDir)
+
+	os.Exit(code)
+}
+
+// setupBenchmarkFiles creates benchmark files once
+func setupBenchmarkFiles() error {
+	// Create temporary directory
+	var err error
+	benchmarkDir, err = os.MkdirTemp("", "benchmark_files_*")
+	if err != nil {
+		return fmt.Errorf("failed to create benchmark directory: %w", err)
+	}
+
+	fmt.Printf("Creating %d benchmark files in %s...\n", maxItems, benchmarkDir)
+	allMockItems = make([]*mockItem, maxItems)
+	for j := range maxItems {
+		var content string
+		var ext string
+
+		// 60% of files contain secrets, 40% don't
+		if j%10 < 6 {
+			// Secret files: use only secret templates (0-4)
+			templateIndex := j % (len(ContentTemplates) - 1)
+			template := ContentTemplates[templateIndex]
+			secret := SecretPatterns[j%len(SecretPatterns)]
+			content = fmt.Sprintf(template, secret)
+			ext = getFileExtension(templateIndex)
+		} else {
+			// No-secret files: always use Go template
+			content = ContentTemplates[len(ContentTemplates)-1]
+			ext = ".go"
+		}
+
+		// Add some padding to simulate larger files
+		padding := generateRealisticPadding(j)
+		content += padding
+
+		// Write content to actual file
+		filename := fmt.Sprintf("file_%d%s", j, ext)
+		filePath := filepath.Join(benchmarkDir, filename)
+		err := os.WriteFile(filePath, []byte(content), 0644)
+		if err != nil {
+			return fmt.Errorf("failed to write file %s: %w", filePath, err)
+		}
+
+		allMockItems[j] = &mockItem{
+			content: &content,
+			id:      fmt.Sprintf("file_%d", j),
+			source:  filePath,
+		}
+	}
+
+	fmt.Printf("Successfully created %d benchmark files\n", maxItems)
+	return nil
+}
+
 // BenchmarkProcessItems benchmarks ProcessItems with realistic content that includes actual secrets
 //
 // Note: This benchmark will produce logging output because the worker pool logs at Info level.
@@ -47,145 +131,16 @@ func BenchmarkProcessItems(b *testing.B) {
 	workerSizes := []int{nCPU / 2, nCPU, nCPU * 2, nCPU * 4, nCPU * 8, nCPU * 16, nCPU * 32}
 	itemSizes := []int{50, 100, 500, 1000, 10000}
 
-	// Secret patterns that will trigger detection
-	secretPatterns := []string{
-		"github_pat_11ABCDEFG1234567890abcdefghijklmnopqrstuvwxyz123456",
-		"sk-1234567890abcdefghijklmnopqrstuvwxyz",
-		"ghp_abcdefghijklmnopqrstuvwxyz1234567890",
-		"AIzaSyC1234567890abcdefghijklmnopqrstuv",
-		"xoxb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx",
-		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
-	}
-
-	// Content templates simulating different file types
-	contentTemplates := []string{
-		// JavaScript config file
-		`const config = {
-  apiKey: '%s',
-  endpoint: 'https://api.example.com',
-  timeout: 5000,
-  retries: 3,
-  debug: process.env.NODE_ENV === 'development'
-};
-
-module.exports = config;`,
-		// Python script
-		`import requests
-import os
-
-API_KEY = '%s'
-BASE_URL = 'https://api.service.com/v1'
-
-def make_request(endpoint):
-    headers = {
-        'Authorization': f'Bearer {API_KEY}',
-        'Content-Type': 'application/json'
-    }
-    return requests.get(f'{BASE_URL}/{endpoint}', headers=headers)
-
-if __name__ == '__main__':
-    response = make_request('users')
-    print(response.json())`,
-		// Shell script
-		`#!/bin/bash
-
-# Configuration
-export API_TOKEN='%s'
-export SERVICE_URL="https://service.example.com"
-export ENVIRONMENT="production"
-
-# Function to call API
-call_api() {
-    curl -H "Authorization: Bearer $API_TOKEN" \
-         -H "Content-Type: application/json" \
-         "$SERVICE_URL/api/$1"
-}
-
-# Main execution
-call_api "status"`,
-		// YAML config
-		`apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-data:
-  database_url: postgresql://user:pass@localhost/db
-  api_key: %s
-  redis_url: redis://localhost:6379
-  log_level: info`,
-		// JSON config
-		`{
-  "name": "production-app",
-  "version": "1.0.0",
-  "config": {
-    "api": {
-      "key": "%s",
-      "endpoint": "https://api.production.com",
-      "timeout": 30000
-    },
-    "database": {
-      "host": "db.production.com",
-      "port": 5432
-    }
-  }
-}`,
-		// No secret - regular code
-		`package utils
-
-import (
-    "fmt"
-    "strings"
-    "time"
-)
-
-func ProcessData(input string) (string, error) {
-    if input == "" {
-        return "", fmt.Errorf("input cannot be empty")
-    }
-    
-    processed := strings.ToUpper(input)
-    timestamp := time.Now().Format(time.RFC3339)
-    
-    return fmt.Sprintf("%s - %s", processed, timestamp), nil
-}
-
-func ValidateInput(data []byte) bool {
-    return len(data) > 0 && len(data) < 1048576
-}`,
-	}
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	for _, workers := range workerSizes {
 		for _, items := range itemSizes {
 			b.Run(fmt.Sprintf("realistic_workers_%d_items_%d", workers, items), func(b *testing.B) {
-				// Pre-create realistic mock items
-				mockItems := make([]*mockItem, items)
-				for j := 0; j < items; j++ {
-					var content string
-
-					// 60% of files contain secrets, 40% don't
-					if j%10 < 6 {
-						// Select a random template and secret
-						template := contentTemplates[j%len(contentTemplates)]
-						secret := secretPatterns[j%len(secretPatterns)]
-						content = fmt.Sprintf(template, secret)
-					} else {
-						// Use non-secret content
-						content = contentTemplates[len(contentTemplates)-1]
-					}
-
-					// Add some padding to simulate larger files
-					padding := generateRealisticPadding(j)
-					content += padding
-
-					mockItems[j] = &mockItem{
-						content: &content,
-						id:      fmt.Sprintf("file_%d", j),
-						source:  fmt.Sprintf("/mock/path/file_%d.js", j),
-					}
-				}
+				// Use subset of pre-created mock items from TestMain
+				mockItems := allMockItems[:items]
 
 				b.ResetTimer()
-				for i := 0; i < b.N; i++ {
+				for range b.N {
 					// Create engine for each iteration
 					engineTest, err := engine.Init(&engine.EngineConfig{
 						DetectorWorkerPoolSize: workers,
@@ -204,8 +159,6 @@ func ValidateInput(data []byte) bool {
 					go func() {
 						defer wg.Done()
 						processItemsLocal(engineTest, "filesystem", itemsChan, secretsChan, report)
-						engineTest.GetFileWalkerWorkerPool().Wait()
-						close(secretsChan)
 					}()
 
 					// Send items
@@ -215,6 +168,7 @@ func ValidateInput(data []byte) bool {
 					close(itemsChan)
 
 					wg.Wait()
+					close(secretsChan)
 
 					secretsFound := 0
 					for range secretsChan {
@@ -235,24 +189,12 @@ func generateRealisticPadding(seed int) string {
 	sizeIndex := seed % len(sizes)
 	targetSize := sizes[sizeIndex]
 
-	// Common code patterns for padding
-	patterns := []string{
-		"\n\n// Helper functions\n",
-		"function helper() { return true; }\n",
-		"const data = { id: 1, name: 'test' };\n",
-		"if (condition) { console.log('debug'); }\n",
-		"// TODO: refactor this later\n",
-		"/* eslint-disable no-unused-vars */\n",
-		"import { util } from './utils';\n",
-		"export default class Component {}\n",
-	}
-
 	var builder strings.Builder
 	currentSize := 0
 	patternIndex := 0
 
 	for currentSize < targetSize {
-		pattern := patterns[patternIndex%len(patterns)]
+		pattern := PaddingPatterns[patternIndex%len(PaddingPatterns)]
 		builder.WriteString(pattern)
 		currentSize += len(pattern)
 		patternIndex++
@@ -286,5 +228,6 @@ func processItemsLocal(eng engine.IEngine, pluginName string, items chan plugins
 			break
 		}
 	}
+	pool.Wait()
 	pool.CloseQueue()
 }
