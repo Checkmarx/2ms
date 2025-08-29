@@ -6,17 +6,15 @@ import (
 	"github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/engine/extra"
 	"github.com/checkmarx/2ms/v4/internal/workerpool"
-	"golang.org/x/sync/errgroup"
 )
 
 func ProcessItems(engineInstance engine.IEngine, pluginName string) {
 	defer Channels.WaitGroup.Done()
-
 	processItems(engineInstance, pluginName)
 
-	engineInstance.GetFileWalkerWorkerPool().Wait()
-	// TODO: refactor this so we don't need to finish work of processing items
-	// in order to continue the next step of the pipeline
+	pool := engineInstance.GetFileWalkerWorkerPool()
+	pool.Wait()
+	pool.CloseQueue()
 	close(SecretsChan)
 }
 
@@ -47,12 +45,10 @@ func processItems(eng engine.IEngine, pluginName string) {
 			break
 		}
 	}
-	pool.CloseQueue()
 }
 
 func ProcessSecrets() {
 	defer Channels.WaitGroup.Done()
-
 	for secret := range SecretsChan {
 		Report.TotalSecretsFound++
 		SecretsExtrasChan <- secret
@@ -70,7 +66,6 @@ func ProcessSecrets() {
 
 func ProcessSecretsWithValidation() {
 	defer Channels.WaitGroup.Done()
-
 	for secret := range SecretsChan {
 		Report.TotalSecretsFound++
 		SecretsExtrasChan <- secret
@@ -84,44 +79,23 @@ func ProcessSecretsWithValidation() {
 
 func ProcessSecretsExtras() {
 	defer Channels.WaitGroup.Done()
-
-	g := errgroup.Group{}
-	g.SetLimit(10)
 	for secret := range SecretsExtrasChan {
-		g.Go(func() error {
-			extra.AddExtraToSecret(secret)
-			return nil
-		})
+		extra.AddExtraToSecret(secret)
 	}
-	_ = g.Wait()
 }
 
 func ProcessValidationAndScoreWithValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
-
-	g := errgroup.Group{}
-	g.SetLimit(10)
 	for secret := range ValidationChan {
-		g.Go(func() error {
-			engine.RegisterForValidation(secret)
-			engine.Score(secret, true)
-			return nil
-		})
+		engine.RegisterForValidation(secret)
+		engine.Score(secret, true)
 	}
-	_ = g.Wait()
 	engine.Validate()
 }
 
 func ProcessScoreWithoutValidation(engine engine.IEngine) {
 	defer Channels.WaitGroup.Done()
-
-	g := errgroup.Group{}
-	g.SetLimit(10)
 	for secret := range CvssScoreWithoutValidationChan {
-		g.Go(func() error {
-			engine.Score(secret, false)
-			return nil
-		})
+		engine.Score(secret, false)
 	}
-	_ = g.Wait()
 }

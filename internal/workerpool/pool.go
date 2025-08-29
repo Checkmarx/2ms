@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/alitto/pond/v2"
 	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog"
 )
@@ -14,6 +15,9 @@ import (
 var (
 	// ErrPoolShuttingDown is returned when trying to submit a task to a shutting down pool
 	ErrPoolShuttingDown = fmt.Errorf("worker pool is shutting down")
+
+	// ErrQueueClosed is returned when trying to submit a task to a closed queue
+	ErrQueueClosed = fmt.Errorf("queue is closed")
 
 	defaultWorkers = 10
 )
@@ -24,39 +28,47 @@ type Task func(ctx context.Context) error
 type Pool interface {
 	Submit(task Task) error
 	Stop() error
-	Wait()
 	CloseQueue()
+	BeforeShutdown(func() error)
+	Wait()
 }
 
-// WorkerPool manages a fixed number of workers processing tasks
-type WorkerPool struct {
-	name           string
-	workers        int
-	taskQueue      chan Task
-	queueClosed    atomic.Bool
-	wg             sync.WaitGroup
-	logger         zerolog.Logger
-	activeTasks    int32
-	shutdownOnce   sync.Once
-	isShuttingDown atomic.Bool
+// workerPool wraps pond.Pool to implement our Pool interface
+type workerPool struct {
+	pool           pond.Pool
 	ctx            context.Context
 	cancel         context.CancelFunc
-	ticker         *time.Ticker
+	queueClosed    atomic.Bool
+	isShuttingDown atomic.Bool
+	shutdownOnce   sync.Once
+	logger         zerolog.Logger
+	name           string
+
+	// Track submitted and completed tasks
+	submittedTasks atomic.Int32
+	completedTasks atomic.Int32
+
+	// Monitor goroutine control
+	stopMonitor chan struct{}
+	monitorDone chan struct{}
+
+	// Hook to run a function before shutdown
+	beforeShutdown func() error
 }
 
-type WorkerPoolConfig struct {
+type Config struct {
 	workers   int
 	queueSize int
 	ctx       context.Context
 	cancel    context.CancelFunc
 }
 
-type Option func(*WorkerPoolConfig)
+type Option func(*Config)
 
 // New creates a new worker pool with the specified number of workers
 func New(name string, opts ...Option) Pool {
 	ctx, cancel := context.WithCancel(context.Background())
-	config := &WorkerPoolConfig{
+	config := &Config{
 		workers:   defaultWorkers,
 		queueSize: defaultWorkers * 10,
 		ctx:       ctx,
@@ -68,104 +80,173 @@ func New(name string, opts ...Option) Pool {
 	return newWorkerPool(name, config)
 }
 
-func newWorkerPool(name string, config *WorkerPoolConfig) *WorkerPool {
-	pool := &WorkerPool{
-		name:      name,
-		workers:   config.workers,
-		taskQueue: make(chan Task, config.queueSize), // Buffered queue
-		logger:    utils.CreateLogger(zerolog.InfoLevel).With().Str("workerpool", name).Logger(),
-		ctx:       config.ctx,
-		cancel:    config.cancel,
-		ticker:    time.NewTicker(100 * time.Millisecond),
+func newWorkerPool(name string, config *Config) *workerPool {
+	// Create pond pool with equivalent configuration
+	pondOpts := []pond.Option{
+		pond.WithContext(config.ctx),
 	}
-	pool.start()
-	return pool
+
+	// Set queue size if specified (pond defaults to unbounded)
+	if config.queueSize > 0 {
+		pondOpts = append(pondOpts, pond.WithQueueSize(config.queueSize))
+	}
+
+	wp := &workerPool{
+		pool:        pond.NewPool(config.workers, pondOpts...),
+		ctx:         config.ctx,
+		cancel:      config.cancel,
+		logger:      utils.CreateLogger(zerolog.InfoLevel).With().Str("workerpool", name).Logger(),
+		name:        name,
+		stopMonitor: make(chan struct{}),
+		monitorDone: make(chan struct{}),
+	}
+
+	// Start monitoring goroutine for CloseQueue() behavior
+	go wp.monitorShutdown()
+
+	return wp
 }
 
 func WithWorkers(workers int) Option {
-	return func(config *WorkerPoolConfig) {
+	return func(config *Config) {
 		config.workers = workers
 	}
 }
 
 func WithQueueSize(queueSize int) Option {
-	return func(config *WorkerPoolConfig) {
+	return func(config *Config) {
 		config.queueSize = queueSize
 	}
 }
 
 func WithContext(ctx context.Context) Option {
-	return func(config *WorkerPoolConfig) {
+	return func(config *Config) {
 		config.ctx = ctx
 	}
 }
 
 func WithCancel(cancel context.CancelFunc) Option {
-	return func(config *WorkerPoolConfig) {
+	return func(config *Config) {
 		config.cancel = cancel
-	}
-}
-
-func (p *WorkerPool) start() {
-	for i := 0; i < p.workers; i++ {
-		p.wg.Add(1)
-		go p.work(i)
-	}
-	go p.startTicker()
-}
-
-func (p *WorkerPool) work(workerID int) {
-	defer p.wg.Done()
-	p.logger.Debug().Int("workerID", workerID).Msg("Worker started")
-
-	for {
-		select {
-		case <-p.ctx.Done():
-			return
-		case task, ok := <-p.taskQueue:
-			if !ok {
-				p.logger.Debug().Int("workerID", workerID).Msg("Task queue closed, worker exiting")
-				return
-			}
-
-			atomic.AddInt32(&p.activeTasks, 1)
-			if err := task(p.ctx); err != nil {
-				p.logger.Error().Err(err).Int("workerID", workerID).Msg("Error doing work in workerpool")
-			}
-			atomic.AddInt32(&p.activeTasks, -1)
-		}
 	}
 }
 
 // Submit adds a task to the queue
 // Returns ErrPoolShuttingDown if the pool is shutting down
-func (p *WorkerPool) Submit(task Task) error {
+func (p *workerPool) Submit(task Task) error {
+	// Wrap task to handle context and error logging
+	pondTask := func() error {
+		defer p.completedTasks.Add(1)
+
+		defer func() {
+			if r := recover(); r != nil {
+				p.logger.Error().Interface("panic", r).Str("pool", p.name).Msg("Recovered from task panic")
+			}
+		}()
+
+		// Check if context is already canceled
+		select {
+		case <-p.ctx.Done():
+			return p.ctx.Err()
+		default:
+		}
+
+		if err := task(p.ctx); err != nil {
+			p.logger.Error().Err(err).Str("pool", p.name).Msg("Error doing work in workerpool")
+			return err
+		}
+		return nil
+	}
+
 	if p.isShuttingDown.Load() {
 		return ErrPoolShuttingDown
 	}
+	if p.queueClosed.Load() {
+		return ErrQueueClosed
+	}
 
-	p.taskQueue <- task
+	// Track task submission
+	p.submittedTasks.Add(1)
+
+	// Submit to pond pool
+	// SubmitErr returns a Task, not an error
+	// We don't need to wait for the task, just submit it
+	p.pool.SubmitErr(pondTask)
+
 	return nil
+}
+
+// CloseQueue closes the task queue which is a soft shutdown since
+// Monitoring goroutine will detect this and trigger shutdown when tasks are done
+func (p *workerPool) CloseQueue() {
+	if p.queueClosed.Load() {
+		return
+	}
+
+	p.queueClosed.Store(true)
+}
+
+func (p *workerPool) Wait() {
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		if p.submittedTasks.Load() == p.completedTasks.Load() {
+			return
+		}
+	}
 }
 
 // Stop gracefully shuts down the pool
 // It stops accepting new tasks and waits for active tasks to complete in 30 seconds
 // Returns an error if shutdown times out
-func (p *WorkerPool) Stop() error {
+func (p *workerPool) Stop() error {
 	var shutdownErr error
 
 	p.shutdownOnce.Do(func() {
 		p.logger.Info().Msg("Initiating graceful shutdown")
-
 		p.isShuttingDown.Store(true)
 
-		shutdownErr = p.waitForTasksWithTimeout(30 * time.Second)
-
-		if !p.queueClosed.Load() {
-			close(p.taskQueue)
+		// Signal monitor to stop if it's running
+		select {
+		case <-p.stopMonitor:
+			// Already closed
+		default:
+			close(p.stopMonitor)
 		}
 
-		p.cancel()
+		// Wait for graceful shutdown with timeout
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer shutdownCancel()
+
+		done := make(chan struct{})
+		go func() {
+			p.pool.StopAndWait()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			// Graceful shutdown completed
+		case <-shutdownCtx.Done():
+			// Timeout - force cancellation
+			p.cancel()
+			shutdownErr = shutdownCtx.Err()
+		}
+
+		// Wait for monitor goroutine to finish
+		select {
+		case <-p.monitorDone:
+		case <-time.After(1 * time.Second):
+			// Don't wait forever for monitor
+		}
+
+		// Run before shutdown hook
+		if p.beforeShutdown != nil {
+			if err := p.beforeShutdown(); err != nil {
+				p.logger.Error().Err(err).Msg("error during before shutdown hook")
+			}
+		}
 
 		p.logger.Info().Msg("Worker pool shutdown complete")
 	})
@@ -173,79 +254,50 @@ func (p *WorkerPool) Stop() error {
 	return shutdownErr
 }
 
-// waitForTasksWithTimeout waits for the pool to finish all tasks in queue until the timeout is reached
-// It returns an error if the timeout is reached or if the context is canceled
-func (p *WorkerPool) waitForTasksWithTimeout(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+// monitorShutdown implements CloseQueue() auto-shutdown behavior
+func (p *workerPool) monitorShutdown() {
+	defer close(p.monitorDone)
 
-	ticker := time.NewTicker(10 * time.Millisecond)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
-		if p.workIsDone() {
-			return nil
-		}
-
 		select {
-		case <-ctx.Done():
-			p.cancel()
-			return ctx.Err()
-		case <-p.ctx.Done():
-			p.cancel()
-			return p.ctx.Err()
-		case <-ticker.C:
-			if atomic.LoadInt32(&p.activeTasks) == 0 {
-				return nil
-			}
-		}
-	}
-}
-
-// CloseQueue closes the task queue and sets the queueClosed flag to true
-// This will eventually trigger the pool to shutdown when the work is finished
-func (p *WorkerPool) CloseQueue() {
-	if p.queueClosed.Load() {
-		return
-	}
-
-	close(p.taskQueue)
-	p.queueClosed.Store(true)
-}
-
-// startTicker starts a ticker that monitors the pool to shutdown when the work is done
-func (p *WorkerPool) startTicker() {
-	defer p.ticker.Stop()
-
-	for {
-		select {
-		case <-p.ctx.Done():
-			err := p.Stop()
-			if err != nil {
-				p.logger.Error().Err(err).Msg("error during graceful shutdown")
-			}
+		case <-p.stopMonitor:
 			return
-		case <-p.ticker.C:
-			// Check if we're already shutting down
+		case <-p.ctx.Done():
+			// Context canceled, initiate shutdown
+			go func() {
+				if err := p.Stop(); err != nil {
+					p.logger.Error().Err(err).Msg("error during graceful shutdown")
+				}
+			}()
+			return
+		case <-ticker.C:
+			// Check if already shutting down
 			if p.isShuttingDown.Load() {
 				return
 			}
 
-			if p.workIsDone() {
-				if err := p.Stop(); err != nil {
-					p.logger.Error().Err(err).Msg("error during graceful shutdown")
+			// Check if queue is closed and all tasks are completed
+			if p.queueClosed.Load() {
+				submitted := p.submittedTasks.Load()
+				completed := p.completedTasks.Load()
+
+				// If all submitted tasks are completed (or no tasks were ever submitted), trigger shutdown
+				if submitted == completed {
+					go func() {
+						if err := p.Stop(); err != nil {
+							p.logger.Error().Err(err).Msg("error during graceful shutdown")
+						}
+					}()
+					return
 				}
-				return
 			}
 		}
 	}
 }
 
-func (p *WorkerPool) workIsDone() bool {
-	return p.queueClosed.Load() && atomic.LoadInt32(&p.activeTasks) == 0
-}
-
-// Wait waits for all workers to finish their work
-func (p *WorkerPool) Wait() {
-	p.wg.Wait()
+func (p *workerPool) BeforeShutdown(fn func() error) {
+	p.beforeShutdown = fn
 }
