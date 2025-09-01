@@ -1,7 +1,11 @@
+# 2ms (Too many secrets)
+
 [![Latest Release](https://img.shields.io/github/v/release/checkmarx/2ms)](https://github.com/checkmarx/2ms/releases)
+[![Homebrew](https://img.shields.io/badge/homebrew-2ms-blue?logo=homebrew)](https://formulae.brew.sh/formula/2ms)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub Discussions](https://img.shields.io/badge/chat-discussions-blue.svg?style=flat-square&logo=github)](https://github.com/Checkmarx/2ms/discussions)
 [![Discord Server](https://img.shields.io/discord/1116626376674521169?logo=discord)](https://discord.gg/uYVhfSGG)
+[![Trivy](https://github.com/Checkmarx/2ms/actions/workflows/trivy-vulnerability-scan.yaml/badge.svg)](https://github.com/Checkmarx/2ms/actions/workflows/trivy-vulnerability-scan.yaml)
 
 ![2ms Mascot](https://github.com/Checkmarx/2ms/assets/1287098/3a543045-9c6a-4a35-9bf8-f41919e7b03e)
 
@@ -16,19 +20,34 @@ Additionally, the tool incorporates a scoring system based on the Common Vulnera
 
 The following sections explain how to install 2ms using the following methods:
 
+- [Homebrew (macOS/Linux)](#homebrew-macoslinux)
 - [Download and Install Precompiled Binaries](#download-and-install-precompiled-binaries)
 - [Compile from Source](#compile-from-source)
 - [Run From Docker Container](#run-from-docker-container)
 - [CI/CD Integrations](#cicd-integrations)
 
+## Homebrew (macOS/Linux)
+
+You can now install **2ms** directly via [Homebrew](https://brew.sh):
+
+```bash
+brew install 2ms
+````
+
+Once installed, verify the installation with:
+
+```bash
+2ms --version
+```
+
 ## Download and Install Precompiled Binaries
 
-You can download 2ms precompiled binaries for amd64 architecture and others from our [releases page](https://github.com/Checkmarx/2ms/releases).  
+You can download 2ms precompiled binaries for amd64 architecture from our [releases page](https://github.com/Checkmarx/2ms/releases).
 The following links can be used to download the "latest" version, for each supported OS.
 
-- [Download for Windows](https://github.com/checkmarx/2ms/releases/latest/download/windows-amd64.zip)
-- [Download for MacOS](https://github.com/checkmarx/2ms/releases/latest/download/macos-amd64.zip)
-- [Download for Linux](https://github.com/checkmarx/2ms/releases/latest/download/linux-amd64.zip)
+* [Download for Windows](https://github.com/checkmarx/2ms/releases/latest/download/windows-amd64.zip)
+* [Download for MacOS](https://github.com/checkmarx/2ms/releases/latest/download/macos-amd64.zip)
+* [Download for Linux](https://github.com/checkmarx/2ms/releases/latest/download/linux-amd64.zip)
 
 ### Install Globally
 
@@ -36,7 +55,7 @@ Install 2ms globally on your local machine by placing the compiled binary on you
 
 **Example:**
 
-```
+```bash
 cd /opt
 mkdir 2ms
 cd 2ms
