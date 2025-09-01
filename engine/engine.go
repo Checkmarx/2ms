@@ -17,12 +17,14 @@ import (
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v4/engine/extra"
 	"github.com/checkmarx/2ms/v4/engine/linecontent"
 	"github.com/checkmarx/2ms/v4/engine/rules"
 	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/checkmarx/2ms/v4/engine/semaphore"
 	"github.com/checkmarx/2ms/v4/engine/validation"
 	"github.com/checkmarx/2ms/v4/internal/workerpool"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog/log"
@@ -111,7 +113,6 @@ type EngineConfig struct {
 	AllowedValues []string
 
 	DetectorWorkerPoolSize int
-	DetectorWorkerPoolSize int
 }
 
 type EngineOption func(*Engine)
@@ -149,7 +150,6 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}
 
-	instance = &Engine{
 	instance = &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
@@ -405,7 +405,6 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
 			fmt.Fprintln(tab, "----\t----\t----\t----")
 			for _, rule := range rules {
-			for _, rule := range rules {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",
@@ -543,7 +542,7 @@ func (e *Engine) ProcessItems(pluginName string) {
 
 	e.processItems(pluginName)
 
-	e.GetFileWalkerWorkerPool().Wait()
+	e.GetDetectorWorkerPool().Wait()
 	// TODO: refactor this so we don't need to finish work of processing items
 	// in order to continue the next step of the pipeline
 	close(e.secretsChan)
@@ -552,7 +551,7 @@ func (e *Engine) ProcessItems(pluginName string) {
 // processItems uses the engine's worker pool
 func (e *Engine) processItems(pluginName string) {
 	ctx := context.Background()
-	pool := e.GetFileWalkerWorkerPool()
+	pool := e.GetDetectorWorkerPool()
 
 	// Process items
 	for item := range e.pluginChannels.GetItemsCh() {

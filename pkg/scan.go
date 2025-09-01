@@ -10,7 +10,6 @@ import (
 
 	"github.com/checkmarx/2ms/v4/lib/reporting"
 
-	"github.com/checkmarx/2ms/v4/cmd"
 	"github.com/checkmarx/2ms/v4/engine"
 )
 
@@ -152,7 +151,7 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig, op
 		return &reporting.Report{}, fmt.Errorf("error getting engine instance: %w", err)
 	}
 
-	startPipeline(engineInstance, false, scanConfig.PluginName)
+	startPipeline(engineInstance, false)
 
 	channels := engineInstance.GetPluginChannels()
 	go func() {

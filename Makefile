@@ -26,7 +26,7 @@ modtidy:
 
 .PHONY: test
 test:
-	GO_ENABLED=1 go test -race -count=1 -vet all -coverprofile=cover.out.tmp ./...
+	go test -race -count=1 -vet all -coverprofile=cover.out.tmp ./...
 	grep -v -e "_mock\.go:" -e "/mocks/" -e "/docs/" cover.out.tmp > cover.out
 	go tool cover -func=cover.out
 	rm cover.out.tmp

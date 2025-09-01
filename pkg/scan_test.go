@@ -659,7 +659,7 @@ func TestScanWithValidation(t *testing.T) {
 
 // compareOrUpdateTestData either updates the expected file with actual results or compares them
 // This is a reusable helper function for other tests
-func compareOrUpdateTestData(t *testing.T, actualReport *reporting.Report, expectedFilePath string) {
+func compareOrUpdateTestData(t *testing.T, actualReport reporting.IReport, expectedFilePath string) {
 	// Marshal actual report to JSON
 	actualReportBytes, err := json.Marshal(actualReport)
 	assert.NoError(t, err, "failed to marshal actual report to JSON")

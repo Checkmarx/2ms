@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/lib/config"
-	"github.com/checkmarx/2ms/v4/lib/reporting"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -67,18 +64,6 @@ var allPlugins = []plugins.IPlugin{
 	plugins.NewGitPlugin(),
 }
 
-var Channels = plugins.Channels{
-	Items:     make(chan plugins.ISourceItem),
-	Errors:    make(chan error),
-	WaitGroup: &sync.WaitGroup{},
-}
-
-var Report = reporting.Init()
-var SecretsChan = make(chan *secrets.Secret)
-var SecretsExtrasChan = make(chan *secrets.Secret)
-var ValidationChan = make(chan *secrets.Secret)
-var CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
-
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
 	vConfig.AutomaticEnv()
@@ -123,8 +108,15 @@ func Execute() (int, error) {
 	group := "Scan Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
+	engineInstance, err := engine.Init(&engineConfigVar)
+	if err != nil {
+		return 0, err
+	}
+
+	channels := engineInstance.GetPluginChannels()
+
 	for _, plugin := range allPlugins {
-		subCommand, err := plugin.DefineCommand(Channels.Items, Channels.Errors)
+		subCommand, err := plugin.DefineCommand(channels.GetItemsCh(), channels.GetErrorsCh())
 		if err != nil {
 			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
@@ -136,13 +128,13 @@ func Execute() (int, error) {
 		rootCmd.AddCommand(subCommand)
 	}
 
-	listenForErrors(Channels.Errors)
+	listenForErrors(channels.GetErrorsCh())
 
 	if err := rootCmd.Execute(); err != nil {
 		return 0, err
 	}
 
-	return Report.TotalSecretsFound, nil
+	return engineInstance.GetReport().GetTotalSecretsFound(), nil
 }
 
 func preRun(pluginName string, _ *cobra.Command, _ []string) error {
@@ -150,49 +142,91 @@ func preRun(pluginName string, _ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	engineInstance, err := engine.Init(&engineConfigVar)
-	if err != nil {
-		return err
+	var engineInstance engine.IEngine
+	var err, initErr error
+	engineInstance, err = engine.GetInstance()
+	if engineInstance == nil {
+		engineInstance, initErr = engine.Init(&engineConfigVar)
+		if initErr != nil {
+			return fmt.Errorf("error while getting engine instance: %w %w", initErr, err)
+		}
 	}
 
 	if err := engineInstance.AddRegexRules(customRegexRuleVar); err != nil {
 		return err
 	}
 
-	Channels.WaitGroup.Add(1)
-	go ProcessItems(engineInstance, pluginName)
-
-	Channels.WaitGroup.Add(1)
-	go ProcessSecrets()
-
-	Channels.WaitGroup.Add(1)
-	go ProcessSecretsExtras()
-
-	if validateVar {
-		Channels.WaitGroup.Add(1)
-		go ProcessValidationAndScoreWithValidation(engineInstance)
-	} else {
-		Channels.WaitGroup.Add(1)
-		go ProcessScoreWithoutValidation(engineInstance)
-	}
+	// Start processing pipeline with improved goroutine management
+	startProcessingPipeline(engineInstance, pluginName, validateVar)
 
 	return nil
 }
 
+// ProcessingTask represents a processing task with metadata
+type ProcessingTask struct {
+	Name string
+	Fn   func()
+}
+
+// startProcessingPipeline launches all processing goroutines in a more organized way
+func startProcessingPipeline(engineInstance engine.IEngine, pluginName string, validateVar bool) {
+	// Define all the processing tasks with descriptive names
+	tasks := []ProcessingTask{
+		{"ProcessItems", func() { engineInstance.ProcessItems(pluginName) }},
+		{"ProcessSecrets", func() { engineInstance.ProcessSecrets(validateVar) }},
+		{"ProcessSecretsExtras", func() { engineInstance.ProcessSecretsExtras() }},
+	}
+
+	// Add validation-specific processing task
+	if validateVar {
+		tasks = append(tasks, ProcessingTask{
+			"ProcessValidationAndScore",
+			func() { engineInstance.ProcessValidationAndScoreWithValidation() },
+		})
+	} else {
+		tasks = append(tasks, ProcessingTask{
+			"ProcessScore",
+			func() { engineInstance.ProcessScoreWithoutValidation() },
+		})
+	}
+
+	// Launch all goroutines with better error handling potential
+	launchTasks(engineInstance, tasks)
+}
+
+// launchTasks starts all tasks as goroutines with proper WaitGroup management
+func launchTasks(engineInstance engine.IEngine, tasks []ProcessingTask) {
+	for _, task := range tasks {
+		engineInstance.AddWaitGroup(1)
+		go func(t ProcessingTask) {
+			// This could be extended to add logging, metrics, or error handling
+			// log.Debug().Str("task", t.Name).Msg("Starting processing task")
+			t.Fn()
+			// log.Debug().Str("task", t.Name).Msg("Completed processing task")
+		}(task)
+	}
+}
+
 func postRun(cmd *cobra.Command, args []string) error {
-	Channels.WaitGroup.Wait()
+	engineInstance, err := engine.GetInstance()
+	if err != nil {
+		return fmt.Errorf("error while getting engine instance: %s", err.Error())
+	}
+	channels := engineInstance.GetPluginChannels()
+	channels.GetWaitGroup().Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
+	report := engineInstance.GetReport()
 
-	if Report.TotalItemsScanned > 0 {
+	if report.GetTotalItemsScanned() > 0 {
 		if zerolog.GlobalLevel() != zerolog.Disabled {
-			if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
+			if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
 				return err
 			}
 		}
 
 		if len(reportPathVar) > 0 {
-			err := Report.WriteFile(reportPathVar, cfg)
+			err := report.WriteFile(reportPathVar, cfg)
 			if err != nil {
 				return fmt.Errorf("failed to create report file with error: %s", err)
 			}
@@ -201,7 +235,7 @@ func postRun(cmd *cobra.Command, args []string) error {
 		log.Info().Msg("Scan completed with empty content")
 	}
 
-	if err := engine.GetEngine().Shutdown(); err != nil {
+	if err := engineInstance.Shutdown(); err != nil {
 		return err
 	}
 
