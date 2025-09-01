@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub Discussions](https://img.shields.io/badge/chat-discussions-blue.svg?style=flat-square&logo=github)](https://github.com/Checkmarx/2ms/discussions)
 [![Discord Server](https://img.shields.io/discord/1116626376674521169?logo=discord)](https://discord.gg/uYVhfSGG)
+[![Trivy](https://github.com/Checkmarx/2ms/actions/workflows/trivy-vulnerability-scan.yaml/badge.svg)](https://github.com/Checkmarx/2ms/actions/workflows/trivy-vulnerability-scan.yaml)
 
 ![2ms Mascot](https://github.com/Checkmarx/2ms/assets/1287098/3a543045-9c6a-4a35-9bf8-f41919e7b03e)
 
