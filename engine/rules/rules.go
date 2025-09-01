@@ -148,7 +148,7 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
 		{
-			Rule:            *rules.AWS(),
+			Rule:            *AWS(),
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
@@ -422,7 +422,7 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
 		},
 		{
-			Rule:            *rules.GenericCredential(),
+			Rule:            *GenericCredential(),
 			Tags:            []string{TagApiKey},
 			ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
 		},
@@ -492,7 +492,7 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategorySourceCodeManagement, RuleType: 4},
 		},
 		{
-			Rule:            *rules.GitlabPatRoutable(),
+			Rule:            *GitlabPatRoutable(),
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategorySourceCodeManagement, RuleType: 4},
 		},
@@ -512,7 +512,7 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
 		},
 		{
-			Rule:            *rules.GitlabRunnerAuthenticationTokenRoutable(),
+			Rule:            *GitlabRunnerAuthenticationTokenRoutable(),
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
 		},
@@ -782,7 +782,7 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
 		{
-			Rule:            *rules.OnePasswordSecretKey(),
+			Rule:            *OnePasswordSecretKey(),
 			Tags:            []string{TagPrivateKey},
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
