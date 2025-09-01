@@ -331,3 +331,9 @@ ignore-result:
 - f331386962ad71a3b29dcee0214c488d87f8d0fd # unit test from rule_test.go
 - 4b75cef51bd03266e2024922611cf53f4358c223 # test/development data from authenticated_url.go
 - c7510bd9bcfa7887912dd28bd57aab89be736acd # test data from secret_at_end_with_newline.txt
+- 1d0237c199a76f27772d297e8678777c6f08e1b4 # secret found in hardcodedPassword.go
+- 501efae9af28b4af6594f52d6188ba11945de152 # test data from expectedReport.json
+- 747b98d6f9ee9137b27461618c807592ea97fb80 # unit test from rule_test.go
+- 85e0b268e9cd3f0013fc165d91a6d0507daca177 # test data from multi_line_secret_report.json
+- 88da23ceb5085e22859c302c7e463b37802a7006 # unit test from rule_test.go
+- aabd228208a72ebabf7b3e0700dff95d3c12f531 # unit test from secrets_test.go
