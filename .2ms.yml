@@ -330,3 +330,4 @@ ignore-result:
 - f26f7092fbb46c866b5f56145c0f344ae2e3f822 # unit test from rule_test.go
 - f331386962ad71a3b29dcee0214c488d87f8d0fd # unit test from rule_test.go
 - 4b75cef51bd03266e2024922611cf53f4358c223 # test/development data from authenticated_url.go
+- c7510bd9bcfa7887912dd28bd57aab89be736acd # test data from secret_at_end_with_newline.txt
