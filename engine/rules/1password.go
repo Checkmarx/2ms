@@ -23,7 +23,7 @@ func OnePasswordSecretKey() *config.Rule {
 	return &config.Rule{
 		Description: "Uncovered a possible 1Password secret key, potentially compromising access to secrets in vaults.",
 		RuleID:      "1password-secret-key",
-		Regex:       regexp.MustCompile(`\bA3-[A-Z0-9]{6}-(?:(?:[A-Z0-9]{11})|(?:[A-Z0-9]{6}-[A-Z0-9]{5}))-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\b`),
+		Regex:       regexp.MustCompile(`\bA3-[A-Z0-9]{6}-(?:(?:[A-Z0-9]{11})|(?:[A-Z0-9]{6}-[A-Z0-9]{5}))-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\b`), //nolint:lll
 		Entropy:     3.8,
 		Keywords:    []string{"A3-"},
 	}
