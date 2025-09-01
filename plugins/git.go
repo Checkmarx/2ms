@@ -141,7 +141,6 @@ func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize, pr
 func (p *StringBuilderPool) Get() *strings.Builder {
 	p.gets.Add(1)
 	sb := p.pool.Get().(*strings.Builder)
-	sb.Reset() // Ensure clean state
 	return sb
 }
 

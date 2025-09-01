@@ -215,7 +215,7 @@ func (p *workerPool) Stop() error {
 		}
 
 		// Wait for graceful shutdown with timeout
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer shutdownCancel()
 
 		done := make(chan struct{})
@@ -257,7 +257,7 @@ func (p *workerPool) Stop() error {
 func (p *workerPool) monitorShutdown() {
 	defer close(p.monitorDone)
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {

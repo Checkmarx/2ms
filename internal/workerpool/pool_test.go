@@ -142,17 +142,20 @@ func TestWorkerPool(t *testing.T) {
 
 		cancel()
 		wg.Wait()
-		// we sleep here to make sure the pool did shutdown the workers
-		// and did not consume tasks from the queue in the time between the cancel and shutdown
-		// otherwise, the assertion below will fail
-		time.Sleep(100 * time.Millisecond)
+		// Use proper synchronization instead of fixed delay
+		for i := 0; i < 20; i++ {
+			if cancelledTasks.Load() == activeTasks.Load() {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
 		assert.Equal(t, cancelledTasks.Load(), activeTasks.Load())
 	})
 	t.Run("submitting after shutdown returns error", func(t *testing.T) {
 		pool := New("submit-after-shutdown", WithWorkers(2))
 
 		err := pool.Submit(func(ctx context.Context) error {
-			time.Sleep(10 * time.Second)
+			time.Sleep(100 * time.Millisecond) // Reasonable simulation instead of 10s
 			return nil
 		})
 		assert.NoError(t, err)
@@ -162,8 +165,8 @@ func TestWorkerPool(t *testing.T) {
 			pool.Stop()
 		}()
 
-		// give some time for the goroutine to start and call the Stop method
-		time.Sleep(100 * time.Millisecond)
+		// Give brief time for shutdown to initiate
+		time.Sleep(50 * time.Millisecond)
 
 		// Try to submit while shutting down
 		err = pool.Submit(func(ctx context.Context) error {
@@ -259,8 +262,26 @@ func TestWorkerPool(t *testing.T) {
 		// Close queue - this should trigger automatic shutdown when tasks finish
 		pool.CloseQueue()
 		assert.True(t, pool.queueClosed.Load())
-		// wait enough time so the pool has time to initiate the shutdown
-		time.Sleep(2 * time.Second)
+		
+		// Use proper synchronization instead of fixed delay
+		shutdownDetected := make(chan bool)
+		go func() {
+			for {
+				if pool.isShuttingDown.Load() {
+					shutdownDetected <- true
+					return
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+		}()
+		
+		select {
+		case <-shutdownDetected:
+			// Shutdown detected
+		case <-time.After(500 * time.Millisecond):
+			t.Fatal("Shutdown not initiated within timeout")
+		}
+		
 		assert.True(t, pool.isShuttingDown.Load())
 
 		completed := atomic.LoadInt32(&completedTasks)
@@ -293,7 +314,14 @@ func TestWorkerPool(t *testing.T) {
 		}
 
 		wg.Wait()
-		time.Sleep(100 * time.Millisecond)
+		
+		// Wait for tasks to complete with proper synchronization
+		for i := 0; i < 20; i++ {
+			if atomic.LoadInt32(&completedTasks) == int32(numTasks) {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
 
 		completed := atomic.LoadInt32(&completedTasks)
 		assert.Equal(t, int32(numTasks), completed)
