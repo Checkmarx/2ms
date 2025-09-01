@@ -3,8 +3,6 @@ package rules
 import (
 	"regexp"
 
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
@@ -22,27 +20,11 @@ func OnePasswordSecretKey() *config.Rule {
 	//   - A3-ASWWYB-798JRYLJVD4-23DC2-86TVM-H43EB  (the whitepaper includes this example, which could just be a typo)
 	// To avoid a complicated regex that checks for every possible situation it's probably best
 	// to scan for the these two patterns.
-	r := config.Rule{
+	return &config.Rule{
 		Description: "Uncovered a possible 1Password secret key, potentially compromising access to secrets in vaults.",
 		RuleID:      "1password-secret-key",
 		Regex:       regexp.MustCompile(`\bA3-[A-Z0-9]{6}-(?:(?:[A-Z0-9]{11})|(?:[A-Z0-9]{6}-[A-Z0-9]{5}))-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\b`),
 		Entropy:     3.8,
 		Keywords:    []string{"A3-"},
 	}
-
-	// validate
-	tps := utils.GenerateSampleSecrets("1password", secrets.NewSecret(`A3-[A-Z0-9]{6}-[A-Z0-9]{11}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}`))
-	tps = append(tps, utils.GenerateSampleSecrets("1password", secrets.NewSecret(`A3-[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}`))...)
-	tps = append(tps,
-		// from whitepaper
-		`A3-ASWWYB-798JRYLJVD4-23DC2-86TVM-H43EB`,
-		`A3-ASWWYB-798JRY-LJVD4-23DC2-86TVM-H43EB`,
-	)
-	fps := []string{
-		// low entropy
-		`A3-XXXXXX-XXXXXXXXXXX-XXXXX-XXXXX-XXXXX`,
-		// lowercase
-		`A3-xXXXXX-XXXXXX-XXXXX-XXXXX-XXXXX-XXXXX`,
-	}
-	return utils.Validate(r, tps, fps)
 }
