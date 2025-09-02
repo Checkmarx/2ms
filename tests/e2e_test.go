@@ -220,7 +220,7 @@ func TestSecretsScans(t *testing.T) {
 }
 
 func (c *cli) getReport() (reporting.IReport, error) {
-	report := reporting.Init()
+	report := reporting.New()
 
 	content, err := os.ReadFile(c.resultsPath)
 	if err != nil {

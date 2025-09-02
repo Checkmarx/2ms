@@ -17,7 +17,7 @@ var (
 	errInvalidReportExtension = fmt.Errorf("invalid report extension")
 )
 
-func initialize() {
+func initialize(rootCmd *cobra.Command) {
 	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
 	if err != nil {
 		cobra.CheckErr(err)
