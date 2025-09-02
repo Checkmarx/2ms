@@ -1,12 +1,12 @@
 package score_test
 
 import (
-	"sync"
 	"testing"
 
 	. "github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/engine/rules"
 	"github.com/checkmarx/2ms/v4/engine/score"
+	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	ruleConfig "github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
@@ -15,9 +15,6 @@ import (
 func TestScore(t *testing.T) {
 	specialRule := rules.HardcodedPassword()
 	allRules := rules.FilterRules([]string{}, []string{}, []string{specialRule.RuleID})
-
-	engine, err := Init(&EngineConfig{SpecialList: []string{specialRule.RuleID}})
-	assert.NoError(t, err)
 
 	expectedCvssScores := map[string][3]float64{ // ruleID -> Valid, Invalid, Unknown
 		ruleConfig.AdafruitAPIKey().RuleID:                  {9.4, 3.4, 6.4},
@@ -193,38 +190,74 @@ func TestScore(t *testing.T) {
 		rules.AuthenticatedURL().RuleID:                     {10, 5.2, 8.2},
 		specialRule.RuleID:                                  {10, 5.2, 8.2},
 	}
-	for _, rule := range allRules {
-		expectedRuleScores := expectedCvssScores[rule.Rule.RuleID]
-		baseRiskScore := score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
-		ruleBaseRiskScore := engine.GetRuleBaseRiskScore(rule.Rule.RuleID)
-		assert.Equal(t, ruleBaseRiskScore, baseRiskScore, "rule: %s", rule.Rule.RuleID)
-		assert.Equal(t, expectedRuleScores[0], score.GetCvssScore(baseRiskScore, secrets.ValidResult), "rule: %s", rule.Rule.RuleID)
-		assert.Equal(t, expectedRuleScores[1], score.GetCvssScore(baseRiskScore, secrets.InvalidResult), "rule: %s", rule.Rule.RuleID)
-		assert.Equal(t, expectedRuleScores[2], score.GetCvssScore(baseRiskScore, secrets.UnknownResult), "rule: %s", rule.Rule.RuleID)
-	}
 
-	var allSecrets []*secrets.Secret
-	for _, rule := range allRules {
-		var secretValid, secretInvalid, secretUnknown secrets.Secret
-		secretValid.RuleID = rule.Rule.RuleID
-		secretValid.ValidationStatus = secrets.ValidResult
-		secretInvalid.RuleID = rule.Rule.RuleID
-		secretInvalid.ValidationStatus = secrets.InvalidResult
-		secretUnknown.RuleID = rule.Rule.RuleID
-		secretUnknown.ValidationStatus = secrets.UnknownResult
-		allSecrets = append(allSecrets, &secretValid, &secretInvalid, &secretUnknown)
-	}
-	for _, secret := range allSecrets {
-		var wg sync.WaitGroup
-		wg.Add(2)
-		expectedRuleScores := expectedCvssScores[secret.RuleID]
-		validityIndex := getValidityIndex(secret.ValidationStatus)
-		unknownIndex := getValidityIndex(secrets.UnknownResult)
-		engine.Score(secret, true)
-		assert.Equal(t, expectedRuleScores[validityIndex], secret.CvssScore, "rule: %s", secret.RuleID)
-		engine.Score(secret, false)
-		assert.Equal(t, expectedRuleScores[unknownIndex], secret.CvssScore, "rule: %s", secret.RuleID)
-	}
+	t.Run("Should get base risk score and cvss score", func(t *testing.T) {
+		engine, err := Init(&EngineConfig{SpecialList: []string{specialRule.RuleID}})
+		assert.NoError(t, err)
+
+		defer engine.Shutdown()
+
+		for _, rule := range allRules {
+			expectedRuleScores := expectedCvssScores[rule.Rule.RuleID]
+			baseRiskScore := score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
+			ruleBaseRiskScore := engine.GetRuleBaseRiskScore(rule.Rule.RuleID)
+			assert.Equal(t, ruleBaseRiskScore, baseRiskScore, "rule: %s", rule.Rule.RuleID)
+			assert.Equal(t, expectedRuleScores[0], score.GetCvssScore(baseRiskScore, secrets.ValidResult), "rule: %s", rule.Rule.RuleID)
+			assert.Equal(t, expectedRuleScores[1], score.GetCvssScore(baseRiskScore, secrets.InvalidResult), "rule: %s", rule.Rule.RuleID)
+			assert.Equal(t, expectedRuleScores[2], score.GetCvssScore(baseRiskScore, secrets.UnknownResult), "rule: %s", rule.Rule.RuleID)
+		}
+	})
+
+	t.Run("Should get cvss score with validation", func(t *testing.T) {
+		var allSecrets []*secrets.Secret
+		for _, rule := range allRules {
+			var secretValid, secretInvalid, secretUnknown secrets.Secret
+			secretValid.RuleID = rule.Rule.RuleID
+			secretValid.ValidationStatus = secrets.ValidResult
+			secretInvalid.RuleID = rule.Rule.RuleID
+			secretInvalid.ValidationStatus = secrets.InvalidResult
+			secretUnknown.RuleID = rule.Rule.RuleID
+			secretUnknown.ValidationStatus = secrets.UnknownResult
+			allSecrets = append(allSecrets, &secretValid, &secretInvalid, &secretUnknown)
+		}
+
+		engine, err := Init(&EngineConfig{SpecialList: []string{specialRule.RuleID}, ScanConfig: resources.ScanConfig{WithValidation: true}})
+		assert.NoError(t, err)
+		defer engine.Shutdown()
+
+		for _, secret := range allSecrets {
+			expectedRuleScores := expectedCvssScores[secret.RuleID]
+			validityIndex := getValidityIndex(secret.ValidationStatus)
+
+			engine.Score(secret)
+			assert.Equal(t, expectedRuleScores[validityIndex], secret.CvssScore, "rule: %s", secret.RuleID)
+		}
+	})
+	t.Run("Should get cvss score without validation", func(t *testing.T) {
+		var allSecrets []*secrets.Secret
+		for _, rule := range allRules {
+			var secretValid, secretInvalid, secretUnknown secrets.Secret
+			secretValid.RuleID = rule.Rule.RuleID
+			secretValid.ValidationStatus = secrets.ValidResult
+			secretInvalid.RuleID = rule.Rule.RuleID
+			secretInvalid.ValidationStatus = secrets.InvalidResult
+			secretUnknown.RuleID = rule.Rule.RuleID
+			secretUnknown.ValidationStatus = secrets.UnknownResult
+			allSecrets = append(allSecrets, &secretValid, &secretInvalid, &secretUnknown)
+		}
+
+		engine, err := Init(&EngineConfig{SpecialList: []string{specialRule.RuleID}, ScanConfig: resources.ScanConfig{WithValidation: false}})
+		assert.NoError(t, err)
+		defer engine.Shutdown()
+
+		for _, secret := range allSecrets {
+			expectedRuleScores := expectedCvssScores[secret.RuleID]
+			unknownIndex := getValidityIndex(secrets.UnknownResult)
+
+			engine.Score(secret)
+			assert.Equal(t, expectedRuleScores[unknownIndex], secret.CvssScore, "rule: %s", secret.RuleID)
+		}
+	})
 }
 
 func getValidityIndex(validity secrets.ValidationResult) int {

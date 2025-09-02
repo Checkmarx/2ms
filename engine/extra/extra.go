@@ -24,6 +24,7 @@ func AddExtraToSecret(secret *secrets.Secret) {
 	}
 }
 
+// TODO: is this the best approach?
 var mtxs = &NamedMutex{}
 
 func UpdateExtraField(secret *secrets.Secret, extraName string, extraData interface{}) {

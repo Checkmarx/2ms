@@ -75,25 +75,23 @@ func TestInitializeLogLevels(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			originalRootCmd := rootCmd
-			defer func() { rootCmd = originalRootCmd }()
-			rootCmd = &cobra.Command{
+			rootCmd := &cobra.Command{
 				Use: "test",
-				Run: func(cmd *cobra.Command, args []string) {
-					cmd.Flags().StringVar(&configFilePath, configFileFlag, "", "")
-					cmd.Flags().StringVar(&logLevelVar, logLevelFlagName, "", "")
+			}
+			rootCmd.Run = func(cmd *cobra.Command, args []string) {
+				cmd.Flags().StringVar(&configFilePath, configFileFlag, "", "")
+				cmd.Flags().StringVar(&logLevelVar, logLevelFlagName, "", "")
 
-					err := cmd.Flags().Set(configFileFlag, "")
-					assert.NoError(t, err)
+				err := cmd.Flags().Set(configFileFlag, "")
+				assert.NoError(t, err)
 
-					err = cmd.Flags().Set(logLevelFlagName, tc.logLevelInput)
-					assert.NoError(t, err)
+				err = cmd.Flags().Set(logLevelFlagName, tc.logLevelInput)
+				assert.NoError(t, err)
 
-					initialize()
+				initialize(rootCmd)
 
-					assert.Equal(t, tc.expectedLevel, zerolog.GlobalLevel())
-					assert.Equal(t, tc.expectedLevel, log.Logger.GetLevel())
-				},
+				assert.Equal(t, tc.expectedLevel, zerolog.GlobalLevel())
+				assert.Equal(t, tc.expectedLevel, log.Logger.GetLevel())
 			}
 
 			err := rootCmd.Execute()

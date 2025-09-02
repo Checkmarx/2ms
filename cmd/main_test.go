@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"testing"
 
 	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +17,8 @@ func TestPreRun(t *testing.T) {
 		engineConfigVar    engine.EngineConfig
 		customRegexRuleVar []string
 		validateVar        bool
-		expectedErr        error
+		expectedInitErr    error
+		expectedPreRunErr  error
 	}{
 		{
 			name:               "error in validateFormat",
@@ -24,7 +27,7 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{},
 			validateVar:        false,
-			expectedErr:        errInvalidOutputFormat,
+			expectedPreRunErr:  errInvalidOutputFormat,
 		},
 		{
 			name:            "error in engine.Init",
@@ -35,7 +38,7 @@ func TestPreRun(t *testing.T) {
 			},
 			customRegexRuleVar: []string{},
 			validateVar:        false,
-			expectedErr:        engine.ErrNoRulesSelected,
+			expectedInitErr:    engine.ErrNoRulesSelected,
 		},
 		{
 			name:               "error in engine.AddRegexRules",
@@ -44,7 +47,7 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{"[a-z"},
 			validateVar:        false,
-			expectedErr:        engine.ErrFailedToCompileRegexRule,
+			expectedPreRunErr:  engine.ErrFailedToCompileRegexRule,
 		},
 		{
 			name:               "successfully started go routines with validateVar enabled",
@@ -53,7 +56,7 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{},
 			validateVar:        true,
-			expectedErr:        nil,
+			expectedPreRunErr:  nil,
 		},
 		{
 			name:               "successfully started go routines with validateVar disabled",
@@ -62,7 +65,7 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{},
 			validateVar:        false,
-			expectedErr:        nil,
+			expectedPreRunErr:  nil,
 		},
 	}
 
@@ -73,8 +76,22 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar = tt.engineConfigVar
 			customRegexRuleVar = tt.customRegexRuleVar
 			validateVar = tt.validateVar
-			err := preRun("mock", nil, nil)
-			assert.ErrorIs(t, err, tt.expectedErr)
+
+			engineInstance, err := engine.Init(&engineConfigVar)
+			if tt.expectedInitErr != nil {
+				assert.ErrorIs(t, err, tt.expectedInitErr)
+				return
+			}
+			rootCmd := &cobra.Command{
+				Use:     "2ms",
+				Short:   "2ms Secrets Detection",
+				Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
+				Version: Version,
+			}
+
+			rootCmd.SetContext(context.WithValue(context.Background(), engineCtxKey, engineInstance))
+			err = preRun(rootCmd, "mock", nil, nil)
+			assert.ErrorIs(t, err, tt.expectedPreRunErr)
 
 			// close(Channels.Items)
 			// close(Channels.Errors)

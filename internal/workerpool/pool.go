@@ -48,6 +48,10 @@ type workerPool struct {
 	submittedTasks atomic.Int32
 	completedTasks atomic.Int32
 
+	// Event-driven synchronization
+	allTasksDone  chan struct{}
+	completionMux sync.Mutex
+
 	// Monitor goroutine control
 	stopMonitor chan struct{}
 	monitorDone chan struct{}
@@ -92,13 +96,14 @@ func newWorkerPool(name string, config *Config) *workerPool {
 	}
 
 	wp := &workerPool{
-		pool:        pond.NewPool(config.workers, pondOpts...),
-		ctx:         config.ctx,
-		cancel:      config.cancel,
-		logger:      utils.CreateLogger(zerolog.InfoLevel).With().Str("workerpool", name).Logger(),
-		name:        name,
-		stopMonitor: make(chan struct{}),
-		monitorDone: make(chan struct{}),
+		pool:         pond.NewPool(config.workers, pondOpts...),
+		ctx:          config.ctx,
+		cancel:       config.cancel,
+		logger:       utils.CreateLogger(zerolog.InfoLevel).With().Str("workerpool", name).Logger(),
+		name:         name,
+		allTasksDone: make(chan struct{}, 1),
+		stopMonitor:  make(chan struct{}),
+		monitorDone:  make(chan struct{}),
 	}
 
 	// Start monitoring goroutine for CloseQueue() behavior
@@ -136,7 +141,19 @@ func WithCancel(cancel context.CancelFunc) Option {
 func (p *workerPool) Submit(task Task) error {
 	// Wrap task to handle context and error logging
 	pondTask := func() error {
-		defer p.completedTasks.Add(1)
+		defer func() {
+			completed := p.completedTasks.Add(1)
+			// Signal completion when all tasks are done
+			if completed == p.submittedTasks.Load() {
+				p.completionMux.Lock()
+				select {
+				case p.allTasksDone <- struct{}{}:
+				default:
+					// Channel already signaled
+				}
+				p.completionMux.Unlock()
+			}
+		}()
 
 		defer func() {
 			if r := recover(); r != nil {
@@ -186,14 +203,13 @@ func (p *workerPool) CloseQueue() {
 }
 
 func (p *workerPool) Wait() {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		if p.submittedTasks.Load() == p.completedTasks.Load() {
-			return
-		}
+	// Check if already complete before waiting
+	if p.submittedTasks.Load() == p.completedTasks.Load() {
+		return
 	}
+
+	// Wait for completion signal
+	<-p.allTasksDone
 }
 
 // Stop gracefully shuts down the pool

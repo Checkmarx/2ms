@@ -23,6 +23,7 @@ import (
 	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/checkmarx/2ms/v4/engine/semaphore"
 	"github.com/checkmarx/2ms/v4/engine/validation"
+	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/internal/workerpool"
 	"github.com/checkmarx/2ms/v4/lib/reporting"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
@@ -32,15 +33,12 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
-	"golang.org/x/sync/errgroup"
 )
 
 var (
 	defaultDetectorWorkerPoolSize = runtime.GOMAXPROCS(0) * 2 // 2x the number of CPUs based on benchmark
 
-	instance *Engine
-
-	mu sync.RWMutex
+	mu sync.Mutex
 
 	ErrNoRulesSelected          = fmt.Errorf("no rules were selected")
 	ErrFailedToCompileRegexRule = fmt.Errorf("failed to compile regex rule")
@@ -66,6 +64,8 @@ type Engine struct {
 	cvssScoreWithoutValidationChan chan *secrets.Secret
 
 	Report reporting.IReport
+
+	ScanConfig resources.ScanConfig
 }
 
 type IEngine interface {
@@ -73,24 +73,27 @@ type IEngine interface {
 	DetectFile(ctx context.Context, item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error
 	AddRegexRules(patterns []string) error
 	RegisterForValidation(secret *secrets.Secret)
-	Score(secret *secrets.Secret, validateFlag bool)
+	Score(secret *secrets.Secret)
 	Validate()
 	GetRuleBaseRiskScore(ruleId string) float64
 	GetDetectorWorkerPool() workerpool.Pool
 	ProcessItems(pluginName string)
-	ProcessSecrets(validateVar bool)
-	ProcessSecretsWithValidation()
+	ProcessSecrets()
 	ProcessSecretsExtras()
-	ProcessValidationAndScoreWithValidation()
-	ProcessScoreWithoutValidation()
+	ProcessScore()
 	GetReport() reporting.IReport
 	AddWaitGroup(n int)
 	GetPluginChannels() plugins.PluginChannels
 	SetPluginChannels(pluginChannels plugins.PluginChannels)
+	GetSecretsCh() chan *secrets.Secret
+	GetSecretsExtrasCh() chan *secrets.Secret
+	GetValidationCh() chan *secrets.Secret
 	GetErrorsCh() chan error
-
-	ResetInstance()
+	GetCvssScoreWithoutValidationCh() chan *secrets.Secret
 	Shutdown() error
+
+	GetScanConfig() resources.ScanConfig
+	SetScanConfig(scanConfig resources.ScanConfig)
 }
 
 type ctxKey string
@@ -113,6 +116,8 @@ type EngineConfig struct {
 	AllowedValues []string
 
 	DetectorWorkerPoolSize int
+
+	ScanConfig resources.ScanConfig
 }
 
 type EngineOption func(*Engine)
@@ -124,6 +129,10 @@ func WithPluginChannels(pluginChannels plugins.PluginChannels) EngineOption {
 }
 
 func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
+	return initEngine(engineConfig, opts...)
+}
+
+func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
 	if len(selectedRules) == 0 {
 		return nil, ErrNoRulesSelected
@@ -139,10 +148,13 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 			keywords[strings.ToLower(keyword)] = struct{}{}
 		}
 	}
+
+	// Create a local copy of config to avoid modifying global state
+	cfg := newConfig()
 	cfg.Rules = rulesToBeApplied
 	cfg.Keywords = keywords
 
-	detector := detect.NewDetector(cfg)
+	detector := detect.NewDetector(*cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 
 	fileWalkerWorkerPoolSize := defaultDetectorWorkerPoolSize
@@ -150,7 +162,7 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}
 
-	instance = &Engine{
+	engine := &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
 		detector:           detector,
@@ -162,42 +174,22 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
 
-		secretsChan:                    make(chan *secrets.Secret),
-		secretsExtrasChan:              make(chan *secrets.Secret),
-		validationChan:                 make(chan *secrets.Secret),
-		cvssScoreWithoutValidationChan: make(chan *secrets.Secret),
+		ScanConfig: engineConfig.ScanConfig,
+
+		secretsChan:                    make(chan *secrets.Secret, 10),
+		secretsExtrasChan:              make(chan *secrets.Secret, 10),
+		validationChan:                 make(chan *secrets.Secret, 10),
+		cvssScoreWithoutValidationChan: make(chan *secrets.Secret, 10),
 
 		pluginChannels: plugins.NewChannels(),
-		Report:         reporting.Init(),
+		Report:         reporting.New(),
 	}
 
 	for _, opt := range opts {
-		opt(instance)
+		opt(engine)
 	}
 
-	return instance, nil
-}
-
-func GetInstance() (IEngine, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-
-	if instance == nil {
-		return nil, fmt.Errorf("engine not initialized")
-	}
-	return instance, nil
-}
-
-func (e *Engine) ResetInstance() {
-	mu.Lock()
-	defer mu.Unlock()
-
-	e.pluginChannels = plugins.NewChannels()
-	e.Report = reporting.Init()
-	e.secretsChan = make(chan *secrets.Secret)
-	e.secretsExtrasChan = make(chan *secrets.Secret)
-	e.validationChan = make(chan *secrets.Secret)
-	e.cvssScoreWithoutValidationChan = make(chan *secrets.Secret)
+	return engine, nil
 }
 
 // DetectFragment detects secrets in the given fragment
@@ -356,9 +348,9 @@ func (e *Engine) RegisterForValidation(secret *secrets.Secret) {
 	e.validator.RegisterForValidation(secret)
 }
 
-func (e *Engine) Score(secret *secrets.Secret, validateFlag bool) {
+func (e *Engine) Score(secret *secrets.Secret) {
 	validationStatus := secrets.UnknownResult // default validity
-	if validateFlag {
+	if e.ScanConfig.WithValidation {
 		validationStatus = secret.ValidationStatus
 	}
 	secret.CvssScore = score.GetCvssScore(e.GetRuleBaseRiskScore(secret.RuleID), validationStatus)
@@ -572,35 +564,33 @@ func (e *Engine) processItems(pluginName string) {
 
 		if err := pool.Submit(task); err != nil {
 			e.pluginChannels.GetErrorsCh() <- err
-			// TODO: Should we break here?
-			break
 		}
 	}
 	pool.CloseQueue()
 }
 
-func (e *Engine) ProcessSecrets(validateVar bool) {
+func (e *Engine) ProcessSecrets() {
 	defer e.pluginChannels.GetWaitGroup().Done()
+	if e.ScanConfig.WithValidation {
+		e.processSecretsWithValidation()
+	} else {
+		e.processSecretsWithoutValidation()
+	}
+}
 
+func (e *Engine) processSecretsWithoutValidation() {
 	for secret := range e.secretsChan {
 		e.Report.IncTotalSecretsFound(1)
 		e.secretsExtrasChan <- secret
-		if validateVar {
-			e.validationChan <- secret
-		} else {
-			e.cvssScoreWithoutValidationChan <- secret
-		}
+		e.cvssScoreWithoutValidationChan <- secret
 		results := e.Report.GetResults()
 		results[secret.ID] = append(results[secret.ID], secret)
 	}
 	close(e.secretsExtrasChan)
-	close(e.validationChan)
 	close(e.cvssScoreWithoutValidationChan)
 }
 
-func (e *Engine) ProcessSecretsWithValidation() {
-	defer e.pluginChannels.GetWaitGroup().Done()
-
+func (e *Engine) processSecretsWithValidation() {
 	for secret := range e.secretsChan {
 		e.Report.IncTotalSecretsFound(1)
 		e.secretsExtrasChan <- secret
@@ -610,7 +600,6 @@ func (e *Engine) ProcessSecretsWithValidation() {
 	}
 	close(e.secretsExtrasChan)
 	close(e.validationChan)
-	close(e.cvssScoreWithoutValidationChan)
 }
 
 func (e *Engine) ProcessSecretsExtras() {
@@ -621,34 +610,28 @@ func (e *Engine) ProcessSecretsExtras() {
 	}
 }
 
-func (e *Engine) ProcessValidationAndScoreWithValidation() {
-	defer e.pluginChannels.GetWaitGroup().Done()
-
-	g := errgroup.Group{}
-	g.SetLimit(10)
+func (e *Engine) processValidationAndScoreWithValidation() {
 	for secret := range e.validationChan {
-		g.Go(func() error {
-			e.RegisterForValidation(secret)
-			e.Score(secret, true)
-			return nil
-		})
+		e.RegisterForValidation(secret)
+		e.Score(secret)
 	}
-	_ = g.Wait()
 	e.Validate()
 }
 
-func (e *Engine) ProcessScoreWithoutValidation() {
+func (e *Engine) processScoreWithoutValidation() {
+	for secret := range e.cvssScoreWithoutValidationChan {
+		e.Score(secret)
+	}
+}
+
+func (e *Engine) ProcessScore() {
 	defer e.pluginChannels.GetWaitGroup().Done()
 
-	g := errgroup.Group{}
-	g.SetLimit(10)
-	for secret := range e.cvssScoreWithoutValidationChan {
-		g.Go(func() error {
-			e.Score(secret, false)
-			return nil
-		})
+	if e.ScanConfig.WithValidation {
+		e.processValidationAndScoreWithValidation()
+	} else {
+		e.processScoreWithoutValidation()
 	}
-	_ = g.Wait()
 }
 
 func (e *Engine) GetReport() reporting.IReport {
@@ -669,4 +652,28 @@ func (e *Engine) SetPluginChannels(pluginChannels plugins.PluginChannels) {
 
 func (e *Engine) GetErrorsCh() chan error {
 	return e.pluginChannels.GetErrorsCh()
+}
+
+func (e *Engine) GetSecretsCh() chan *secrets.Secret {
+	return e.secretsChan
+}
+
+func (e *Engine) GetSecretsExtrasCh() chan *secrets.Secret {
+	return e.secretsExtrasChan
+}
+
+func (e *Engine) GetValidationCh() chan *secrets.Secret {
+	return e.validationChan
+}
+
+func (e *Engine) GetCvssScoreWithoutValidationCh() chan *secrets.Secret {
+	return e.cvssScoreWithoutValidationChan
+}
+
+func (e *Engine) GetScanConfig() resources.ScanConfig {
+	return e.ScanConfig
+}
+
+func (e *Engine) SetScanConfig(scanConfig resources.ScanConfig) {
+	e.ScanConfig = scanConfig
 }

@@ -34,11 +34,12 @@ type Report struct {
 	Results           map[string][]*secrets.Secret `json:"results"`
 }
 
-func Init() IReport {
+func New() IReport {
 	return &Report{
 		Results: make(map[string][]*secrets.Secret),
 	}
 }
+
 func (r *Report) ShowReport(format string, cfg *config.Config) error {
 	output, err := r.GetOutput(format, cfg)
 	if err != nil {

@@ -213,7 +213,7 @@ JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 }
 
 func TestWriteReportInNonExistingDir(t *testing.T) {
-	report := Init()
+	report := New()
 
 	tempDir := os.TempDir()
 	path := filepath.Join(tempDir, "test_temp_dir", "sub_dir", "report.yaml")

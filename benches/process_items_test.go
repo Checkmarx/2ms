@@ -119,7 +119,7 @@ func BenchmarkProcessItems(b *testing.B) {
 					// Create fresh channels
 					itemsChan := make(chan plugins.ISourceItem, items)
 					secretsChan := make(chan *secrets.Secret, items*2) // Larger buffer for found secrets
-					report := reporting.Init()
+					report := reporting.New()
 					wg := &sync.WaitGroup{}
 					wg.Add(1)
 

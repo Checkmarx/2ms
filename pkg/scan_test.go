@@ -9,6 +9,7 @@ import (
 
 	"github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/lib/reporting"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/lib/utils"
@@ -60,7 +61,7 @@ func TestScan(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, ScanConfig{})
+		actualReport, err := testScanner.Scan(scanItems, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		// Use helper function to either update expected file or compare results
@@ -97,7 +98,7 @@ func TestScan(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, ScanConfig{
+		actualReport, err := testScanner.Scan(scanItems, resources.ScanConfig{
 			IgnoreResultIds: []string{
 				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
 				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
@@ -157,7 +158,7 @@ func TestScan(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, ScanConfig{
+		actualReport, err := testScanner.Scan(scanItems, resources.ScanConfig{
 			IgnoreRules: []string{
 				"github-pat",
 			},
@@ -210,7 +211,7 @@ func TestScan(t *testing.T) {
 			errorsCh <- fmt.Errorf("mock processing error 1")
 			errorsCh <- fmt.Errorf("mock processing error 2")
 		}()
-		report, err := testScanner.Scan(scanItems, ScanConfig{}, engine.WithPluginChannels(pluginChannels))
+		report, err := testScanner.Scan(scanItems, resources.ScanConfig{}, engine.WithPluginChannels(pluginChannels))
 
 		assert.Equal(t, &reporting.Report{}, report)
 		assert.NotNil(t, err)
@@ -218,13 +219,13 @@ func TestScan(t *testing.T) {
 	})
 	t.Run("scan with scanItems empty", func(t *testing.T) {
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan([]ScanItem{}, ScanConfig{})
+		actualReport, err := testScanner.Scan([]ScanItem{}, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
 	})
 	t.Run("scan with scanItems nil", func(t *testing.T) {
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(nil, ScanConfig{})
+		actualReport, err := testScanner.Scan(nil, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
 	})
@@ -259,7 +260,7 @@ func TestScan(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, ScanConfig{})
+		actualReport, err := testScanner.Scan(scanItems, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		// scan 1
@@ -287,7 +288,7 @@ func TestScan(t *testing.T) {
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 
 		// scan 2
-		actualReport, err = testScanner.Scan(scanItems, ScanConfig{
+		actualReport, err = testScanner.Scan(scanItems, resources.ScanConfig{
 			IgnoreResultIds: []string{
 				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
 				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
@@ -358,7 +359,7 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 		assert.NoError(t, err, "failed to create scanner")
 
-		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
+		actualReport, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		compareOrUpdateTestData(t, actualReport, expectedReportPath)
@@ -402,7 +403,7 @@ func TestScanDynamic(t *testing.T) {
 
 		testScanner := NewScanner()
 
-		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
+		actualReport, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{
 			IgnoreResultIds: []string{
 				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
 				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
@@ -451,7 +452,7 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 		assert.NoError(t, err, "failed to create scanner")
 
-		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{
+		actualReport, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{
 			IgnoreRules: []string{
 				"github-pat",
 			},
@@ -479,7 +480,7 @@ func TestScanDynamic(t *testing.T) {
 
 		testScanner := NewScanner()
 
-		report, err := testScanner.ScanDynamic(itemsIn, ScanConfig{IgnoreRules: idOfRules})
+		report, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{IgnoreRules: idOfRules})
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, engine.ErrNoRulesSelected)
@@ -494,7 +495,7 @@ func TestScanDynamic(t *testing.T) {
 
 		testScanner := NewScanner()
 
-		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
+		actualReport, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
 	})
@@ -541,7 +542,7 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 
 		// scan 2
-		actualReport, err := testScanner.ScanDynamic(itemsIn1, ScanConfig{})
+		actualReport, err := testScanner.ScanDynamic(itemsIn1, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		expectedReportBytes, err := os.ReadFile(expectedReportPath)
@@ -567,7 +568,7 @@ func TestScanDynamic(t *testing.T) {
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 
 		// scan 2
-		actualReport, err = testScanner.ScanDynamic(itemsIn2, ScanConfig{
+		actualReport, err = testScanner.ScanDynamic(itemsIn2, resources.ScanConfig{
 			IgnoreResultIds: []string{
 				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
 				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
@@ -629,7 +630,7 @@ func TestScanWithValidation(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, ScanConfig{WithValidation: true})
+		actualReport, err := testScanner.Scan(scanItems, resources.ScanConfig{WithValidation: true})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		expectedReportBytes, err := os.ReadFile(expectedReportWithValidationPath)

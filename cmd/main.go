@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/checkmarx/2ms/v4/engine"
@@ -43,12 +44,9 @@ var (
 	validateVar        bool
 )
 
-var rootCmd = &cobra.Command{
-	Use:     "2ms",
-	Short:   "2ms Secrets Detection",
-	Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
-	Version: Version,
-}
+type engineContextKey string
+
+const engineCtxKey engineContextKey = "engine"
 
 const envPrefix = "2MS"
 
@@ -68,7 +66,14 @@ func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
 	vConfig.AutomaticEnv()
 
-	cobra.OnInitialize(initialize)
+	rootCmd := &cobra.Command{
+		Use:     "2ms",
+		Short:   "2ms Secrets Detection",
+		Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
+		Version: Version,
+	}
+
+	cobra.OnInitialize(func() { initialize(rootCmd) })
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal, none)")
@@ -113,6 +118,8 @@ func Execute() (int, error) {
 		return 0, err
 	}
 
+	ctx := context.WithValue(context.Background(), engineCtxKey, engineInstance)
+
 	channels := engineInstance.GetPluginChannels()
 
 	for _, plugin := range allPlugins {
@@ -122,7 +129,7 @@ func Execute() (int, error) {
 		}
 		subCommand.GroupID = group
 		subCommand.PreRunE = func(cmd *cobra.Command, args []string) error {
-			return preRun(plugin.GetName(), cmd, args)
+			return preRun(rootCmd, plugin.GetName(), cmd, args)
 		}
 		subCommand.PostRunE = postRun
 		rootCmd.AddCommand(subCommand)
@@ -130,26 +137,20 @@ func Execute() (int, error) {
 
 	listenForErrors(channels.GetErrorsCh())
 
-	if err := rootCmd.Execute(); err != nil {
+	if err := rootCmd.ExecuteContext(ctx); err != nil {
 		return 0, err
 	}
 
 	return engineInstance.GetReport().GetTotalSecretsFound(), nil
 }
 
-func preRun(pluginName string, _ *cobra.Command, _ []string) error {
+func preRun(rootCmd *cobra.Command, pluginName string, _ *cobra.Command, _ []string) error {
+	engineInstance, ok := rootCmd.Context().Value(engineCtxKey).(engine.IEngine)
+	if !ok {
+		return fmt.Errorf("engine instance not found in context")
+	}
 	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
 		return err
-	}
-
-	var engineInstance engine.IEngine
-	var err, initErr error
-	engineInstance, err = engine.GetInstance()
-	if engineInstance == nil {
-		engineInstance, initErr = engine.Init(&engineConfigVar)
-		if initErr != nil {
-			return fmt.Errorf("error while getting engine instance: %w %w", initErr, err)
-		}
 	}
 
 	if err := engineInstance.AddRegexRules(customRegexRuleVar); err != nil {
@@ -173,21 +174,9 @@ func startProcessingPipeline(engineInstance engine.IEngine, pluginName string, v
 	// Define all the processing tasks with descriptive names
 	tasks := []ProcessingTask{
 		{"ProcessItems", func() { engineInstance.ProcessItems(pluginName) }},
-		{"ProcessSecrets", func() { engineInstance.ProcessSecrets(validateVar) }},
+		{"ProcessSecrets", func() { engineInstance.ProcessSecrets() }},
+		{"ProcessScore", func() { engineInstance.ProcessScore() }},
 		{"ProcessSecretsExtras", func() { engineInstance.ProcessSecretsExtras() }},
-	}
-
-	// Add validation-specific processing task
-	if validateVar {
-		tasks = append(tasks, ProcessingTask{
-			"ProcessValidationAndScore",
-			func() { engineInstance.ProcessValidationAndScoreWithValidation() },
-		})
-	} else {
-		tasks = append(tasks, ProcessingTask{
-			"ProcessScore",
-			func() { engineInstance.ProcessScoreWithoutValidation() },
-		})
 	}
 
 	// Launch all goroutines with better error handling potential
@@ -199,18 +188,16 @@ func launchTasks(engineInstance engine.IEngine, tasks []ProcessingTask) {
 	for _, task := range tasks {
 		engineInstance.AddWaitGroup(1)
 		go func(t ProcessingTask) {
-			// This could be extended to add logging, metrics, or error handling
-			// log.Debug().Str("task", t.Name).Msg("Starting processing task")
+			// TODO: add logging, metrics, or error handling
 			t.Fn()
-			// log.Debug().Str("task", t.Name).Msg("Completed processing task")
 		}(task)
 	}
 }
 
 func postRun(cmd *cobra.Command, args []string) error {
-	engineInstance, err := engine.GetInstance()
-	if err != nil {
-		return fmt.Errorf("error while getting engine instance: %s", err.Error())
+	engineInstance, ok := cmd.Context().Value(engineCtxKey).(engine.IEngine)
+	if !ok {
+		return fmt.Errorf("engine instance not found in context")
 	}
 	channels := engineInstance.GetPluginChannels()
 	channels.GetWaitGroup().Wait()
