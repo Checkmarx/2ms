@@ -1,5 +1,12 @@
 # 2MS Benchmarks
 
+## Build Tag Setup
+
+These benchmarks are excluded from regular test runs using the `//go:build bench` build tag. This prevents the heavy benchmark setup (which creates 10,000 test files) from running during normal `go test` executions.
+
+- **Regular tests**: `go test` (benchmarks won't run)
+- **Run benchmarks**: Use the `-tags=bench` flag as shown below
+
 ## Process Items Benchmark
 
 This benchmark (`BenchmarkProcessItems`) tests the performance of secret detection processing across different configurations.
@@ -31,10 +38,11 @@ This benchmark (`BenchmarkProcessItems`) tests the performance of secret detecti
 ### Running the Benchmark
 
 ```bash
-go test -timeout 0 -bench BenchmarkProcessItems -count 5 -run=^$
+go test -tags=bench -timeout 0 -bench BenchmarkProcessItems -count 5 -run=^$
 ```
 
 #### Command Flags Explained
+- `-tags=bench`: Enables compilation of benchmark code (required due to build tag)
 - `-timeout 0`: Disables test timeout (needed for long benchmarks)
 - `-bench BenchmarkProcessItems`: Runs only this specific benchmark
 - `-count 5`: Runs the benchmark 5 times for better statistical significance
