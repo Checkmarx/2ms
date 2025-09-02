@@ -1,3 +1,5 @@
+//go:build bench
+
 package benches
 
 import (
