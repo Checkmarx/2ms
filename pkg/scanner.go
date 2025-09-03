@@ -36,7 +36,7 @@ func (i ScanItem) GetGitInfo() *plugins.GitInfo {
 type Scanner interface {
 	Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOption) error
 	Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error)
-	// ScanDynamic performs a scans with custom input of items andoptional custom plugin channels.
+	// ScanDynamic performs a scans with custom input of items and optional custom plugin channels.
 	//
 	// To provide custom plugin channels, use engine.WithPluginChannels:
 	//

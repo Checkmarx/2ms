@@ -41,9 +41,9 @@ var (
 
 func (p *SlackPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	p.Channels = Channels{
-		Items:     items,
-		Errors:    errors,
-		WaitGroup: &sync.WaitGroup{},
+		Items:  items,
+		Errors: errors,
+		wg:     &sync.WaitGroup{},
 	}
 
 	command := &cobra.Command{
@@ -52,7 +52,7 @@ func (p *SlackPlugin) DefineCommand(items chan ISourceItem, errors chan error) (
 		Long:  "Scan Slack team for sensitive information.",
 		Run: func(cmd *cobra.Command, args []string) {
 			p.getItems()
-			p.WaitGroup.Wait()
+			p.wg.Wait()
 			close(items)
 		},
 	}
@@ -95,7 +95,7 @@ func (p *SlackPlugin) getItems() {
 	}
 
 	log.Info().Msgf("Found %d channels for team %s", len(*channels), team.Name)
-	p.WaitGroup.Add(len(*channels))
+	p.wg.Add(len(*channels))
 	for _, channel := range *channels { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
 		go p.getItemsFromChannel(slackApi, channel)
 	}
@@ -105,7 +105,7 @@ func (p *SlackPlugin) getItemsFromChannel(
 	slackApi *slack.Client,
 	channel slack.Channel, //nolint:gocritic // hugeParam: channel is heavy but needed
 ) {
-	defer p.WaitGroup.Done()
+	defer p.wg.Done()
 	log.Info().Msgf("Getting items from channel %s", channel.Name)
 
 	cursor := ""

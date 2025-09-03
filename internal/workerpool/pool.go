@@ -41,20 +41,9 @@ type workerPool struct {
 	queueClosed    atomic.Bool
 	isShuttingDown atomic.Bool
 	shutdownOnce   sync.Once
+	waitOnce       sync.Once
 	logger         zerolog.Logger
 	name           string
-
-	// Track submitted and completed tasks
-	submittedTasks atomic.Int32
-	completedTasks atomic.Int32
-
-	// Event-driven synchronization
-	allTasksDone  chan struct{}
-	completionMux sync.Mutex
-
-	// Monitor goroutine control
-	stopMonitor chan struct{}
-	monitorDone chan struct{}
 
 	// Hook to run a function before shutdown
 	beforeShutdown func() error
@@ -96,18 +85,12 @@ func newWorkerPool(name string, config *Config) *workerPool {
 	}
 
 	wp := &workerPool{
-		pool:         pond.NewPool(config.workers, pondOpts...),
-		ctx:          config.ctx,
-		cancel:       config.cancel,
-		logger:       utils.CreateLogger(zerolog.InfoLevel).With().Str("workerpool", name).Logger(),
-		name:         name,
-		allTasksDone: make(chan struct{}, 1),
-		stopMonitor:  make(chan struct{}),
-		monitorDone:  make(chan struct{}),
+		pool:   pond.NewPool(config.workers, pondOpts...),
+		ctx:    config.ctx,
+		cancel: config.cancel,
+		logger: utils.CreateLogger(zerolog.InfoLevel).With().Str("workerpool", name).Logger(),
+		name:   name,
 	}
-
-	// Start monitoring goroutine for CloseQueue() behavior
-	go wp.monitorShutdown()
 
 	return wp
 }
@@ -138,23 +121,17 @@ func WithCancel(cancel context.CancelFunc) Option {
 
 // Submit adds a task to the queue
 // Returns ErrPoolShuttingDown if the pool is shutting down
+// Returns ErrQueueClosed if the queue has been closed
 func (p *workerPool) Submit(task Task) error {
+	if p.isShuttingDown.Load() {
+		return ErrPoolShuttingDown
+	}
+	if p.queueClosed.Load() {
+		return ErrQueueClosed
+	}
+
 	// Wrap task to handle context and error logging
 	pondTask := func() error {
-		defer func() {
-			completed := p.completedTasks.Add(1)
-			// Signal completion when all tasks are done
-			if completed == p.submittedTasks.Load() {
-				p.completionMux.Lock()
-				select {
-				case p.allTasksDone <- struct{}{}:
-				default:
-					// Channel already signaled
-				}
-				p.completionMux.Unlock()
-			}
-		}()
-
 		defer func() {
 			if r := recover(); r != nil {
 				p.logger.Error().Interface("panic", r).Str("pool", p.name).Msg("Recovered from task panic")
@@ -175,15 +152,6 @@ func (p *workerPool) Submit(task Task) error {
 		return nil
 	}
 
-	if p.isShuttingDown.Load() {
-		return ErrPoolShuttingDown
-	}
-	if p.queueClosed.Load() {
-		return ErrQueueClosed
-	}
-
-	p.submittedTasks.Add(1)
-
 	// Submit to pond pool
 	// SubmitErr returns a Task, not an error
 	// We don't need to wait for the task, just submit it
@@ -192,28 +160,29 @@ func (p *workerPool) Submit(task Task) error {
 	return nil
 }
 
-// CloseQueue closes the task queue which is a soft shutdown since
-// Monitoring goroutine will detect this and trigger shutdown when tasks are done
+// CloseQueue closes the task queue, preventing new tasks from being submitted
+// After calling CloseQueue, Submit will return ErrQueueClosed
+// Use Wait() to block until all previously submitted tasks complete
 func (p *workerPool) CloseQueue() {
 	if p.queueClosed.Load() {
 		return
 	}
 
 	p.queueClosed.Store(true)
+	p.logger.Debug().Msg("Queue closed, no new tasks will be accepted")
 }
 
+// Wait blocks until all submitted tasks have completed
+// Should be called after CloseQueue to ensure a clean shutdown
 func (p *workerPool) Wait() {
-	// Check if already complete before waiting
-	if p.submittedTasks.Load() == p.completedTasks.Load() {
-		return
-	}
-
-	// Wait for completion signal
-	<-p.allTasksDone
+	p.waitOnce.Do(func() {
+		p.pool.StopAndWait()
+		p.logger.Debug().Msg("All tasks completed")
+	})
 }
 
 // Stop gracefully shuts down the pool
-// It stops accepting new tasks and waits for active tasks to complete in 30 seconds
+// It stops accepting new tasks and waits for active tasks to complete with a 5 second timeout
 // Returns an error if shutdown times out
 func (p *workerPool) Stop() error {
 	var shutdownErr error
@@ -221,14 +190,7 @@ func (p *workerPool) Stop() error {
 	p.shutdownOnce.Do(func() {
 		p.logger.Info().Msg("Initiating graceful shutdown")
 		p.isShuttingDown.Store(true)
-
-		// Signal monitor to stop if it's running
-		select {
-		case <-p.stopMonitor:
-			// Already closed
-		default:
-			close(p.stopMonitor)
-		}
+		p.queueClosed.Store(true)
 
 		// Wait for graceful shutdown with timeout
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -236,7 +198,7 @@ func (p *workerPool) Stop() error {
 
 		done := make(chan struct{})
 		go func() {
-			p.pool.StopAndWait()
+			p.Wait() // This will call StopAndWait internally
 			close(done)
 		}()
 
@@ -247,13 +209,6 @@ func (p *workerPool) Stop() error {
 			// Timeout - force cancellation
 			p.cancel()
 			shutdownErr = shutdownCtx.Err()
-		}
-
-		// Wait for monitor goroutine to finish
-		select {
-		case <-p.monitorDone:
-		case <-time.After(1 * time.Second):
-			// Don't wait forever for monitor
 		}
 
 		// Run before shutdown hook
@@ -267,50 +222,6 @@ func (p *workerPool) Stop() error {
 	})
 
 	return shutdownErr
-}
-
-// monitorShutdown implements CloseQueue() auto-shutdown behavior
-func (p *workerPool) monitorShutdown() {
-	defer close(p.monitorDone)
-
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-p.stopMonitor:
-			return
-		case <-p.ctx.Done():
-			// Context canceled, initiate shutdown
-			go func() {
-				if err := p.Stop(); err != nil {
-					p.logger.Error().Err(err).Msg("error during graceful shutdown")
-				}
-			}()
-			return
-		case <-ticker.C:
-			// Check if already shutting down
-			if p.isShuttingDown.Load() {
-				return
-			}
-
-			// Check if queue is closed and all tasks are completed
-			if p.queueClosed.Load() {
-				submitted := p.submittedTasks.Load()
-				completed := p.completedTasks.Load()
-
-				// If all submitted tasks are completed (or no tasks were ever submitted), trigger shutdown
-				if submitted == completed {
-					go func() {
-						if err := p.Stop(); err != nil {
-							p.logger.Error().Err(err).Msg("error during graceful shutdown")
-						}
-					}()
-					return
-				}
-			}
-		}
-	}
 }
 
 func (p *workerPool) BeforeShutdown(fn func() error) {

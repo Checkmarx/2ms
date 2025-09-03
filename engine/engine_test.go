@@ -772,10 +772,13 @@ func TestProcessItems(t *testing.T) {
 	totalItemsToProcess := 5
 	engineTest, err := Init(&EngineConfig{})
 	assert.NoError(t, err)
+	defer engineTest.Shutdown()
+
 	pluginName := "mockPlugin"
 	pluginChannels := engineTest.GetPluginChannels()
-	pluginChannels.AddWaitGroup(1)
+
 	go engineTest.ProcessItems(pluginName)
+
 	ctrl := gomock.NewController(t)
 	for i := 0; i < totalItemsToProcess; i++ {
 		mockData := strconv.Itoa(i)
@@ -786,7 +789,6 @@ func TestProcessItems(t *testing.T) {
 		pluginChannels.GetItemsCh() <- mockItem
 	}
 	close(pluginChannels.GetItemsCh())
-	pluginChannels.GetWaitGroup().Wait()
 	assert.Equal(t, totalItemsToProcess, engineTest.GetReport().GetTotalItemsScanned())
 }
 
@@ -803,11 +805,7 @@ func TestProcessSecrets(t *testing.T) {
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
 		close(secretsChan)
 
-		pluginChannels := instance.GetPluginChannels()
-		pluginChannels.AddWaitGroup(1)
-		go instance.ProcessSecrets()
-
-		pluginChannels.GetWaitGroup().Wait()
+		instance.ProcessSecrets()
 
 		expectedSecrets := []*secrets.Secret{
 			{ID: "mockId", StartLine: 1},
@@ -860,11 +858,7 @@ func TestProcessSecrets(t *testing.T) {
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
 		close(secretsChan)
 
-		pluginChannels := instance.GetPluginChannels()
-		pluginChannels.AddWaitGroup(1)
-		go instance.ProcessSecrets()
-
-		pluginChannels.GetWaitGroup().Wait()
+		instance.ProcessSecrets()
 
 		expectedSecrets := []*secrets.Secret{
 			{ID: "mockId", StartLine: 1},
@@ -965,10 +959,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 			}
 			close(secretsExtrasChan)
 
-			pluginChannels := instance.GetPluginChannels()
-			pluginChannels.AddWaitGroup(1)
-			go instance.ProcessSecretsExtras()
-			pluginChannels.GetWaitGroup().Wait()
+			instance.ProcessSecretsExtras()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
@@ -1026,10 +1017,7 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 			}
 			close(validationChan)
 
-			pluginChannels := instance.GetPluginChannels()
-			pluginChannels.AddWaitGroup(1)
-			go instance.ProcessScore()
-			pluginChannels.GetWaitGroup().Wait()
+			instance.ProcessScore()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
@@ -1089,10 +1077,7 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 			}
 			close(cvssScoreWithoutValidationChan)
 
-			pluginChannels := instance.GetPluginChannels()
-			pluginChannels.AddWaitGroup(1)
-			go instance.ProcessScore()
-			pluginChannels.GetWaitGroup().Wait()
+			instance.ProcessScore()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])

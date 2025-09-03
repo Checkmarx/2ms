@@ -29,6 +29,7 @@ import (
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog/log"
+	"github.com/sourcegraph/conc"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
@@ -66,6 +67,8 @@ type Engine struct {
 	Report reporting.IReport
 
 	ScanConfig resources.ScanConfig
+
+	wg conc.WaitGroup
 }
 
 type IEngine interface {
@@ -82,7 +85,8 @@ type IEngine interface {
 	ProcessSecretsExtras()
 	ProcessScore()
 	GetReport() reporting.IReport
-	AddWaitGroup(n int)
+	Scan(pluginName string)
+	Wait()
 	GetPluginChannels() plugins.PluginChannels
 	SetPluginChannels(pluginChannels plugins.PluginChannels)
 	GetSecretsCh() chan *secrets.Secret
@@ -530,13 +534,15 @@ func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string
 }
 
 func (e *Engine) ProcessItems(pluginName string) {
-	defer e.pluginChannels.GetWaitGroup().Done()
-
 	e.processItems(pluginName)
 
+	// After all items are processed (items channel closed),
+	// close the queue to signal no more work will be submitted
+	e.GetDetectorWorkerPool().CloseQueue()
+	
+	// Wait for all submitted tasks to complete
 	e.GetDetectorWorkerPool().Wait()
-	// TODO: refactor this so we don't need to finish work of processing items
-	// in order to continue the next step of the pipeline
+
 	close(e.secretsChan)
 }
 
@@ -545,7 +551,7 @@ func (e *Engine) processItems(pluginName string) {
 	ctx := context.Background()
 	pool := e.GetDetectorWorkerPool()
 
-	// Process items
+	// Process items until the channel is closed
 	for item := range e.pluginChannels.GetItemsCh() {
 		e.Report.IncTotalItemsScanned(1)
 
@@ -558,19 +564,28 @@ func (e *Engine) processItems(pluginName string) {
 			}
 		default:
 			task = func(context.Context) error {
+				log.Debug().Msg("running task for fragment")
 				return e.DetectFragment(item, e.secretsChan, pluginName)
 			}
 		}
 
 		if err := pool.Submit(task); err != nil {
+			// If we get ErrQueueClosed, it means CloseQueue was called
+			// This shouldn't happen normally as we control when CloseQueue is called
+			if err == workerpool.ErrQueueClosed {
+				log.Warn().Msg("Queue already closed, cannot submit task")
+				break
+			}
+			log.Error().Err(err).Msg("error submitting task")
 			e.pluginChannels.GetErrorsCh() <- err
 		}
+		log.Debug().Msg("submitted task")
 	}
-	pool.CloseQueue()
+	// Items channel is now closed, no more items will be received
+	log.Debug().Msg("Items channel closed, no more items to process")
 }
 
 func (e *Engine) ProcessSecrets() {
-	defer e.pluginChannels.GetWaitGroup().Done()
 	if e.ScanConfig.WithValidation {
 		e.processSecretsWithValidation()
 	} else {
@@ -603,8 +618,6 @@ func (e *Engine) processSecretsWithValidation() {
 }
 
 func (e *Engine) ProcessSecretsExtras() {
-	defer e.pluginChannels.GetWaitGroup().Done()
-
 	for secret := range e.secretsExtrasChan {
 		extra.AddExtraToSecret(secret)
 	}
@@ -625,8 +638,6 @@ func (e *Engine) processScoreWithoutValidation() {
 }
 
 func (e *Engine) ProcessScore() {
-	defer e.pluginChannels.GetWaitGroup().Done()
-
 	if e.ScanConfig.WithValidation {
 		e.processValidationAndScoreWithValidation()
 	} else {
@@ -636,10 +647,6 @@ func (e *Engine) ProcessScore() {
 
 func (e *Engine) GetReport() reporting.IReport {
 	return e.Report
-}
-
-func (e *Engine) AddWaitGroup(n int) {
-	e.pluginChannels.AddWaitGroup(n)
 }
 
 func (e *Engine) GetPluginChannels() plugins.PluginChannels {
@@ -676,4 +683,23 @@ func (e *Engine) GetScanConfig() resources.ScanConfig {
 
 func (e *Engine) SetScanConfig(scanConfig resources.ScanConfig) {
 	e.ScanConfig = scanConfig
+}
+
+func (e *Engine) Scan(pluginName string) {
+	e.wg.Go(func() {
+		e.ProcessItems(pluginName)
+	})
+	e.wg.Go(func() {
+		e.ProcessSecrets()
+	})
+	e.wg.Go(func() {
+		e.ProcessScore()
+	})
+	e.wg.Go(func() {
+		e.ProcessSecretsExtras()
+	})
+}
+
+func (e *Engine) Wait() {
+	e.wg.Wait()
 }
