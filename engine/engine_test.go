@@ -777,7 +777,12 @@ func TestProcessItems(t *testing.T) {
 	pluginName := "mockPlugin"
 	pluginChannels := engineTest.GetPluginChannels()
 
-	go engineTest.ProcessItems(pluginName)
+	// Use a channel to wait for ProcessItems to complete
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		engineTest.ProcessItems(pluginName)
+	}()
 
 	ctrl := gomock.NewController(t)
 	for i := 0; i < totalItemsToProcess; i++ {
@@ -789,6 +794,10 @@ func TestProcessItems(t *testing.T) {
 		pluginChannels.GetItemsCh() <- mockItem
 	}
 	close(pluginChannels.GetItemsCh())
+
+	// Wait for ProcessItems to complete
+	<-done
+
 	assert.Equal(t, totalItemsToProcess, engineTest.GetReport().GetTotalItemsScanned())
 }
 

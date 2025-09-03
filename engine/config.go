@@ -18,7 +18,7 @@ var baseConfig = config.Config{
 				regexp.MustCompile(`(?i)\.(?:docx?|xlsx?|pdf|bin|socket|vsidx|v2|suo|wsuo|.dll|pdb|exe|gltf)$`),
 				regexp.MustCompile(`go\.(?:mod|sum|work(?:\.sum)?)$`),
 				regexp.MustCompile(`(?:^|/)vendor/modules\.txt$`),
-				regexp.MustCompile(`(?:^|/)vendor/(?:github\.com|golang\.org/x|google\.golang\.org|gopkg\.in|istio\.io|k8s\.io|sigs\.k8s\.io)(?:/.*)?$`),
+				regexp.MustCompile(`(?:^|/)vendor/(?:github\.com|golang\.org/x|google\.golang\.org|gopkg\.in|istio\.io|k8s\.io|sigs\.k8s\.io)(?:/.*)?$`), //nolint:lll
 				regexp.MustCompile(`(?:^|/)gradlew(?:\.bat)?$`),
 				regexp.MustCompile(`(?:^|/)gradle\.lockfile$`),
 				regexp.MustCompile(`(?:^|/)mvnw(?:\.cmd)?$`),

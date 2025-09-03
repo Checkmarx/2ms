@@ -19,8 +19,6 @@ type scanner struct {
 	engineInstance engine.IEngine
 	scanConfig     resources.ScanConfig
 	mu             sync.RWMutex
-
-	once sync.Once
 }
 
 type scannerOption func(*scanner)
@@ -94,7 +92,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, op
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
-		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
+		return reporting.New().(*reporting.Report), fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
 	return s.engineInstance.GetReport(), nil
@@ -118,12 +116,16 @@ func (s *scanner) startPipeline(wg *conc.WaitGroup) {
 	})
 }
 
-func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
+func (s *scanner) ScanDynamic(
+	itemsIn <-chan ScanItem,
+	scanConfig resources.ScanConfig,
+	opts ...engine.EngineOption,
+) (reporting.IReport, error) {
 	var wg conc.WaitGroup
 
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
-		return &reporting.Report{}, fmt.Errorf("error resetting engine: %w", err)
+		return reporting.New().(*reporting.Report), fmt.Errorf("error resetting engine: %w", err)
 	}
 
 	s.startPipeline(&wg)
@@ -157,7 +159,7 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig resources.Scan
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
-		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
+		return reporting.New().(*reporting.Report), fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
 	return s.engineInstance.GetReport(), nil

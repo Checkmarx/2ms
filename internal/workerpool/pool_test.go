@@ -262,20 +262,20 @@ func TestWorkerPool(t *testing.T) {
 		// Close queue - no new tasks can be submitted
 		pool.CloseQueue()
 		assert.True(t, pool.queueClosed.Load())
-		
+
 		// Verify new task submission fails
 		err := pool.Submit(func(ctx context.Context) error {
 			return nil
 		})
 		assert.Equal(t, ErrQueueClosed, err)
-		
+
 		// Wait should block until all tasks complete
 		done := make(chan bool)
 		go func() {
 			pool.Wait()
 			done <- true
 		}()
-		
+
 		select {
 		case <-done:
 			// Wait returned after tasks completed
@@ -313,7 +313,7 @@ func TestWorkerPool(t *testing.T) {
 		}
 
 		wg.Wait()
-		
+
 		// Wait for all tasks to complete
 		pool.Wait()
 
