@@ -1,12 +1,9 @@
-package score_test
+package score
 
 import (
 	"testing"
 
-	. "github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/engine/rules"
-	"github.com/checkmarx/2ms/v4/engine/score"
-	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/stretchr/testify/assert"
 	ruleConfig "github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
@@ -192,19 +189,16 @@ func TestScore(t *testing.T) {
 	}
 
 	t.Run("Should get base risk score and cvss score", func(t *testing.T) {
-		engine, err := Init(&EngineConfig{SpecialList: []string{specialRule.RuleID}})
-		assert.NoError(t, err)
-
-		defer engine.Shutdown()
+		scorer := NewScorer(allRules, false)
 
 		for _, rule := range allRules {
 			expectedRuleScores := expectedCvssScores[rule.Rule.RuleID]
-			baseRiskScore := score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
-			ruleBaseRiskScore := engine.GetRuleBaseRiskScore(rule.Rule.RuleID)
+			baseRiskScore := GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
+			ruleBaseRiskScore := scorer.GetRulesBaseRiskScore(rule.Rule.RuleID)
 			assert.Equal(t, ruleBaseRiskScore, baseRiskScore, "rule: %s", rule.Rule.RuleID)
-			assert.Equal(t, expectedRuleScores[0], score.GetCvssScore(baseRiskScore, secrets.ValidResult), "rule: %s", rule.Rule.RuleID)
-			assert.Equal(t, expectedRuleScores[1], score.GetCvssScore(baseRiskScore, secrets.InvalidResult), "rule: %s", rule.Rule.RuleID)
-			assert.Equal(t, expectedRuleScores[2], score.GetCvssScore(baseRiskScore, secrets.UnknownResult), "rule: %s", rule.Rule.RuleID)
+			assert.Equal(t, expectedRuleScores[0], getCvssScore(baseRiskScore, secrets.ValidResult), "rule: %s", rule.Rule.RuleID)
+			assert.Equal(t, expectedRuleScores[1], getCvssScore(baseRiskScore, secrets.InvalidResult), "rule: %s", rule.Rule.RuleID)
+			assert.Equal(t, expectedRuleScores[2], getCvssScore(baseRiskScore, secrets.UnknownResult), "rule: %s", rule.Rule.RuleID)
 		}
 	})
 
@@ -221,15 +215,13 @@ func TestScore(t *testing.T) {
 			allSecrets = append(allSecrets, &secretValid, &secretInvalid, &secretUnknown)
 		}
 
-		engine, err := Init(&EngineConfig{SpecialList: []string{specialRule.RuleID}, ScanConfig: resources.ScanConfig{WithValidation: true}})
-		assert.NoError(t, err)
-		defer engine.Shutdown()
+		scorer := NewScorer(allRules, true)
 
 		for _, secret := range allSecrets {
 			expectedRuleScores := expectedCvssScores[secret.RuleID]
 			validityIndex := getValidityIndex(secret.ValidationStatus)
 
-			engine.Score(secret)
+			scorer.Score(secret)
 			assert.Equal(t, expectedRuleScores[validityIndex], secret.CvssScore, "rule: %s", secret.RuleID)
 		}
 	})
@@ -246,15 +238,13 @@ func TestScore(t *testing.T) {
 			allSecrets = append(allSecrets, &secretValid, &secretInvalid, &secretUnknown)
 		}
 
-		engine, err := Init(&EngineConfig{SpecialList: []string{specialRule.RuleID}, ScanConfig: resources.ScanConfig{WithValidation: false}})
-		assert.NoError(t, err)
-		defer engine.Shutdown()
+		scorer := NewScorer(allRules, false)
 
 		for _, secret := range allSecrets {
 			expectedRuleScores := expectedCvssScores[secret.RuleID]
 			unknownIndex := getValidityIndex(secrets.UnknownResult)
 
-			engine.Score(secret)
+			scorer.Score(secret)
 			assert.Equal(t, expectedRuleScores[unknownIndex], secret.CvssScore, "rule: %s", secret.RuleID)
 		}
 	})

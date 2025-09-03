@@ -46,13 +46,14 @@ var (
 )
 
 type Engine struct {
-	rules              map[string]config.Rule
-	rulesBaseRiskScore map[string]float64
-	detector           *detect.Detector
-	validator          validation.Validator
-	semaphore          semaphore.ISemaphore
-	chunk              chunk.IChunk
-	detectorPool       workerpool.Pool
+	rules map[string]config.Rule
+
+	detector     *detect.Detector
+	validator    validation.Validator
+	scorer       IScorer
+	semaphore    semaphore.ISemaphore
+	chunk        chunk.IChunk
+	detectorPool workerpool.Pool
 
 	ignoredIds    []string
 	allowedValues []string
@@ -74,30 +75,25 @@ type Engine struct {
 type IEngine interface {
 	DetectFragment(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, pluginName string) error
 	DetectFile(ctx context.Context, item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error
-	AddRegexRules(patterns []string) error
-	RegisterForValidation(secret *secrets.Secret)
-	Score(secret *secrets.Secret)
-	Validate()
-	GetRuleBaseRiskScore(ruleId string) float64
-	GetDetectorWorkerPool() workerpool.Pool
-	ProcessItems(pluginName string)
-	ProcessSecrets()
-	ProcessSecretsExtras()
-	ProcessScore()
+
 	GetReport() reporting.IReport
+
 	Scan(pluginName string)
 	Wait()
+
 	GetPluginChannels() plugins.PluginChannels
 	SetPluginChannels(pluginChannels plugins.PluginChannels)
-	GetSecretsCh() chan *secrets.Secret
-	GetSecretsExtrasCh() chan *secrets.Secret
-	GetValidationCh() chan *secrets.Secret
-	GetErrorsCh() chan error
-	GetCvssScoreWithoutValidationCh() chan *secrets.Secret
-	Shutdown() error
 
-	GetScanConfig() resources.ScanConfig
-	SetScanConfig(scanConfig resources.ScanConfig)
+	GetErrorsCh() chan error
+
+	Shutdown() error
+}
+
+type IScorer interface {
+	Score(secret *secrets.Secret)
+	GetRulesBaseRiskScore(ruleId string) float64
+	GetKeywords() map[string]struct{}
+	GetRulesToBeApplied() map[string]config.Rule
 }
 
 type ctxKey string
@@ -122,6 +118,8 @@ type EngineConfig struct {
 	DetectorWorkerPoolSize int
 
 	ScanConfig resources.ScanConfig
+
+	CustomRegexRules []string
 }
 
 type EngineOption func(*Engine)
@@ -136,27 +134,17 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 	return initEngine(engineConfig, opts...)
 }
 
-func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
+func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
 	if len(selectedRules) == 0 {
 		return nil, ErrNoRulesSelected
 	}
-
-	rulesToBeApplied := make(map[string]config.Rule)
-	rulesBaseRiskScore := make(map[string]float64)
-	keywords := make(map[string]struct{})
-	for _, rule := range selectedRules {
-		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
-		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
-		for _, keyword := range rule.Rule.Keywords {
-			keywords[strings.ToLower(keyword)] = struct{}{}
-		}
-	}
+	scorer := score.NewScorer(selectedRules, engineConfig.ScanConfig.WithValidation)
 
 	// Create a local copy of config to avoid modifying global state
 	cfg := newConfig()
-	cfg.Rules = rulesToBeApplied
-	cfg.Keywords = keywords
+	cfg.Rules = scorer.GetRulesToBeApplied()
+	cfg.Keywords = scorer.GetKeywords()
 
 	detector := detect.NewDetector(*cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
@@ -167,13 +155,12 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, erro
 	}
 
 	engine := &Engine{
-		rules:              rulesToBeApplied,
-		rulesBaseRiskScore: rulesBaseRiskScore,
-		detector:           detector,
-		validator:          *validation.NewValidator(),
-		semaphore:          semaphore.NewSemaphore(),
-		chunk:              chunk.New(),
-		detectorPool:       workerpool.New("detector", workerpool.WithWorkers(fileWalkerWorkerPoolSize)),
+		detector:     detector,
+		validator:    *validation.NewValidator(),
+		scorer:       scorer,
+		semaphore:    semaphore.NewSemaphore(),
+		chunk:        chunk.New(),
+		detectorPool: workerpool.New("detector", workerpool.WithWorkers(fileWalkerWorkerPoolSize)),
 
 		ignoredIds:    engineConfig.IgnoredIds,
 		allowedValues: engineConfig.AllowedValues,
@@ -187,6 +174,10 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, erro
 
 		pluginChannels: plugins.NewChannels(),
 		Report:         reporting.New(),
+	}
+
+	if err := engine.addRegexRules(engineConfig.CustomRegexRules); err != nil {
+		return nil, err
 	}
 
 	for _, opt := range opts {
@@ -331,7 +322,7 @@ func (e *Engine) isFileSizeExceedingLimit(fileSize int64) bool {
 	return false
 }
 
-func (e *Engine) AddRegexRules(patterns []string) error {
+func (e *Engine) addRegexRules(patterns []string) error {
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
@@ -348,24 +339,8 @@ func (e *Engine) AddRegexRules(patterns []string) error {
 	return nil
 }
 
-func (e *Engine) RegisterForValidation(secret *secrets.Secret) {
+func (e *Engine) registerForValidation(secret *secrets.Secret) {
 	e.validator.RegisterForValidation(secret)
-}
-
-func (e *Engine) Score(secret *secrets.Secret) {
-	validationStatus := secrets.UnknownResult // default validity
-	if e.ScanConfig.WithValidation {
-		validationStatus = secret.ValidationStatus
-	}
-	secret.CvssScore = score.GetCvssScore(e.GetRuleBaseRiskScore(secret.RuleID), validationStatus)
-}
-
-func (e *Engine) Validate() {
-	e.validator.Validate()
-}
-
-func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
-	return e.rulesBaseRiskScore[ruleId]
 }
 
 func (e *Engine) GetDetectorWorkerPool() workerpool.Pool {
@@ -533,8 +508,8 @@ func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string
 	return slices.Contains(*ignoredIds, secret.ID)
 }
 
-func (e *Engine) ProcessItems(pluginName string) {
-	e.processItems(pluginName)
+func (e *Engine) processItems(pluginName string) {
+	e.consumeItems(pluginName)
 
 	// After all items are processed (items channel closed),
 	// close the queue to signal no more work will be submitted
@@ -546,8 +521,8 @@ func (e *Engine) ProcessItems(pluginName string) {
 	close(e.secretsChan)
 }
 
-// processItems uses the engine's worker pool
-func (e *Engine) processItems(pluginName string) {
+// consumeItems uses the engine's worker pool
+func (e *Engine) consumeItems(pluginName string) {
 	ctx := context.Background()
 	pool := e.GetDetectorWorkerPool()
 
@@ -569,8 +544,6 @@ func (e *Engine) processItems(pluginName string) {
 		}
 
 		if err := pool.Submit(task); err != nil {
-			// If we get ErrQueueClosed, it means CloseQueue was called
-			// This shouldn't happen normally as we control when CloseQueue is called
 			if err == workerpool.ErrQueueClosed {
 				log.Warn().Msg("Queue already closed, cannot submit task")
 				break
@@ -584,7 +557,7 @@ func (e *Engine) processItems(pluginName string) {
 	log.Debug().Msg("Items channel closed, no more items to process")
 }
 
-func (e *Engine) ProcessSecrets() {
+func (e *Engine) processSecrets() {
 	if e.ScanConfig.WithValidation {
 		e.processSecretsWithValidation()
 	} else {
@@ -616,7 +589,7 @@ func (e *Engine) processSecretsWithValidation() {
 	close(e.validationChan)
 }
 
-func (e *Engine) ProcessSecretsExtras() {
+func (e *Engine) processSecretsExtras() {
 	for secret := range e.secretsExtrasChan {
 		extra.AddExtraToSecret(secret)
 	}
@@ -624,19 +597,19 @@ func (e *Engine) ProcessSecretsExtras() {
 
 func (e *Engine) processValidationAndScoreWithValidation() {
 	for secret := range e.validationChan {
-		e.RegisterForValidation(secret)
-		e.Score(secret)
+		e.registerForValidation(secret)
+		e.scorer.Score(secret)
 	}
-	e.Validate()
+	e.validator.Validate()
 }
 
 func (e *Engine) processScoreWithoutValidation() {
 	for secret := range e.cvssScoreWithoutValidationChan {
-		e.Score(secret)
+		e.scorer.Score(secret)
 	}
 }
 
-func (e *Engine) ProcessScore() {
+func (e *Engine) processScore() {
 	if e.ScanConfig.WithValidation {
 		e.processValidationAndScoreWithValidation()
 	} else {
@@ -660,10 +633,6 @@ func (e *Engine) GetErrorsCh() chan error {
 	return e.pluginChannels.GetErrorsCh()
 }
 
-func (e *Engine) GetSecretsCh() chan *secrets.Secret {
-	return e.secretsChan
-}
-
 func (e *Engine) GetSecretsExtrasCh() chan *secrets.Secret {
 	return e.secretsExtrasChan
 }
@@ -676,26 +645,18 @@ func (e *Engine) GetCvssScoreWithoutValidationCh() chan *secrets.Secret {
 	return e.cvssScoreWithoutValidationChan
 }
 
-func (e *Engine) GetScanConfig() resources.ScanConfig {
-	return e.ScanConfig
-}
-
-func (e *Engine) SetScanConfig(scanConfig resources.ScanConfig) {
-	e.ScanConfig = scanConfig
-}
-
 func (e *Engine) Scan(pluginName string) {
 	e.wg.Go(func() {
-		e.ProcessItems(pluginName)
+		e.processItems(pluginName)
 	})
 	e.wg.Go(func() {
-		e.ProcessSecrets()
+		e.processSecrets()
 	})
 	e.wg.Go(func() {
-		e.ProcessScore()
+		e.processScore()
 	})
 	e.wg.Go(func() {
-		e.ProcessSecretsExtras()
+		e.processSecretsExtras()
 	})
 }
 

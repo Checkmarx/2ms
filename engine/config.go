@@ -42,7 +42,6 @@ var baseConfig = config.Config{
 	},
 }
 
-// Deep copy function
 func deepCopyConfig() *config.Config {
 	dst := &config.Config{
 		Allowlists: make([]*config.Allowlist, len(baseConfig.Allowlists)),
