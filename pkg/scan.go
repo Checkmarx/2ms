@@ -74,7 +74,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, op
 		}
 	}()
 
-	s.startPipeline(&wg)
+	s.engineInstance.Scan(s.scanConfig.PluginName)
 
 	wg.Go(func() {
 		defer close(s.engineInstance.GetPluginChannels().GetItemsCh())
@@ -84,7 +84,12 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, op
 		}
 	})
 
+	wg.Go(func() {
+		s.engineInstance.Wait()
+	})
+
 	wg.Wait()
+
 	close(s.engineInstance.GetErrorsCh())
 
 	var errs []error
@@ -96,24 +101,6 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, op
 	}
 
 	return s.engineInstance.GetReport(), nil
-}
-
-func (s *scanner) startPipeline(wg *conc.WaitGroup) {
-	wg.Go(func() {
-		s.engineInstance.ProcessItems(s.scanConfig.PluginName)
-	})
-
-	wg.Go(func() {
-		s.engineInstance.ProcessSecrets()
-	})
-
-	wg.Go(func() {
-		s.engineInstance.ProcessScore()
-	})
-
-	wg.Go(func() {
-		s.engineInstance.ProcessSecretsExtras()
-	})
 }
 
 func (s *scanner) ScanDynamic(
@@ -128,7 +115,7 @@ func (s *scanner) ScanDynamic(
 		return reporting.New().(*reporting.Report), fmt.Errorf("error resetting engine: %w", err)
 	}
 
-	s.startPipeline(&wg)
+	s.engineInstance.Scan(s.scanConfig.PluginName)
 
 	channels := s.engineInstance.GetPluginChannels()
 	wg.Go(func() {
@@ -151,7 +138,12 @@ func (s *scanner) ScanDynamic(
 		}
 	}()
 
+	wg.Go(func() {
+		s.engineInstance.Wait()
+	})
+
 	wg.Wait()
+
 	close(s.engineInstance.GetErrorsCh())
 
 	var errs []error
