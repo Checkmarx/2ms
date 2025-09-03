@@ -8,6 +8,7 @@ import (
 	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog/log"
+	"github.com/sourcegraph/conc"
 
 	"github.com/checkmarx/2ms/v4/lib/reporting"
 
@@ -54,38 +55,39 @@ func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOp
 }
 
 func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
+	var wg conc.WaitGroup
+
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error resetting engine: %w", err)
 	}
 
+	if len(scanItems) == 0 {
+		return s.engineInstance.GetReport(), nil
+	}
+
 	bufferedErrors := make(chan error, len(scanItems)+1)
 
 	go func() {
+		defer close(bufferedErrors)
+
 		for err := range s.engineInstance.GetErrorsCh() {
-			if err != nil {
-				bufferedErrors <- err
-			}
+			bufferedErrors <- err
 		}
-		close(bufferedErrors)
 	}()
 
-	s.startPipeline()
+	s.startPipeline(&wg)
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
+		defer close(s.engineInstance.GetPluginChannels().GetItemsCh())
+
 		for _, item := range scanItems {
 			s.engineInstance.GetPluginChannels().GetItemsCh() <- item
 		}
-	}()
-	wg.Wait()
-	close(s.engineInstance.GetPluginChannels().GetItemsCh())
+	})
 
-	pluginChannels := s.engineInstance.GetPluginChannels()
-	pluginChannels.GetWaitGroup().Wait()
-	close(pluginChannels.GetErrorsCh())
+	wg.Wait()
+	close(s.engineInstance.GetErrorsCh())
 
 	var errs []error
 	for err = range bufferedErrors {
@@ -95,54 +97,67 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, op
 		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
-	if err := s.engineInstance.Shutdown(); err != nil {
-		return s.engineInstance.GetReport(), fmt.Errorf("error shutting down engine: %w", err)
-	}
-
 	return s.engineInstance.GetReport(), nil
 }
 
-func (s *scanner) startPipeline() {
-	pluginChannels := s.engineInstance.GetPluginChannels()
-	pluginChannels.AddWaitGroup(4)
+func (s *scanner) startPipeline(wg *conc.WaitGroup) {
+	wg.Go(func() {
+		s.engineInstance.ProcessItems(s.scanConfig.PluginName)
+	})
 
-	go s.engineInstance.ProcessItems(s.scanConfig.PluginName)
+	wg.Go(func() {
+		s.engineInstance.ProcessSecrets()
+	})
 
-	go s.engineInstance.ProcessSecrets()
+	wg.Go(func() {
+		s.engineInstance.ProcessScore()
+	})
 
-	go s.engineInstance.ProcessScore()
-
-	go s.engineInstance.ProcessSecretsExtras()
+	wg.Go(func() {
+		s.engineInstance.ProcessSecretsExtras()
+	})
 }
 
 func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
+	var wg conc.WaitGroup
+
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error resetting engine: %w", err)
 	}
 
-	s.startPipeline()
+	s.startPipeline(&wg)
 
 	channels := s.engineInstance.GetPluginChannels()
-	go func() {
+	wg.Go(func() {
+		defer close(channels.GetItemsCh())
+
 		for item := range itemsIn {
 			channels.GetItemsCh() <- item
 		}
-		close(channels.GetItemsCh())
-	}()
-	log.Info().Msg("scan dynamic finished sending items to engine")
 
-	channels.GetWaitGroup().Wait()
-	close(channels.GetErrorsCh())
+		log.Info().Msg("scan dynamic finished sending items to engine")
+	})
 
-	for err := range channels.GetErrorsCh() {
-		if err != nil {
-			return &reporting.Report{}, fmt.Errorf("error processing scan items: %w", err)
+	bufferedErrors := make(chan error, 2)
+
+	go func() {
+		defer close(bufferedErrors)
+
+		for err := range s.engineInstance.GetErrorsCh() {
+			bufferedErrors <- err
 		}
-	}
+	}()
 
-	if err := s.engineInstance.Shutdown(); err != nil {
-		return &reporting.Report{}, fmt.Errorf("error shutting down engine: %w", err)
+	wg.Wait()
+	close(s.engineInstance.GetErrorsCh())
+
+	var errs []error
+	for err = range bufferedErrors {
+		errs = append(errs, err)
+	}
+	if len(errs) > 0 {
+		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
 	return s.engineInstance.GetReport(), nil

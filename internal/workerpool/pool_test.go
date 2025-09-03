@@ -240,7 +240,7 @@ func TestWorkerPool(t *testing.T) {
 		}
 	})
 
-	t.Run("close queue prevents new task submission and triggers graceful shutdown", func(t *testing.T) {
+	t.Run("close queue prevents new task submission and wait blocks until completion", func(t *testing.T) {
 		pool := newWorkerPool("close-queue", &Config{
 			workers: 2,
 			ctx:     context.Background(),
@@ -259,30 +259,29 @@ func TestWorkerPool(t *testing.T) {
 			assert.NoError(t, err)
 		}
 
-		// Close queue - this should trigger automatic shutdown when tasks finish
+		// Close queue - no new tasks can be submitted
 		pool.CloseQueue()
 		assert.True(t, pool.queueClosed.Load())
 		
-		// Use proper synchronization instead of fixed delay
-		shutdownDetected := make(chan bool)
+		// Verify new task submission fails
+		err := pool.Submit(func(ctx context.Context) error {
+			return nil
+		})
+		assert.Equal(t, ErrQueueClosed, err)
+		
+		// Wait should block until all tasks complete
+		done := make(chan bool)
 		go func() {
-			for {
-				if pool.isShuttingDown.Load() {
-					shutdownDetected <- true
-					return
-				}
-				time.Sleep(10 * time.Millisecond)
-			}
+			pool.Wait()
+			done <- true
 		}()
 		
 		select {
-		case <-shutdownDetected:
-			// Shutdown detected
+		case <-done:
+			// Wait returned after tasks completed
 		case <-time.After(500 * time.Millisecond):
-			t.Fatal("Shutdown not initiated within timeout")
+			t.Fatal("Wait did not return within timeout")
 		}
-		
-		assert.True(t, pool.isShuttingDown.Load())
 
 		completed := atomic.LoadInt32(&completedTasks)
 		assert.Equal(t, int32(numTasks), completed)
@@ -315,13 +314,8 @@ func TestWorkerPool(t *testing.T) {
 
 		wg.Wait()
 		
-		// Wait for tasks to complete with proper synchronization
-		for i := 0; i < 20; i++ {
-			if atomic.LoadInt32(&completedTasks) == int32(numTasks) {
-				break
-			}
-			time.Sleep(10 * time.Millisecond)
-		}
+		// Wait for all tasks to complete
+		pool.Wait()
 
 		completed := atomic.LoadInt32(&completedTasks)
 		assert.Equal(t, int32(numTasks), completed)

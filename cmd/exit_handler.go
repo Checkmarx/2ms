@@ -51,7 +51,6 @@ func Exit(resultsCount int, err error) {
 func listenForErrors(errors chan error) {
 	go func() {
 		err := <-errors
-		log.Error().Err(err).Msg("Failed to run 2ms")
 		Exit(0, err)
 	}()
 }

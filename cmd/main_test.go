@@ -3,8 +3,10 @@ package cmd
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +18,6 @@ func TestPreRun(t *testing.T) {
 		reportPath         []string
 		engineConfigVar    engine.EngineConfig
 		customRegexRuleVar []string
-		validateVar        bool
 		expectedInitErr    error
 		expectedPreRunErr  error
 	}{
@@ -26,7 +27,6 @@ func TestPreRun(t *testing.T) {
 			reportPath:         []string{"report.json"},
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{},
-			validateVar:        false,
 			expectedPreRunErr:  errInvalidOutputFormat,
 		},
 		{
@@ -37,7 +37,6 @@ func TestPreRun(t *testing.T) {
 				SelectedList: []string{"mockInvalid"},
 			},
 			customRegexRuleVar: []string{},
-			validateVar:        false,
 			expectedInitErr:    engine.ErrNoRulesSelected,
 		},
 		{
@@ -46,16 +45,18 @@ func TestPreRun(t *testing.T) {
 			reportPath:         []string{"mock.json"},
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{"[a-z"},
-			validateVar:        false,
 			expectedPreRunErr:  engine.ErrFailedToCompileRegexRule,
 		},
 		{
-			name:               "successfully started go routines with validateVar enabled",
-			stdoutFormatVar:    "json",
-			reportPath:         []string{"mock.json"},
-			engineConfigVar:    engine.EngineConfig{},
+			name:            "successfully started go routines with validateVar enabled",
+			stdoutFormatVar: "json",
+			reportPath:      []string{"mock.json"},
+			engineConfigVar: engine.EngineConfig{
+				ScanConfig: resources.ScanConfig{
+					WithValidation: true,
+				},
+			},
 			customRegexRuleVar: []string{},
-			validateVar:        true,
 			expectedPreRunErr:  nil,
 		},
 		{
@@ -64,7 +65,6 @@ func TestPreRun(t *testing.T) {
 			reportPath:         []string{"mock.json"},
 			engineConfigVar:    engine.EngineConfig{},
 			customRegexRuleVar: []string{},
-			validateVar:        false,
 			expectedPreRunErr:  nil,
 		},
 	}
@@ -75,13 +75,13 @@ func TestPreRun(t *testing.T) {
 			reportPathVar = tt.reportPath
 			engineConfigVar = tt.engineConfigVar
 			customRegexRuleVar = tt.customRegexRuleVar
-			validateVar = tt.validateVar
 
 			engineInstance, err := engine.Init(&engineConfigVar)
 			if tt.expectedInitErr != nil {
 				assert.ErrorIs(t, err, tt.expectedInitErr)
 				return
 			}
+			defer engineInstance.Shutdown()
 			rootCmd := &cobra.Command{
 				Use:     "2ms",
 				Short:   "2ms Secrets Detection",
@@ -90,13 +90,11 @@ func TestPreRun(t *testing.T) {
 			}
 
 			rootCmd.SetContext(context.WithValue(context.Background(), engineCtxKey, engineInstance))
+			time.AfterFunc(50*time.Millisecond, func() {
+				close(engineInstance.GetPluginChannels().GetItemsCh())
+			})
 			err = preRun(rootCmd, "mock", nil, nil)
 			assert.ErrorIs(t, err, tt.expectedPreRunErr)
-
-			// close(Channels.Items)
-			// close(Channels.Errors)
-			// Channels.WaitGroup.Wait()
-			// assert.Empty(t, Channels.Errors)
 		})
 	}
 }

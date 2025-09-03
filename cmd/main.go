@@ -16,7 +16,6 @@ import (
 var Version = "0.0.0"
 
 const (
-	timeSleepInterval         = 50
 	outputFormatRegexpPattern = `^(ya?ml|json|sarif)$`
 	configFileFlag            = "config"
 
@@ -157,8 +156,7 @@ func preRun(rootCmd *cobra.Command, pluginName string, _ *cobra.Command, _ []str
 		return err
 	}
 
-	// Start processing pipeline with improved goroutine management
-	startProcessingPipeline(engineInstance, pluginName, validateVar)
+	engineInstance.Scan(pluginName)
 
 	return nil
 }
@@ -169,38 +167,13 @@ type ProcessingTask struct {
 	Fn   func()
 }
 
-// startProcessingPipeline launches all processing goroutines in a more organized way
-func startProcessingPipeline(engineInstance engine.IEngine, pluginName string, validateVar bool) {
-	// Define all the processing tasks with descriptive names
-	tasks := []ProcessingTask{
-		{"ProcessItems", func() { engineInstance.ProcessItems(pluginName) }},
-		{"ProcessSecrets", func() { engineInstance.ProcessSecrets() }},
-		{"ProcessScore", func() { engineInstance.ProcessScore() }},
-		{"ProcessSecretsExtras", func() { engineInstance.ProcessSecretsExtras() }},
-	}
-
-	// Launch all goroutines with better error handling potential
-	launchTasks(engineInstance, tasks)
-}
-
-// launchTasks starts all tasks as goroutines with proper WaitGroup management
-func launchTasks(engineInstance engine.IEngine, tasks []ProcessingTask) {
-	for _, task := range tasks {
-		engineInstance.AddWaitGroup(1)
-		go func(t ProcessingTask) {
-			// TODO: add logging, metrics, or error handling
-			t.Fn()
-		}(task)
-	}
-}
-
 func postRun(cmd *cobra.Command, args []string) error {
 	engineInstance, ok := cmd.Context().Value(engineCtxKey).(engine.IEngine)
 	if !ok {
 		return fmt.Errorf("engine instance not found in context")
 	}
-	channels := engineInstance.GetPluginChannels()
-	channels.GetWaitGroup().Wait()
+
+	engineInstance.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
 	report := engineInstance.GetReport()

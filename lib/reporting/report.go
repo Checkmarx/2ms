@@ -22,6 +22,7 @@ type IReport interface {
 	WriteFile(reportPath []string, cfg *config.Config) error
 	GetOutput(format string, cfg *config.Config) (string, error)
 	GetResults() map[string][]*secrets.Secret
+	SetResults(results map[string][]*secrets.Secret)
 	GetTotalItemsScanned() int
 	GetTotalSecretsFound() int
 	IncTotalItemsScanned(n int)
@@ -109,4 +110,8 @@ func (r *Report) IncTotalSecretsFound(n int) {
 
 func (r *Report) GetResults() map[string][]*secrets.Secret {
 	return r.Results
+}
+
+func (r *Report) SetResults(results map[string][]*secrets.Secret) {
+	r.Results = results
 }

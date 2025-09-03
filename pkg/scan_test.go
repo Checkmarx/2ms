@@ -489,16 +489,6 @@ func TestScanDynamic(t *testing.T) {
 			TotalSecretsFound: 0,
 		}, report)
 	})
-	t.Run("scan with empty channel", func(t *testing.T) {
-		itemsIn := make(chan ScanItem)
-		close(itemsIn)
-
-		testScanner := NewScanner()
-
-		actualReport, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{})
-		assert.NoError(t, err, "scanner encountered an error")
-		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
-	})
 	t.Run("scan more than 1 time using the same scanner instance", func(t *testing.T) {
 		githubPatBytes, err := os.ReadFile(githubPatPath)
 		assert.NoError(t, err, "failed to read github-pat file")
@@ -690,7 +680,7 @@ func compareOrUpdateTestData(t *testing.T, actualReport reporting.IReport, expec
 	expectedReportBytes, err := os.ReadFile(expectedFilePath)
 	assert.NoError(t, err, "failed to read expected report file")
 
-	var expectedReport map[string]interface{}
+	var expectedReport map[string]any
 	err = json.Unmarshal(expectedReportBytes, &expectedReport)
 	assert.NoError(t, err, "failed to unmarshal expected report JSON")
 

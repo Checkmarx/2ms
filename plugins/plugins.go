@@ -46,25 +46,22 @@ type Plugin struct {
 }
 
 type Channels struct {
-	Items     chan ISourceItem
-	Errors    chan error
-	WaitGroup *sync.WaitGroup
+	Items  chan ISourceItem
+	Errors chan error
+	wg     *sync.WaitGroup
 }
 
 type PluginChannels interface {
 	GetItemsCh() chan ISourceItem
 	GetErrorsCh() chan error
-	GetWaitGroup() *sync.WaitGroup
-	AddWaitGroup(n int)
 }
 
 type Option func(*Channels)
 
 func NewChannels(opts ...Option) PluginChannels {
 	channels := &Channels{
-		Items:     make(chan ISourceItem, 1),
-		Errors:    make(chan error, 1),
-		WaitGroup: &sync.WaitGroup{},
+		Items:  make(chan ISourceItem, 1),
+		Errors: make(chan error, 1),
 	}
 
 	for _, opt := range opts {
@@ -80,14 +77,6 @@ func (c *Channels) GetItemsCh() chan ISourceItem {
 
 func (c *Channels) GetErrorsCh() chan error {
 	return c.Errors
-}
-
-func (c *Channels) GetWaitGroup() *sync.WaitGroup {
-	return c.WaitGroup
-}
-
-func (c *Channels) AddWaitGroup(n int) {
-	c.WaitGroup.Add(n)
 }
 
 type IPlugin interface {

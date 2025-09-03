@@ -73,9 +73,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	executable, err := createCLI(t.TempDir())
-	if err != nil {
-		t.Fatalf("failed to build CLI: %s", err)
-	}
+	require.NoError(t, err)
 
 	t.Run("filesystem: one secret found", func(t *testing.T) {
 		projectDir := t.TempDir()
@@ -84,9 +82,8 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("failed to generate project: %s", err)
 		}
 
-		if err := executable.run("filesystem", "--path", projectDir); err == nil {
-			t.Error("expected error (secrets found), got nil")
-		}
+		err := executable.run("filesystem", "--path", projectDir)
+		assert.Error(t, err, "expected error when secrets are found")
 
 		report, err := executable.getReport()
 		if err != nil {
