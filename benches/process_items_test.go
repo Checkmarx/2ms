@@ -175,7 +175,7 @@ func generateRealisticPadding(seed int) string {
 // Local version of processItems that doesn't use global variables
 func processItemsLocal(eng engine.IEngine, pluginName string, items chan plugins.ISourceItem, secrets chan *secrets.Secret, report reporting.IReport) {
 	ctx := context.Background()
-	pool := eng.GetDetectorWorkerPool()
+	pool := eng.getDetectorWorkerPool()
 
 	for item := range items {
 		report.IncTotalItemsScanned(1)

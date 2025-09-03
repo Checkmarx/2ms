@@ -13,21 +13,19 @@ import (
 
 func TestPreRun(t *testing.T) {
 	tests := []struct {
-		name               string
-		stdoutFormatVar    string
-		reportPath         []string
-		engineConfigVar    engine.EngineConfig
-		customRegexRuleVar []string
-		expectedInitErr    error
-		expectedPreRunErr  error
+		name              string
+		stdoutFormatVar   string
+		reportPath        []string
+		engineConfigVar   engine.EngineConfig
+		expectedInitErr   error
+		expectedPreRunErr error
 	}{
 		{
-			name:               "error in validateFormat",
-			stdoutFormatVar:    "invalid",
-			reportPath:         []string{"report.json"},
-			engineConfigVar:    engine.EngineConfig{},
-			customRegexRuleVar: []string{},
-			expectedPreRunErr:  errInvalidOutputFormat,
+			name:              "error in validateFormat",
+			stdoutFormatVar:   "invalid",
+			reportPath:        []string{"report.json"},
+			engineConfigVar:   engine.EngineConfig{},
+			expectedPreRunErr: errInvalidOutputFormat,
 		},
 		{
 			name:            "error in engine.Init",
@@ -36,16 +34,7 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar: engine.EngineConfig{
 				SelectedList: []string{"mockInvalid"},
 			},
-			customRegexRuleVar: []string{},
-			expectedInitErr:    engine.ErrNoRulesSelected,
-		},
-		{
-			name:               "error in engine.AddRegexRules",
-			stdoutFormatVar:    "json",
-			reportPath:         []string{"mock.json"},
-			engineConfigVar:    engine.EngineConfig{},
-			customRegexRuleVar: []string{"[a-z"},
-			expectedPreRunErr:  engine.ErrFailedToCompileRegexRule,
+			expectedInitErr: engine.ErrNoRulesSelected,
 		},
 		{
 			name:            "successfully started go routines with validateVar enabled",
@@ -56,16 +45,14 @@ func TestPreRun(t *testing.T) {
 					WithValidation: true,
 				},
 			},
-			customRegexRuleVar: []string{},
-			expectedPreRunErr:  nil,
+			expectedPreRunErr: nil,
 		},
 		{
-			name:               "successfully started go routines with validateVar disabled",
-			stdoutFormatVar:    "json",
-			reportPath:         []string{"mock.json"},
-			engineConfigVar:    engine.EngineConfig{},
-			customRegexRuleVar: []string{},
-			expectedPreRunErr:  nil,
+			name:              "successfully started go routines with validateVar disabled",
+			stdoutFormatVar:   "json",
+			reportPath:        []string{"mock.json"},
+			engineConfigVar:   engine.EngineConfig{},
+			expectedPreRunErr: nil,
 		},
 	}
 
@@ -74,7 +61,6 @@ func TestPreRun(t *testing.T) {
 			stdoutFormatVar = tt.stdoutFormatVar
 			reportPathVar = tt.reportPath
 			engineConfigVar = tt.engineConfigVar
-			customRegexRuleVar = tt.customRegexRuleVar
 
 			engineInstance, err := engine.Init(&engineConfigVar)
 			if tt.expectedInitErr != nil {

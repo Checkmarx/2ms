@@ -188,7 +188,7 @@ func (p *workerPool) Stop() error {
 	var shutdownErr error
 
 	p.shutdownOnce.Do(func() {
-		p.logger.Info().Msg("Initiating graceful shutdown")
+		p.logger.Debug().Msg("Initiating graceful shutdown")
 		p.isShuttingDown.Store(true)
 		p.queueClosed.Store(true)
 
@@ -218,7 +218,7 @@ func (p *workerPool) Stop() error {
 			}
 		}
 
-		p.logger.Info().Msg("Worker pool shutdown complete")
+		p.logger.Debug().Msg("Worker pool shutdown complete")
 	})
 
 	return shutdownErr

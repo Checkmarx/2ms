@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -770,22 +771,22 @@ func writeTempFile(t *testing.T, dir string, size int, content []byte) string {
 
 func TestProcessItems(t *testing.T) {
 	totalItemsToProcess := 5
-	engineTest, err := Init(&EngineConfig{})
+	engineTest, err := initEngine(&EngineConfig{})
 	assert.NoError(t, err)
 	defer engineTest.Shutdown()
 
 	pluginName := "mockPlugin"
 	pluginChannels := engineTest.GetPluginChannels()
 
-	// Use a channel to wait for ProcessItems to complete
-	done := make(chan struct{})
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
-		defer close(done)
-		engineTest.ProcessItems(pluginName)
+		defer wg.Done()
+		engineTest.processItems(pluginName)
 	}()
 
 	ctrl := gomock.NewController(t)
-	for i := 0; i < totalItemsToProcess; i++ {
+	for i := range totalItemsToProcess {
 		mockData := strconv.Itoa(i)
 		mockItem := NewMockISourceItem(ctrl)
 		mockItem.EXPECT().GetContent().Return(&mockData).AnyTimes()
@@ -794,27 +795,25 @@ func TestProcessItems(t *testing.T) {
 		pluginChannels.GetItemsCh() <- mockItem
 	}
 	close(pluginChannels.GetItemsCh())
-
-	// Wait for ProcessItems to complete
-	<-done
-
+	wg.Wait()
 	assert.Equal(t, totalItemsToProcess, engineTest.GetReport().GetTotalItemsScanned())
 }
 
 func TestProcessSecrets(t *testing.T) {
 	t.Run("Validate flag is enabled", func(t *testing.T) {
-		instance, err := Init(&EngineConfig{})
-		assert.NoError(t, err)
-		instance.SetScanConfig(resources.ScanConfig{
-			WithValidation: true,
+		instance, err := initEngine(&EngineConfig{
+			ScanConfig: resources.ScanConfig{
+				WithValidation: true,
+			},
 		})
-		secretsChan := instance.GetSecretsCh()
+		assert.NoError(t, err)
+		secretsChan := instance.secretsChan
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
 		secretsChan <- &secrets.Secret{ID: "mockId2"}
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
 		close(secretsChan)
 
-		instance.ProcessSecrets()
+		instance.processSecrets()
 
 		expectedSecrets := []*secrets.Secret{
 			{ID: "mockId", StartLine: 1},
@@ -856,18 +855,19 @@ func TestProcessSecrets(t *testing.T) {
 		assert.Equal(t, &secrets.Secret{ID: "mockId2"}, instance.GetReport().GetResults()["mockId2"][0])
 	})
 	t.Run("Validate flag is disabled", func(t *testing.T) {
-		instance, err := Init(&EngineConfig{})
-		assert.NoError(t, err)
-		instance.SetScanConfig(resources.ScanConfig{
-			WithValidation: false,
+		instance, err := initEngine(&EngineConfig{
+			ScanConfig: resources.ScanConfig{
+				WithValidation: false,
+			},
 		})
-		secretsChan := instance.GetSecretsCh()
+		assert.NoError(t, err)
+		secretsChan := instance.secretsChan
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
 		secretsChan <- &secrets.Secret{ID: "mockId2"}
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
 		close(secretsChan)
 
-		instance.ProcessSecrets()
+		instance.processSecrets()
 
 		expectedSecrets := []*secrets.Secret{
 			{ID: "mockId", StartLine: 1},
@@ -960,7 +960,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			instance, err := Init(&EngineConfig{})
+			instance, err := initEngine(&EngineConfig{})
 			assert.NoError(t, err)
 			secretsExtrasChan := instance.GetSecretsExtrasCh()
 			for _, secret := range tt.inputSecrets {
@@ -968,7 +968,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 			}
 			close(secretsExtrasChan)
 
-			instance.ProcessSecretsExtras()
+			instance.processSecretsExtras()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
@@ -1018,7 +1018,7 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			instance, err := Init(&EngineConfig{ScanConfig: resources.ScanConfig{WithValidation: true}})
+			instance, err := initEngine(&EngineConfig{ScanConfig: resources.ScanConfig{WithValidation: true}})
 			assert.NoError(t, err)
 			validationChan := instance.GetValidationCh()
 			for _, secret := range tt.inputSecrets {
@@ -1026,7 +1026,7 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 			}
 			close(validationChan)
 
-			instance.ProcessScore()
+			instance.processScore()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
@@ -1076,7 +1076,7 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			instance, err := Init(&EngineConfig{})
+			instance, err := initEngine(&EngineConfig{})
 			assert.NoError(t, err)
 			defer instance.Shutdown()
 
@@ -1086,7 +1086,7 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 			}
 			close(cvssScoreWithoutValidationChan)
 
-			instance.ProcessScore()
+			instance.processScore()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])

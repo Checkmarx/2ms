@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 
@@ -21,14 +20,7 @@ func main() {
 	signal.Notify(stopChan, os.Interrupt)
 	go listenForInterrupt(stopChan)
 
-	exitCode, err := cmd.Execute()
-	if err != nil {
-		log.Error().Err(err).Msg("Error in 2ms")
-	}
-
-	fmt.Println("exitCode of cmd.Execute()", exitCode)
-
-	cmd.Exit(exitCode, err)
+	cmd.Exit(cmd.Execute())
 }
 
 func listenForInterrupt(stopScan chan os.Signal) {

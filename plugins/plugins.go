@@ -60,8 +60,8 @@ type Option func(*Channels)
 
 func NewChannels(opts ...Option) PluginChannels {
 	channels := &Channels{
-		Items:  make(chan ISourceItem, 1),
-		Errors: make(chan error, 1),
+		Items:  make(chan ISourceItem, 64),
+		Errors: make(chan error, 4),
 	}
 
 	for _, opt := range opts {

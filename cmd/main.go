@@ -34,13 +34,12 @@ const (
 )
 
 var (
-	logLevelVar        string
-	reportPathVar      []string
-	stdoutFormatVar    string
-	customRegexRuleVar []string
-	ignoreOnExitVar    = ignoreOnExitNone
-	engineConfigVar    engine.EngineConfig
-	validateVar        bool
+	logLevelVar     string
+	reportPathVar   []string
+	stdoutFormatVar string
+	ignoreOnExitVar = ignoreOnExitNone
+	engineConfigVar engine.EngineConfig
+	validateVar     bool
 )
 
 type engineContextKey string
@@ -75,30 +74,42 @@ func Execute() (int, error) {
 	cobra.OnInitialize(func() { initialize(rootCmd) })
 	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
 	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
+
 	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal, none)")
+
 	rootCmd.PersistentFlags().
 		StringSliceVar(&reportPathVar, reportPathFlagName, []string{},
 			"path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
+
 	rootCmd.PersistentFlags().
 		StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
-	rootCmd.PersistentFlags().
-		StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
+
 	rootCmd.PersistentFlags().
 		StringSliceVar(&engineConfigVar.SelectedList, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
+
 	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.IgnoreList, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
 	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.IgnoredIds, ignoreFlagName, []string{}, "ignore specific result by id")
+
 	rootCmd.PersistentFlags().
 		StringSliceVar(&engineConfigVar.AllowedValues, allowedValuesFlagName, []string{}, "allowed secrets values to ignore")
+
 	rootCmd.PersistentFlags().
 		StringSliceVar(&engineConfigVar.SpecialList, specialRulesFlagName, []string{},
 			"special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
+
+	rootCmd.PersistentFlags().
+		StringSliceVar(&engineConfigVar.CustomRegexRules, customRegexRuleFlagName, []string{},
+			"custom regexes to apply to the scan, must be valid Go regex")
+
 	rootCmd.PersistentFlags().
 		Var(&ignoreOnExitVar, ignoreOnExitFlagName,
 			"defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\n"+
 				"example: if 'results' is set, only engine errors will make 2ms exit code different from 0")
+
 	rootCmd.PersistentFlags().
 		IntVar(&engineConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0,
 			"files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
+
 	rootCmd.PersistentFlags().
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
 
@@ -152,19 +163,9 @@ func preRun(rootCmd *cobra.Command, pluginName string, _ *cobra.Command, _ []str
 		return err
 	}
 
-	if err := engineInstance.AddRegexRules(customRegexRuleVar); err != nil {
-		return err
-	}
-
 	engineInstance.Scan(pluginName)
 
 	return nil
-}
-
-// ProcessingTask represents a processing task with metadata
-type ProcessingTask struct {
-	Name string
-	Fn   func()
 }
 
 func postRun(cmd *cobra.Command, args []string) error {
