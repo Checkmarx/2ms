@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/checkmarx/2ms/v4/lib/config"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
@@ -33,6 +34,8 @@ type Report struct {
 	TotalItemsScanned int                          `json:"totalItemsScanned"`
 	TotalSecretsFound int                          `json:"totalSecretsFound"`
 	Results           map[string][]*secrets.Secret `json:"results"`
+
+	mu sync.RWMutex
 }
 
 func New() IReport {
@@ -93,25 +96,37 @@ func (r *Report) GetOutput(format string, cfg *config.Config) (string, error) {
 }
 
 func (r *Report) GetTotalItemsScanned() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.TotalItemsScanned
 }
 
 func (r *Report) GetTotalSecretsFound() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.TotalSecretsFound
 }
 
 func (r *Report) IncTotalItemsScanned(n int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.TotalItemsScanned += n
 }
 
 func (r *Report) IncTotalSecretsFound(n int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.TotalSecretsFound += n
 }
 
 func (r *Report) GetResults() map[string][]*secrets.Secret {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.Results
 }
 
 func (r *Report) SetResults(results map[string][]*secrets.Secret) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.Results = results
 }

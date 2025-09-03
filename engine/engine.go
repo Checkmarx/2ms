@@ -539,7 +539,7 @@ func (e *Engine) ProcessItems(pluginName string) {
 	// After all items are processed (items channel closed),
 	// close the queue to signal no more work will be submitted
 	e.GetDetectorWorkerPool().CloseQueue()
-	
+
 	// Wait for all submitted tasks to complete
 	e.GetDetectorWorkerPool().Wait()
 
@@ -564,7 +564,6 @@ func (e *Engine) processItems(pluginName string) {
 			}
 		default:
 			task = func(context.Context) error {
-				log.Debug().Msg("running task for fragment")
 				return e.DetectFragment(item, e.secretsChan, pluginName)
 			}
 		}

@@ -213,7 +213,10 @@ func TestScan(t *testing.T) {
 		}()
 		report, err := testScanner.Scan(scanItems, resources.ScanConfig{}, engine.WithPluginChannels(pluginChannels))
 
-		assert.Equal(t, &reporting.Report{}, report)
+		assert.Equal(t, 0, report.GetTotalItemsScanned())
+		assert.Equal(t, 0, report.GetTotalSecretsFound())
+		expectedResults := make(map[string][]*secrets.Secret)
+		assert.Equal(t, expectedResults, report.GetResults())
 		assert.NotNil(t, err)
 		assert.Equal(t, "error(s) processing scan items:\nmock processing error 1\nmock processing error 2", err.Error())
 	})
@@ -221,13 +224,19 @@ func TestScan(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan([]ScanItem{}, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
-		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
+		assert.Equal(t, 0, actualReport.GetTotalItemsScanned())
+		assert.Equal(t, 0, actualReport.GetTotalSecretsFound())
+		expectedResults := make(map[string][]*secrets.Secret)
+		assert.Equal(t, expectedResults, actualReport.GetResults())
 	})
 	t.Run("scan with scanItems nil", func(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan(nil, resources.ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
-		assert.Equal(t, &reporting.Report{Results: map[string][]*secrets.Secret{}}, actualReport)
+		assert.Equal(t, 0, actualReport.GetTotalItemsScanned())
+		assert.Equal(t, 0, actualReport.GetTotalSecretsFound())
+		expectedResults := make(map[string][]*secrets.Secret)
+		assert.Equal(t, expectedResults, actualReport.GetResults())
 	})
 	t.Run("scan more than 1 time using the same scanner instance", func(t *testing.T) {
 		githubPatBytes, err := os.ReadFile(githubPatPath)
@@ -484,10 +493,8 @@ func TestScanDynamic(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, engine.ErrNoRulesSelected)
-		assert.Equal(t, &reporting.Report{
-			TotalItemsScanned: 0,
-			TotalSecretsFound: 0,
-		}, report)
+		assert.Equal(t, 0, report.GetTotalItemsScanned())
+		assert.Equal(t, 0, report.GetTotalSecretsFound())
 	})
 	t.Run("scan more than 1 time using the same scanner instance", func(t *testing.T) {
 		githubPatBytes, err := os.ReadFile(githubPatPath)
