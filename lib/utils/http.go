@@ -38,6 +38,7 @@ func HttpRequest(method, url string, authorization IAuthorizationHeader, retry R
 		request.Header.Set("Authorization", authorization.GetAuthorizationHeader())
 	}
 
+	// TODO: do not recreate this client for each request
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
