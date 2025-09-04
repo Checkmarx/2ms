@@ -35,7 +35,6 @@ func (p *FileSystemPlugin) DefineCommand(items chan ISourceItem, errors chan err
 		Long:  "Scan local folder for sensitive information",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Folder plugin started")
-
 			fileList, err := p.getFiles()
 			if err != nil {
 				errors <- err

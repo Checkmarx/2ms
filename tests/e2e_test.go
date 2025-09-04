@@ -73,9 +73,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	executable, err := createCLI(t.TempDir())
-	if err != nil {
-		t.Fatalf("failed to build CLI: %s", err)
-	}
+	require.NoError(t, err)
 
 	t.Run("filesystem: one secret found", func(t *testing.T) {
 		projectDir := t.TempDir()
@@ -84,17 +82,16 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("failed to generate project: %s", err)
 		}
 
-		if err := executable.run("filesystem", "--path", projectDir); err == nil {
-			t.Error("expected error (secrets found), got nil")
-		}
+		err := executable.run("filesystem", "--path", projectDir)
+		assert.Error(t, err, "expected error when secrets are found")
 
 		report, err := executable.getReport()
 		if err != nil {
 			t.Fatalf("failed to get report: %s", err)
 		}
 
-		if len(report.Results) != 1 {
-			t.Errorf("expected one result, got %d", len(report.Results))
+		if report.GetTotalItemsScanned() != 1 {
+			t.Errorf("expected one result, got %d", report.GetTotalItemsScanned())
 		}
 	})
 
@@ -110,11 +107,11 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("failed to get report: %s", err)
 		}
 
-		if len(report.Results) < 2 {
-			t.Errorf("expected at least two results, got %d", len(report.Results))
+		if report.GetTotalItemsScanned() < 2 {
+			t.Errorf("expected at least two results, got %d", report.GetTotalItemsScanned())
 		}
 
-		for _, result := range report.Results {
+		for _, result := range report.GetResults() {
 			for _, secret := range result {
 				if secret.ValidationStatus == "" {
 					t.Errorf("expected validation status, got empty")
@@ -138,10 +135,7 @@ func TestIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to get report: %s", err)
 		}
-
-		if len(report.Results) != 0 {
-			t.Errorf("expected no results, got %d", len(report.Results))
-		}
+		assert.Equal(t, 0, len(report.GetResults()))
 	})
 }
 
@@ -222,16 +216,16 @@ func TestSecretsScans(t *testing.T) {
 	}
 }
 
-func (c *cli) getReport() (reporting.Report, error) {
-	report := reporting.Init()
+func (c *cli) getReport() (reporting.IReport, error) {
+	report := reporting.New()
 
 	content, err := os.ReadFile(c.resultsPath)
 	if err != nil {
-		return reporting.Report{}, err
+		return nil, err
 	}
 	if err := json.Unmarshal(content, &report); err != nil {
-		return reporting.Report{}, err
+		return nil, err
 	}
 
-	return *report, nil
+	return report, nil
 }

@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"runtime"
 	"sync"
 
 	"github.com/spf13/cobra"
@@ -46,9 +47,37 @@ type Plugin struct {
 }
 
 type Channels struct {
-	Items     chan ISourceItem
-	Errors    chan error
-	WaitGroup *sync.WaitGroup
+	Items  chan ISourceItem
+	Errors chan error
+	wg     *sync.WaitGroup
+}
+
+type PluginChannels interface {
+	GetItemsCh() chan ISourceItem
+	GetErrorsCh() chan error
+}
+
+type Option func(*Channels)
+
+func NewChannels(opts ...Option) PluginChannels {
+	channels := &Channels{
+		Items:  make(chan ISourceItem, runtime.GOMAXPROCS(0)),
+		Errors: make(chan error, 4),
+	}
+
+	for _, opt := range opts {
+		opt(channels)
+	}
+
+	return channels
+}
+
+func (c *Channels) GetItemsCh() chan ISourceItem {
+	return c.Items
+}
+
+func (c *Channels) GetErrorsCh() chan error {
+	return c.Errors
 }
 
 type IPlugin interface {

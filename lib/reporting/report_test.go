@@ -196,24 +196,25 @@ JPcHeO7M6FohKgcEHX84koQDN98J/L7pFlSoU7WOl6f8BKavIdeSTPS9qQYWdQuT
 -----END RSA PRIVATE KEY-----`)
 
 	results := map[string][]*secrets.Secret{}
-	report := Report{len(results), 1, results}
-	secret := &secrets.Secret{Source: "bla", StartLine: 1, StartColumn: 0, EndLine: 1, EndColumn: 0, Value: secretValue}
+	report := New()
+	id := "id"
+	secret := &secrets.Secret{ID: id, Source: "bla", StartLine: 1, StartColumn: 0, EndLine: 1, EndColumn: 0, Value: secretValue}
 	source := "directory\\rawStringAsFile.txt"
+	results[source] = append(results[source], secret)
+	report.SetResults(results)
 
-	report.Results[source] = append(report.Results[source], secret)
-
-	key, fileExist := report.Results[source]
+	key, fileExist := report.GetResults()[source]
 	if !fileExist {
 		t.Errorf("key %s not added", source)
 	}
 
-	if !reflect.DeepEqual(report.Results, results) {
+	if !reflect.DeepEqual(report.GetResults(), results) {
 		t.Errorf("got %+v want %+v", key, results)
 	}
 }
 
 func TestWriteReportInNonExistingDir(t *testing.T) {
-	report := Init()
+	report := New()
 
 	tempDir := os.TempDir()
 	path := filepath.Join(tempDir, "test_temp_dir", "sub_dir", "report.yaml")
@@ -229,13 +230,13 @@ func TestGetOutputSarif(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		arg     Report
+		arg     *Report
 		want    []Runs
 		wantErr bool
 	}{
 		{
 			name: "two_results_same_rule_want_one_rule_in_report",
-			arg: Report{
+			arg: &Report{
 				TotalItemsScanned: 2,
 				TotalSecretsFound: 2,
 				Results: map[string][]*secrets.Secret{
@@ -264,7 +265,7 @@ func TestGetOutputSarif(t *testing.T) {
 		},
 		{
 			name: "two_results_two_rules_want_two_rules_in_report",
-			arg: Report{
+			arg: &Report{
 				TotalItemsScanned: 2,
 				TotalSecretsFound: 2,
 				Results: map[string][]*secrets.Secret{
@@ -341,10 +342,10 @@ func SortResults(results1, results2 []Results) {
 func TestGetOutputYAML(t *testing.T) {
 	testCases := []struct {
 		name   string
-		report Report
+		report *Report
 	}{{
 		name: "No secrets found",
-		report: Report{
+		report: &Report{
 			TotalItemsScanned: 5,
 			TotalSecretsFound: 0,
 			Results:           map[string][]*secrets.Secret{},
@@ -352,7 +353,7 @@ func TestGetOutputYAML(t *testing.T) {
 	},
 		{
 			name: "Single real secret in hardcodedPassword.go",
-			report: Report{
+			report: &Report{
 				TotalItemsScanned: 1,
 				TotalSecretsFound: 1,
 				Results: map[string][]*secrets.Secret{
@@ -377,7 +378,7 @@ func TestGetOutputYAML(t *testing.T) {
 		},
 		{
 			name: "Multiple real JWT secrets in jwt.txt",
-			report: Report{
+			report: &Report{
 				TotalItemsScanned: 2,
 				TotalSecretsFound: 2,
 				Results: map[string][]*secrets.Secret{
@@ -437,7 +438,9 @@ func TestGetOutputYAML(t *testing.T) {
 			err = yaml.Unmarshal([]byte(output), &report)
 			assert.NoError(t, err)
 
-			assert.Equal(t, tc.report, report)
+			assert.Equal(t, tc.report.TotalItemsScanned, report.TotalItemsScanned)
+			assert.Equal(t, tc.report.TotalSecretsFound, report.TotalSecretsFound)
+			assert.Equal(t, tc.report.Results, report.Results)
 		})
 	}
 }
