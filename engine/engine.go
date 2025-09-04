@@ -167,10 +167,10 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 
 		ScanConfig: engineConfig.ScanConfig,
 
-		secretsChan:                    make(chan *secrets.Secret, 10),
-		secretsExtrasChan:              make(chan *secrets.Secret, 10),
-		validationChan:                 make(chan *secrets.Secret, 10),
-		cvssScoreWithoutValidationChan: make(chan *secrets.Secret, 10),
+		secretsChan:                    make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
+		secretsExtrasChan:              make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
+		validationChan:                 make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
+		cvssScoreWithoutValidationChan: make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
 
 		pluginChannels: plugins.NewChannels(),
 		Report:         reporting.New(),

@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"runtime"
 	"sync"
 
 	"github.com/spf13/cobra"
@@ -60,7 +61,7 @@ type Option func(*Channels)
 
 func NewChannels(opts ...Option) PluginChannels {
 	channels := &Channels{
-		Items:  make(chan ISourceItem, 64),
+		Items:  make(chan ISourceItem, runtime.GOMAXPROCS(0)),
 		Errors: make(chan error, 4),
 	}
 
