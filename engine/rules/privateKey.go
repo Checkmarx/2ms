@@ -7,25 +7,10 @@ import (
 )
 
 func PrivateKey() *config.Rule {
-	// define rule
-	r := config.Rule{
-		Description: "Identified a Private Key, which may compromise cryptographic security and sensitive data encryption.",
+	return &config.Rule{
 		RuleID:      "private-key",
-		Regex:       regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----[\s\S]*?KEY(?: BLOCK)?-----`),
+		Description: "Identified a Private Key, which may compromise cryptographic security and sensitive data encryption.",
+		Regex:       regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----[\s\S-]{64,}?KEY(?: BLOCK)?-----`), //nolint:gocritic,lll
 		Keywords:    []string{"-----BEGIN"},
 	}
-
-	// validate
-	tps := []string{`-----BEGIN PRIVATE KEY-----
-anything
------END PRIVATE KEY-----`,
-		`-----BEGIN RSA PRIVATE KEY-----
-abcdefghijklmnopqrstuvwxyz
------END RSA PRIVATE KEY-----
-`,
-		`-----BEGIN PRIVATE KEY BLOCK-----
-anything
------END PRIVATE KEY BLOCK-----`,
-	}
-	return validate(r, tps, nil)
 }

@@ -5,7 +5,9 @@ package engine
 import (
 	"bufio"
 	"context"
-	"crypto/sha1" //nolint:gosec // SHA1 is used for ID generation only, not for security
+	"crypto/hkdf"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -13,14 +15,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/checkmarx/2ms/v3/engine/chunk"
-	"github.com/checkmarx/2ms/v3/engine/linecontent"
-	"github.com/checkmarx/2ms/v3/engine/rules"
-	"github.com/checkmarx/2ms/v3/engine/score"
-	"github.com/checkmarx/2ms/v3/engine/semaphore"
-	"github.com/checkmarx/2ms/v3/engine/validation"
-	"github.com/checkmarx/2ms/v3/lib/secrets"
-	"github.com/checkmarx/2ms/v3/plugins"
+	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v4/engine/linecontent"
+	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/score"
+	"github.com/checkmarx/2ms/v4/engine/semaphore"
+	"github.com/checkmarx/2ms/v4/engine/validation"
+	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
@@ -31,7 +33,7 @@ import (
 type Engine struct {
 	rules              map[string]config.Rule
 	rulesBaseRiskScore map[string]float64
-	detector           detect.Detector
+	detector           *detect.Detector
 	validator          validation.Validator
 	semaphore          semaphore.ISemaphore
 	chunk              chunk.IChunk
@@ -78,12 +80,12 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
-	keywords := []string{}
-	for _, rule := range *selectedRules { //nolint:gocritic // rangeValCopy: would need a refactor to use a pointer
+	keywords := make(map[string]struct{})
+	for _, rule := range *selectedRules { //nolint:gocritic // TODO: refactor to use a pointer
 		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
 		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Rule.Keywords {
-			keywords = append(keywords, strings.ToLower(keyword))
+			keywords[strings.ToLower(keyword)] = struct{}{}
 		}
 	}
 	cfg.Rules = rulesToBeApplied
@@ -95,7 +97,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 	return &Engine{
 		rules:              rulesToBeApplied,
 		rulesBaseRiskScore: rulesBaseRiskScore,
-		detector:           *detector,
+		detector:           detector,
 		validator:          *validation.NewValidator(),
 		semaphore:          semaphore.NewSemaphore(),
 		chunk:              chunk.New(),
@@ -107,7 +109,7 @@ func Init(engineConfig EngineConfig) (IEngine, error) { //nolint:gocritic // hug
 
 // DetectFragment detects secrets in the given fragment
 func (e *Engine) DetectFragment(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, pluginName string) error {
-	fragment := detect.Fragment{
+	fragment := detect.Fragment{ //nolint:staticcheck // TODO: detect.Fragment is deprecated
 		Raw:      *item.GetContent(),
 		FilePath: item.GetSource(),
 	}
@@ -154,7 +156,7 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 	if err != nil {
 		return fmt.Errorf("read small file %q: %w", item.GetSource(), err)
 	}
-	fragment := detect.Fragment{
+	fragment := detect.Fragment{ //nolint:staticcheck // TODO: detect.Fragment is deprecated
 		Raw:      string(data),
 		FilePath: item.GetSource(),
 	}
@@ -193,7 +195,7 @@ func (e *Engine) detectChunks(ctx context.Context, item plugins.ISourceItem, sec
 		totalLines += linesInChunk
 
 		// Detect secrets in the chunk
-		fragment := detect.Fragment{
+		fragment := detect.Fragment{ //nolint:staticcheck // TODO: detect.Fragment is deprecated
 			Raw:      chunkStr,
 			FilePath: item.GetSource(),
 		}
@@ -209,7 +211,7 @@ func (e *Engine) detectChunks(ctx context.Context, item plugins.ISourceItem, sec
 func (e *Engine) detectSecrets(
 	ctx context.Context,
 	item plugins.ISourceItem,
-	fragment *detect.Fragment,
+	fragment *detect.Fragment, //nolint:staticcheck // TODO: detect.Fragment is deprecated
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
@@ -320,7 +322,11 @@ func buildSecret(
 	pluginName string,
 ) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
-	itemId := getFindingId(item, value)
+	itemId, err := getFindingId(item, &value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get finding ID: %w", err)
+	}
+
 	startLine, endLine, err := getStartAndEndLines(ctx, pluginName, gitInfo, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
@@ -361,10 +367,22 @@ func buildSecret(
 	return secret, nil
 }
 
-func getFindingId(item plugins.ISourceItem, finding report.Finding) string { //nolint:gocritic // hugeParam: finding is heavy but needed
-	idParts := []string{item.GetID(), finding.RuleID, finding.Secret}
-	sha := sha1.Sum([]byte(strings.Join(idParts, "-"))) //nolint:gosec // SHA1 is used for ID generation only
-	return fmt.Sprintf("%x", sha)
+func getFindingId(item plugins.ISourceItem, finding *report.Finding) (string, error) {
+	// Context includes only non-sensitive metadata
+	context := fmt.Sprintf("finding:%s:%s", item.GetID(), finding.RuleID)
+
+	// Use secret hash as input key material
+	// to avoid errors in FIPS 140-only mode
+	// which requires the use of keys longer than 112 bits
+	secretHash := sha256.Sum256([]byte(finding.Secret))
+
+	// Use the newer HKDF API - Key function does both extract and expand
+	id, err := hkdf.Key(sha256.New, secretHash[:], nil, context, 20)
+	if err != nil {
+		return "", fmt.Errorf("HKDF derivation failed: %w", err)
+	}
+
+	return hex.EncodeToString(id), nil
 }
 
 func getStartAndEndLines(
