@@ -3,7 +3,7 @@ repos:
   hooks:
   - id: make-check
     name: make check
-    description: Run project checks, gofmt, golangci-lint, tests and coverage
+    description: Run project checks, gofmt, golangci-lint, tests
     entry: make check
     language: system
     pass_filenames: false
