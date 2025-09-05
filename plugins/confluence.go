@@ -1,357 +1,327 @@
 package plugins
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
-	"sync"
+	"time"
 
-	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-
-	"net/url"
 )
 
 const (
-	argUrl                  = "url"
-	argSpaces               = "spaces"
-	argUsername             = "username"
-	argToken                = "token"
-	argHistory              = "history"
-	confluenceDefaultWindow = 25
-	confluenceMaxRequests   = 500
-)
+	flagSpaceIDs  = "space-ids"
+	flagSpaceKeys = "space-keys"
+	flagPageIDs   = "page-ids"
+	flagUsername  = "username"
+	flagToken     = "token"
+	flagHistory   = "history"
 
-var (
-	username string
-	token    string
+	// Confluence Cloud REST API v2 constraints
+	maxPageIDsPerRequest   = 250
+	maxSpaceIDsPerRequest  = 100
+	maxSpaceKeysPerRequest = 250
+	maxPageSize            = 250
+
+	httpTimeout = 60 * time.Second
 )
 
 type ConfluencePlugin struct {
 	Plugin
-	Spaces  []string
-	History bool
-	client  IConfluenceClient
+
+	SpaceIDs  []string
+	SpaceKeys []string
+	PageIDs   []string
+	History   bool
+
+	baseWikiURL string
+	httpClient  *http.Client
+	username    string
+	token       string
 
 	itemsChan  chan ISourceItem
 	errorsChan chan error
+
+	client ConfluenceClient
 }
 
-func (p *ConfluencePlugin) GetName() string {
-	return "confluence"
-}
+func (p *ConfluencePlugin) GetName() string { return "confluence" }
 
-func isValidURL(cmd *cobra.Command, args []string) error {
-	urlStr := args[0]
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil && parsedURL.Scheme != "https" {
-		return fmt.Errorf("invalid URL format")
-	}
-	return nil
-}
-
-func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
+func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error) (*cobra.Command, error) {
 	p.itemsChan = items
-	p.errorsChan = errors
+	p.errorsChan = errs
 
-	var confluenceCmd = &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s <URL>", p.GetName()),
-		Short:   "Scan Confluence server",
-		Long:    "Scan Confluence server for sensitive information",
+		Short:   "Scan Confluence Cloud",
+		Long:    "Scan Confluence Cloud pages for sensitive information",
 		Example: fmt.Sprintf("  2ms %s https://checkmarx.atlassian.net/wiki", p.GetName()),
-		Args:    cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
+		Args:    cobra.MatchAll(cobra.ExactArgs(1), validateConfluenceURLArg),
 		Run: func(cmd *cobra.Command, args []string) {
+			log.Info().Msg("Confluence plugin started")
 			p.initialize(args[0])
-			wg := &sync.WaitGroup{}
-			p.scanConfluence(wg)
-			wg.Wait()
+			if p.username == "" || p.token == "" {
+				log.Warn().Msg("Confluence credentials not provided. The scan will run anonymously (public pages only).")
+			}
+			if err := p.runScan(context.Background()); err != nil {
+				p.errorsChan <- err
+			}
 			close(items)
 		},
 	}
 
-	flags := confluenceCmd.Flags()
-	flags.StringSliceVar(&p.Spaces, argSpaces, []string{}, "Confluence spaces: The names or IDs of the spaces to scan")
-	flags.StringVar(&username, argUsername, "", "Confluence user name or email for authentication")
-	flags.StringVar(&token, argToken, "", "The Confluence API token for authentication")
-	flags.BoolVar(&p.History, argHistory, false, "Scan pages history")
+	flags := cmd.Flags()
+	flags.StringSliceVar(&p.SpaceIDs, flagSpaceIDs, []string{}, "Comma-separated list of Confluence space IDs to scan.")
+	flags.StringSliceVar(&p.SpaceKeys, flagSpaceKeys, []string{}, "Comma-separated list of Confluence space keys to scan.")
+	flags.StringSliceVar(&p.PageIDs, flagPageIDs, []string{}, "Comma-separated list of Confluence page IDs to scan.")
+	flags.StringVar(&p.username, flagUsername, "", "Confluence user name or email for authentication.")
+	flags.StringVar(&p.token, flagToken, "", "Confluence API token for authentication.")
+	flags.BoolVar(&p.History, flagHistory, false, "Also scan all page revisions (all versions).")
 
-	return confluenceCmd, nil
+	return cmd, nil
 }
 
-func (p *ConfluencePlugin) initialize(urlArg string) {
-	url := strings.TrimRight(urlArg, "/")
+func validateConfluenceURLArg(_ *cobra.Command, args []string) error {
+	inputURL := strings.TrimSpace(args[0])
 
-	if username == "" || token == "" {
-		log.Warn().Msg("confluence credentials were not provided. The scan will be made anonymously only for the public pages")
-	}
-	p.client = newConfluenceClient(url, token, username)
-
-	p.Limit = make(chan struct{}, confluenceMaxRequests)
-}
-
-func (p *ConfluencePlugin) scanConfluence(wg *sync.WaitGroup) {
-	spaces, err := p.getSpaces()
+	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
-		p.errorsChan <- err
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+	if parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL: must use https")
 	}
 
-	for _, space := range spaces {
-		wg.Add(1)
-		go p.scanConfluenceSpace(wg, space)
+	// Accept "/wiki" or "/wiki/"
+	normalizedPath := strings.TrimRight(parsedURL.Path, "/")
+	if normalizedPath != "/wiki" {
+		return fmt.Errorf("invalid URL path: expected https://<company>.atlassian.net/wiki")
+	}
+	return nil
+}
+
+func (p *ConfluencePlugin) initialize(base string) {
+	p.baseWikiURL = strings.TrimRight(base, "/")
+	p.httpClient = &http.Client{Timeout: httpTimeout}
+	p.client = &httpConfluenceClient{
+		baseWikiURL: p.baseWikiURL,
+		httpClient:  p.httpClient,
+		username:    p.username,
+		token:       p.token,
 	}
 }
 
-func (p *ConfluencePlugin) scanConfluenceSpace(wg *sync.WaitGroup, space ConfluenceSpaceResult) {
-	defer wg.Done()
-
-	pages, err := p.getPages(space)
+func (p *ConfluencePlugin) runScan(ctx context.Context) error {
+	pages, err := p.resolvePagesToScan(ctx)
 	if err != nil {
-		p.errorsChan <- err
-		return
+		return err
 	}
 
-	for _, page := range pages.Pages {
-		wg.Add(1)
-		p.Limit <- struct{}{}
-		go func(page ConfluencePage) {
-			p.scanPageAllVersions(wg, page, space)
-			<-p.Limit
-		}(page)
-	}
-}
+	siteBase := p.baseWikiURL
 
-func (p *ConfluencePlugin) scanPageAllVersions(wg *sync.WaitGroup, page ConfluencePage, space ConfluenceSpaceResult) {
-	defer wg.Done()
+	for _, page := range pages {
+		itemID := fmt.Sprintf("%s-%s", p.GetName(), page.ID)
+		p.itemsChan <- convertPageToItem(page, itemID, siteBase, 0)
 
-	previousVersion := p.scanPageVersion(page, space, 0)
-	if !p.History {
-		return
-	}
-
-	for previousVersion > 0 {
-		previousVersion = p.scanPageVersion(page, space, previousVersion)
-	}
-}
-
-func (p *ConfluencePlugin) scanPageVersion(page ConfluencePage, space ConfluenceSpaceResult, version int) int {
-	pageContent, err := p.client.getPageContentRequest(page, version)
-	if err != nil {
-		p.errorsChan <- err
-		return 0
-	}
-	itemID := fmt.Sprintf("%s-%s-%s", p.GetName(), space.Key, page.ID)
-	p.itemsChan <- convertPageToItem(pageContent, itemID)
-
-	return pageContent.History.PreviousVersion.Number
-}
-
-func convertPageToItem(pageContent *ConfluencePageContent, itemID string) ISourceItem {
-	return &item{
-		Content: &pageContent.Body.Storage.Value,
-		ID:      itemID,
-		Source:  pageContent.Links["base"] + pageContent.Links["webui"],
-	}
-}
-
-func (p *ConfluencePlugin) getSpaces() ([]ConfluenceSpaceResult, error) {
-	totalSpaces, err := p.client.getSpacesRequest(0)
-	if err != nil {
-		return nil, err
-	}
-
-	actualSize := totalSpaces.Size
-
-	for actualSize == confluenceDefaultWindow {
-		moreSpaces, err := p.client.getSpacesRequest(totalSpaces.Size)
-		if err != nil {
-			return nil, err
-		}
-
-		totalSpaces.Results = append(totalSpaces.Results, moreSpaces.Results...)
-		totalSpaces.Size += moreSpaces.Size
-		actualSize = moreSpaces.Size
-	}
-
-	if len(p.Spaces) == 0 {
-		log.Info().Msgf(" Total of all %d Spaces detected", len(totalSpaces.Results))
-		return totalSpaces.Results, nil
-	}
-
-	filteredSpaces := make([]ConfluenceSpaceResult, 0)
-	if len(p.Spaces) > 0 {
-		for _, space := range totalSpaces.Results {
-			for _, spaceToScan := range p.Spaces {
-				if space.Key == spaceToScan || space.Name == spaceToScan || fmt.Sprintf("%d", space.ID) == spaceToScan {
-					filteredSpaces = append(filteredSpaces, space)
+		if p.History {
+			versionNumbers, err := p.client.ListPageVersionNumbers(ctx, page.ID, maxPageSize)
+			if err != nil {
+				return err
+			}
+			current := page.Version.Number
+			for _, v := range versionNumbers {
+				if v == current {
+					continue // already emitted current version
 				}
+				versioned, err := p.client.FetchPageVersion(ctx, page.ID, v)
+				if err != nil {
+					return err
+				}
+				versionItemID := fmt.Sprintf("%s-%s-v%d", p.GetName(), versioned.ID, v)
+				p.itemsChan <- convertPageToItem(versioned, versionItemID, siteBase, v)
 			}
 		}
 	}
-
-	log.Info().Msgf(" Total of filtered %d Spaces detected", len(filteredSpaces))
-	return filteredSpaces, nil
+	return nil
 }
 
-func (p *ConfluencePlugin) getPages(space ConfluenceSpaceResult) (*ConfluencePageResult, error) {
-	totalPages, err := p.client.getPagesRequest(space, 0)
+func (p *ConfluencePlugin) resolvePagesToScan(ctx context.Context) ([]Page, error) {
+	pagesByID := make(map[string]Page)
+	spacesSeen := make(map[string]struct{})
 
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
-	}
-
-	actualSize := len(totalPages.Pages)
-
-	for actualSize == confluenceDefaultWindow {
-		morePages, err := p.client.getPagesRequest(space, len(totalPages.Pages))
-
-		if err != nil {
-			return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+	if len(p.SpaceIDs) > 0 {
+		if err := p.collectPagesBySpaceIDs(ctx, spacesSeen, pagesByID); err != nil {
+			return nil, err
 		}
-
-		totalPages.Pages = append(totalPages.Pages, morePages.Pages...)
-		actualSize = len(morePages.Pages)
+	}
+	if len(p.SpaceKeys) > 0 {
+		if err := p.collectPagesBySpaceKeys(ctx, spacesSeen, pagesByID); err != nil {
+			return nil, err
+		}
+	}
+	if len(p.PageIDs) > 0 {
+		if err := p.collectPagesByPageIDs(ctx, pagesByID); err != nil {
+			return nil, err
+		}
 	}
 
-	log.Info().Msgf(" Space - %s have %d pages", space.Name, len(totalPages.Pages))
-
-	return totalPages, nil
-}
-
-/*
- * Confluence client
- */
-
-type IConfluenceClient interface {
-	getSpacesRequest(start int) (*ConfluenceSpaceResponse, error)
-	getPagesRequest(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error)
-	getPageContentRequest(page ConfluencePage, version int) (*ConfluencePageContent, error)
-}
-
-type confluenceClient struct {
-	baseURL  string
-	token    string
-	username string
-}
-
-func newConfluenceClient(baseURL, token, username string) IConfluenceClient {
-	return &confluenceClient{
-		baseURL:  baseURL,
-		token:    token,
-		username: username,
+	// when no filters are provided
+	if len(p.SpaceIDs) == 0 && len(p.SpaceKeys) == 0 && len(p.PageIDs) == 0 {
+		if err := p.collectAllPages(ctx, pagesByID); err != nil {
+			return nil, err
+		}
 	}
-}
 
-func (c *confluenceClient) GetCredentials() (string, string) {
-	return c.username, c.token
-}
-
-func (c *confluenceClient) GetAuthorizationHeader() string {
-	if c.username == "" || c.token == "" {
-		return ""
+	collected := make([]Page, 0, len(pagesByID))
+	for _, page := range pagesByID {
+		collected = append(collected, page)
 	}
-	return utils.CreateBasicAuthCredentials(c)
+	return collected, nil
 }
 
-func (c *confluenceClient) getSpacesRequest(start int) (*ConfluenceSpaceResponse, error) {
-	url := fmt.Sprintf("%s/rest/api/space?start=%d", c.baseURL, start)
-	data, resp, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{})
+// collectPagesBySpaceIDs fetches pages for --space-ids, deduping via spacesSeen.
+func (p *ConfluencePlugin) collectPagesBySpaceIDs(
+	ctx context.Context,
+	spacesSeen map[string]struct{},
+	pagesByID map[string]Page,
+) error {
+	if len(p.SpaceIDs) == 0 {
+		return nil
+	}
+	var uniqueSpaceIDs []string
+	for _, spaceID := range p.SpaceIDs {
+		if _, dup := spacesSeen[spaceID]; dup {
+			continue
+		}
+		spacesSeen[spaceID] = struct{}{}
+		uniqueSpaceIDs = append(uniqueSpaceIDs, spaceID)
+	}
+	for _, spaceIDBatch := range chunkStrings(uniqueSpaceIDs, maxSpaceIDsPerRequest) {
+		pages, err := p.client.ListPagesBySpaceIDs(ctx, spaceIDBatch, maxPageSize)
+		if err != nil {
+			return err
+		}
+		for _, page := range pages {
+			pagesByID[page.ID] = page
+		}
+	}
+	return nil
+}
+
+// collectPagesBySpaceKeys resolves --space-keys to IDs, skips already-seen IDs,
+// and fetches pages for the remaining space IDs.
+func (p *ConfluencePlugin) collectPagesBySpaceKeys(
+	ctx context.Context,
+	spacesSeen map[string]struct{},
+	pagesByID map[string]Page,
+) error {
+	if len(p.SpaceKeys) == 0 {
+		return nil
+	}
+	for _, keyBatch := range chunkStrings(p.SpaceKeys, maxSpaceKeysPerRequest) {
+		spaces, err := p.client.ListSpacesByKeys(ctx, keyBatch, maxPageSize)
+		if err != nil {
+			return err
+		}
+		var newSpaceIDs []string
+		for _, space := range spaces {
+			if space.ID == "" {
+				continue
+			}
+			if _, seen := spacesSeen[space.ID]; seen {
+				continue
+			}
+			spacesSeen[space.ID] = struct{}{}
+			newSpaceIDs = append(newSpaceIDs, space.ID)
+		}
+		for _, spaceIDBatch := range chunkStrings(newSpaceIDs, maxSpaceIDsPerRequest) {
+			pages, err := p.client.ListPagesBySpaceIDs(ctx, spaceIDBatch, maxPageSize)
+			if err != nil {
+				return err
+			}
+			for _, page := range pages {
+				pagesByID[page.ID] = page
+			}
+		}
+	}
+	return nil
+}
+
+// collectPagesByPageIDs fetches pages for --page-ids.
+func (p *ConfluencePlugin) collectPagesByPageIDs(ctx context.Context, pagesByID map[string]Page) error {
+	if len(p.PageIDs) == 0 {
+		return nil
+	}
+	for _, pageIDBatch := range chunkStrings(p.PageIDs, maxPageIDsPerRequest) {
+		pages, err := p.client.ListPagesByIDs(ctx, pageIDBatch, maxPageSize)
+		if err != nil {
+			return err
+		}
+		for _, page := range pages {
+			pagesByID[page.ID] = page
+		}
+	}
+	return nil
+}
+
+// collectAllPages lists all visible pages (paginated via Link) and merges into pagesByID.
+func (p *ConfluencePlugin) collectAllPages(ctx context.Context, pagesByID map[string]Page) error {
+	pages, err := p.client.ListAllPages(ctx, maxPageSize)
 	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+		return err
 	}
-	defer resp.Body.Close()
-
-	response := &ConfluenceSpaceResponse{}
-	jsonErr := json.Unmarshal(data, response)
-	if jsonErr != nil {
-		return nil, fmt.Errorf("could not unmarshal response %w", err)
+	for _, page := range pages {
+		pagesByID[page.ID] = page
 	}
-
-	return response, nil
+	return nil
 }
 
-func (c *confluenceClient) getPagesRequest(space ConfluenceSpaceResult, start int) (*ConfluencePageResult, error) {
-	url := fmt.Sprintf("%s/rest/api/space/%s/content?start=%d", c.baseURL, space.Key, start)
-	data, resp, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{})
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
+func chunkStrings(input []string, chunkSize int) [][]string {
+	var chunks [][]string
+	for start := 0; start < len(input); start += chunkSize {
+		end := start + chunkSize
+		if end > len(input) {
+			end = len(input)
+		}
+		chunks = append(chunks, input[start:end])
 	}
-	defer resp.Body.Close()
-
-	response := ConfluencePageResponse{}
-	jsonErr := json.Unmarshal(data, &response)
-	if jsonErr != nil {
-		return nil, fmt.Errorf("could not unmarshal response %w", err)
-	}
-
-	return &response.Results, nil
+	return chunks
 }
 
-func (c *confluenceClient) getPageContentRequest(page ConfluencePage, version int) (*ConfluencePageContent, error) {
-	var url string
+func convertPageToItem(page Page, itemID string, wikiBaseURL string, versionNumber int) ISourceItem {
+	var sourceURL string
 
-	// If no version given get the latest, else get the specified version
-	if version == 0 {
-		url = fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage,version,history.previousVersion", c.baseURL, page.ID)
-	} else {
-		url = fmt.Sprintf("%s/rest/api/content/%s?status=historical&version=%d&expand=body.storage,version,history.previousVersion",
-			c.baseURL, page.ID, version)
-	}
-
-	request, resp, err := utils.HttpRequest(http.MethodGet, url, c, utils.RetrySettings{MaxRetries: 3, ErrorCodes: []int{500}})
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error creating an http request %w", err)
-	}
-	defer resp.Body.Close()
-	pageContent := ConfluencePageContent{}
-	jsonErr := json.Unmarshal(request, &pageContent)
-	if jsonErr != nil {
-		return nil, jsonErr
+	if page.Links != nil {
+		if webUIPath, ok := page.Links["webui"]; ok && webUIPath != "" {
+			// Ensure base ends with "/wiki/" and make webUIPath relative before resolving.
+			baseURL, _ := url.Parse(strings.TrimRight(wikiBaseURL, "/") + "/") // e.g., https://tenant.atlassian.net/wiki/
+			relativeURL, err := url.Parse(strings.TrimPrefix(webUIPath, "/"))  // "pages/viewpage.action?..."
+			if err == nil {
+				resolvedURL := baseURL.ResolveReference(relativeURL) // preserves /wiki
+				if versionNumber > 0 {
+					queryValues := resolvedURL.Query()
+					queryValues.Set("pageVersion", strconv.Itoa(versionNumber))
+					resolvedURL.RawQuery = queryValues.Encode()
+				}
+				sourceURL = resolvedURL.String()
+			}
+		} else if baseLink, ok := page.Links["base"]; ok && baseLink != "" {
+			sourceURL = baseLink
+		}
 	}
 
-	return &pageContent, nil
-}
+	content := ""
+	if page.Body.Storage != nil {
+		content = page.Body.Storage.Value
+	}
 
-type ConfluenceSpaceResult struct {
-	ID    int               `json:"id"`
-	Key   string            `json:"key"`
-	Name  string            `json:"Name"`
-	Links map[string]string `json:"_links"`
-}
-
-type ConfluenceSpaceResponse struct {
-	Results []ConfluenceSpaceResult `json:"results"`
-	Size    int                     `json:"size"`
-}
-
-type ConfluencePageContent struct {
-	Body struct {
-		Storage struct {
-			Value string `json:"value"`
-		} `json:"storage"`
-	} `json:"body"`
-	History struct {
-		PreviousVersion struct {
-			Number int
-		} `json:"previousVersion"`
-	} `json:"history"`
-	Version struct {
-		Number int `json:"number"`
-	} `json:"version"`
-	Links map[string]string `json:"_links"`
-}
-
-type ConfluencePage struct {
-	ID    string `json:"id"`
-	Type  string `json:"type"`
-	Title string `json:"title"`
-}
-
-type ConfluencePageResult struct {
-	Pages []ConfluencePage `json:"results"`
-}
-
-type ConfluencePageResponse struct {
-	Results ConfluencePageResult `json:"page"`
+	return &item{
+		ID:      itemID,
+		Source:  sourceURL,
+		Content: &content,
+	}
 }
