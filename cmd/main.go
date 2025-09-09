@@ -98,7 +98,7 @@ func Execute() (int, error) {
 			"special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
 
 	rootCmd.PersistentFlags().
-		StringSliceVar(&engineConfigVar.CustomRegexRules, customRegexRuleFlagName, []string{},
+		StringArrayVar(&engineConfigVar.CustomRegexRules, customRegexRuleFlagName, []string{},
 			"custom regexes to apply to the scan, must be valid Go regex")
 
 	rootCmd.PersistentFlags().
