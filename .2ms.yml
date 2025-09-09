@@ -350,6 +350,7 @@ ignore-result:
 - bfe435b052adb172c2d6d54c70d71bc3cc56ffb4 # test data from expectedReportWithIgnoredResults.json
 - c3bd791e4257dfbf71e55c83a42bee369590c440 # unit test from rule_test.go
 - c430a0f0f3d2859bba9514a742e6d167884cd943 # unit test from rule_test.go
+- c7510bd9bcfa7887912dd28bd57aab89be736acd # test data from secret_at_end_with_newline.txt
 - c9e8170ae67f0c4e2a7fa730703acf80527f2d47 # test/development data from sumologic.go
 - cce6c457f3c4ac2e05680b37f087259f5ec419e6 # test data from expectedReportWithValidation.json
 - cfbfd89de826407c4c976e194462c747bfc58764 # unit test from rule_test.go

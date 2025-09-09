@@ -100,6 +100,22 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, op
 		return reporting.New().(*reporting.Report), fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
+	return cmd.Report, nil
+}
+
+func startPipeline(engineInstance engine.IEngine, withValidation bool, pluginName string) {
+	cmd.Channels.WaitGroup.Add(4)
+	go cmd.ProcessItems(engineInstance, pluginName)
+	if withValidation {
+		go cmd.ProcessSecretsWithValidation()
+		go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
+	} else {
+		go cmd.ProcessSecrets()
+		go cmd.ProcessScoreWithoutValidation(engineInstance)
+	}
+
+	go cmd.ProcessSecretsExtras()
+}
 	return s.engineInstance.GetReport(), nil
 }
 
