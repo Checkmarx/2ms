@@ -41,7 +41,7 @@ func newMock(ctrl *gomock.Controller) *mock {
 }
 
 func Test_Init(t *testing.T) {
-	allRules := *rules.FilterRules([]string{}, []string{}, []string{})
+	allRules := rules.FilterRules([]string{}, []string{}, []string{})
 	specialRule := rules.HardcodedPassword()
 
 	tests := []struct {
@@ -80,7 +80,7 @@ func Test_Init(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := Init(test.engineConfig)
+			_, err := Init(&test.engineConfig)
 			if err == nil && test.expectedErr != nil {
 				t.Errorf("expected error, got nil")
 			}
@@ -99,16 +99,16 @@ func TestDetector(t *testing.T) {
 			source:  "path/to/go.sum",
 		}
 
-		detector, err := Init(EngineConfig{})
-		if err != nil {
-			t.Fatal(err)
-		}
+		eng, err := Init(&EngineConfig{
+			DetectorWorkerPoolSize: 1,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, eng)
 
 		secretsChan := make(chan *secrets.Secret, 1)
-		err = detector.DetectFragment(i, secretsChan, fsPlugin.GetName())
-		if err != nil {
-			return
-		}
+		err = eng.DetectFragment(i, secretsChan, fsPlugin.GetName())
+		assert.NoError(t, err)
+
 		close(secretsChan)
 
 		s := <-secretsChan
@@ -168,7 +168,9 @@ func TestSecrets(t *testing.T) {
 		},
 	}
 
-	detector, err := Init(EngineConfig{})
+	detector, err := Init(&EngineConfig{
+		DetectorWorkerPoolSize: 1,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

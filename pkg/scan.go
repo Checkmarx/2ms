@@ -18,6 +18,7 @@ type ScanConfig struct {
 	IgnoreResultIds []string
 	IgnoreRules     []string
 	WithValidation  bool
+	PluginName      string
 }
 
 type scanner struct{}
@@ -60,12 +61,12 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 		IgnoredIds: scanConfig.IgnoreResultIds,
 		IgnoreList: scanConfig.IgnoreRules,
 	}
-	engineInstance, err := engine.Init(engineConfig)
+	engineInstance, err := engine.Init(&engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}
 
-	startPipeline(engineInstance, scanConfig.WithValidation)
+	startPipeline(engineInstance, scanConfig.WithValidation, scanConfig.PluginName)
 
 	for _, item := range scanItems {
 		wg.Add(1)
@@ -88,14 +89,16 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.
 		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
+	if err := engineInstance.Shutdown(); err != nil {
+		return cmd.Report, fmt.Errorf("error shutting down engine: %w", err)
+	}
+
 	return cmd.Report, nil
 }
 
-func startPipeline(engineInstance engine.IEngine, withValidation bool) {
+func startPipeline(engineInstance engine.IEngine, withValidation bool, pluginName string) {
 	cmd.Channels.WaitGroup.Add(4)
-
-	go cmd.ProcessItems(engineInstance, "custom")
-
+	go cmd.ProcessItems(engineInstance, pluginName)
 	if withValidation {
 		go cmd.ProcessSecretsWithValidation()
 		go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
@@ -114,12 +117,12 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 		IgnoredIds: scanConfig.IgnoreResultIds,
 		IgnoreList: scanConfig.IgnoreRules,
 	}
-	engineInstance, err := engine.Init(engineConfig)
+	engineInstance, err := engine.Init(&engineConfig)
 	if err != nil {
 		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
 	}
 
-	startPipeline(engineInstance, false)
+	startPipeline(engineInstance, false, scanConfig.PluginName)
 
 	go func() {
 		for item := range itemsIn {
@@ -135,6 +138,10 @@ func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*
 		if err != nil {
 			return &reporting.Report{}, fmt.Errorf("error processing scan items: %w", err)
 		}
+	}
+
+	if err := engineInstance.Shutdown(); err != nil {
+		return cmd.Report, fmt.Errorf("error shutting down engine: %w", err)
 	}
 
 	return cmd.Report, nil
