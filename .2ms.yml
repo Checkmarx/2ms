@@ -375,3 +375,11 @@ ignore-result:
 - f26f7092fbb46c866b5f56145c0f344ae2e3f822 # unit test from rule_test.go
 - f331386962ad71a3b29dcee0214c488d87f8d0fd # test data from expectedReportWithValidation.json
 - ffdd350cdaf7e1222d6c3112c38cae378195f649 # unit test from rule_test.go
+- 1e349ac5dc2d1d88e8c0058e92b4c8ae533da75c # unit test from secrets_test.go
+- 22f93b4b7aa730f1c332801b29a46cb887e76b39 # test data from secret_at_end.txt
+- 23cb0eb0d488d872c4f6c2eb18676418b501bd88 # test data from expectedReportWithValidation.json
+- 349e215f643f2e70b5ec0480cc714e0d17f15def # test data from expectedReportWithIgnoredResults.json
+- 41ead9d6ccd8fb378fae5976fb5d58f02862b148 # unit test from rule_test.go
+- 783ef39aa4a2320717408a268f12e47eb70caae1 # unit test from rule_test.go
+- c21bf77389927562beed658727bb77ba0389b896 # unit test from secrets_test.go
+- e08be60f4e4f6cbc6b9d09f4a8f956a886e30380 # test data from expectedReport.json
