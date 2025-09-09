@@ -8,6 +8,7 @@ replace (
 )
 
 require (
+	github.com/alitto/pond/v2 v2.5.0
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/gitleaks/go-gitdiff v0.9.1
 	github.com/h2non/filetype v1.1.3

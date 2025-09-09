@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -22,6 +23,9 @@ const (
 	expectedReportResultsIgnoredResultsPath = "testData/expectedReportWithIgnoredResults.json"
 	expectedReportResultsIgnoredRulePath    = "testData/expectedReportWithIgnoredRule.json"
 )
+
+// Flag to update expected output files instead of comparing against them
+var updateExpected = flag.Bool("update-test-data", false, "Update expected test output files instead of comparing against them")
 
 func TestScan(t *testing.T) {
 	t.Run("Successful Scan with Multiple Items", func(t *testing.T) {
@@ -58,28 +62,8 @@ func TestScan(t *testing.T) {
 		actualReport, err := testScanner.Scan(scanItems, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
-		expectedReportBytes, err := os.ReadFile(expectedReportPath)
-		assert.NoError(t, err, "failed to read expected report file")
-
-		var expectedReport, actualReportMap map[string]interface{}
-
-		err = json.Unmarshal(expectedReportBytes, &expectedReport)
-		assert.NoError(t, err, "failed to unmarshal expected report JSON")
-
-		// Marshal actual report and unmarshal back into a map.
-		actualReportBytes, err := json.Marshal(actualReport)
-		assert.NoError(t, err, "failed to marshal actual report to JSON")
-		err = json.Unmarshal(actualReportBytes, &actualReportMap)
-		assert.NoError(t, err, "failed to unmarshal actual report JSON")
-
-		// Normalize both expected and actual maps.
-		normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-		assert.NoError(t, err, "Failed to normalize actual report")
-
-		normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-		assert.NoError(t, err, "Failed to normalize actual report")
-
-		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+		// Use helper function to either update expected file or compare results
+		compareOrUpdateTestData(t, actualReport, expectedReportPath)
 	})
 	t.Run("Successful scan with multiple items and ignored results", func(t *testing.T) {
 		githubPatBytes, err := os.ReadFile(githubPatPath)
@@ -371,27 +355,7 @@ func TestScanDynamic(t *testing.T) {
 		actualReport, err := testScanner.ScanDynamic(itemsIn, ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
-		expectedReportBytes, err := os.ReadFile(expectedReportPath)
-		assert.NoError(t, err, "failed to read expected report file")
-
-		var expectedReport, actualReportMap map[string]interface{}
-
-		err = json.Unmarshal(expectedReportBytes, &expectedReport)
-		assert.NoError(t, err, "failed to unmarshal expected report JSON")
-
-		actualReportBytes, err := json.Marshal(actualReport)
-		assert.NoError(t, err, "failed to marshal actual report to JSON")
-		err = json.Unmarshal(actualReportBytes, &actualReportMap)
-		assert.NoError(t, err, "failed to unmarshal actual report JSON")
-
-		// Normalize both maps.
-		normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-		assert.NoError(t, err, "Failed to normalize actual report")
-
-		normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-		assert.NoError(t, err, "Failed to normalize actual report")
-
-		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+		compareOrUpdateTestData(t, actualReport, expectedReportPath)
 	})
 
 	t.Run("Successful ScanDynamic with Multiple Items and Ignored Results", func(t *testing.T) {
@@ -439,27 +403,7 @@ func TestScanDynamic(t *testing.T) {
 		})
 		assert.NoError(t, err, "scanner encountered an error")
 
-		expectedReportBytes, err := os.ReadFile(expectedReportResultsIgnoredResultsPath)
-		assert.NoError(t, err, "failed to read expected report file")
-
-		var expectedReport, actualReportMap map[string]interface{}
-
-		err = json.Unmarshal(expectedReportBytes, &expectedReport)
-		assert.NoError(t, err, "failed to unmarshal expected report JSON")
-
-		actualReportBytes, err := json.Marshal(actualReport)
-		assert.NoError(t, err, "failed to marshal actual report to JSON")
-		err = json.Unmarshal(actualReportBytes, &actualReportMap)
-		assert.NoError(t, err, "failed to unmarshal actual report JSON")
-
-		// Normalize both maps.
-		normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-		assert.NoError(t, err, "Failed to normalize actual report")
-
-		normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-		assert.NoError(t, err, "Failed to normalize actual report")
-
-		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+		compareOrUpdateTestData(t, actualReport, expectedReportResultsIgnoredResultsPath)
 	})
 	t.Run("Successful ScanDynamic with Multiple Items and Ignored Rule", func(t *testing.T) {
 		githubPatBytes, err := os.ReadFile(githubPatPath)
@@ -505,27 +449,7 @@ func TestScanDynamic(t *testing.T) {
 		})
 		assert.NoError(t, err, "scanner encountered an error")
 
-		expectedReportBytes, err := os.ReadFile(expectedReportResultsIgnoredRulePath)
-		assert.NoError(t, err, "failed to read expected report file")
-
-		var expectedReport, actualReportMap map[string]interface{}
-
-		err = json.Unmarshal(expectedReportBytes, &expectedReport)
-		assert.NoError(t, err, "failed to unmarshal expected report JSON")
-
-		actualReportBytes, err := json.Marshal(actualReport)
-		assert.NoError(t, err, "failed to marshal actual report to JSON")
-		err = json.Unmarshal(actualReportBytes, &actualReportMap)
-		assert.NoError(t, err, "failed to unmarshal actual report JSON")
-
-		// Normalize both maps.
-		normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-		assert.NoError(t, err, "Failed to normalize actual report")
-
-		normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-		assert.NoError(t, err, "Failed to normalize actual report")
-
-		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+		compareOrUpdateTestData(t, actualReport, expectedReportResultsIgnoredRulePath)
 	})
 	t.Run("error handling should work", func(t *testing.T) {
 		content := "content"
@@ -540,7 +464,7 @@ func TestScanDynamic(t *testing.T) {
 		// get rules to filter all and force an error
 		defaultRules := rules.GetDefaultRules()
 		var idOfRules []string
-		for _, rule := range *defaultRules {
+		for _, rule := range defaultRules {
 			idOfRules = append(idOfRules, rule.Rule.RuleID)
 		}
 
@@ -720,4 +644,47 @@ func TestScanWithValidation(t *testing.T) {
 
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
+}
+
+// compareOrUpdateTestData either updates the expected file with actual results or compares them
+// This is a reusable helper function for other tests
+func compareOrUpdateTestData(t *testing.T, actualReport *reporting.Report, expectedFilePath string) {
+	// Marshal actual report to JSON
+	actualReportBytes, err := json.Marshal(actualReport)
+	assert.NoError(t, err, "failed to marshal actual report to JSON")
+
+	var actualReportMap map[string]interface{}
+	err = json.Unmarshal(actualReportBytes, &actualReportMap)
+	assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+	// Normalize actual report
+	normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
+	assert.NoError(t, err, "Failed to normalize actual report")
+
+	// Update expected file if flag is set and return
+	if *updateExpected {
+		// Write the normalized actual report to the expected file
+		normalizedActualBytes, err := json.MarshalIndent(normalizedActualReport, "", "  ")
+		assert.NoError(t, err, "failed to marshal normalized actual report")
+
+		err = os.WriteFile(expectedFilePath, normalizedActualBytes, 0644)
+		assert.NoError(t, err, "failed to write expected report file")
+
+		t.Logf("Updated expected file: %s", expectedFilePath)
+		return
+	}
+
+	// Normal comparison mode
+	expectedReportBytes, err := os.ReadFile(expectedFilePath)
+	assert.NoError(t, err, "failed to read expected report file")
+
+	var expectedReport map[string]interface{}
+	err = json.Unmarshal(expectedReportBytes, &expectedReport)
+	assert.NoError(t, err, "failed to unmarshal expected report JSON")
+
+	// Normalize expected report
+	normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
+	assert.NoError(t, err, "Failed to normalize expected report")
+
+	assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 }
