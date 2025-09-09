@@ -34,12 +34,13 @@ const (
 )
 
 var (
-	logLevelVar     string
-	reportPathVar   []string
-	stdoutFormatVar string
-	ignoreOnExitVar = ignoreOnExitNone
-	engineConfigVar engine.EngineConfig
-	validateVar     bool
+	logLevelVar        string
+	reportPathVar      []string
+	stdoutFormatVar    string
+	customRegexRuleVar []string
+	ignoreOnExitVar    = ignoreOnExitNone
+	engineConfigVar    engine.EngineConfig
+	validateVar        bool
 )
 
 type engineContextKey string
@@ -85,6 +86,9 @@ func Execute() (int, error) {
 		StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
 
 	rootCmd.PersistentFlags().
+		StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
+
+	rootCmd.PersistentFlags().
 		StringSliceVar(&engineConfigVar.SelectedList, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
 
 	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.IgnoreList, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
@@ -98,10 +102,6 @@ func Execute() (int, error) {
 			"special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
 
 	rootCmd.PersistentFlags().
-		StringArrayVar(&engineConfigVar.CustomRegexRules, customRegexRuleFlagName, []string{},
-			"custom regexes to apply to the scan, must be valid Go regex")
-
-	rootCmd.PersistentFlags().
 		Var(&ignoreOnExitVar, ignoreOnExitFlagName,
 			"defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\n"+
 				"example: if 'results' is set, only engine errors will make 2ms exit code different from 0")
@@ -112,6 +112,8 @@ func Execute() (int, error) {
 
 	rootCmd.PersistentFlags().
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
+
+	engineConfigVar.CustomRegexRules = customRegexRuleVar
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
 	// TODO: This is temporary, remove this after the refactor
