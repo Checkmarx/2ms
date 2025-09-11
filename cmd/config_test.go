@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,13 +82,13 @@ func TestInitializeLogLevels(t *testing.T) {
 				Use: "test",
 			}
 			rootCmd.Run = func(cmd *cobra.Command, args []string) {
-				cmd.Flags().StringVar(&configFilePath, configFileFlag, "", "")
-				cmd.Flags().StringVar(&logLevelVar, logLevelFlagName, "", "")
+				cmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "")
+				cmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "", "")
 
-				err := cmd.Flags().Set(configFileFlag, "")
+				err := cmd.PersistentFlags().Set(configFileFlag, "")
 				assert.NoError(t, err)
 
-				err = cmd.Flags().Set(logLevelFlagName, tc.logLevelInput)
+				err = cmd.PersistentFlags().Set(logLevelFlagName, tc.logLevelInput)
 				assert.NoError(t, err)
 
 				initialize(rootCmd)
@@ -98,4 +101,54 @@ func TestInitializeLogLevels(t *testing.T) {
 			assert.NoError(t, err, "Error executing command")
 		})
 	}
+}
+
+func TestConfigGile(t *testing.T) {
+	t.Run("ValidConfigFile", func(t *testing.T) {
+		tempDir := t.TempDir()
+		configFile := filepath.Join(tempDir, ".2ms.yml")
+
+		configContent := `log-level: debug
+report-path: 
+  - test-report.json
+stdout-format: json
+max-target-megabytes: 100`
+
+		err := os.WriteFile(configFile, []byte(configContent), 0644)
+		assert.NoError(t, err)
+
+		v := viper.New()
+		v.SetConfigFile(configFile)
+		err = v.ReadInConfig()
+		assert.NoError(t, err)
+
+		assert.Equal(t, "debug", v.GetString("log-level"))
+		assert.Equal(t, []interface{}{"test-report.json"}, v.Get("report-path"))
+		assert.Equal(t, "json", v.GetString("stdout-format"))
+		assert.Equal(t, 100, v.GetInt("max-target-megabytes"))
+	})
+
+	t.Run("InvalidConfigFile", func(t *testing.T) {
+		v := viper.New()
+		v.SetConfigFile("/non/existent/config.yml")
+		err := v.ReadInConfig()
+		assert.Error(t, err)
+	})
+
+	t.Run("MalformedConfigFile", func(t *testing.T) {
+		tempDir := t.TempDir()
+		configFile := filepath.Join(tempDir, ".2ms.yml")
+
+		malformedContent := `log-level: debug
+report-path: [unclosed
+stdout-format: json`
+
+		err := os.WriteFile(configFile, []byte(malformedContent), 0644)
+		assert.NoError(t, err)
+
+		v := viper.New()
+		v.SetConfigFile(configFile)
+		err = v.ReadInConfig()
+		assert.Error(t, err)
+	})
 }

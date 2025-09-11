@@ -18,7 +18,7 @@ var (
 )
 
 func initialize(rootCmd *cobra.Command) {
-	configFilePath, err := rootCmd.Flags().GetString(configFileFlag)
+	configFilePath, err := rootCmd.PersistentFlags().GetString(configFileFlag)
 	if err != nil {
 		cobra.CheckErr(err)
 	}
