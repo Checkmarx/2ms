@@ -268,6 +268,10 @@ ignore-result:
 - ff3e512a42590245c84e5d6aba8f536a54c8189c # test data from expectedReportWithIgnoredResults.json
 - ff79fa9a6519f1f15a48ce8c5b8a45c56747995c # test/development data from generic-key.go
 - 6910c38cb2325e18b06a9b03cf13c311b9c12a1d # test/development data from sumologic.go
+- 16727037dbc5160493eefeef2dad047663619212 # unit test from process_items_test.go
+- 55d8c72116b241866603ca46e9b5bcbdb3add0e6 # unit test from process_items_test.go
+- 98e2c12b6256af7fbff0746019efbdda5b408055 # unit test from process_items_test.go
+- a0f0f4a186813fed000cf6fbb3bf845e9f9991dc # unit test from process_items_test.go
 - 00aca5b42e7090930d8e37e750f0b88dfe24d60f # test data from github-pat.txt
 - 03095c871e9e5ed0264107bf3685f5c26995273e # unit test from rule_test.go
 - 03898678fcd022412255e7d0531b1b9bf565f859 # unit test from rule_test.go
@@ -279,7 +283,6 @@ ignore-result:
 - 130abc9240e5b300f76da0d4075665b2635e586a # unit test from rule_test.go
 - 14cd649c36cd970dfdf4064f28cd714d55d7cf00 # test data from expectedReportWithIgnoredResults.json
 - 15f940debc1a996583b0ce326be90f0c17f9c763 # unit test from rule_test.go
-- 16727037dbc5160493eefeef2dad047663619212 # unit test from process_items_test.go
 - 1b9bdb85137125cd453cc4d46eff02ac9c029e8a # test/development data from sumologic.go
 - 1e5f0801bbec0868f702500efcf66714226cdfb2 # unit test from rule_test.go
 - 21440e3cadb794e60f4a8ed02255174d1c585dcc # test/development data from sumologic.go
@@ -305,7 +308,6 @@ ignore-result:
 - 4fe5de8815dd4783ef79e42ca907178a486ed61c # unit test from rule_test.go
 - 542e553f91c712b957c7247d23d7c014445edb3c # unit test from rule_test.go
 - 546051bc8d0a40a4a2df30f1fb7adf77afe6ed3a # test/development data from sumologic.go
-- 55d8c72116b241866603ca46e9b5bcbdb3add0e6 # unit test from process_items_test.go
 - 5844246d2fc8caf2b15aa78da775be472d3addd4 # unit test from process_items_test.go
 - 596c3630fd12331e72a178ea992a274bb9a5a959 # unit test from rule_test.go
 - 5ec133f8b9b409059154a358fd968f92c9e538d3 # test/development data from hardcodedPassword.go
@@ -328,9 +330,7 @@ ignore-result:
 - 954cb7048f865f50d3fe9cdb8a9b7522b6abffc8 # test data from github-pat.txt
 - 9743ac4483b4f29a6a9ef64e6dd8cb90999743ad # test/development data from sumologic.go
 - 9870872bf357c935c65cb3546d82bc7e05523244 # secret found in test_data.go
-- 98e2c12b6256af7fbff0746019efbdda5b408055 # unit test from process_items_test.go
 - 9b82fe46eea9b0966141b854e283a2e6d9e2e8cb # test/development data from sumologic.go
-- a0f0f4a186813fed000cf6fbb3bf845e9f9991dc # unit test from process_items_test.go
 - a2567596fda9f1638234a996a4cff15359a279d9 # unit test from rule_test.go
 - a4a13e9451e5f144dbe2632b0bfdc9ea2ae052ec # unit test from rule_test.go
 - a6ca51f0a1e4abc363d18939098f1eb4402ed0e4 # test/development data from authenticated_url.go
@@ -375,3 +375,14 @@ ignore-result:
 - f26f7092fbb46c866b5f56145c0f344ae2e3f822 # unit test from rule_test.go
 - f331386962ad71a3b29dcee0214c488d87f8d0fd # test data from expectedReportWithValidation.json
 - ffdd350cdaf7e1222d6c3112c38cae378195f649 # unit test from rule_test.go
+- 1e349ac5dc2d1d88e8c0058e92b4c8ae533da75c # unit test from secrets_test.go
+- 22f93b4b7aa730f1c332801b29a46cb887e76b39 # test data from secret_at_end.txt
+- 23cb0eb0d488d872c4f6c2eb18676418b501bd88 # test data from expectedReportWithValidation.json
+- 349e215f643f2e70b5ec0480cc714e0d17f15def # test data from expectedReportWithIgnoredResults.json
+- 41ead9d6ccd8fb378fae5976fb5d58f02862b148 # unit test from rule_test.go
+- 783ef39aa4a2320717408a268f12e47eb70caae1 # unit test from rule_test.go
+- c21bf77389927562beed658727bb77ba0389b896 # unit test from secrets_test.go
+- e08be60f4e4f6cbc6b9d09f4a8f956a886e30380 # test data from expectedReport.json
+- 6a4a1b126afec292a1454fcaa071a2e15f3d6f49 # unit test from e2e_test.go
+- 9decf52f8b04a735c29ac98cacb77a3d78f71ca2 # unit test from e2e_test.go
+- 9867c4705de98b2f9bf617494d12a9f86f15b4c6 # unit test from e2e_test.go

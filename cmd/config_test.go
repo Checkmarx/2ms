@@ -1,12 +1,15 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestValidateFormat(t *testing.T) {
@@ -38,20 +41,20 @@ func TestValidateFormat(t *testing.T) {
 			name:            "invalid output format",
 			stdoutFormatVar: "invalid",
 			reportPath:      []string{"report.json"},
-			expectedErr:     fmt.Errorf("invalid output format: invalid, available formats are: json, yaml and sarif"),
+			expectedErr:     errInvalidOutputFormat,
 		},
 		{
 			name:            "invalid report extension",
 			stdoutFormatVar: "json",
 			reportPath:      []string{"report.invalid"},
-			expectedErr:     fmt.Errorf("invalid report extension: invalid, available extensions are: json, yaml and sarif"),
+			expectedErr:     errInvalidReportExtension,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateFormat(tt.stdoutFormatVar, tt.reportPath)
-			assert.Equal(t, tt.expectedErr, err)
+			assert.ErrorIs(t, err, tt.expectedErr)
 		})
 	}
 }
@@ -75,29 +78,77 @@ func TestInitializeLogLevels(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			originalRootCmd := rootCmd
-			defer func() { rootCmd = originalRootCmd }()
-			rootCmd = &cobra.Command{
+			rootCmd := &cobra.Command{
 				Use: "test",
-				Run: func(cmd *cobra.Command, args []string) {
-					cmd.Flags().StringVar(&configFilePath, configFileFlag, "", "")
-					cmd.Flags().StringVar(&logLevelVar, logLevelFlagName, "", "")
+			}
+			rootCmd.Run = func(cmd *cobra.Command, args []string) {
+				cmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "")
+				cmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "", "")
 
-					err := cmd.Flags().Set(configFileFlag, "")
-					assert.NoError(t, err)
+				err := cmd.PersistentFlags().Set(configFileFlag, "")
+				assert.NoError(t, err)
 
-					err = cmd.Flags().Set(logLevelFlagName, tc.logLevelInput)
-					assert.NoError(t, err)
+				err = cmd.PersistentFlags().Set(logLevelFlagName, tc.logLevelInput)
+				assert.NoError(t, err)
 
-					initialize()
+				initialize(rootCmd)
 
-					assert.Equal(t, tc.expectedLevel, zerolog.GlobalLevel())
-					assert.Equal(t, tc.expectedLevel, log.Logger.GetLevel())
-				},
+				assert.Equal(t, tc.expectedLevel, zerolog.GlobalLevel())
+				assert.Equal(t, tc.expectedLevel, log.Logger.GetLevel())
 			}
 
 			err := rootCmd.Execute()
 			assert.NoError(t, err, "Error executing command")
 		})
 	}
+}
+
+func TestConfigGile(t *testing.T) {
+	t.Run("ValidConfigFile", func(t *testing.T) {
+		tempDir := t.TempDir()
+		configFile := filepath.Join(tempDir, ".2ms.yml")
+
+		configContent := `log-level: debug
+report-path: 
+  - test-report.json
+stdout-format: json
+max-target-megabytes: 100`
+
+		err := os.WriteFile(configFile, []byte(configContent), 0644)
+		assert.NoError(t, err)
+
+		v := viper.New()
+		v.SetConfigFile(configFile)
+		err = v.ReadInConfig()
+		assert.NoError(t, err)
+
+		assert.Equal(t, "debug", v.GetString("log-level"))
+		assert.Equal(t, []interface{}{"test-report.json"}, v.Get("report-path"))
+		assert.Equal(t, "json", v.GetString("stdout-format"))
+		assert.Equal(t, 100, v.GetInt("max-target-megabytes"))
+	})
+
+	t.Run("InvalidConfigFile", func(t *testing.T) {
+		v := viper.New()
+		v.SetConfigFile("/non/existent/config.yml")
+		err := v.ReadInConfig()
+		assert.Error(t, err)
+	})
+
+	t.Run("MalformedConfigFile", func(t *testing.T) {
+		tempDir := t.TempDir()
+		configFile := filepath.Join(tempDir, ".2ms.yml")
+
+		malformedContent := `log-level: debug
+report-path: [unclosed
+stdout-format: json`
+
+		err := os.WriteFile(configFile, []byte(malformedContent), 0644)
+		assert.NoError(t, err)
+
+		v := viper.New()
+		v.SetConfigFile(configFile)
+		err = v.ReadInConfig()
+		assert.Error(t, err)
+	})
 }

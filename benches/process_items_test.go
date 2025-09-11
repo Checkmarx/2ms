@@ -1,3 +1,5 @@
+//go:build bench
+
 package benches
 
 import (
@@ -119,7 +121,7 @@ func BenchmarkProcessItems(b *testing.B) {
 					// Create fresh channels
 					itemsChan := make(chan plugins.ISourceItem, items)
 					secretsChan := make(chan *secrets.Secret, items*2) // Larger buffer for found secrets
-					report := reporting.Init()
+					report := reporting.New()
 					wg := &sync.WaitGroup{}
 					wg.Add(1)
 
@@ -171,12 +173,12 @@ func generateRealisticPadding(seed int) string {
 }
 
 // Local version of processItems that doesn't use global variables
-func processItemsLocal(eng engine.IEngine, pluginName string, items chan plugins.ISourceItem, secrets chan *secrets.Secret, report *reporting.Report) {
+func processItemsLocal(eng engine.IEngine, pluginName string, items chan plugins.ISourceItem, secrets chan *secrets.Secret, report reporting.IReport) {
 	ctx := context.Background()
-	pool := eng.GetDetectorWorkerPool()
+	pool := eng.getDetectorWorkerPool()
 
 	for item := range items {
-		report.TotalItemsScanned++
+		report.IncTotalItemsScanned(1)
 
 		var task workerpool.Task
 		switch pluginName {

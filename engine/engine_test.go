@@ -1,5 +1,7 @@
 package engine
 
+//go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v4/plugins ISourceItem
+
 import (
 	"bytes"
 	"context"
@@ -7,7 +9,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -15,6 +20,7 @@ import (
 	"github.com/checkmarx/2ms/v4/engine/chunk"
 	"github.com/checkmarx/2ms/v4/engine/rules"
 	"github.com/checkmarx/2ms/v4/engine/semaphore"
+	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog"
@@ -26,7 +32,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
-var fsPlugin = &plugins.FileSystemPlugin{}
+// Removed global fsPlugin to avoid test interference
 
 type mock struct {
 	semaphore *semaphore.MockISemaphore
@@ -56,7 +62,7 @@ func Test_Init(t *testing.T) {
 				IgnoreList:   []string{allRules[0].Rule.RuleID},
 				SpecialList:  []string{},
 			},
-			expectedErr: fmt.Errorf("no rules were selected"),
+			expectedErr: ErrNoRulesSelected,
 		},
 		{
 			name: "non existent select flag",
@@ -65,7 +71,7 @@ func Test_Init(t *testing.T) {
 				IgnoreList:   []string{},
 				SpecialList:  []string{"non-existent-tag-name"},
 			},
-			expectedErr: fmt.Errorf("no rules were selected"),
+			expectedErr: ErrNoRulesSelected,
 		},
 		{
 			name: "exiting special rule",
@@ -84,6 +90,7 @@ func Test_Init(t *testing.T) {
 			if err == nil && test.expectedErr != nil {
 				t.Errorf("expected error, got nil")
 			}
+
 			if err != nil && err.Error() != test.expectedErr.Error() {
 				t.Errorf("expected error: %s, got: %s", test.expectedErr.Error(), err.Error())
 			}
@@ -99,13 +106,15 @@ func TestDetector(t *testing.T) {
 			source:  "path/to/go.sum",
 		}
 
-		eng, err := Init(&EngineConfig{
+		eng, err := initEngine(&EngineConfig{
 			DetectorWorkerPoolSize: 1,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, eng)
+		eng.initializeDetector()
 
 		secretsChan := make(chan *secrets.Secret, 1)
+		fsPlugin := &plugins.FileSystemPlugin{}
 		err = eng.DetectFragment(i, secretsChan, fsPlugin.GetName())
 		assert.NoError(t, err)
 
@@ -168,12 +177,13 @@ func TestSecrets(t *testing.T) {
 		},
 	}
 
-	detector, err := Init(&EngineConfig{
+	detector, err := initEngine(&EngineConfig{
 		DetectorWorkerPoolSize: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	detector.initializeDetector()
 
 	for _, secret := range secretsCases {
 		name := secret.Name
@@ -183,6 +193,7 @@ func TestSecrets(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
 			secretsChan := make(chan *secrets.Secret, 1)
+			fsPlugin := &plugins.FileSystemPlugin{}
 			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, fsPlugin.GetName())
 			if err != nil {
 				return
@@ -315,9 +326,10 @@ func TestDetectFile(t *testing.T) {
 			m := newMock(ctrl)
 			tc.mockFunc(m)
 
+			cfg := newConfig()
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = make(map[string]struct{})
-			detector := detect.NewDetector(cfg)
+			detector := detect.NewDetector(*cfg)
 			detector.MaxTargetMegaBytes = tc.maxMegabytes
 			engine := &Engine{
 				rules: nil,
@@ -415,9 +427,10 @@ func TestDetectChunks(t *testing.T) {
 			m := newMock(ctrl)
 			tc.mockFunc(m)
 
+			cfg := newConfig()
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = make(map[string]struct{})
-			detector := detect.NewDetector(cfg)
+			detector := detect.NewDetector(*cfg)
 			engine := &Engine{
 				rules: nil,
 
@@ -514,6 +527,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 				EndLine:     1,
 			}
 
+			fsPlugin := &plugins.FileSystemPlugin{}
 			secret, err := buildSecret(context.Background(), mockItem, finding, fsPlugin.GetName())
 
 			require.NoError(t, err)
@@ -755,4 +769,331 @@ func writeTempFile(t *testing.T, dir string, size int, content []byte) string {
 	require.NoError(t, err, "write temp file")
 
 	return f.Name()
+}
+
+func TestProcessItems(t *testing.T) {
+	totalItemsToProcess := 5
+	engineTest, err := initEngine(&EngineConfig{})
+	assert.NoError(t, err)
+	defer engineTest.Shutdown()
+	engineTest.initializeDetector()
+
+	pluginName := "mockPlugin"
+	pluginChannels := engineTest.GetPluginChannels()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		engineTest.processItems(pluginName)
+	}()
+
+	ctrl := gomock.NewController(t)
+	for i := range totalItemsToProcess {
+		mockData := strconv.Itoa(i)
+		mockItem := NewMockISourceItem(ctrl)
+		mockItem.EXPECT().GetContent().Return(&mockData).AnyTimes()
+		mockItem.EXPECT().GetID().Return(mockData).AnyTimes()
+		mockItem.EXPECT().GetSource().Return(pluginName).AnyTimes()
+		pluginChannels.GetItemsCh() <- mockItem
+	}
+	close(pluginChannels.GetItemsCh())
+	wg.Wait()
+	assert.Equal(t, totalItemsToProcess, engineTest.GetReport().GetTotalItemsScanned())
+}
+
+func TestProcessSecrets(t *testing.T) {
+	t.Run("Validate flag is enabled", func(t *testing.T) {
+		instance, err := initEngine(&EngineConfig{
+			ScanConfig: resources.ScanConfig{
+				WithValidation: true,
+			},
+		})
+		assert.NoError(t, err)
+		secretsChan := instance.secretsChan
+		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
+		secretsChan <- &secrets.Secret{ID: "mockId2"}
+		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
+		close(secretsChan)
+
+		instance.processSecrets()
+
+		expectedSecrets := []*secrets.Secret{
+			{ID: "mockId", StartLine: 1},
+			{ID: "mockId", StartLine: 2},
+			{ID: "mockId2"},
+		}
+		secretsExtrasChan := instance.GetSecretsExtrasCh()
+		var actualSecrets []*secrets.Secret
+		for val := range secretsExtrasChan {
+			actualSecrets = append(actualSecrets, val)
+		}
+		sort.Slice(actualSecrets, func(i, j int) bool {
+			if actualSecrets[i].ID == actualSecrets[j].ID {
+				return actualSecrets[i].StartLine < actualSecrets[j].StartLine
+			}
+			return actualSecrets[i].ID < actualSecrets[j].ID
+		})
+		assert.Equal(t, expectedSecrets, actualSecrets)
+
+		cvssScoreWithoutValidationChan := instance.GetCvssScoreWithoutValidationCh()
+		validationChan := instance.GetValidationCh()
+		assert.Empty(t, cvssScoreWithoutValidationChan)
+		var actualSecretsWithValidation []*secrets.Secret
+		for val := range validationChan {
+			actualSecretsWithValidation = append(actualSecretsWithValidation, val)
+		}
+		sort.Slice(actualSecretsWithValidation, func(i, j int) bool {
+			if actualSecretsWithValidation[i].ID == actualSecretsWithValidation[j].ID {
+				return actualSecretsWithValidation[i].StartLine < actualSecretsWithValidation[j].StartLine
+			}
+			return actualSecretsWithValidation[i].ID < actualSecretsWithValidation[j].ID
+		})
+		assert.Equal(t, expectedSecrets, actualSecretsWithValidation)
+		assert.Equal(t, 3, instance.GetReport().GetTotalSecretsFound())
+		assert.Equal(t, 2, len(instance.GetReport().GetResults()["mockId"]))
+		assert.Equal(t, 1, len(instance.GetReport().GetResults()["mockId2"]))
+		assert.Equal(t, &secrets.Secret{ID: "mockId", StartLine: 1}, instance.GetReport().GetResults()["mockId"][0])
+		assert.Equal(t, &secrets.Secret{ID: "mockId", StartLine: 2}, instance.GetReport().GetResults()["mockId"][1])
+		assert.Equal(t, &secrets.Secret{ID: "mockId2"}, instance.GetReport().GetResults()["mockId2"][0])
+	})
+	t.Run("Validate flag is disabled", func(t *testing.T) {
+		instance, err := initEngine(&EngineConfig{
+			ScanConfig: resources.ScanConfig{
+				WithValidation: false,
+			},
+		})
+		assert.NoError(t, err)
+		secretsChan := instance.secretsChan
+		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
+		secretsChan <- &secrets.Secret{ID: "mockId2"}
+		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
+		close(secretsChan)
+
+		instance.processSecrets()
+
+		expectedSecrets := []*secrets.Secret{
+			{ID: "mockId", StartLine: 1},
+			{ID: "mockId", StartLine: 2},
+			{ID: "mockId2"},
+		}
+		secretsExtrasChan := instance.GetSecretsExtrasCh()
+		var actualSecrets []*secrets.Secret
+		for val := range secretsExtrasChan {
+			actualSecrets = append(actualSecrets, val)
+		}
+		sort.Slice(actualSecrets, func(i, j int) bool {
+			if actualSecrets[i].ID == actualSecrets[j].ID {
+				return actualSecrets[i].StartLine < actualSecrets[j].StartLine
+			}
+			return actualSecrets[i].ID < actualSecrets[j].ID
+		})
+		assert.Equal(t, expectedSecrets, actualSecrets)
+
+		validationChan := instance.GetValidationCh()
+		cvssScoreWithoutValidationChan := instance.GetCvssScoreWithoutValidationCh()
+		assert.Empty(t, validationChan)
+		var actualSecretsWithoutValidation []*secrets.Secret
+		for val := range cvssScoreWithoutValidationChan {
+			actualSecretsWithoutValidation = append(actualSecretsWithoutValidation, val)
+		}
+		sort.Slice(actualSecretsWithoutValidation, func(i, j int) bool {
+			if actualSecretsWithoutValidation[i].ID == actualSecretsWithoutValidation[j].ID {
+				return actualSecretsWithoutValidation[i].StartLine < actualSecretsWithoutValidation[j].StartLine
+			}
+			return actualSecretsWithoutValidation[i].ID < actualSecretsWithoutValidation[j].ID
+		})
+		assert.Equal(t, expectedSecrets, actualSecretsWithoutValidation)
+
+		assert.Equal(t, 3, instance.GetReport().GetTotalSecretsFound())
+		assert.Equal(t, 2, len(instance.GetReport().GetResults()["mockId"]))
+		assert.Equal(t, 1, len(instance.GetReport().GetResults()["mockId2"]))
+		assert.Equal(t, &secrets.Secret{ID: "mockId", StartLine: 1}, instance.GetReport().GetResults()["mockId"][0])
+		assert.Equal(t, &secrets.Secret{ID: "mockId", StartLine: 2}, instance.GetReport().GetResults()["mockId"][1])
+		assert.Equal(t, &secrets.Secret{ID: "mockId2"}, instance.GetReport().GetResults()["mockId2"][0])
+	})
+}
+
+func TestProcessSecretsExtras(t *testing.T) {
+	tests := []struct {
+		name            string
+		inputSecrets    []*secrets.Secret
+		expectedSecrets []*secrets.Secret
+	}{
+		{
+			name: "Should update the extra details of secrets",
+			inputSecrets: []*secrets.Secret{
+				{
+					ID:     "mockId",
+					RuleID: "jwt",
+					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
+				},
+				{
+					ID:     "mockId2",
+					RuleID: "jwt",
+					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+				},
+			},
+			expectedSecrets: []*secrets.Secret{
+				{
+					ID:     "mockId",
+					RuleID: "jwt",
+					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
+					ExtraDetails: map[string]interface{}{
+						"secretDetails": map[string]interface{}{
+							"sub":  "mockSub1",
+							"name": "mockName1",
+						},
+					},
+				},
+				{
+					ID:     "mockId2",
+					RuleID: "jwt",
+					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+					ExtraDetails: map[string]interface{}{
+						"secretDetails": map[string]interface{}{
+							"sub":  "mockSub2",
+							"name": "mockName2",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			instance, err := initEngine(&EngineConfig{})
+			assert.NoError(t, err)
+			secretsExtrasChan := instance.GetSecretsExtrasCh()
+			for _, secret := range tt.inputSecrets {
+				secretsExtrasChan <- secret
+			}
+			close(secretsExtrasChan)
+
+			instance.processSecretsExtras()
+
+			for i, expected := range tt.expectedSecrets {
+				assert.Equal(t, expected, tt.inputSecrets[i])
+			}
+		})
+	}
+}
+
+func TestProcessValidationAndScoreWithValidation(t *testing.T) {
+	tests := []struct {
+		name            string
+		inputSecrets    []*secrets.Secret
+		expectedSecrets []*secrets.Secret
+	}{
+		{
+			name: "Should update validationStatus and CvssScore of secrets",
+			inputSecrets: []*secrets.Secret{
+				{
+					ID:     "mockId",
+					RuleID: "github-pat",
+					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
+				},
+				{
+					ID:     "mockId2",
+					RuleID: "github-pat",
+					Value:  "ghp_mockmockmockmockmockmockmockmockmocj",
+				},
+			},
+			expectedSecrets: []*secrets.Secret{
+				{
+					ID:               "mockId",
+					RuleID:           "github-pat",
+					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
+					ValidationStatus: "Invalid",
+					CvssScore:        5.2,
+				},
+				{
+					ID:               "mockId2",
+					RuleID:           "github-pat",
+					Value:            "ghp_mockmockmockmockmockmockmockmockmocj",
+					ValidationStatus: "Invalid",
+					CvssScore:        5.2,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			instance, err := initEngine(&EngineConfig{ScanConfig: resources.ScanConfig{WithValidation: true}})
+			assert.NoError(t, err)
+			validationChan := instance.GetValidationCh()
+			for _, secret := range tt.inputSecrets {
+				validationChan <- secret
+			}
+			close(validationChan)
+
+			instance.processScore()
+
+			for i, expected := range tt.expectedSecrets {
+				assert.Equal(t, expected, tt.inputSecrets[i])
+			}
+		})
+	}
+}
+
+func TestProcessScoreWithoutValidation(t *testing.T) {
+	tests := []struct {
+		name            string
+		inputSecrets    []*secrets.Secret
+		expectedSecrets []*secrets.Secret
+	}{
+		{
+			name: "Should update CvssScore of secrets",
+			inputSecrets: []*secrets.Secret{
+				{
+					ID:     "mockId",
+					RuleID: "github-pat",
+					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
+				},
+				{
+					ID:     "mockId2",
+					RuleID: "github-pat",
+					Value:  "ghp_mockmockmockmockmockmockmockmockmocj",
+				},
+			},
+			expectedSecrets: []*secrets.Secret{
+				{
+					ID:               "mockId",
+					RuleID:           "github-pat",
+					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
+					ValidationStatus: "",
+					CvssScore:        8.2,
+				},
+				{
+					ID:               "mockId2",
+					RuleID:           "github-pat",
+					Value:            "ghp_mockmockmockmockmockmockmockmockmocj",
+					ValidationStatus: "",
+					CvssScore:        8.2,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			instance, err := initEngine(&EngineConfig{})
+			assert.NoError(t, err)
+			defer instance.Shutdown()
+
+			cvssScoreWithoutValidationChan := instance.GetCvssScoreWithoutValidationCh()
+			for _, secret := range tt.inputSecrets {
+				cvssScoreWithoutValidationChan <- secret
+			}
+			close(cvssScoreWithoutValidationChan)
+
+			instance.processScore()
+
+			for i, expected := range tt.expectedSecrets {
+				assert.Equal(t, expected, tt.inputSecrets[i])
+			}
+		})
+	}
 }
