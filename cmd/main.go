@@ -113,8 +113,6 @@ func Execute() (int, error) {
 	rootCmd.PersistentFlags().
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
 
-	engineConfigVar.CustomRegexRules = customRegexRuleVar
-
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
 	// TODO: This is temporary, remove this after the refactor
 	if detectorWorkerPoolSize := vConfig.GetInt("TWOMS_DETECTOR_WORKERPOOL_SIZE"); detectorWorkerPoolSize != 0 {
@@ -161,8 +159,19 @@ func preRun(rootCmd *cobra.Command, pluginName string, _ *cobra.Command, _ []str
 	if !ok {
 		return fmt.Errorf("engine instance not found in context")
 	}
+
 	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
 		return err
+	}
+
+	if len(customRegexRuleVar) > 0 {
+		if err := engineInstance.SetCustomRegexPatterns(customRegexRuleVar); err != nil {
+			return fmt.Errorf("failed to set custom regex patterns: %w", err)
+		}
+	}
+
+	if len(engineConfigVar.IgnoreList) > 0 {
+		engineInstance.AddIgnoreRules(engineConfigVar.IgnoreList)
 	}
 
 	engineInstance.Scan(pluginName)

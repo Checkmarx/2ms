@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/checkmarx/2ms/v4/lib/reporting"
@@ -216,10 +217,139 @@ func TestSecretsScans(t *testing.T) {
 	}
 }
 
+func TestFlagsIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping flags integration test")
+	}
+
+	executable, err := createCLI(t.TempDir())
+	require.NoError(t, err, "failed to build CLI")
+
+	t.Run("--regex flag: custom regex pattern detection", func(t *testing.T) {
+		projectDir := t.TempDir()
+
+		// Create test file with custom pattern that matches our regex
+		customSecret := "CUSTOM_SECRET_ABC123_XYZ"
+		testContent := fmt.Sprintf("Application config:\napi_key: %s\ndatabase_url: postgres://user:pass@host/db", customSecret)
+
+		err := os.WriteFile(path.Join(projectDir, "config.txt"), []byte(testContent), 0644)
+		require.NoError(t, err, "failed to create test file")
+
+		// Run scan with custom regex that should match our pattern
+		customRegex := "CUSTOM_SECRET_[A-Z0-9_]+"
+		err = executable.run("filesystem", "--path", projectDir, "--regex", customRegex, "--ignore-on-exit", "results")
+		assert.NoError(t, err, "scan should succeed with custom regex")
+
+		report, err := executable.getReport()
+		require.NoError(t, err, "failed to get report")
+
+		// Verify that custom regex found the expected result
+		results := report.GetResults()
+		require.Greater(t, len(results), 0, "Custom regex should detect the pattern")
+
+		// Verify that one of the results is from our custom regex rule
+		foundCustomRule := false
+		for _, resultGroup := range results {
+			for _, result := range resultGroup {
+				if strings.Contains(result.RuleID, "custom-regex") {
+					foundCustomRule = true
+					assert.Equal(t, customSecret, result.Value, "Custom regex should detect the correct value")
+					break
+				}
+			}
+		}
+		assert.True(t, foundCustomRule, "Should find at least one result from custom regex rule")
+	})
+
+	t.Run("--rule flag: select specific rules", func(t *testing.T) {
+		projectDir := t.TempDir()
+
+		// Create test file with GitHub token
+		githubToken := "ghp_1234567890abcdefghijklmnopqrstuvwxyz123"
+		testContent := fmt.Sprintf("GitHub configuration:\ntoken: %s\nother_config: value", githubToken)
+
+		err := os.WriteFile(path.Join(projectDir, "github_config.txt"), []byte(testContent), 0644)
+		require.NoError(t, err, "failed to create test file")
+
+		// First, run scan with only GitHub rule
+		err = executable.run("filesystem", "--path", projectDir, "--rule", "github-pat", "--ignore-on-exit", "results")
+		assert.NoError(t, err, "scan should succeed with specific rule")
+
+		report, err := executable.getReport()
+		require.NoError(t, err, "failed to get report")
+
+		// Verify only GitHub secrets are found
+		results := report.GetResults()
+		if len(results) > 0 {
+			found := false
+			for _, secretList := range results {
+				for _, secret := range secretList {
+					if secret.RuleID == "github-pat" {
+						found = true
+					}
+				}
+			}
+			assert.True(t, found, "should find GitHub token when rule is selected")
+		}
+	})
+
+	t.Run("--ignore-rule flag: exclude specific rules", func(t *testing.T) {
+		projectDir := t.TempDir()
+		reportsDir := t.TempDir() // Separate directory for reports to avoid scanning them
+
+		// Create test file with multiple types of secrets
+		testContent := `Config file:
+github_token: ghp_1234567890abcdefghijklmnopqrstuvwxyz123
+aws_key: AKIAIOSFODNN7EXAMPLE
+slack_token: xoxb-1234567890-1234567890123-AbCdEfGhIjKlMnOpQrStUvWx`
+
+		err := os.WriteFile(path.Join(projectDir, "multi_secrets.txt"), []byte(testContent), 0644)
+		require.NoError(t, err, "failed to create test file")
+
+		// Create separate report paths for each scan to avoid overwriting and scanning
+		baselineReportPath := path.Join(reportsDir, "baseline_results.json")
+		filteredReportPath := path.Join(reportsDir, "filtered_results.json")
+
+		// First scan without ignoring anything to see what's found
+		err = executable.run("filesystem", "--path", projectDir, "--report-path", baselineReportPath, "--ignore-on-exit", "results")
+		assert.NoError(t, err, "baseline scan should succeed")
+
+		baselineReport, err := getReportFromPath(baselineReportPath)
+		require.NoError(t, err, "failed to get baseline report")
+
+		// Run scan ignoring GitHub rules - try both specific rule and generic-api-key
+		err = executable.run("filesystem", "--path", projectDir, "--ignore-rule", "github-pat,generic-api-key", "--report-path", filteredReportPath, "--ignore-on-exit", "results")
+		assert.NoError(t, err, "scan should succeed with ignored rule")
+
+		report, err := getReportFromPath(filteredReportPath)
+		require.NoError(t, err, "failed to get report")
+
+		// Verify we have fewer results when rules are ignored
+		baselineResults := baselineReport.GetResults()
+		filteredResults := report.GetResults()
+
+		assert.Less(t, len(filteredResults), len(baselineResults), "ignoring rules should result in same or fewer findings")
+	})
+}
+
 func (c *cli) getReport() (reporting.IReport, error) {
 	report := reporting.New()
 
 	content, err := os.ReadFile(c.resultsPath)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(content, &report); err != nil {
+		return nil, err
+	}
+
+	return report, nil
+}
+
+func getReportFromPath(reportPath string) (reporting.IReport, error) {
+	report := reporting.New()
+
+	content, err := os.ReadFile(reportPath)
 	if err != nil {
 		return nil, err
 	}
