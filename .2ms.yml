@@ -383,3 +383,5 @@ ignore-result:
 - 783ef39aa4a2320717408a268f12e47eb70caae1 # unit test from rule_test.go
 - c21bf77389927562beed658727bb77ba0389b896 # unit test from secrets_test.go
 - e08be60f4e4f6cbc6b9d09f4a8f956a886e30380 # test data from expectedReport.json
+- 6a4a1b126afec292a1454fcaa071a2e15f3d6f49 # unit test from e2e_test.go
+- 9decf52f8b04a735c29ac98cacb77a3d78f71ca2 # unit test from e2e_test.go
