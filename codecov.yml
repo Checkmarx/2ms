@@ -1,0 +1,33 @@
+coverage:
+  ignore:
+    # Exclude main.go since we mostly use it for Dependency Injection
+    - "main.go"
+    - "cmd/main.go"
+    
+    # Test files - these shouldn't be included in coverage
+    - "**/*_test.go"
+    
+    # Mock files - generated code for testing
+    - "**/*_mock.go"
+    - "**/mocks"
+    
+    # Vendor directory - third-party dependencies
+    - "**/vendor/**"
+    
+    # Documentation and examples
+    - "**/docs"
+    - "**/examples/**"
+    
+    # Build and CI related files
+    - "**/.ci/**"
+    - "**/tools.go"         # Build tools imports
+    
+    # Test utilities and fixtures
+    - "**/testdata/**"
+    - "**/fixtures/**"
+    - "**/tests/**"         # If this contains test utilities rather than actual tests
+
+  status:
+    project:
+      default:
+        target: 70%
