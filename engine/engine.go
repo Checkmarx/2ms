@@ -11,19 +11,25 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
+	"sync"
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v4/engine/extra"
 	"github.com/checkmarx/2ms/v4/engine/linecontent"
 	"github.com/checkmarx/2ms/v4/engine/rules"
 	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/checkmarx/2ms/v4/engine/semaphore"
 	"github.com/checkmarx/2ms/v4/engine/validation"
+	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/internal/workerpool"
+	"github.com/checkmarx/2ms/v4/lib/reporting"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog/log"
+	"github.com/sourcegraph/conc"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
@@ -33,32 +39,70 @@ import (
 var (
 	defaultDetectorWorkerPoolSize = runtime.GOMAXPROCS(0) * 2 // 2x the number of CPUs based on benchmark
 
-	instance *Engine
+	mu sync.Mutex
+
+	ErrNoRulesSelected          = fmt.Errorf("no rules were selected")
+	ErrFailedToCompileRegexRule = fmt.Errorf("failed to compile regex rule")
 )
 
-type Engine struct {
-	rules              map[string]config.Rule
-	rulesBaseRiskScore map[string]float64
-	detector           *detect.Detector
-	validator          validation.Validator
-	semaphore          semaphore.ISemaphore
-	chunk              chunk.IChunk
-	detectorPool       workerpool.Pool
+type DetectorConfig struct {
+	SelectedRules         []*rules.Rule
+	CustomRegexPatterns   []string
+	AdditionalIgnoreRules []string
+	MaxTargetMegabytes    int
+}
 
-	ignoredIds    []string
-	allowedValues []string
+type Engine struct {
+	rules map[string]*config.Rule
+
+	detector       *detect.Detector
+	detectorConfig DetectorConfig
+
+	validator    validation.Validator
+	scorer       IScorer
+	semaphore    semaphore.ISemaphore
+	chunk        chunk.IChunk
+	detectorPool workerpool.Pool
+
+	ignoredIds    *[]string
+	allowedValues *[]string
+
+	pluginChannels plugins.PluginChannels
+
+	secretsChan                    chan *secrets.Secret
+	secretsExtrasChan              chan *secrets.Secret
+	validationChan                 chan *secrets.Secret
+	cvssScoreWithoutValidationChan chan *secrets.Secret
+
+	Report reporting.IReport
+
+	ScanConfig resources.ScanConfig
+
+	wg conc.WaitGroup
 }
 
 type IEngine interface {
 	DetectFragment(item plugins.ISourceItem, secretsChannel chan *secrets.Secret, pluginName string) error
 	DetectFile(ctx context.Context, item plugins.ISourceItem, secretsChannel chan *secrets.Secret) error
-	AddRegexRules(patterns []string) error
-	RegisterForValidation(secret *secrets.Secret)
-	Score(secret *secrets.Secret, validateFlag bool)
-	Validate()
-	GetRuleBaseRiskScore(ruleId string) float64
-	GetDetectorWorkerPool() workerpool.Pool
+
+	GetReport() reporting.IReport
+
+	Scan(pluginName string)
+	Wait()
+
+	GetPluginChannels() plugins.PluginChannels
+	SetPluginChannels(pluginChannels plugins.PluginChannels)
+
+	GetErrorsCh() chan error
+
 	Shutdown() error
+}
+
+type IScorer interface {
+	Score(secret *secrets.Secret)
+	GetRulesBaseRiskScore(ruleId string) float64
+	GetKeywords() map[string]struct{}
+	GetRulesToBeApplied() map[string]config.Rule
 }
 
 type ctxKey string
@@ -81,53 +125,104 @@ type EngineConfig struct {
 	AllowedValues []string
 
 	DetectorWorkerPoolSize int
+
+	CustomRegexPatterns   []string
+	AdditionalIgnoreRules []string
+
+	ScanConfig resources.ScanConfig
 }
 
-func Init(engineConfig *EngineConfig) (IEngine, error) {
+type EngineOption func(*Engine)
+
+func WithPluginChannels(pluginChannels plugins.PluginChannels) EngineOption {
+	return func(e *Engine) {
+		e.pluginChannels = pluginChannels
+	}
+}
+
+func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
+	return initEngine(engineConfig, opts...)
+}
+
+func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
-	if len(selectedRules) == 0 {
-		return nil, fmt.Errorf("no rules were selected")
+
+	// Apply additional ignore rules to get final rules
+	finalRules := selectedRules
+	if len(engineConfig.AdditionalIgnoreRules) > 0 {
+		finalRules = filterIgnoredRules(selectedRules, engineConfig.AdditionalIgnoreRules)
 	}
 
-	rulesToBeApplied := make(map[string]config.Rule)
-	rulesBaseRiskScore := make(map[string]float64)
-	keywords := make(map[string]struct{})
-	for _, rule := range selectedRules {
-		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
-		rulesBaseRiskScore[rule.Rule.RuleID] = score.GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
-		for _, keyword := range rule.Rule.Keywords {
-			keywords[strings.ToLower(keyword)] = struct{}{}
-		}
+	if len(finalRules) == 0 {
+		return nil, ErrNoRulesSelected
 	}
-	cfg.Rules = rulesToBeApplied
-	cfg.Keywords = keywords
 
-	detector := detect.NewDetector(cfg)
-	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
+	scorer := score.NewScorer(finalRules, engineConfig.ScanConfig.WithValidation)
 
 	fileWalkerWorkerPoolSize := defaultDetectorWorkerPoolSize
 	if engineConfig.DetectorWorkerPoolSize > 0 {
 		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}
 
-	instance = &Engine{
-		rules:              rulesToBeApplied,
-		rulesBaseRiskScore: rulesBaseRiskScore,
-		detector:           detector,
-		validator:          *validation.NewValidator(),
-		semaphore:          semaphore.NewSemaphore(),
-		chunk:              chunk.New(),
-		detectorPool:       workerpool.New("detector", workerpool.WithWorkers(fileWalkerWorkerPoolSize)),
+	engine := &Engine{
+		detectorConfig: DetectorConfig{
+			SelectedRules:         finalRules,
+			CustomRegexPatterns:   engineConfig.CustomRegexPatterns,
+			AdditionalIgnoreRules: engineConfig.AdditionalIgnoreRules,
+			MaxTargetMegabytes:    engineConfig.MaxTargetMegabytes,
+		},
 
-		ignoredIds:    engineConfig.IgnoredIds,
-		allowedValues: engineConfig.AllowedValues,
+		validator:    *validation.NewValidator(),
+		scorer:       scorer,
+		semaphore:    semaphore.NewSemaphore(),
+		chunk:        chunk.New(),
+		detectorPool: workerpool.New("detector", workerpool.WithWorkers(fileWalkerWorkerPoolSize)),
+
+		ignoredIds:    &engineConfig.IgnoredIds,
+		allowedValues: &engineConfig.AllowedValues,
+
+		ScanConfig: engineConfig.ScanConfig,
+
+		secretsChan:                    make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
+		secretsExtrasChan:              make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
+		validationChan:                 make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
+		cvssScoreWithoutValidationChan: make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
+
+		pluginChannels: plugins.NewChannels(),
+		Report:         reporting.New(),
+
+		rules: make(map[string]*config.Rule),
 	}
 
-	return instance, nil
-}
+	for _, opt := range opts {
+		opt(engine)
+	}
 
-func GetEngine() IEngine {
-	return instance
+	// Initialize detector with complete configuration
+	cfg := newConfig()
+	cfg.Rules = scorer.GetRulesToBeApplied()
+	cfg.Keywords = scorer.GetKeywords()
+
+	// Add custom regex rules if any
+	if len(engineConfig.CustomRegexPatterns) > 0 {
+		log.Debug().Strs("custom_regex_patterns", engineConfig.CustomRegexPatterns).Msg("Creating custom regex rules")
+		customRules, err := createCustomRegexRules(engineConfig.CustomRegexPatterns)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create custom regex rules: %w", err)
+		}
+		for ruleID, customRule := range customRules {
+			log.Debug().Str("rule_id", ruleID).Msg("Adding custom regex rule")
+			cfg.Rules[ruleID] = *customRule
+			engine.rules[ruleID] = customRule
+		}
+	}
+
+	// Create detector with final config
+	detector := detect.NewDetector(*cfg)
+	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
+	engine.detector = detector
+
+	return engine, nil
 }
 
 // DetectFragment detects secrets in the given fragment
@@ -153,8 +248,9 @@ func (e *Engine) DetectFile(ctx context.Context, item plugins.ISourceItem, secre
 		return nil
 	}
 
-	// Check if file size exceeds the file threshold, if so, use chunking, if not, read the whole file
+	// Check if file size exceeds the file threshold, if so, use chu'king, if not, read the whole file
 	if fileSize > e.chunk.GetFileThreshold() {
+		// ChunkSize * 2             ->  raw read buffer + bufio.Reader's internal slice
 		// ChunkSize * 2             ->  raw read buffer + bufio.Reader's internal slice
 		// + (ChunkSize+MaxPeekSize) ->  peekBuf backing slice
 		// + (ChunkSize+MaxPeekSize) ->  chunkStr copy
@@ -246,7 +342,7 @@ func (e *Engine) detectSecrets(
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
-		if !isSecretIgnored(secret, &e.ignoredIds, &e.allowedValues) {
+		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues) {
 			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -264,11 +360,13 @@ func (e *Engine) isFileSizeExceedingLimit(fileSize int64) bool {
 	return false
 }
 
-func (e *Engine) AddRegexRules(patterns []string) error {
+// createCustomRegexRules creates a map of custom regex rules from the provided patterns
+func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) {
+	customRules := make(map[string]*config.Rule)
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
-			return fmt.Errorf("failed to compile regex rule %s: %w", pattern, err)
+			return nil, fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
 		}
 		rule := config.Rule{
 			Description: "Custom Regex Rule From User",
@@ -276,29 +374,49 @@ func (e *Engine) AddRegexRules(patterns []string) error {
 			Regex:       regex,
 			Keywords:    []string{},
 		}
-		e.rules[rule.RuleID] = rule
+		customRules[rule.RuleID] = &rule
 	}
-	return nil
+	return customRules, nil
 }
 
-func (e *Engine) RegisterForValidation(secret *secrets.Secret) {
+// filterIgnoredRules filters out rules that should be ignored
+func filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Rule {
+	if len(ignoreList) == 0 {
+		return allRules
+	}
+
+	filtered := make([]*rules.Rule, 0, len(allRules))
+	for _, rule := range allRules {
+		shouldIgnore := false
+
+		// Check if this rule should be ignored (by ID or tag)
+		for _, ignoreItem := range ignoreList {
+			if strings.EqualFold(rule.Rule.RuleID, ignoreItem) {
+				shouldIgnore = true
+				break
+			}
+			// Check tags
+			for _, tag := range rule.Tags {
+				if strings.EqualFold(tag, ignoreItem) {
+					shouldIgnore = true
+					break
+				}
+			}
+			if shouldIgnore {
+				break
+			}
+		}
+
+		if !shouldIgnore {
+			filtered = append(filtered, rule)
+		}
+	}
+
+	return filtered
+}
+
+func (e *Engine) registerForValidation(secret *secrets.Secret) {
 	e.validator.RegisterForValidation(secret)
-}
-
-func (e *Engine) Score(secret *secrets.Secret, validateFlag bool) {
-	validationStatus := secrets.UnknownResult // default validity
-	if validateFlag {
-		validationStatus = secret.ValidationStatus
-	}
-	secret.CvssScore = score.GetCvssScore(e.GetRuleBaseRiskScore(secret.RuleID), validationStatus)
-}
-
-func (e *Engine) Validate() {
-	e.validator.Validate()
-}
-
-func (e *Engine) GetRuleBaseRiskScore(ruleId string) float64 {
-	return e.rulesBaseRiskScore[ruleId]
 }
 
 func (e *Engine) GetDetectorWorkerPool() workerpool.Pool {
@@ -306,9 +424,13 @@ func (e *Engine) GetDetectorWorkerPool() workerpool.Pool {
 }
 
 func (e *Engine) Shutdown() error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	if e.detectorPool != nil {
 		return e.detectorPool.Stop()
 	}
+
 	return nil
 }
 
@@ -459,10 +581,162 @@ func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string
 			return true
 		}
 	}
-	for _, ignoredId := range *ignoredIds {
-		if secret.ID == ignoredId {
-			return true
+
+	return slices.Contains(*ignoredIds, secret.ID)
+}
+
+func (e *Engine) processItems(pluginName string) {
+	e.consumeItems(pluginName)
+
+	// After all items are processed (items channel closed),
+	// close the queue to signal no more work will be submitted
+	e.GetDetectorWorkerPool().CloseQueue()
+
+	// Wait for all submitted tasks to complete
+	e.GetDetectorWorkerPool().Wait()
+
+	close(e.secretsChan)
+}
+
+// consumeItems uses the engine's worker pool
+func (e *Engine) consumeItems(pluginName string) {
+	ctx := context.Background()
+	pool := e.GetDetectorWorkerPool()
+
+	// Process items until the channel is closed
+	for item := range e.pluginChannels.GetItemsCh() {
+		e.Report.IncTotalItemsScanned(1)
+
+		// Create task based on plugin type
+		var task workerpool.Task
+		switch pluginName {
+		case "filesystem":
+			task = func(context.Context) error {
+				return e.DetectFile(ctx, item, e.secretsChan)
+			}
+		default:
+			task = func(context.Context) error {
+				return e.DetectFragment(item, e.secretsChan, pluginName)
+			}
 		}
+
+		if err := pool.Submit(task); err != nil {
+			if err == workerpool.ErrQueueClosed {
+				log.Warn().Msg("Queue already closed, cannot submit task")
+				break
+			}
+			log.Error().Err(err).Msg("error submitting task")
+			e.pluginChannels.GetErrorsCh() <- err
+		}
+		log.Debug().Msg("submitted task")
 	}
-	return false
+	// Items channel is now closed, no more items will be received
+	log.Debug().Msg("Items channel closed, no more items to process")
+}
+
+func (e *Engine) processSecrets() {
+	if e.ScanConfig.WithValidation {
+		e.processSecretsWithValidation()
+	} else {
+		e.processSecretsWithoutValidation()
+	}
+}
+
+func (e *Engine) processSecretsWithoutValidation() {
+	for secret := range e.secretsChan {
+		e.Report.IncTotalSecretsFound(1)
+		e.secretsExtrasChan <- secret
+		e.cvssScoreWithoutValidationChan <- secret
+		results := e.Report.GetResults()
+		results[secret.ID] = append(results[secret.ID], secret)
+	}
+	close(e.secretsExtrasChan)
+	close(e.cvssScoreWithoutValidationChan)
+}
+
+func (e *Engine) processSecretsWithValidation() {
+	for secret := range e.secretsChan {
+		e.Report.IncTotalSecretsFound(1)
+		e.secretsExtrasChan <- secret
+		e.validationChan <- secret
+		results := e.Report.GetResults()
+		results[secret.ID] = append(results[secret.ID], secret)
+	}
+	close(e.secretsExtrasChan)
+	close(e.validationChan)
+}
+
+func (e *Engine) processSecretsExtras() {
+	for secret := range e.secretsExtrasChan {
+		extra.AddExtraToSecret(secret)
+	}
+}
+
+func (e *Engine) processValidationAndScoreWithValidation() {
+	for secret := range e.validationChan {
+		e.registerForValidation(secret)
+		e.scorer.Score(secret)
+	}
+	e.validator.Validate()
+}
+
+func (e *Engine) processScoreWithoutValidation() {
+	for secret := range e.cvssScoreWithoutValidationChan {
+		e.scorer.Score(secret)
+	}
+}
+
+func (e *Engine) processScore() {
+	if e.ScanConfig.WithValidation {
+		e.processValidationAndScoreWithValidation()
+	} else {
+		e.processScoreWithoutValidation()
+	}
+}
+
+func (e *Engine) GetReport() reporting.IReport {
+	return e.Report
+}
+
+func (e *Engine) GetPluginChannels() plugins.PluginChannels {
+	return e.pluginChannels
+}
+
+func (e *Engine) SetPluginChannels(pluginChannels plugins.PluginChannels) {
+	e.pluginChannels = pluginChannels
+}
+
+func (e *Engine) GetErrorsCh() chan error {
+	return e.pluginChannels.GetErrorsCh()
+}
+
+func (e *Engine) GetSecretsExtrasCh() chan *secrets.Secret {
+	return e.secretsExtrasChan
+}
+
+func (e *Engine) GetValidationCh() chan *secrets.Secret {
+	return e.validationChan
+}
+
+func (e *Engine) GetCvssScoreWithoutValidationCh() chan *secrets.Secret {
+	return e.cvssScoreWithoutValidationChan
+}
+
+func (e *Engine) Scan(pluginName string) {
+	e.wg.Go(func() {
+		e.processItems(pluginName)
+	})
+	e.wg.Go(func() {
+		e.processSecrets()
+	})
+	e.wg.Go(func() {
+		e.processScore()
+	})
+	e.wg.Go(func() {
+		e.processSecretsExtras()
+	})
+}
+
+func (e *Engine) Wait() {
+	e.wg.Wait()
 }

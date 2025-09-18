@@ -1,13 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"sync"
 
 	"github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/lib/config"
-	"github.com/checkmarx/2ms/v4/lib/reporting"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -18,7 +16,6 @@ import (
 var Version = "0.0.0"
 
 const (
-	timeSleepInterval         = 50
 	outputFormatRegexpPattern = `^(ya?ml|json|sarif)$`
 	configFileFlag            = "config"
 
@@ -46,13 +43,6 @@ var (
 	validateVar        bool
 )
 
-var rootCmd = &cobra.Command{
-	Use:     "2ms",
-	Short:   "2ms Secrets Detection",
-	Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
-	Version: Version,
-}
-
 const envPrefix = "2MS"
 
 var configFilePath string
@@ -67,54 +57,22 @@ var allPlugins = []plugins.IPlugin{
 	plugins.NewGitPlugin(),
 }
 
-var Channels = plugins.Channels{
-	Items:     make(chan plugins.ISourceItem),
-	Errors:    make(chan error),
-	WaitGroup: &sync.WaitGroup{},
-}
-
-var Report = reporting.Init()
-var SecretsChan = make(chan *secrets.Secret)
-var SecretsExtrasChan = make(chan *secrets.Secret)
-var ValidationChan = make(chan *secrets.Secret)
-var CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
-
 func Execute() (int, error) {
 	vConfig.SetEnvPrefix(envPrefix)
 	vConfig.AutomaticEnv()
 
-	cobra.OnInitialize(initialize)
-	rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "config file path")
-	cobra.CheckErr(rootCmd.MarkPersistentFlagFilename(configFileFlag, "yaml", "yml", "json"))
-	rootCmd.PersistentFlags().StringVar(&logLevelVar, logLevelFlagName, "info", "log level (trace, debug, info, warn, error, fatal, none)")
-	rootCmd.PersistentFlags().
-		StringSliceVar(&reportPathVar, reportPathFlagName, []string{},
-			"path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
-	rootCmd.PersistentFlags().
-		StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif")
-	rootCmd.PersistentFlags().
-		StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")
-	rootCmd.PersistentFlags().
-		StringSliceVar(&engineConfigVar.SelectedList, ruleFlagName, []string{}, "select rules by name or tag to apply to this scan")
-	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.IgnoreList, ignoreRuleFlagName, []string{}, "ignore rules by name or tag")
-	rootCmd.PersistentFlags().StringSliceVar(&engineConfigVar.IgnoredIds, ignoreFlagName, []string{}, "ignore specific result by id")
-	rootCmd.PersistentFlags().
-		StringSliceVar(&engineConfigVar.AllowedValues, allowedValuesFlagName, []string{}, "allowed secrets values to ignore")
-	rootCmd.PersistentFlags().
-		StringSliceVar(&engineConfigVar.SpecialList, specialRulesFlagName, []string{},
-			"special (non-default) rules to apply.\nThis list is not affected by the --rule and --ignore-rule flags.")
-	rootCmd.PersistentFlags().
-		Var(&ignoreOnExitVar, ignoreOnExitFlagName,
-			"defines which kind of non-zero exits code should be ignored\naccepts: all, results, errors, none\n"+
-				"example: if 'results' is set, only engine errors will make 2ms exit code different from 0")
-	rootCmd.PersistentFlags().
-		IntVar(&engineConfigVar.MaxTargetMegabytes, maxTargetMegabytesFlagName, 0,
-			"files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
-	rootCmd.PersistentFlags().
-		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
+	rootCmd := &cobra.Command{
+		Use:     "2ms",
+		Short:   "2ms Secrets Detection",
+		Long:    "2ms Secrets Detection: A tool to detect secrets in public websites and communication services.",
+		Version: Version,
+	}
+
+	setupFlags(rootCmd)
 
 	rootCmd.AddCommand(engine.GetRulesCommand(&engineConfigVar))
-	// TODO: This is temporary, remove this after the refactor
+
+	// Override detector worker pool size from environment if set
 	if detectorWorkerPoolSize := vConfig.GetInt("TWOMS_DETECTOR_WORKERPOOL_SIZE"); detectorWorkerPoolSize != 0 {
 		engineConfigVar.DetectorWorkerPoolSize = detectorWorkerPoolSize
 		log.Info().Msgf("TWOMS_DETECTOR_WORKERPOOL_SIZE is set to %d", detectorWorkerPoolSize)
@@ -123,76 +81,94 @@ func Execute() (int, error) {
 	group := "Scan Commands"
 	rootCmd.AddGroup(&cobra.Group{Title: group, ID: group})
 
+	channels := plugins.NewChannels()
+	var engineInstance engine.IEngine
+
+	// Process flags and initialize engine with complete configuration
+	cobra.OnInitialize(func() {
+		if err := processFlags(rootCmd); err != nil {
+			cobra.CheckErr(err)
+		}
+
+		if len(engineConfigVar.CustomRegexPatterns) > 0 {
+			log.Info().Msgf("Custom regex patterns configured: %v", engineConfigVar.CustomRegexPatterns)
+		}
+		if len(engineConfigVar.IgnoreList) > 0 {
+			log.Info().Msgf("Ignore rules configured: %v", engineConfigVar.IgnoreList)
+		}
+
+		var err error
+		engineInstance, err = engine.Init(&engineConfigVar, engine.WithPluginChannels(channels))
+		if err != nil {
+			cobra.CheckErr(fmt.Errorf("failed to initialize engine: %w", err))
+		}
+	})
+
+	// Set up plugins
 	for _, plugin := range allPlugins {
-		subCommand, err := plugin.DefineCommand(Channels.Items, Channels.Errors)
+		subCommand, err := plugin.DefineCommand(channels.GetItemsCh(), channels.GetErrorsCh())
 		if err != nil {
 			return 0, fmt.Errorf("error while defining command for plugin %s: %s", plugin.GetName(), err.Error())
 		}
 		subCommand.GroupID = group
+
+		// Capture plugin name for closure
+		pluginName := plugin.GetName()
 		subCommand.PreRunE = func(cmd *cobra.Command, args []string) error {
-			return preRun(plugin.GetName(), cmd, args)
+			return preRun(pluginName, engineInstance, cmd, args)
 		}
-		subCommand.PostRunE = postRun
+		subCommand.PostRunE = func(cmd *cobra.Command, args []string) error {
+			return postRun(engineInstance)
+		}
 		rootCmd.AddCommand(subCommand)
 	}
 
-	listenForErrors(Channels.Errors)
+	listenForErrors(channels.GetErrorsCh())
 
-	if err := rootCmd.Execute(); err != nil {
+	if err := rootCmd.ExecuteContext(context.Background()); err != nil {
 		return 0, err
 	}
 
-	return Report.TotalSecretsFound, nil
+	if engineInstance == nil {
+		return 0, fmt.Errorf("engine was not initialized")
+	}
+
+	return engineInstance.GetReport().GetTotalSecretsFound(), nil
 }
 
-func preRun(pluginName string, _ *cobra.Command, _ []string) error {
+func preRun(pluginName string, engineInstance engine.IEngine, _ *cobra.Command, _ []string) error {
+	if engineInstance == nil {
+		return fmt.Errorf("engine instance not initialized")
+	}
+
 	if err := validateFormat(stdoutFormatVar, reportPathVar); err != nil {
 		return err
 	}
 
-	engineInstance, err := engine.Init(&engineConfigVar)
-	if err != nil {
-		return err
-	}
-
-	if err := engineInstance.AddRegexRules(customRegexRuleVar); err != nil {
-		return err
-	}
-
-	Channels.WaitGroup.Add(1)
-	go ProcessItems(engineInstance, pluginName)
-
-	Channels.WaitGroup.Add(1)
-	go ProcessSecrets()
-
-	Channels.WaitGroup.Add(1)
-	go ProcessSecretsExtras()
-
-	if validateVar {
-		Channels.WaitGroup.Add(1)
-		go ProcessValidationAndScoreWithValidation(engineInstance)
-	} else {
-		Channels.WaitGroup.Add(1)
-		go ProcessScoreWithoutValidation(engineInstance)
-	}
+	engineInstance.Scan(pluginName)
 
 	return nil
 }
 
-func postRun(cmd *cobra.Command, args []string) error {
-	Channels.WaitGroup.Wait()
+func postRun(engineInstance engine.IEngine) error {
+	if engineInstance == nil {
+		return fmt.Errorf("engine instance not initialized")
+	}
+
+	engineInstance.Wait()
 
 	cfg := config.LoadConfig("2ms", Version)
+	report := engineInstance.GetReport()
 
-	if Report.TotalItemsScanned > 0 {
+	if report.GetTotalItemsScanned() > 0 {
 		if zerolog.GlobalLevel() != zerolog.Disabled {
-			if err := Report.ShowReport(stdoutFormatVar, cfg); err != nil {
+			if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
 				return err
 			}
 		}
 
 		if len(reportPathVar) > 0 {
-			err := Report.WriteFile(reportPathVar, cfg)
+			err := report.WriteFile(reportPathVar, cfg)
 			if err != nil {
 				return fmt.Errorf("failed to create report file with error: %s", err)
 			}
@@ -201,7 +177,7 @@ func postRun(cmd *cobra.Command, args []string) error {
 		log.Info().Msg("Scan completed with empty content")
 	}
 
-	if err := engine.GetEngine().Shutdown(); err != nil {
+	if err := engineInstance.Shutdown(); err != nil {
 		return err
 	}
 

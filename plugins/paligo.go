@@ -57,9 +57,9 @@ func (p *PaligoPlugin) GetName() string {
 
 func (p *PaligoPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	p.Channels = Channels{
-		Items:     items,
-		Errors:    errors,
-		WaitGroup: &sync.WaitGroup{},
+		Items:  items,
+		Errors: errors,
+		wg:     &sync.WaitGroup{},
 	}
 
 	command := &cobra.Command{
@@ -79,7 +79,7 @@ func (p *PaligoPlugin) DefineCommand(items chan ISourceItem, errors chan error) 
 			}
 			log.Info().Msg("Paligo plugin started")
 			p.getItems()
-			p.WaitGroup.Wait()
+			p.wg.Wait()
 			close(items)
 		},
 	}
@@ -114,9 +114,9 @@ func (p *PaligoPlugin) getItems() {
 
 	itemsChan := p.processFolders(foldersToProcess)
 
-	p.WaitGroup.Add(1)
+	p.wg.Add(1)
 	go func() {
-		defer p.WaitGroup.Done()
+		defer p.wg.Done()
 		for item := range itemsChan {
 			p.handleComponent(item)
 		}
@@ -144,9 +144,9 @@ func (p *PaligoPlugin) getFirstProcessingFolders() ([]PaligoItem, error) {
 func (p *PaligoPlugin) processFolders(foldersToProcess []PaligoItem) chan PaligoItem {
 	itemsChan := make(chan PaligoItem)
 
-	p.WaitGroup.Add(1)
+	p.wg.Add(1)
 	go func() {
-		defer p.WaitGroup.Done()
+		defer p.wg.Done()
 
 		for len(foldersToProcess) > 0 {
 			folder := foldersToProcess[0]

@@ -143,7 +143,7 @@ func GetDefaultRules() []*Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
 		{
-			Rule:            *rules.AWS(),
+			Rule:            *AWS(),
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
