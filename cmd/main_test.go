@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -75,11 +74,10 @@ func TestPreRun(t *testing.T) {
 				Version: Version,
 			}
 
-			rootCmd.SetContext(context.WithValue(context.Background(), engineCtxKey, engineInstance))
 			time.AfterFunc(50*time.Millisecond, func() {
 				close(engineInstance.GetPluginChannels().GetItemsCh())
 			})
-			err = preRun(rootCmd, "mock", nil, nil)
+			err = preRun("mock", engineInstance, rootCmd, nil)
 			assert.ErrorIs(t, err, tt.expectedPreRunErr)
 		})
 	}

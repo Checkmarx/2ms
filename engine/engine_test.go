@@ -111,7 +111,6 @@ func TestDetector(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, eng)
-		eng.initializeDetector()
 
 		secretsChan := make(chan *secrets.Secret, 1)
 		fsPlugin := &plugins.FileSystemPlugin{}
@@ -183,7 +182,6 @@ func TestSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	detector.initializeDetector()
 
 	for _, secret := range secretsCases {
 		name := secret.Name
@@ -776,7 +774,6 @@ func TestProcessItems(t *testing.T) {
 	engineTest, err := initEngine(&EngineConfig{})
 	assert.NoError(t, err)
 	defer engineTest.Shutdown()
-	engineTest.initializeDetector()
 
 	pluginName := "mockPlugin"
 	pluginChannels := engineTest.GetPluginChannels()

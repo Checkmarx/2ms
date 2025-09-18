@@ -55,7 +55,6 @@ type DetectorConfig struct {
 type Engine struct {
 	rules map[string]*config.Rule
 
-	// Detector will be created in Scan() with DetectorConfig
 	detector       *detect.Detector
 	detectorConfig DetectorConfig
 
@@ -96,9 +95,6 @@ type IEngine interface {
 
 	GetErrorsCh() chan error
 
-	SetCustomRegexPatterns(patterns []string) error
-	AddIgnoreRules(ignoreList []string)
-
 	Shutdown() error
 }
 
@@ -130,6 +126,9 @@ type EngineConfig struct {
 
 	DetectorWorkerPoolSize int
 
+	CustomRegexPatterns   []string
+	AdditionalIgnoreRules []string
+
 	ScanConfig resources.ScanConfig
 }
 
@@ -147,10 +146,18 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 
 func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
-	if len(selectedRules) == 0 {
+
+	// Apply additional ignore rules to get final rules
+	finalRules := selectedRules
+	if len(engineConfig.AdditionalIgnoreRules) > 0 {
+		finalRules = filterIgnoredRules(selectedRules, engineConfig.AdditionalIgnoreRules)
+	}
+
+	if len(finalRules) == 0 {
 		return nil, ErrNoRulesSelected
 	}
-	scorer := score.NewScorer(selectedRules, engineConfig.ScanConfig.WithValidation)
+
+	scorer := score.NewScorer(finalRules, engineConfig.ScanConfig.WithValidation)
 
 	fileWalkerWorkerPoolSize := defaultDetectorWorkerPoolSize
 	if engineConfig.DetectorWorkerPoolSize > 0 {
@@ -158,11 +165,10 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 	}
 
 	engine := &Engine{
-		// Store configuration for detector creation in Scan()
 		detectorConfig: DetectorConfig{
-			SelectedRules:         selectedRules,
-			CustomRegexPatterns:   make([]string, 0),
-			AdditionalIgnoreRules: make([]string, 0),
+			SelectedRules:         finalRules,
+			CustomRegexPatterns:   engineConfig.CustomRegexPatterns,
+			AdditionalIgnoreRules: engineConfig.AdditionalIgnoreRules,
 			MaxTargetMegabytes:    engineConfig.MaxTargetMegabytes,
 		},
 
@@ -191,6 +197,30 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 	for _, opt := range opts {
 		opt(engine)
 	}
+
+	// Initialize detector with complete configuration
+	cfg := newConfig()
+	cfg.Rules = scorer.GetRulesToBeApplied()
+	cfg.Keywords = scorer.GetKeywords()
+
+	// Add custom regex rules if any
+	if len(engineConfig.CustomRegexPatterns) > 0 {
+		log.Debug().Strs("custom_regex_patterns", engineConfig.CustomRegexPatterns).Msg("Creating custom regex rules")
+		customRules, err := createCustomRegexRules(engineConfig.CustomRegexPatterns)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create custom regex rules: %w", err)
+		}
+		for ruleID, customRule := range customRules {
+			log.Debug().Str("rule_id", ruleID).Msg("Adding custom regex rule")
+			cfg.Rules[ruleID] = *customRule
+			engine.rules[ruleID] = customRule
+		}
+	}
+
+	// Create detector with final config
+	detector := detect.NewDetector(*cfg)
+	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
+	engine.detector = detector
 
 	return engine, nil
 }
@@ -349,68 +379,8 @@ func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) 
 	return customRules, nil
 }
 
-// SetCustomRegexPatterns stores custom regex patterns for detector creation
-func (e *Engine) SetCustomRegexPatterns(patterns []string) error {
-	// Validate patterns by trying to compile them
-	for _, pattern := range patterns {
-		if _, err := regexp.Compile(pattern); err != nil {
-			return fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
-		}
-	}
-	e.detectorConfig.CustomRegexPatterns = patterns
-	return nil
-}
-
-// AddIgnoreRules adds additional rules to ignore (beyond those in EngineConfig)
-func (e *Engine) AddIgnoreRules(ignoreList []string) {
-	e.detectorConfig.AdditionalIgnoreRules = append(e.detectorConfig.AdditionalIgnoreRules, ignoreList...)
-}
-
-// initializeDetector creates the detector with all configuration from detectorConfig
-func (e *Engine) initializeDetector() error {
-	// Filter rules with additional ignore rules
-	finalRules := e.detectorConfig.SelectedRules
-	if len(e.detectorConfig.AdditionalIgnoreRules) > 0 {
-		finalRules = e.filterIgnoredRules(e.detectorConfig.SelectedRules, e.detectorConfig.AdditionalIgnoreRules)
-	}
-
-	if len(finalRules) == 0 {
-		return ErrNoRulesSelected
-	}
-
-	// Create scorer with final rules
-	scorer := score.NewScorer(finalRules, e.ScanConfig.WithValidation)
-
-	// Create base config
-	cfg := newConfig()
-	cfg.Rules = scorer.GetRulesToBeApplied()
-	cfg.Keywords = scorer.GetKeywords()
-
-	// Add custom regex rules if any
-	if len(e.detectorConfig.CustomRegexPatterns) > 0 {
-		customRules, err := createCustomRegexRules(e.detectorConfig.CustomRegexPatterns)
-		if err != nil {
-			return err
-		}
-		for ruleID, customRule := range customRules {
-			cfg.Rules[ruleID] = *customRule
-			e.rules[ruleID] = customRule
-		}
-	}
-
-	// Create detector with final config
-	detector := detect.NewDetector(*cfg)
-	detector.MaxTargetMegaBytes = e.detectorConfig.MaxTargetMegabytes
-
-	// Update scorer and detector
-	e.scorer = scorer
-	e.detector = detector
-
-	return nil
-}
-
 // filterIgnoredRules filters out rules that should be ignored
-func (e *Engine) filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Rule {
+func filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Rule {
 	if len(ignoreList) == 0 {
 		return allRules
 	}
@@ -753,11 +723,6 @@ func (e *Engine) GetCvssScoreWithoutValidationCh() chan *secrets.Secret {
 }
 
 func (e *Engine) Scan(pluginName string) {
-	if err := e.initializeDetector(); err != nil {
-		log.Error().Err(err).Msg("Failed to initialize detector")
-		return
-	}
-
 	e.wg.Go(func() {
 		e.processItems(pluginName)
 	})
