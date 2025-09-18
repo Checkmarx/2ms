@@ -400,3 +400,8 @@ ignore-result:
 - 7dbe46c3f0f42756a79c0b303f0846b1ca8f17ae # unit test from e2e_test.go
 - 865283690b67603891eeb4e3fd68fada1ce102a2 # unit test from e2e_test.go
 - d7ce1697bb2a246701079b073db197124b53b0e8 # unit test from engine_test.go
+- 32ac22e054a0d60dc2879b8578d0d7ce2fb540bb # unit test from e2e_test.go
+- 407629bed88f1ba787b6b3f06ba283ff6dd85500 # unit test from e2e_test.go
+- 420d0fe6a487b35768143af8b9e26d3cae963a74 # unit test from e2e_test.go
+- 8a2e91e68634e18c2874268f1cbee4d8d73d34df # unit test from e2e_test.go
+- ede1b5ab803ef7ea352168c2820338e4f850b33e # unit test from e2e_test.go
