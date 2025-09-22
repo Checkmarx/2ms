@@ -811,7 +811,7 @@ func TestDetectWithConfluenceMetadata(t *testing.T) {
 		},
 	}
 
-	detector, err := Init(EngineConfig{})
+	detector, err := Init(&EngineConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
