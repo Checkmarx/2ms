@@ -176,7 +176,7 @@ Usage:
   2ms [command]
 
 Scan Commands
-  confluence  Scan Confluence server
+  confluence  Scan Confluence Cloud
   discord     Scan Discord server
   filesystem  Scan local folder
   git         Scan local Git repository
