@@ -8,7 +8,7 @@ import (
 
 // Taken from gitleaks config
 // https://github.com/gitleaks/gitleaks/blob/6c52f878cc48a513849900a9aa6f9d68e1c2dbdd/config/gitleaks.toml#L15-L26
-var cfg = config.Config{
+var baseConfig = config.Config{
 	Allowlists: []*config.Allowlist{
 		{
 			Paths: []*regexp.Regexp{
@@ -40,4 +40,31 @@ var cfg = config.Config{
 			},
 		},
 	},
+}
+
+func deepCopyConfig() *config.Config {
+	dst := &config.Config{
+		Allowlists: make([]*config.Allowlist, len(baseConfig.Allowlists)),
+	}
+
+	for i, allowlist := range baseConfig.Allowlists {
+		if allowlist == nil {
+			dst.Allowlists[i] = nil
+			continue
+		}
+
+		dst.Allowlists[i] = &config.Allowlist{
+			Paths: make([]*regexp.Regexp, len(allowlist.Paths)),
+		}
+
+		// Copy regexp pointers - regexp.Regexp is immutable after compilation
+		// so sharing pointers is safe and efficient
+		copy(dst.Allowlists[i].Paths, allowlist.Paths)
+	}
+
+	return dst
+}
+
+func newConfig() *config.Config {
+	return deepCopyConfig()
 }

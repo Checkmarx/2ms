@@ -5,137 +5,154 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/rs/zerolog/log"
+	"github.com/sourcegraph/conc"
 
 	"github.com/checkmarx/2ms/v4/lib/reporting"
 
-	"github.com/checkmarx/2ms/v4/cmd"
 	"github.com/checkmarx/2ms/v4/engine"
 )
 
-type ScanConfig struct {
-	IgnoreResultIds []string
-	IgnoreRules     []string
-	WithValidation  bool
+type scanner struct {
+	engineInstance engine.IEngine
+	scanConfig     resources.ScanConfig
+	mu             sync.RWMutex
 }
 
-type scanner struct{}
+type scannerOption func(*scanner)
+
+func WithPluginChannels(pluginChannels plugins.PluginChannels) scannerOption {
+	return func(s *scanner) {
+		s.engineInstance.SetPluginChannels(pluginChannels)
+	}
+}
 
 func NewScanner() Scanner {
 	return &scanner{}
 }
 
-func resetCmdGlobals() {
-	cmd.Channels = plugins.Channels{
-		Items:     make(chan plugins.ISourceItem),
-		Errors:    make(chan error),
-		WaitGroup: &sync.WaitGroup{},
-	}
+func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOption) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	cmd.Report = reporting.Init()
-
-	cmd.SecretsChan = make(chan *secrets.Secret)
-	cmd.SecretsExtrasChan = make(chan *secrets.Secret)
-	cmd.ValidationChan = make(chan *secrets.Secret)
-	cmd.CvssScoreWithoutValidationChan = make(chan *secrets.Secret)
-}
-
-func (s *scanner) Scan(scanItems []ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
-	resetCmdGlobals()
-
-	bufferedErrors := make(chan error, len(scanItems)+1)
-	wg := &sync.WaitGroup{}
-
-	go func() {
-		for err := range cmd.Channels.Errors {
-			if err != nil {
-				bufferedErrors <- err
-			}
-		}
-		close(bufferedErrors)
-	}()
-
-	engineConfig := engine.EngineConfig{
+	engineInstance, err := engine.Init(&engine.EngineConfig{
 		IgnoredIds: scanConfig.IgnoreResultIds,
 		IgnoreList: scanConfig.IgnoreRules,
-	}
-	engineInstance, err := engine.Init(engineConfig)
+		ScanConfig: scanConfig,
+	}, opts...)
 	if err != nil {
-		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
+		return fmt.Errorf("error initializing engine: %w", err)
 	}
 
-	startPipeline(engineInstance, scanConfig.WithValidation)
+	s.engineInstance = engineInstance
+	s.scanConfig = scanConfig
 
-	for _, item := range scanItems {
-		wg.Add(1)
-		go func(si ScanItem) {
-			defer wg.Done()
-			cmd.Channels.Items <- si
-		}(item)
+	return nil
+}
+
+func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
+	var wg conc.WaitGroup
+
+	err := s.Reset(scanConfig, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error resetting engine: %w", err)
 	}
+
+	if len(scanItems) == 0 {
+		return s.engineInstance.GetReport(), nil
+	}
+
+	bufferedErrors := make(chan error, len(scanItems)+1)
+
+	go func() {
+		defer close(bufferedErrors)
+
+		for err := range s.engineInstance.GetErrorsCh() {
+			bufferedErrors <- err
+		}
+	}()
+
+	s.engineInstance.Scan(s.scanConfig.PluginName)
+
+	wg.Go(func() {
+		defer close(s.engineInstance.GetPluginChannels().GetItemsCh())
+
+		for _, item := range scanItems {
+			s.engineInstance.GetPluginChannels().GetItemsCh() <- item
+		}
+	})
+
+	wg.Go(func() {
+		s.engineInstance.Wait()
+	})
+
 	wg.Wait()
-	close(cmd.Channels.Items)
 
-	cmd.Channels.WaitGroup.Wait()
-	close(cmd.Channels.Errors)
+	close(s.engineInstance.GetErrorsCh())
 
 	var errs []error
 	for err = range bufferedErrors {
 		errs = append(errs, err)
 	}
 	if len(errs) > 0 {
-		return &reporting.Report{}, fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
+		return reporting.New().(*reporting.Report), fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
-	return cmd.Report, nil
+	return s.engineInstance.GetReport(), nil
 }
 
-func startPipeline(engineInstance engine.IEngine, withValidation bool) {
-	cmd.Channels.WaitGroup.Add(4)
+func (s *scanner) ScanDynamic(
+	itemsIn <-chan ScanItem,
+	scanConfig resources.ScanConfig,
+	opts ...engine.EngineOption,
+) (reporting.IReport, error) {
+	var wg conc.WaitGroup
 
-	go cmd.ProcessItems(engineInstance, "custom")
-
-	if withValidation {
-		go cmd.ProcessSecretsWithValidation()
-		go cmd.ProcessValidationAndScoreWithValidation(engineInstance)
-	} else {
-		go cmd.ProcessSecrets()
-		go cmd.ProcessScoreWithoutValidation(engineInstance)
-	}
-
-	go cmd.ProcessSecretsExtras()
-}
-
-func (s *scanner) ScanDynamic(itemsIn <-chan ScanItem, scanConfig ScanConfig) (*reporting.Report, error) {
-	resetCmdGlobals()
-
-	engineConfig := engine.EngineConfig{
-		IgnoredIds: scanConfig.IgnoreResultIds,
-		IgnoreList: scanConfig.IgnoreRules,
-	}
-	engineInstance, err := engine.Init(engineConfig)
+	err := s.Reset(scanConfig, opts...)
 	if err != nil {
-		return &reporting.Report{}, fmt.Errorf("error initializing engine: %w", err)
+		return reporting.New().(*reporting.Report), fmt.Errorf("error resetting engine: %w", err)
 	}
 
-	startPipeline(engineInstance, false)
+	s.engineInstance.Scan(s.scanConfig.PluginName)
+
+	channels := s.engineInstance.GetPluginChannels()
+	wg.Go(func() {
+		defer close(channels.GetItemsCh())
+
+		for item := range itemsIn {
+			channels.GetItemsCh() <- item
+		}
+
+		log.Info().Msg("scan dynamic finished sending items to engine")
+	})
+
+	bufferedErrors := make(chan error, 2)
 
 	go func() {
-		for item := range itemsIn {
-			cmd.Channels.Items <- item
+		defer close(bufferedErrors)
+
+		for err := range s.engineInstance.GetErrorsCh() {
+			bufferedErrors <- err
 		}
-		close(cmd.Channels.Items)
 	}()
 
-	cmd.Channels.WaitGroup.Wait()
-	close(cmd.Channels.Errors)
+	wg.Go(func() {
+		s.engineInstance.Wait()
+	})
 
-	for err := range cmd.Channels.Errors {
-		if err != nil {
-			return &reporting.Report{}, fmt.Errorf("error processing scan items: %w", err)
-		}
+	wg.Wait()
+
+	close(s.engineInstance.GetErrorsCh())
+
+	var errs []error
+	for err = range bufferedErrors {
+		errs = append(errs, err)
+	}
+	if len(errs) > 0 {
+		return reporting.New().(*reporting.Report), fmt.Errorf("error(s) processing scan items:\n%w", errors.Join(errs...))
 	}
 
-	return cmd.Report, nil
+	return s.engineInstance.GetReport(), nil
 }

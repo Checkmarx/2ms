@@ -141,7 +141,6 @@ func newStringBuilderPool(builderType stringBuilderType, initialCap, maxSize, pr
 func (p *StringBuilderPool) Get() *strings.Builder {
 	p.gets.Add(1)
 	sb := p.pool.Get().(*strings.Builder)
-	sb.Reset() // Ensure clean state
 	return sb
 }
 
@@ -268,9 +267,9 @@ func (p *gitChangesPool) Print() {
 
 func (p *GitPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*cobra.Command, error) {
 	p.Channels = Channels{
-		Items:     items,
-		Errors:    errors,
-		WaitGroup: &sync.WaitGroup{},
+		Items:  items,
+		Errors: errors,
+		wg:     &sync.WaitGroup{},
 	}
 
 	command := &cobra.Command{
@@ -280,8 +279,9 @@ func (p *GitPlugin) DefineCommand(items chan ISourceItem, errors chan error) (*c
 		Args:  cobra.MatchAll(cobra.ExactArgs(1), validGitRepoArgs),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Info().Msg("Git plugin started")
+			p.wg.Add(1)
 			p.scanGit(args[0], p.buildScanOptions(), p.Items, p.Errors)
-			p.WaitGroup.Wait()
+			p.wg.Wait()
 			close(items)
 		},
 	}
@@ -459,8 +459,7 @@ func (p *GitPlugin) readGitLog(path, scanOptions string, errChan chan error) (<-
 	}
 	log.Debug().Msgf("scanning git repository: %s", path)
 
-	p.WaitGroup.Add(1)
-	go utils.BindChannels[error](gitLog.ErrCh(), errChan, p.WaitGroup)
+	go utils.BindChannels(gitLog.ErrCh(), errChan, p.wg)
 
 	return gitLog.DiffFilesCh(), wait
 }
