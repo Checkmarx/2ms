@@ -12,15 +12,19 @@ import (
 	"strings"
 )
 
+// ConfluenceClient defines the operations required by the Confluence plugin.
+// Methods stream results via visitor callbacks and handle pagination internally.
 type ConfluenceClient interface {
-	ListAllPages(ctx context.Context, limit int) ([]Page, error)
-	ListPagesByIDs(ctx context.Context, pageIDs []string, limit int) ([]Page, error)
-	ListPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int) ([]Page, error)
-	ListPageVersionNumbers(ctx context.Context, pageID string, limit int) ([]int, error)
-	FetchPageVersion(ctx context.Context, pageID string, version int) (Page, error)
-	ListSpacesByKeys(ctx context.Context, spaceKeys []string, limit int) ([]Space, error)
+	WalkAllPages(ctx context.Context, limit int, visit func(Page) error) error
+	WalkPagesByIDs(ctx context.Context, pageIDs []string, limit int, visit func(Page) error) error
+	WalkPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int, visit func(Page) error) error
+	WalkPageVersions(ctx context.Context, pageID string, limit int, visit func(int) error) error
+	FetchPageAtVersion(ctx context.Context, pageID string, version int) (Page, error)
+	WalkSpacesByKeys(ctx context.Context, spaceKeys []string, limit int, visit func(Space) error) error
 }
 
+// httpConfluenceClient is a ConfluenceClient implementation backed by net/http.
+// It supports optional Basic Auth using a Confluence email/username and API token.
 type httpConfluenceClient struct {
 	baseWikiURL string
 	httpClient  *http.Client
@@ -28,140 +32,172 @@ type httpConfluenceClient struct {
 	token       string
 }
 
-func (c *httpConfluenceClient) ListAllPages(ctx context.Context, limit int) ([]Page, error) {
-	apiURL := c.apiURL("/pages")
-	params := apiURL.Query()
-	params.Set("limit", strconv.Itoa(limit))
-	params.Set("body-format", "storage")
-	apiURL.RawQuery = params.Encode()
-	return c.collectPagesPaginated(ctx, apiURL.String())
+// NewConfluenceClient constructs a ConfluenceClient for the given base wiki URL
+// (e.g., https://<company id>.atlassian.net/wiki). If username and token are
+// non-empty, requests use HTTP Basic Auth.
+func NewConfluenceClient(baseWikiURL string, username, token string) ConfluenceClient {
+	httpClient := &http.Client{Timeout: httpTimeout}
+	return &httpConfluenceClient{
+		baseWikiURL: baseWikiURL,
+		httpClient:  httpClient,
+		username:    username,
+		token:       token,
+	}
 }
 
-func (c *httpConfluenceClient) ListPagesByIDs(ctx context.Context, pageIDs []string, limit int) ([]Page, error) {
+// WalkAllPages iterates all accessible pages and calls visit for each Page.
+func (c *httpConfluenceClient) WalkAllPages(ctx context.Context, limit int, visit func(Page) error) error {
 	apiURL := c.apiURL("/pages")
-	params := apiURL.Query()
-	params.Set("limit", strconv.Itoa(limit))
-	params.Set("body-format", "storage")
-	params.Set("id", strings.Join(pageIDs, ","))
-	apiURL.RawQuery = params.Encode()
-	return c.collectPagesPaginated(ctx, apiURL.String())
+	query := apiURL.Query()
+	query.Set("limit", strconv.Itoa(limit))
+	query.Set("body-format", "storage")
+	apiURL.RawQuery = query.Encode()
+	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
 }
 
-func (c *httpConfluenceClient) ListPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int) ([]Page, error) {
+// WalkPagesByIDs iterates the given page IDs and calls visit for each Page.
+func (c *httpConfluenceClient) WalkPagesByIDs(ctx context.Context, pageIDs []string, limit int, visit func(Page) error) error {
 	apiURL := c.apiURL("/pages")
-	params := apiURL.Query()
-	params.Set("limit", strconv.Itoa(limit))
-	params.Set("body-format", "storage")
-	params.Set("space-id", strings.Join(spaceIDs, ","))
-	apiURL.RawQuery = params.Encode()
-	return c.collectPagesPaginated(ctx, apiURL.String())
+	query := apiURL.Query()
+	query.Set("limit", strconv.Itoa(limit))
+	query.Set("body-format", "storage")
+	query.Set("id", strings.Join(pageIDs, ","))
+	apiURL.RawQuery = query.Encode()
+	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
 }
 
-func (c *httpConfluenceClient) ListPageVersionNumbers(ctx context.Context, pageID string, limit int) ([]int, error) {
+// WalkPagesBySpaceIDs iterates pages across the provided space IDs and calls visit.
+func (c *httpConfluenceClient) WalkPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int, visit func(Page) error) error {
+	apiURL := c.apiURL("/pages")
+	query := apiURL.Query()
+	query.Set("limit", strconv.Itoa(limit))
+	query.Set("body-format", "storage")
+	query.Set("space-id", strings.Join(spaceIDs, ","))
+	apiURL.RawQuery = query.Encode()
+	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
+}
+
+// WalkPageVersions lists version numbers for a page and calls visit for each.
+func (c *httpConfluenceClient) WalkPageVersions(ctx context.Context, pageID string, limit int, visit func(int) error) error {
 	apiURL := c.apiURL(fmt.Sprintf("/pages/%s/versions", url.PathEscape(pageID)))
-	params := apiURL.Query()
-	params.Set("limit", strconv.Itoa(limit))
-	apiURL.RawQuery = params.Encode()
-	return c.collectVersionNumbersPaginated(ctx, apiURL.String())
+	query := apiURL.Query()
+	query.Set("limit", strconv.Itoa(limit))
+	apiURL.RawQuery = query.Encode()
+	return c.walkVersionsPaginated(ctx, apiURL.String(), visit)
 }
 
-func (c *httpConfluenceClient) FetchPageVersion(ctx context.Context, pageID string, version int) (Page, error) {
+// FetchPageAtVersion fetches a page at a specific version.
+func (c *httpConfluenceClient) FetchPageAtVersion(ctx context.Context, pageID string, version int) (Page, error) {
 	apiURL := c.apiURL(fmt.Sprintf("/pages/%s", url.PathEscape(pageID)))
-	params := apiURL.Query()
-	params.Set("version", strconv.Itoa(version))
-	params.Set("body-format", "storage")
-	apiURL.RawQuery = params.Encode()
+	query := apiURL.Query()
+	query.Set("version", strconv.Itoa(version))
+	query.Set("body-format", "storage")
+	apiURL.RawQuery = query.Encode()
 
-	body, _, err := c.getJSON(ctx, apiURL.String())
+	bodyBytes, _, err := c.getJSON(ctx, apiURL.String())
 	if err != nil {
 		return Page{}, err
 	}
 	var page Page
-	if err := json.Unmarshal(body, &page); err != nil {
+	if err = json.Unmarshal(bodyBytes, &page); err != nil {
 		return Page{}, fmt.Errorf("decode page version: %w", err)
 	}
 	return page, nil
 }
 
-func (c *httpConfluenceClient) ListSpacesByKeys(ctx context.Context, spaceKeys []string, limit int) ([]Space, error) {
+// WalkSpacesByKeys lists spaces by their keys and calls visit for each Space.
+func (c *httpConfluenceClient) WalkSpacesByKeys(ctx context.Context, spaceKeys []string, limit int, visit func(Space) error) error {
 	apiURL := c.apiURL("/spaces")
-	params := apiURL.Query()
-	params.Set("limit", strconv.Itoa(limit))
-	params.Set("keys", strings.Join(spaceKeys, ","))
-	apiURL.RawQuery = params.Encode()
-	return c.collectSpacesPaginated(ctx, apiURL.String())
+	query := apiURL.Query()
+	query.Set("limit", strconv.Itoa(limit))
+	query.Set("keys", strings.Join(spaceKeys, ","))
+	apiURL.RawQuery = query.Encode()
+	return c.walkSpacesPaginated(ctx, apiURL.String(), visit)
 }
 
-func (c *httpConfluenceClient) collectPagesPaginated(ctx context.Context, initialURL string) ([]Page, error) {
-	var collected []Page
+// walkPagesPaginated iterates pages starting from initialURL
+func (c *httpConfluenceClient) walkPagesPaginated(ctx context.Context, initialURL string, visit func(Page) error) error {
 	nextPageURL := initialURL
 	for {
-		body, headers, err := c.getJSON(ctx, nextPageURL)
+		bodyBytes, responseHeaders, err := c.getJSON(ctx, nextPageURL)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		pages, linkNext, bodyNext, perr := parsePagesResponse(headers, body)
-		if perr != nil {
-			return nil, perr
-		}
-		collected = append(collected, pages...)
-		nextPageURL = c.resolveNextPageURL(linkNext, bodyNext)
-		if nextPageURL == "" {
-			break
-		}
-	}
-	return collected, nil
-}
-
-func (c *httpConfluenceClient) collectVersionNumbersPaginated(ctx context.Context, initialURL string) ([]int, error) {
-	var collected []int
-	nextPageURL := initialURL
-	for {
-		body, headers, err := c.getJSON(ctx, nextPageURL)
-		if err != nil {
-			return nil, err
-		}
-		versionNumbers, linkNext, bodyNext, parseErr := parseVersionsResponse(headers, body)
+		pages, linkHeaderNext, bodyLinksNext, parseErr := parsePagesResponse(responseHeaders, bodyBytes)
 		if parseErr != nil {
-			return nil, parseErr
+			return parseErr
 		}
-		collected = append(collected, versionNumbers...)
-		nextPageURL = c.resolveNextPageURL(linkNext, bodyNext)
+		for _, page := range pages {
+			if err = visit(page); err != nil {
+				return err
+			}
+		}
+		nextPageURL = c.resolveNextPageURL(linkHeaderNext, bodyLinksNext)
 		if nextPageURL == "" {
-			break
+			return nil
 		}
 	}
-	return collected, nil
 }
 
-func (c *httpConfluenceClient) collectSpacesPaginated(ctx context.Context, initialURL string) ([]Space, error) {
-	var collected []Space
+// walkSpacesPaginated iterates spaces starting from initialURL
+func (c *httpConfluenceClient) walkSpacesPaginated(ctx context.Context, initialURL string, visit func(Space) error) error {
 	nextPageURL := initialURL
 	for {
-		body, headers, err := c.getJSON(ctx, nextPageURL)
+		bodyBytes, responseHeaders, err := c.getJSON(ctx, nextPageURL)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		spaces, linkNext, bodyNext, perr := parseSpacesResponse(headers, body)
-		if perr != nil {
-			return nil, perr
+		spaces, linkHeaderNext, bodyLinksNext, parseErr := parseSpacesResponse(responseHeaders, bodyBytes)
+		if parseErr != nil {
+			return parseErr
 		}
-		collected = append(collected, spaces...)
-		nextPageURL = c.resolveNextPageURL(linkNext, bodyNext)
+		for _, space := range spaces {
+			if err = visit(space); err != nil {
+				return err
+			}
+		}
+		nextPageURL = c.resolveNextPageURL(linkHeaderNext, bodyLinksNext)
 		if nextPageURL == "" {
-			break
+			return nil
 		}
 	}
-	return collected, nil
 }
 
+// walkVersionsPaginated iterates page versions starting from initialURL.
+func (c *httpConfluenceClient) walkVersionsPaginated(ctx context.Context, initialURL string, visit func(int) error) error {
+	nextPageURL := initialURL
+	for {
+		bodyBytes, responseHeaders, err := c.getJSON(ctx, nextPageURL)
+		if err != nil {
+			return err
+		}
+		versionNumbers, linkHeaderNext, bodyLinksNext, parseErr := parseVersionsResponse(responseHeaders, bodyBytes)
+		if parseErr != nil {
+			return parseErr
+		}
+		for _, versionNumber := range versionNumbers {
+			if err = visit(versionNumber); err != nil {
+				return err
+			}
+		}
+		nextPageURL = c.resolveNextPageURL(linkHeaderNext, bodyLinksNext)
+		if nextPageURL == "" {
+			return nil
+		}
+	}
+}
+
+// apiURL joins the relative API path to the base wiki URL, producing a URL
+// rooted at /wiki/api/v2/<relative>.
 func (c *httpConfluenceClient) apiURL(relativePath string) *url.URL {
-	u, _ := url.Parse(c.baseWikiURL) // base ends with /wiki
-	u.Path = path.Join(u.Path, "api", "v2", strings.TrimPrefix(relativePath, "/"))
-	return u
+	parsedURL, _ := url.Parse(c.baseWikiURL) // base ends with /wiki
+	parsedURL.Path = path.Join(parsedURL.Path, "api", "v2", strings.TrimPrefix(relativePath, "/"))
+	return parsedURL
 }
 
-// prefers Link header `rel="next"`, falls back to body _links.next.
+// resolveNextPageURL chooses the next page URL, preferring the Link header's
+// rel="next" target and falling back to the body _links.next. Relative URLs
+// are resolved against the base wiki URL.
 func (c *httpConfluenceClient) resolveNextPageURL(linkHeaderNext, bodyLinksNext string) string {
 	next := strings.TrimSpace(linkHeaderNext)
 	if next == "" {
@@ -181,7 +217,10 @@ func (c *httpConfluenceClient) resolveNextPageURL(linkHeaderNext, bodyLinksNext 
 	return base.ResolveReference(ref).String()
 }
 
-// getJSON performs GET and returns response body + headers.
+// getJSON performs a GET request and returns the response body and headers.
+// It sets Accept: application/json and uses Basic Auth when credentials were
+// provided. Non-2xx responses return an error with a short body snippet.
+// HTTP 429 includes a human-friendly message derived from Retry-After.
 func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]byte, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
@@ -213,12 +252,14 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 	return body, resp.Header.Clone(), nil
 }
 
+// rateLimitMessage formats a user-friendly message for HTTP 429 responses,
+// using the Retry-After header when available (seconds).
 func rateLimitMessage(h http.Header) string {
-	raw := strings.TrimSpace(h.Get("Retry-After"))
-	if raw == "" {
+	retryAfter := strings.TrimSpace(h.Get("Retry-After"))
+	if retryAfter == "" {
 		return "rate limited (429)"
 	}
-	secs, err := strconv.Atoi(raw) // seconds
+	secs, err := strconv.Atoi(retryAfter) // seconds
 	if err != nil || secs < 0 {
 		return "rate limited (429)"
 	}
@@ -227,16 +268,19 @@ func rateLimitMessage(h http.Header) string {
 	return fmt.Sprintf("rate limited (429) — retry after %d minute(s) %d second(s)", minutes, seconds)
 }
 
+// PageVersion models the "version" object returned by Confluence.
 type PageVersion struct {
 	Number int `json:"number"`
 }
 
+// PageBody contains the Storage-Format body of a page.
 type PageBody struct {
 	Storage *struct {
 		Value string `json:"value"`
 	} `json:"storage,omitempty"`
 }
 
+// Page represents a Confluence page
 type Page struct {
 	ID      string            `json:"id"`
 	Status  string            `json:"status"`
@@ -248,6 +292,7 @@ type Page struct {
 	Version PageVersion       `json:"version"`
 }
 
+// Space represents a Confluence space
 type Space struct {
 	ID    string            `json:"id"`
 	Key   string            `json:"key"`
@@ -255,11 +300,13 @@ type Space struct {
 	Links map[string]string `json:"_links"`
 }
 
+// listPagesResponse models the JSON response returned by /pages queries.
 type listPagesResponse struct {
 	Results []Page            `json:"results"`
 	Links   map[string]string `json:"_links"`
 }
 
+// listSpacesResponse models the JSON response returned by /spaces queries.
 type listSpacesResponse struct {
 	Results []Space           `json:"results"`
 	Links   map[string]string `json:"_links"`
@@ -269,11 +316,14 @@ type versionEntry struct {
 	Number int `json:"number"`
 }
 
+// listVersionsResponse models the JSON response returned by /pages/{id}/versions.
 type listVersionsResponse struct {
 	Results []versionEntry    `json:"results"`
 	Links   map[string]string `json:"_links"`
 }
 
+// parsePagesResponse decodes a pages response and returns the pages plus any
+// "next" URL found in either the Link header or the body _links.next.
 func parsePagesResponse(headers http.Header, body []byte) ([]Page, string, string, error) {
 	var payload listPagesResponse
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -287,6 +337,8 @@ func parsePagesResponse(headers http.Header, body []byte) ([]Page, string, strin
 	return payload.Results, linkNext, bodyNext, nil
 }
 
+// parseSpacesResponse decodes a spaces response and returns the spaces plus any
+// "next" URL found in either the Link header or the body _links.next.
 func parseSpacesResponse(headers http.Header, body []byte) ([]Space, string, string, error) {
 	var payload listSpacesResponse
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -300,6 +352,8 @@ func parseSpacesResponse(headers http.Header, body []byte) ([]Space, string, str
 	return payload.Results, linkNext, bodyNext, nil
 }
 
+// parseVersionsResponse decodes a versions response and returns a slice of
+// version numbers plus any "next" URL (Link header or body _links.next).
 func parseVersionsResponse(headers http.Header, body []byte) ([]int, string, string, error) {
 	var payload listVersionsResponse
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -319,6 +373,8 @@ func parseVersionsResponse(headers http.Header, body []byte) ([]int, string, str
 	return versionNumbers, linkNext, bodyNext, nil
 }
 
+// nextURLFromLinkHeader extracts the rel="next" URL from the Link header.
+// It returns an empty string when no such relation is present.
 func nextURLFromLinkHeader(h http.Header) string {
 	link := h.Get("Link")
 	if link == "" {
@@ -327,14 +383,14 @@ func nextURLFromLinkHeader(h http.Header) string {
 	// Example: Link: </wiki/api/v2/pages?cursor=...>; rel="next", </wiki/api/v2>; rel="base"
 	parts := strings.Split(link, ",")
 	for _, part := range parts {
-		p := strings.TrimSpace(part)
-		if !strings.Contains(p, `rel="next"`) {
+		partTrimmed := strings.TrimSpace(part)
+		if !strings.Contains(partTrimmed, `rel="next"`) {
 			continue
 		}
-		start := strings.Index(p, "<")
-		end := strings.Index(p, ">")
+		start := strings.Index(partTrimmed, "<")
+		end := strings.Index(partTrimmed, ">")
 		if start >= 0 && end > start+1 {
-			return p[start+1 : end]
+			return partTrimmed[start+1 : end]
 		}
 	}
 	return ""
