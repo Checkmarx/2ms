@@ -3,8 +3,9 @@ package semaphore
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestComputeMemoryBudget(t *testing.T) {
@@ -19,7 +20,7 @@ func TestComputeMemoryBudget(t *testing.T) {
 	}
 	testCases := []testCase{
 		{
-			name:           "host mememory only",
+			name:           "host memory only",
 			hostMemory:     uint64(4 * 1024 * mib), // 4GiB
 			cgroupLimit:    ^uint64(0),
 			expectedBudget: int64((4*1024*mib - safety) / 2), // 2GiB - 200MiB
