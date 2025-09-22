@@ -68,7 +68,7 @@ func TestConvertPageToItem(t *testing.T) {
 	p := &ConfluencePlugin{}
 
 	t.Run("web UI with /wiki and version", func(t *testing.T) {
-		page := Page{
+		page := &Page{
 			ID:    "123",
 			Title: "Page Title",
 			Body: PageBody{Storage: &struct {
@@ -85,7 +85,7 @@ func TestConvertPageToItem(t *testing.T) {
 	})
 
 	t.Run("fallback to base link", func(t *testing.T) {
-		page := Page{
+		page := &Page{
 			ID:      "456",
 			Links:   map[string]string{"base": base},
 			Version: PageVersion{Number: 1},
@@ -100,7 +100,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 	const base = "https://checkmarx.atlassian.net/wiki"
 
 	t.Run("web UI with /wiki and version", func(t *testing.T) {
-		page := Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=123"}}
+		page := &Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=123"}}
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, base, 4)
 		expectedURL := "https://checkmarx.atlassian.net/wiki/pages/viewpage.action?pageId=123&pageVersion=4"
@@ -111,7 +111,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 
 	t.Run("web UI absolute url with version", func(t *testing.T) {
 		abs := "https://checkmarx.atlassian.net/wiki/pages/viewpage.action?pageId=456"
-		page := Page{Links: map[string]string{"webui": abs}}
+		page := &Page{Links: map[string]string{"webui": abs}}
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, base, 2)
 		expectedURL := "https://checkmarx.atlassian.net/wiki/pages/viewpage.action?pageId=456&pageVersion=2"
@@ -121,7 +121,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 	})
 
 	t.Run("no version number does not add pageVersion", func(t *testing.T) {
-		page := Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=321"}}
+		page := &Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=321"}}
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, base, 0)
 		expectedURL := "https://checkmarx.atlassian.net/wiki/pages/viewpage.action?pageId=321"
@@ -131,7 +131,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 	})
 
 	t.Run("existing pageVersion kept when versionNumber is zero", func(t *testing.T) {
-		page := Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=1&pageVersion=7"}}
+		page := &Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=1&pageVersion=7"}}
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, base, 0)
 		expectedURL := "https://checkmarx.atlassian.net/wiki/pages/viewpage.action?pageId=1&pageVersion=7"
@@ -141,7 +141,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 	})
 
 	t.Run("existing pageVersion overridden when versionNumber > 0", func(t *testing.T) {
-		page := Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=1&pageVersion=7"}}
+		page := &Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=1&pageVersion=7"}}
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, base, 9)
 		expectedURL := "https://checkmarx.atlassian.net/wiki/pages/viewpage.action?pageId=1&pageVersion=9"
@@ -151,7 +151,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 	})
 
 	t.Run("fallback to base link", func(t *testing.T) {
-		page := Page{Links: map[string]string{"base": base}}
+		page := &Page{Links: map[string]string{"base": base}}
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, base, 0)
 		expectedURL := base
@@ -161,7 +161,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 	})
 
 	t.Run("missing links returns false", func(t *testing.T) {
-		page := Page{} // Links == nil
+		page := &Page{} // Links == nil
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, base, 0)
 		assert.Equal(t, false, actualOK, "expected resolution to fail when Links is nil")
@@ -169,7 +169,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 	})
 
 	t.Run("invalid webui is ignored", func(t *testing.T) {
-		page := Page{Links: map[string]string{"webui": "%"}}
+		page := &Page{Links: map[string]string{"webui": "%"}}
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, base, 1)
 		assert.Equal(t, false, actualOK, "expected resolution to fail for invalid webui")
@@ -177,7 +177,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 	})
 
 	t.Run("invalid wiki base returns false when resolving relative webui", func(t *testing.T) {
-		page := Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=123"}}
+		page := &Page{Links: map[string]string{"webui": "/pages/viewpage.action?pageId=123"}}
 
 		actualURL, actualOK := resolveConfluenceSourceURL(page, "http://[::1", 1)
 		assert.Equal(t, false, actualOK, "expected resolution to fail for invalid wiki base")
@@ -195,7 +195,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, _ int, visit func(*Page) error) error {
 				return visit(page)
 			}).Times(1)
 
@@ -225,7 +225,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, _ int, visit func(*Page) error) error {
 				return visit(cur)
 			}).Times(1)
 
@@ -241,7 +241,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 		for _, v := range versions[:len(versions)-1] {
 			mock.EXPECT().
 				FetchPageAtVersion(gomock.Any(), "200", v).
-				DoAndReturn(func(_ context.Context, _ string, _ int) (Page, error) {
+				DoAndReturn(func(_ context.Context, _ string, _ int) (*Page, error) {
 					return mkPage("200", v), nil
 				}).Times(1)
 		}
@@ -290,7 +290,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 		expectedCalls := numChunks(len(p.SpaceIDs), maxSpaceIDsPerRequest)
 		mock.EXPECT().
 			WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Page) error) error {
 				_ = visit(mkPage("P1", 2))
 				_ = visit(mkPage("P1", 2))
 				_ = visit(mkPage("P2", 1))
@@ -323,13 +323,13 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, keys []string, _ int, visit func(Space) error) error {
+			DoAndReturn(func(_ context.Context, keys []string, _ int, visit func(*Space) error) error {
 				for _, k := range keys {
 					switch k {
 					case "Key1":
-						_ = visit(Space{ID: "S1", Key: "Key1"})
+						_ = visit(&Space{ID: "S1", Key: "Key1"})
 					case "Key2":
-						_ = visit(Space{ID: "S2", Key: "Key2"})
+						_ = visit(&Space{ID: "S2", Key: "Key2"})
 					}
 				}
 				return nil
@@ -340,7 +340,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(*Page) error) error {
 				for _, sid := range batch {
 					_ = visit(mkPage("P-"+sid, 1))
 				}
@@ -379,7 +379,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkPagesByIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(*Page) error) error {
 				for _, id := range batch {
 					_ = visit(mkPage(id, 1))
 				}
@@ -416,7 +416,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 		p.SpaceIDs = []string{"S1"}
 		mock.EXPECT().
 			WalkPagesBySpaceIDs(gomock.Any(), []string{"S1"}, maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Page) error) error {
 				_ = visit(mkPage("P1", 3))
 				_ = visit(mkPage("P2", 1))
 				return nil
@@ -425,15 +425,15 @@ func TestWalkAndEmitPages(t *testing.T) {
 		p.SpaceKeys = []string{"Key1"}
 		mock.EXPECT().
 			WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(Space) error) error {
-				_ = visit(Space{ID: "S1", Key: "Key1"})
+			DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Space) error) error {
+				_ = visit(&Space{ID: "S1", Key: "Key1"})
 				return nil
 			}).Times(1)
 
 		p.PageIDs = []string{"P1", "P3"}
 		mock.EXPECT().
 			WalkPagesByIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(*Page) error) error {
 				for _, id := range batch {
 					_ = visit(mkPage(id, 1))
 				}
@@ -468,7 +468,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkPagesByIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(*Page) error) error {
 				for _, id := range batch {
 					_ = visit(mkPage(id, 1))
 				}
@@ -493,7 +493,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(*Page) error) error {
 				for _, sid := range batch {
 					_ = visit(mkPage("P-"+sid, 1))
 				}
@@ -522,9 +522,9 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, kb []string, _ int, visit func(Space) error) error {
+			DoAndReturn(func(_ context.Context, kb []string, _ int, visit func(*Space) error) error {
 				for _, k := range kb {
-					_ = visit(Space{ID: "S-" + k, Key: k})
+					_ = visit(&Space{ID: "S-" + k, Key: k})
 				}
 				return nil
 			}).Times(len(keyBatches))
@@ -536,7 +536,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(Page) error) error {
+			DoAndReturn(func(_ context.Context, batch []string, _ int, visit func(*Page) error) error {
 				for _, sid := range batch {
 					_ = visit(mkPage("P-"+sid, 1))
 				}
@@ -558,7 +558,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 		mock.EXPECT().
 			WalkPagesByIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ []string, _ int, _ func(Page) error) error {
+			DoAndReturn(func(_ context.Context, _ []string, _ int, _ func(*Page) error) error {
 				return assert.AnError
 			}).Times(1)
 
@@ -579,8 +579,8 @@ func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *Mo
 	return p, ctrl, mock
 }
 
-func mkPage(id string, ver int) Page {
-	return Page{
+func mkPage(id string, ver int) *Page {
+	return &Page{
 		ID:    id,
 		Title: "T-" + id,
 		Links: map[string]string{"webui": "/pages/viewpage.action?pageId=" + id},

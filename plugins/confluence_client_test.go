@@ -212,10 +212,10 @@ func TestGetJSON(t *testing.T) {
 
 func TestWalkPagesPaginated(t *testing.T) {
 	firstBatch := listPagesResponse{
-		Results: []Page{{ID: "1", Title: "A"}, {ID: "2", Title: "B"}},
+		Results: []*Page{{ID: "1", Title: "A"}, {ID: "2", Title: "B"}},
 	}
 	secondBatch := listPagesResponse{
-		Results: []Page{{ID: "3", Title: "C"}},
+		Results: []*Page{{ID: "3", Title: "C"}},
 	}
 
 	var calls int
@@ -238,7 +238,7 @@ func TestWalkPagesPaginated(t *testing.T) {
 	}
 
 	var actualIDs []string
-	err := c.walkPagesPaginated(context.Background(), ts.URL, func(p Page) error {
+	err := c.walkPagesPaginated(context.Background(), ts.URL, func(p *Page) error {
 		actualIDs = append(actualIDs, p.ID)
 		return nil
 	})
@@ -280,8 +280,8 @@ func TestWalkVersionsPaginated(t *testing.T) {
 }
 
 func TestWalkSpacesPaginated(t *testing.T) {
-	firstBatch := listSpacesResponse{Results: []Space{{ID: "S1", Key: "KEY1"}}, Links: map[string]string{"next": "/wiki/api/v2/spaces?cursor=2"}}
-	secondBatch := listSpacesResponse{Results: []Space{{ID: "S2", Key: "KEY2"}}}
+	firstBatch := listSpacesResponse{Results: []*Space{{ID: "S1", Key: "KEY1"}}, Links: map[string]string{"next": "/wiki/api/v2/spaces?cursor=2"}}
+	secondBatch := listSpacesResponse{Results: []*Space{{ID: "S2", Key: "KEY2"}}}
 
 	var calls int
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -297,7 +297,7 @@ func TestWalkSpacesPaginated(t *testing.T) {
 
 	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
 	var actual []string
-	err := client.walkSpacesPaginated(context.Background(), testServer.URL, func(s Space) error {
+	err := client.walkSpacesPaginated(context.Background(), testServer.URL, func(s *Space) error {
 		actual = append(actual, s.ID)
 		return nil
 	})
@@ -307,7 +307,7 @@ func TestWalkSpacesPaginated(t *testing.T) {
 
 func TestWalkAllPages(t *testing.T) {
 	expectPath := "/wiki/api/v2/pages"
-	resp := listPagesResponse{Results: []Page{{ID: "1", Title: "A"}, {ID: "2", Title: "B"}}}
+	resp := listPagesResponse{Results: []*Page{{ID: "1", Title: "A"}, {ID: "2", Title: "B"}}}
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
@@ -319,7 +319,7 @@ func TestWalkAllPages(t *testing.T) {
 
 	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
 	var actual []string
-	err := client.WalkAllPages(context.Background(), 250, func(p Page) error {
+	err := client.WalkAllPages(context.Background(), 250, func(p *Page) error {
 		actual = append(actual, p.ID)
 		return nil
 	})
@@ -329,7 +329,7 @@ func TestWalkAllPages(t *testing.T) {
 
 func TestWalkPagesByIDs(t *testing.T) {
 	expectPath := "/wiki/api/v2/pages"
-	resp := listPagesResponse{Results: []Page{{ID: "10"}, {ID: "20"}}}
+	resp := listPagesResponse{Results: []*Page{{ID: "10"}, {ID: "20"}}}
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
@@ -342,7 +342,7 @@ func TestWalkPagesByIDs(t *testing.T) {
 
 	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
 	var actual []string
-	err := client.WalkPagesByIDs(context.Background(), []string{"1", "2"}, 2, func(p Page) error {
+	err := client.WalkPagesByIDs(context.Background(), []string{"1", "2"}, 2, func(p *Page) error {
 		actual = append(actual, p.ID)
 		return nil
 	})
@@ -352,7 +352,7 @@ func TestWalkPagesByIDs(t *testing.T) {
 
 func TestWalkPagesBySpaceIDs(t *testing.T) {
 	expectPath := "/wiki/api/v2/pages"
-	resp := listPagesResponse{Results: []Page{{ID: "100"}, {ID: "200"}}}
+	resp := listPagesResponse{Results: []*Page{{ID: "100"}, {ID: "200"}}}
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
@@ -365,7 +365,7 @@ func TestWalkPagesBySpaceIDs(t *testing.T) {
 
 	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
 	var actual []string
-	err := client.WalkPagesBySpaceIDs(context.Background(), []string{"S1", "S2"}, 2, func(p Page) error {
+	err := client.WalkPagesBySpaceIDs(context.Background(), []string{"S1", "S2"}, 2, func(p *Page) error {
 		actual = append(actual, p.ID)
 		return nil
 	})
@@ -418,7 +418,7 @@ func TestFetchPageAtVersion(t *testing.T) {
 
 func TestWalkSpacesByKeys(t *testing.T) {
 	expectPath := "/wiki/api/v2/spaces"
-	resp := listSpacesResponse{Results: []Space{{ID: "S1", Key: "KEY1"}, {ID: "S2", Key: "KEY2"}}}
+	resp := listSpacesResponse{Results: []*Space{{ID: "S1", Key: "KEY1"}, {ID: "S2", Key: "KEY2"}}}
 
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
@@ -430,7 +430,7 @@ func TestWalkSpacesByKeys(t *testing.T) {
 
 	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
 	var actual []string
-	err := client.WalkSpacesByKeys(context.Background(), []string{"KEY1", "KEY2"}, 2, func(s Space) error {
+	err := client.WalkSpacesByKeys(context.Background(), []string{"KEY1", "KEY2"}, 2, func(s *Space) error {
 		actual = append(actual, s.ID)
 		return nil
 	})

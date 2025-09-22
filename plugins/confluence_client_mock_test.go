@@ -41,10 +41,10 @@ func (m *MockConfluenceClient) EXPECT() *MockConfluenceClientMockRecorder {
 }
 
 // FetchPageAtVersion mocks base method.
-func (m *MockConfluenceClient) FetchPageAtVersion(ctx context.Context, pageID string, version int) (Page, error) {
+func (m *MockConfluenceClient) FetchPageAtVersion(ctx context.Context, pageID string, version int) (*Page, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchPageAtVersion", ctx, pageID, version)
-	ret0, _ := ret[0].(Page)
+	ret0, _ := ret[0].(*Page)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -56,7 +56,7 @@ func (mr *MockConfluenceClientMockRecorder) FetchPageAtVersion(ctx, pageID, vers
 }
 
 // WalkAllPages mocks base method.
-func (m *MockConfluenceClient) WalkAllPages(ctx context.Context, limit int, visit func(Page) error) error {
+func (m *MockConfluenceClient) WalkAllPages(ctx context.Context, limit int, visit func(*Page) error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WalkAllPages", ctx, limit, visit)
 	ret0, _ := ret[0].(error)
@@ -84,7 +84,7 @@ func (mr *MockConfluenceClientMockRecorder) WalkPageVersions(ctx, pageID, limit,
 }
 
 // WalkPagesByIDs mocks base method.
-func (m *MockConfluenceClient) WalkPagesByIDs(ctx context.Context, pageIDs []string, limit int, visit func(Page) error) error {
+func (m *MockConfluenceClient) WalkPagesByIDs(ctx context.Context, pageIDs []string, limit int, visit func(*Page) error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WalkPagesByIDs", ctx, pageIDs, limit, visit)
 	ret0, _ := ret[0].(error)
@@ -98,7 +98,7 @@ func (mr *MockConfluenceClientMockRecorder) WalkPagesByIDs(ctx, pageIDs, limit, 
 }
 
 // WalkPagesBySpaceIDs mocks base method.
-func (m *MockConfluenceClient) WalkPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int, visit func(Page) error) error {
+func (m *MockConfluenceClient) WalkPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int, visit func(*Page) error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WalkPagesBySpaceIDs", ctx, spaceIDs, limit, visit)
 	ret0, _ := ret[0].(error)
@@ -112,7 +112,7 @@ func (mr *MockConfluenceClientMockRecorder) WalkPagesBySpaceIDs(ctx, spaceIDs, l
 }
 
 // WalkSpacesByKeys mocks base method.
-func (m *MockConfluenceClient) WalkSpacesByKeys(ctx context.Context, spaceKeys []string, limit int, visit func(Space) error) error {
+func (m *MockConfluenceClient) WalkSpacesByKeys(ctx context.Context, spaceKeys []string, limit int, visit func(*Space) error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WalkSpacesByKeys", ctx, spaceKeys, limit, visit)
 	ret0, _ := ret[0].(error)
