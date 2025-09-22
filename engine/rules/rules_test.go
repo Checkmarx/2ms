@@ -9,7 +9,7 @@ import (
 func TestLoadAllRules(t *testing.T) {
 	rules := GetDefaultRules()
 
-	if len(*rules) <= 1 {
+	if len(rules) <= 1 {
 		t.Error("no rules were loaded")
 	}
 }
@@ -18,7 +18,7 @@ func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 	ruleIDMap := make(map[string]bool)
 	allRules := GetDefaultRules()
 
-	for _, rule := range *allRules {
+	for _, rule := range allRules {
 		if _, ok := ruleIDMap[rule.Rule.RuleID]; ok {
 			t.Errorf("duplicate rule id found: %s", rule.Rule.RuleID)
 		}
@@ -29,7 +29,7 @@ func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
 
 func Test_FilterRules_SelectRules(t *testing.T) {
 	specialRule := HardcodedPassword()
-	allRules := *GetDefaultRules()
+	allRules := GetDefaultRules()
 	rulesCount := len(allRules)
 
 	tests := []struct {
@@ -118,7 +118,7 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			secrets := *FilterRules(tt.selectedList, tt.ignoreList, tt.specialList)
+			secrets := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList)
 
 			if len(secrets) != tt.expectedLen {
 				t.Errorf("expected %d rules, but got %d", tt.expectedLen, len(secrets))
@@ -130,13 +130,13 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 func TestSelectRules(t *testing.T) {
 	testCases := []struct {
 		name           string
-		allRules       *[]Rule
+		allRules       []*Rule
 		tags           []string
 		expectedResult map[string]config.Rule
 	}{
 		{
 			name: "No matching tags",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -145,7 +145,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching rule ID",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -154,7 +154,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching tag",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -163,7 +163,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching tag and rule ID",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -172,7 +172,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching multiple tags",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 				createRule("rule3", "tag2", "tag4"),
@@ -203,8 +203,8 @@ func TestSelectRules(t *testing.T) {
 	}
 }
 
-func createRule(ruleID string, tags ...string) Rule {
-	return Rule{
+func createRule(ruleID string, tags ...string) *Rule {
+	return &Rule{
 		Rule: config.Rule{
 			RuleID: ruleID,
 		},
@@ -222,9 +222,9 @@ func createRules(ruleIDs ...string) map[string]config.Rule {
 	return rules
 }
 
-func rulesToMap(rules *[]Rule) map[string]config.Rule {
+func rulesToMap(rules []*Rule) map[string]config.Rule {
 	rulesMap := make(map[string]config.Rule)
-	for _, rule := range *rules {
+	for _, rule := range rules {
 		rulesMap[rule.Rule.RuleID] = rule.Rule
 	}
 	return rulesMap
@@ -233,13 +233,13 @@ func rulesToMap(rules *[]Rule) map[string]config.Rule {
 func TestIgnoreRules(t *testing.T) {
 	tests := []struct {
 		name           string
-		allRules       *[]Rule
+		allRules       []*Rule
 		tags           []string
 		expectedResult map[string]config.Rule
 	}{
 		{
 			name: "Empty list",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -248,7 +248,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore non-existing tag",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -257,7 +257,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore one rule ID",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -266,7 +266,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore one tag",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -275,7 +275,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore all tags",
-			allRules: &[]Rule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -292,7 +292,7 @@ func TestIgnoreRules(t *testing.T) {
 				t.Errorf("expected %d rules, but got %d", len(tt.expectedResult), len(gotResult))
 			}
 
-			for _, rule := range *tt.allRules {
+			for _, rule := range tt.allRules {
 				if _, ok := tt.expectedResult[rule.Rule.RuleID]; ok {
 					if _, ok := gotResult[rule.Rule.RuleID]; !ok {
 						t.Errorf("expected rule %s to be present, but it was not", rule.Rule.RuleID)

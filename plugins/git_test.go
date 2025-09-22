@@ -610,9 +610,12 @@ func TestStringBuilderPool(t *testing.T) {
 	gets, puts, discards, news, efficiency := pool.Stats()
 	assert.Equal(t, int64(2), gets, "Should track gets")
 	assert.Equal(t, int64(2), puts, "Should track puts")
-	assert.Equal(t, int64(1), news, "Should track news")
+	// sync.Pool is non-deterministic - GC can clear the pool between Put() and Get()
+	// If the pool is cleared, we'll create 2 new builders; otherwise, we'll reuse and only create 1
+	assert.True(t, news >= 1 && news <= 2, "News should be 1 (reused) or 2 (GC cleared pool), got %d", news)
 	assert.Equal(t, int64(0), discards, "Should have no discards for normal-sized builders")
-	assert.Equal(t, 100.0, efficiency, "Should have 100% efficiency")
+	// Efficiency depends on whether the pool was cleared by GC
+	assert.True(t, efficiency >= 50.0 && efficiency <= 100.0, "Efficiency should be between 50%% and 100%%, got %.1f", efficiency)
 	t.Run("test oversize handling", func(t *testing.T) {
 		pool := newStringBuilderPool(removed, 1024, 8*1024, 0) // 1KB initial, 8KB max
 

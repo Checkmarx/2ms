@@ -70,8 +70,8 @@ const TagPublicSecret = "public-secret"
 const TagSensitiveUrl = "sensitive-url"
 const TagWebhook = "webhook"
 
-func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all rule definitions
-	allRules := &[]Rule{
+func GetDefaultRules() []*Rule { //nolint:funlen // This function contains all rule definitions
+	allRules := []*Rule{
 		{
 			Rule:            *rules.AdafruitAPIKey(),
 			Tags:            []string{TagApiKey},
@@ -1141,8 +1141,8 @@ func GetDefaultRules() *[]Rule { //nolint:funlen // This function contains all r
 	return allRules
 }
 
-func getSpecialRules() *[]Rule {
-	specialRules := []Rule{
+func getSpecialRules() []*Rule {
+	specialRules := []*Rule{
 		{
 			Rule:            *HardcodedPassword(),
 			Tags:            []string{TagPassword},
@@ -1150,7 +1150,7 @@ func getSpecialRules() *[]Rule {
 		},
 	}
 
-	return &specialRules
+	return specialRules
 }
 
 func isRuleMatch(rule Rule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
@@ -1167,29 +1167,29 @@ func isRuleMatch(rule Rule, tags []string) bool { //nolint:gocritic // hugeParam
 	return false
 }
 
-func selectRules(allRules *[]Rule, tags []string) *[]Rule {
-	selectedRules := []Rule{}
+func selectRules(allRules []*Rule, tags []string) []*Rule {
+	selectedRules := []*Rule{}
 
-	for _, rule := range *allRules { //nolint:gocritic // rangeValCopy: rule is used immediately
-		if isRuleMatch(rule, tags) {
+	for _, rule := range allRules {
+		if isRuleMatch(*rule, tags) {
 			selectedRules = append(selectedRules, rule)
 		}
 	}
-	return &selectedRules
+	return selectedRules
 }
 
-func ignoreRules(allRules *[]Rule, tags []string) *[]Rule {
-	selectedRules := []Rule{}
+func ignoreRules(allRules []*Rule, tags []string) []*Rule {
+	selectedRules := []*Rule{}
 
-	for _, rule := range *allRules { //nolint:gocritic // rangeValCopy: rule is used immediately
-		if !isRuleMatch(rule, tags) {
+	for _, rule := range allRules {
+		if !isRuleMatch(*rule, tags) {
 			selectedRules = append(selectedRules, rule)
 		}
 	}
-	return &selectedRules
+	return selectedRules
 }
 
-func FilterRules(selectedList, ignoreList, specialList []string) *[]Rule {
+func FilterRules(selectedList, ignoreList, specialList []string) []*Rule {
 	if len(selectedList) > 0 && len(ignoreList) > 0 {
 		log.Warn().
 			Msgf("Both 'rule' and 'ignoreRule' flags were provided, " +
@@ -1205,10 +1205,10 @@ func FilterRules(selectedList, ignoreList, specialList []string) *[]Rule {
 	}
 	if len(specialList) > 0 {
 		specialRules := getSpecialRules()
-		for _, rule := range *specialRules { //nolint:gocritic // rangeValCopy: rule is used immediately
+		for _, rule := range specialRules {
 			for _, id := range specialList {
 				if strings.EqualFold(rule.Rule.RuleID, id) {
-					*selectedRules = append(*selectedRules, rule)
+					selectedRules = append(selectedRules, rule)
 				}
 			}
 		}
