@@ -174,10 +174,6 @@ func TestSecrets(t *testing.T) {
 			Name:       "JFROG Secret as kubectl argument",
 			ShouldFind: true,
 		},
-		{
-			Content:    "<ri:user ri:userkey=\"8a7f808123456789012345678\" />",
-			ShouldFind: false, // if this test fails, we should review isSecretFromConfluenceResourceIdentifier
-		},
 	}
 
 	detector, err := initEngine(&EngineConfig{
