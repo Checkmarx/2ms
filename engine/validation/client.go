@@ -12,6 +12,7 @@ func sendValidationRequest(endpoint, authorization string) (*http.Response, erro
 	}
 	req.Header.Set("Authorization", authorization)
 
+	// TODO: do not recreate this client for each request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
