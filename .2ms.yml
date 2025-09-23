@@ -545,3 +545,16 @@ ignore-result:
 - b92c365b9902b784e1e050bc0ace14b626cdca88 # unit test from e2e_test.go
 - c6718a81d241d67614db659a3e2deef9717f5bfa # unit test from engine_test.go
 - ded3f5e66a3f44aa1bdb7a59f43e2a048ae54e86 # unit test from e2e_test.go
+- 29da56b777f6bbef23a44f30c64fc6b49d633423 # secret found (rule: jwt)
+- 3857e95a0a1d20fda844130ae7318faeb5bd03a8 # secret found (rule: jwt)
+- 4c6831db4c332ed08e2e2b7c63b7e652647107be # secret found (rule: jwt)
+- 544a7c97ac101bf1527d5bf75382ecbf21fa3dcc # secret found (rule: generic-api-key)
+- 58f2a4917af395b54fdf06c0a520b51b33341d6c # secret found (rule: github-pat)
+- 5e1d409b6ed3b5b2db19e36d934a13cc3bbe385e # secret found (rule: private-key)
+- 9b1b982413c5cd52e4edb0b03f766c84a9efca48 # secret found (rule: generic-api-key)
+- a415c70705fba7d675618a6626ff7932c1ef195f # secret found (rule: authenticated-url)
+- aebbd4069861ce0dd14d17cba83d97fb198d2de2 # secret found (rule: github-pat)
+- bdfc59ce6183f71a88e43ce574533770f10cd1f7 # secret found (rule: generic-api-key)
+- de75386426fc7d6ad0b03a5374be261e4ed24c9d # secret found (rule: github-pat)
+- e6cac36edcd86a64123ebedc40337769333129a3 # secret found (rule: authenticated-url)
+- e9ba5a0972ffe2eddfec0388219d5ae1cd7dae0f # secret found (rule: generic-api-key)
