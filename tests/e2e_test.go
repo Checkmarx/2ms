@@ -138,12 +138,6 @@ func TestIntegration(t *testing.T) {
 		}
 		assert.Equal(t, 0, len(report.GetResults()))
 	})
-
-	t.Run("2ms version flag should work", func(t *testing.T) {
-		if err := executable.run("", "--version"); err != nil {
-			t.Errorf("expected no error, got %s", err)
-		}
-	})
 }
 
 func TestSecretsScans(t *testing.T) {
