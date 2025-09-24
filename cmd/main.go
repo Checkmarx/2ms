@@ -129,11 +129,11 @@ func Execute() (int, error) {
 		return 0, err
 	}
 
-	if engineInstance == nil {
-		return 0, fmt.Errorf("engine was not initialized")
+	if engineInstance != nil {
+		return engineInstance.GetReport().GetTotalSecretsFound(), nil
 	}
 
-	return engineInstance.GetReport().GetTotalSecretsFound(), nil
+	return 0, nil
 }
 
 func preRun(pluginName string, engineInstance engine.IEngine, _ *cobra.Command, _ []string) error {
