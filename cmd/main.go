@@ -126,7 +126,7 @@ func Execute() (int, error) {
 	listenForErrors(channels.GetErrorsCh())
 
 	if err := rootCmd.ExecuteContext(context.Background()); err != nil {
-		return 1, err
+		return 0, err
 	}
 
 	if engineInstance != nil {
