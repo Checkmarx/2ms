@@ -1,0 +1,16 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
+)
+
+var AnthropicApiKeyRegex = utils.GenerateUniqueTokenRegex(`sk-ant-api03-[a-zA-Z0-9_\-]{93}AA`, false)
+
+func AnthropicApiKey() *NewRule {
+	return &NewRule{
+		Description: "Identified an Anthropic API Key, which may compromise AI assistant integrations and expose sensitive data to unauthorized access.",
+		RuleID:      "anthropic-api-key",
+		Regex:       AnthropicApiKeyRegex,
+		Keywords:    []string{"sk-ant-api03"},
+	}
+}

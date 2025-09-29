@@ -427,6 +427,11 @@ func GetDefaultRules() []*Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
 		},
 		{
+			Rule:            *GenericCredential(),
+			Tags:            []string{TagApiKey},
+			ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
+		},
+		{
 			Rule:            *rules.GitHubPat(),
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryDevelopmentPlatform, RuleType: 4},
