@@ -7,15 +7,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestArtifactoryReferenceToken(t *testing.T) {
+func TestCohereApiToken(t *testing.T) {
 	tests := []struct {
 		name           string
 		truePositives  []string
 		falsePositives []string
 	}{
 		{
-			name:          "Adafruit validation",
-			truePositives: []string{},
+			name: "CohereApiToken validation",
+			truePositives: []string{
+				"cohere_api_token = \"8heg9kc4F0uHh7WiPWcQ2puihG6b5JR8gb0pyJo8\"",
+				// https://github.com/cohere-ai/cohere-go/blob/abe8044073ed498ffbb206a602d03c2414b64512/client/client.go#L38C30-L38C40
+				"export CO_API_KEY=8heg9kc4F0uHh7WiPWcQ2puihG6b5JR8gb0pyJo8",
+			},
+			falsePositives: []string{
+				`CO_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+			},
 		},
 	}
 
@@ -26,7 +33,12 @@ func TestArtifactoryReferenceToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(ArtifactoryReferenceToken())
+			fmt.Println("falsePositives := []string{")
+			for _, s := range tt.falsePositives {
+				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
+			}
+			fmt.Println("},")
+			rule := ConvertNewRuleToGitleaksRule(CohereApiToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

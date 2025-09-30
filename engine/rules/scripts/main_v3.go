@@ -11,13 +11,26 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 )
 
 func main() {
-	inputDir := "./oldRules" // folder with original rules
-	outputDir := "./output"  // folder for generated rules
+	inputDir := "oldRules" // folder with original rules
+	outputDir := "output"  // folder for generated rules
+
+	// runtime.Caller(0) returns info about the current file (main_v3.go)
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("Cannot get current file info")
+	}
+
+	// Get the directory where this file is located
+	currentDir := filepath.Dir(currentFile)
+
+	inputDir = filepath.Join(currentDir, inputDir)
+	outputDir = filepath.Join(currentDir, outputDir)
 
 	err := os.MkdirAll(outputDir, 0755)
 	if err != nil {
@@ -63,7 +76,7 @@ func main() {
 			}
 
 			// We found a config.Rule{...}
-			var ruleID, regexExpr, descLine, keywordsLine string
+			var ruleID, regexExpr, descLine, keywordsLine, entropyLine string
 
 			for _, elt := range cl.Elts {
 				kv, ok := elt.(*ast.KeyValueExpr)
@@ -84,7 +97,10 @@ func main() {
 					descLine = fmt.Sprintf("Description: %s,", nodeSource(fset, kv.Value))
 				case "Keywords":
 					keywordsLine = fmt.Sprintf("Keywords: %s,", nodeSource(fset, kv.Value))
+				case "Entropy":
+					entropyLine = fmt.Sprintf("Entropy: %s,", nodeSource(fset, kv.Value))
 				}
+
 			}
 
 			if ruleID == "" {
@@ -120,11 +136,11 @@ func %s() *NewRule {
 	return &NewRule{
 		%s
 		RuleID: %s,
-		Regex: %sRegex,
+		Regex: %sRegex,%s
 		%s
 	}
 }
-`, funcName, regexExpr, funcName, descLine, ruleID, funcName, keywordsLine)
+`, funcName, regexExpr, funcName, descLine, ruleID, funcName, conditionalLine(entropyLine), keywordsLine)
 
 			err = ioutil.WriteFile(outputPath, []byte(newContent), 0644)
 			if err != nil {
@@ -149,8 +165,9 @@ func Test%s(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "Adafruit validation",
+			name: "%s validation",
 			truePositives: []string{},
+			falsePositives: []string{}
 		},
 	}
 
@@ -158,6 +175,11 @@ func Test%s(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fmt.Println("truePositives := []string{")
 			for _, s := range tt.truePositives {
+				fmt.Printf("\t%%q,\n", s) // %%q prints the string with quotes
+			}
+			fmt.Println("},")
+			fmt.Println("falsePositives := []string{")
+			for _, s := range tt.falsePositives {
 				fmt.Printf("\t%%q,\n", s) // %%q prints the string with quotes
 			}
 			fmt.Println("},")
@@ -177,7 +199,7 @@ func Test%s(t *testing.T) {
 			}
 		})
 	}
-}`, funcName, funcName)
+}`, funcName, strings.TrimSuffix(funcName, "()"), funcName)
 
 			testOutputPath := strings.TrimSuffix(outputPath, ".go") + "_test.go"
 			// write an empty test file
@@ -219,4 +241,10 @@ func toCamel(s string) string {
 		}
 	}
 	return strings.Join(parts, "")
+}
+func conditionalLine(line string) string {
+	if line == "" {
+		return ""
+	}
+	return "\n\t\t" + line
 }

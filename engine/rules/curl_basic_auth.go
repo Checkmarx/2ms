@@ -1,0 +1,29 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/regexp"
+)
+
+var CurlBasicAuthRegex = regexp.MustCompile(`\bcurl\b(?:.*|.*(?:[\r\n]{1,2}.*){1,5})[ \t\n\r](?:-u|--user)(?:=|[ \t]{0,5})("(:[^"]{3,}|[^:"]{3,}:|[^:"]{3,}:[^"]{3,})"|'([^:']{3,}:[^']{3,})'|((?:"[^"]{3,}"|'[^']{3,}'|[\w$@.-]+):(?:"[^"]{3,}"|'[^']{3,}'|[\w${}@.-]+)))(?:\s|\z)`)
+
+func CurlBasicAuth() *NewRule {
+	return &NewRule{
+		RuleID:      "curl-auth-user",
+		Description: "Discovered a potential basic authorization token provided in a curl command, which could compromise the curl accessed resource.",
+		Regex:       CurlBasicAuthRegex,
+		Keywords:    []string{"curl"},
+		Entropy:     2,
+		AllowLists: []*AllowList{
+			{
+				Regexes: []*regexp.Regexp{
+					regexp.MustCompile(`[^:]+:(?:change(?:it|me)|pass(?:word)?|pwd|test|token|\*+|x+)`), // common placeholder passwords
+					regexp.MustCompile(`['"]?<[^>]+>['"]?:['"]?<[^>]+>|<[^:]+:[^>]+>['"]?`),             // <placeholder>
+					regexp.MustCompile(`[^:]+:\[[^]]+]`),                                                // [placeholder]
+					regexp.MustCompile(`['"]?[^:]+['"]?:['"]?\$(?:\d|\w+|\{(?:\d|\w+)})['"]?`),          // $1 or $VARIABLE
+					regexp.MustCompile(`\$\([^)]+\):\$\([^)]+\)`),                                       // $(cat login.txt)
+					regexp.MustCompile(`['"]?\$?{{[^}]+}}['"]?:['"]?\$?{{[^}]+}}['"]?`),                 // ${{ secrets.FOO }} or {{ .Values.foo }}
+				},
+			},
+		},
+	}
+}

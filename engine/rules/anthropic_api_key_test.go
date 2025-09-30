@@ -39,7 +39,6 @@ func TestAnthropicApiKey(t *testing.T) {
 			fmt.Println("},")
 			rule := ConvertNewRuleToGitleaksRule(AnthropicApiKey())
 			d := createSingleRuleDetector(rule)
-
 			// validate true positives if any specified
 			for _, truePositive := range tt.truePositives {
 				findings := d.DetectString(truePositive)
