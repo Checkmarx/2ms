@@ -1,0 +1,19 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
+)
+
+var LinearClientSecretRegex = utils.GenerateSemiGenericRegex([]string{"linear"}, utils.Hex("32"), true)
+
+func LinearClientSecret() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "c628a6eb-bc3a-4bfe-8ef0-8123496bd6bd",
+		Description: "Identified a Linear Client Secret, which may compromise secure integrations and sensitive project management data.",
+		RuleID:      "linear-client-secret",
+		Regex:       LinearClientSecretRegex,
+		Entropy:     2,
+		Keywords:    []string{"linear"},
+		Severity:    "High",
+	}
+}

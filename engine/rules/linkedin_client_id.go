@@ -1,0 +1,23 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
+)
+
+var LinkedinClientIDRegex = utils.GenerateSemiGenericRegex([]string{"linked[_-]?in"}, utils.AlphaNumeric("14"), true)
+
+func LinkedinClientID() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "3c7dba47-155c-4a27-a7a8-46cc64b61ff2",
+		Description: "Found a LinkedIn Client ID, risking unauthorized access to LinkedIn integrations and professional data exposure.",
+		RuleID:      "linkedin-client-id",
+		Regex:       LinkedinClientIDRegex,
+		Entropy:     2,
+		Keywords: []string{
+			"linkedin",
+			"linked_in",
+			"linked-in",
+		},
+		Severity: "High",
+	}
+}

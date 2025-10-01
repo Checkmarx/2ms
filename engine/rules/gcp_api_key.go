@@ -1,0 +1,43 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
+	"github.com/zricethezav/gitleaks/v8/regexp"
+)
+
+var GcpAPIKeyRegex = utils.GenerateUniqueTokenRegex(`AIza[\w-]{35}`, false)
+
+func GcpAPIKey() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
+		Description: "Uncovered a GCP API key, which could lead to unauthorized access to Google Cloud services and data breaches.",
+		RuleID:      "gcp-api-key",
+		Regex:       GcpAPIKeyRegex,
+		Entropy:     4,
+		Keywords:    []string{"AIza"},
+		AllowLists: []*AllowList{
+			{
+				Regexes: []*regexp.Regexp{
+					// example keys from https://github.com/firebase/firebase-android-sdk
+					regexp.MustCompile(`AIzaSyabcdefghijklmnopqrstuvwxyz1234567`),
+					regexp.MustCompile(`AIzaSyAnLA7NfeLquW1tJFpx_eQCxoX-oo6YyIs`),
+					regexp.MustCompile(`AIzaSyCkEhVjf3pduRDt6d1yKOMitrUEke8agEM`),
+					regexp.MustCompile(`AIzaSyDMAScliyLx7F0NPDEJi1QmyCgHIAODrlU`),
+					regexp.MustCompile(`AIzaSyD3asb-2pEZVqMkmL6M9N6nHZRR_znhrh0`),
+					regexp.MustCompile(`AIzayDNSXIbFmlXbIE6mCzDLQAqITYefhixbX4A`),
+					regexp.MustCompile(`AIzaSyAdOS2zB6NCsk1pCdZ4-P6GBdi_UUPwX7c`),
+					regexp.MustCompile(`AIzaSyASWm6HmTMdYWpgMnjRBjxcQ9CKctWmLd4`),
+					regexp.MustCompile(`AIzaSyANUvH9H9BsUccjsu2pCmEkOPjjaXeDQgY`),
+					regexp.MustCompile(`AIzaSyA5_iVawFQ8ABuTZNUdcwERLJv_a_p4wtM`),
+					regexp.MustCompile(`AIzaSyA4UrcGxgwQFTfaI3no3t7Lt1sjmdnP5sQ`),
+					regexp.MustCompile(`AIzaSyDSb51JiIcB6OJpwwMicseKRhhrOq1cS7g`),
+					regexp.MustCompile(`AIzaSyBF2RrAIm4a0mO64EShQfqfd2AFnzAvvuU`),
+					regexp.MustCompile(`AIzaSyBcE-OOIbhjyR83gm4r2MFCu4MJmprNXsw`),
+					regexp.MustCompile(`AIzaSyB8qGxt4ec15vitgn44duC5ucxaOi4FmqE`),
+					regexp.MustCompile(`AIzaSyA8vmApnrHNFE0bApF4hoZ11srVL_n0nvY`),
+				},
+			},
+		},
+		Severity: "High",
+	}
+}

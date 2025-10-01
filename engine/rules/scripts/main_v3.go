@@ -14,6 +14,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -76,7 +78,7 @@ func main() {
 			}
 
 			// We found a config.Rule{...}
-			var ruleID, regexExpr, descLine, keywordsLine, entropyLine string
+			var ruleID, regexExpr, descLine, keywordsLine, entropyLine, pathLine string
 
 			for _, elt := range cl.Elts {
 				kv, ok := elt.(*ast.KeyValueExpr)
@@ -99,6 +101,8 @@ func main() {
 					keywordsLine = fmt.Sprintf("Keywords: %s,", nodeSource(fset, kv.Value))
 				case "Entropy":
 					entropyLine = fmt.Sprintf("Entropy: %s,", nodeSource(fset, kv.Value))
+				case "Path":
+					pathLine = fmt.Sprintf("Path: %s,", nodeSource(fset, kv.Value))
 				}
 
 			}
@@ -124,6 +128,9 @@ func main() {
 				regexExpr = "nil"
 			}
 
+			// Create a new uuid4
+			baseRuleID := uuid.New()
+
 			newContent := fmt.Sprintf(`package rules
 
 import (
@@ -134,13 +141,15 @@ var %sRegex = %s
 
 func %s() *NewRule {
 	return &NewRule{
+		BaseRuleID: "%s",
 		%s
 		RuleID: %s,
 		Regex: %sRegex,%s
-		%s
+		%s%s
+		Severity: "High",
 	}
 }
-`, funcName, regexExpr, funcName, descLine, ruleID, funcName, conditionalLine(entropyLine), keywordsLine)
+`, funcName, regexExpr, funcName, baseRuleID, descLine, ruleID, funcName, conditionalLine(entropyLine), keywordsLine, conditionalLine(pathLine))
 
 			err = ioutil.WriteFile(outputPath, []byte(newContent), 0644)
 			if err != nil {
@@ -167,7 +176,7 @@ func Test%s(t *testing.T) {
 		{
 			name: "%s validation",
 			truePositives: []string{},
-			falsePositives: []string{}
+			falsePositives: []string{},
 		},
 	}
 
@@ -232,16 +241,29 @@ func literalOrSource(fset *token.FileSet, n ast.Node) string {
 	return nodeSource(fset, n)
 }
 
-// Converts "airtable-api-key" → "AirtableApiKey"
 func toCamel(s string) string {
+	// List of known acronyms to keep in all caps
+	acronyms := map[string]bool{
+		"api": true,
+		"pat": true,
+		"id":  true,
+	}
+
 	parts := strings.Split(s, "-")
 	for i, p := range parts {
-		if len(p) > 0 {
+		if len(p) == 0 {
+			continue
+		}
+		lower := strings.ToLower(p)
+		if acronyms[lower] {
+			parts[i] = strings.ToUpper(p) // make the whole acronym uppercase
+		} else {
 			parts[i] = strings.ToUpper(p[:1]) + p[1:]
 		}
 	}
 	return strings.Join(parts, "")
 }
+
 func conditionalLine(line string) string {
 	if line == "" {
 		return ""

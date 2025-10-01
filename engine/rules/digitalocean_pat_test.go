@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDigitaloceanPat(t *testing.T) {
+func TestDigitalOceanPat(t *testing.T) {
 	tests := []struct {
 		name           string
 		truePositives  []string
@@ -16,8 +16,8 @@ func TestDigitaloceanPat(t *testing.T) {
 		{
 			name: "DigitalOceanPAT validation",
 			truePositives: []string{
-				"do_token: dop_v1_8b2952adf472fd7273538c1c15bfe8ab23e9ac876ad83b324165302e04f3e480",     // gitleaks:allow
-				"doToken = \"dop_v1_8b2952adf472fd7273538c1c15bfe8ab23e9ac876ad83b324165302e04f3e480\"", // gitleaks:allow
+				"do_token: dop_v1_8b2952adf472fd7273538c1c15bfe8ab23e9ac876ad83b324165302e04f3e480",
+				"doToken = \"dop_v1_8b2952adf472fd7273538c1c15bfe8ab23e9ac876ad83b324165302e04f3e480\"",
 				"  \"doToken\" => \"dop_v1_8b2952adf472fd7273538c1c15bfe8ab23e9ac876ad83b324165302e04f3e480\"",
 				"do_TOKEN := \"dop_v1_8b2952adf472fd7273538c1c15bfe8ab23e9ac876ad83b324165302e04f3e480\"",
 				"do_TOKEN ?= \"dop_v1_8b2952adf472fd7273538c1c15bfe8ab23e9ac876ad83b324165302e04f3e480\"",

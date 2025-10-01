@@ -446,11 +446,12 @@ func GetDefaultRules() []*Rule { //nolint:funlen // This function contains all r
 			Tags:            []string{TagAccessToken},
 			ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
 		},
-		{
-			Rule:            *GitHubApp(),
-			Tags:            []string{TagAccessToken},
-			ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
-		},
+		//{
+		//	//TODO: reactivate before merge, rule conflicted with existing move to our side
+		//	Rule:            *GitHubApp(),
+		//	Tags:            []string{TagAccessToken},
+		//	ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
+		//},
 		{
 			Rule:            *rules.GitHubRefresh(),
 			Tags:            []string{TagRefreshToken},
