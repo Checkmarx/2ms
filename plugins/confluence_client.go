@@ -148,11 +148,33 @@ func walkPaginated[T any](
 	}
 }
 
-// walkPagesPaginated iterates pages starting from initialURL
+// walkPagesPaginated iterates pages starting from initialURL (streaming decode of results array).
 func (c *httpConfluenceClient) walkPagesPaginated(
 	ctx context.Context, initialURL string, visit func(*Page) error,
 ) error {
-	return walkPaginated[*Page](ctx, initialURL, c.getJSON, c.resolveNextPageURL, parsePagesResponse, visit)
+	nextURL := initialURL
+	for {
+		rc, headers, err := c.getJSONStream(ctx, nextURL)
+		if err != nil {
+			return err
+		}
+
+		// Prefer Link header; body may also include _links.next
+		linkNext := nextURLFromLinkHeader(headers)
+		bodyNext, decErr := streamPagesFromBody(rc, visit)
+		closeErr := rc.Close()
+		if decErr != nil {
+			return decErr
+		}
+		if closeErr != nil {
+			return closeErr
+		}
+
+		nextURL = c.resolveNextPageURL(linkNext, bodyNext)
+		if nextURL == "" {
+			return nil
+		}
+	}
 }
 
 // walkSpacesPaginated iterates spaces starting from initialURL
@@ -232,6 +254,38 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 		return nil, nil, fmt.Errorf("read body: %w", err)
 	}
 	return body, resp.Header.Clone(), nil
+}
+
+// getJSONStream performs a GET request and returns the response Body (caller must Close)
+// and headers, allowing streaming decode without buffering the entire payload.
+// HTTP errors are handled similarly to getJSON.
+func (c *httpConfluenceClient) getJSONStream(ctx context.Context, reqURL string) (io.ReadCloser, http.Header, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, http.NoBody)
+	if err != nil {
+		return nil, nil, fmt.Errorf("build request: %w", err)
+	}
+	if c.username != "" && c.token != "" {
+		req.SetBasicAuth(c.username, c.token)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("http get: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		defer resp.Body.Close()
+		return nil, nil, fmt.Errorf("%s", rateLimitMessage(resp.Header))
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		defer resp.Body.Close()
+		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
+		return nil, nil, fmt.Errorf("http %d: %s", resp.StatusCode, strings.TrimSpace(string(snippet)))
+	}
+
+	// Caller must Close.
+	return resp.Body, resp.Header.Clone(), nil
 }
 
 // rateLimitMessage formats a user-friendly message for HTTP 429 responses,
@@ -376,4 +430,73 @@ func nextURLFromLinkHeader(h http.Header) string {
 		}
 	}
 	return ""
+}
+
+// streamPagesFromBody streams the Confluence /pages response,
+// calling visit(*Page) for each element in results, and returns body _links.next if present.
+func streamPagesFromBody(r io.Reader, visit func(*Page) error) (bodyLinksNext string, err error) {
+	dec := json.NewDecoder(r)
+
+	// Expect a top-level JSON object
+	tok, err := dec.Token()
+	if err != nil {
+		return "", fmt.Errorf("decode: top-level token: %w", err)
+	}
+	if d, ok := tok.(json.Delim); !ok || d != '{' {
+		return "", fmt.Errorf("decode: expected '{' at top-level")
+	}
+
+	for dec.More() {
+		ktok, err := dec.Token()
+		if err != nil {
+			return "", fmt.Errorf("decode: key token: %w", err)
+		}
+		key, _ := ktok.(string)
+
+		switch key {
+		case "results":
+			// Start of the array
+			tok, err := dec.Token()
+			if err != nil {
+				return "", fmt.Errorf("decode: results '[': %w", err)
+			}
+			if d, ok := tok.(json.Delim); !ok || d != '[' {
+				return "", fmt.Errorf("decode: expected '[' for results")
+			}
+			for dec.More() {
+				var p Page
+				if err := dec.Decode(&p); err != nil {
+					return "", fmt.Errorf("decode: page: %w", err)
+				}
+				if err := visit(&p); err != nil {
+					return "", err
+				}
+			}
+			// Consume closing ']'
+			if _, err := dec.Token(); err != nil {
+				return "", fmt.Errorf("decode: results ']': %w", err)
+			}
+
+		case "_links":
+			// We only need "next"; decode into a small map.
+			var ln map[string]string
+			if err := dec.Decode(&ln); err != nil {
+				return "", fmt.Errorf("decode: _links: %w", err)
+			}
+			bodyLinksNext = ln["next"]
+
+		default:
+			// Skip unknown/small fields without loading them fully elsewhere
+			var discard json.RawMessage
+			if err := dec.Decode(&discard); err != nil {
+				return "", fmt.Errorf("decode: skip %q: %w", key, err)
+			}
+		}
+	}
+
+	// Consume closing '}'
+	if tok, err = dec.Token(); err != nil {
+		return "", fmt.Errorf("decode: top-level '}': %w", err)
+	}
+	return bodyLinksNext, nil
 }
