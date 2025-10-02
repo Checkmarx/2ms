@@ -14,7 +14,7 @@ func TestGithubPAT(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "GithubPAT validation",
+			name: "GitHubPat validation",
 			truePositives: []string{
 				"githubToken=\"ghp_botnfvvnp3k9fhb107idtkgpwbccjw8wum5q\"",
 				"githubToken = \"ghp_botnfvvnp3k9fhb107idtkgpwbccjw8wum5q\"",
@@ -61,7 +61,7 @@ func TestGithubPAT(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(GithubPAT())
+			rule := ConvertNewRuleToGitleaksRule(GitHubPat())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

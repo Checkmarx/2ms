@@ -8,11 +8,13 @@ var FinicityClientSecretRegex = utils.GenerateSemiGenericRegex([]string{"finicit
 
 func FinicityClientSecret() *NewRule {
 	return &NewRule{
-		BaseRuleID:  "bc48d7fc-9dca-42f9-aefe-6d38b13f28c1",
-		Description: "Identified a Finicity Client Secret, which could lead to compromised financial service integrations and data breaches.",
-		RuleID:      "finicity-client-secret",
-		Regex:       FinicityClientSecretRegex,
-		Keywords:    []string{"finicity"},
-		Severity:    "High",
+		BaseRuleID:      "bc48d7fc-9dca-42f9-aefe-6d38b13f28c1",
+		Description:     "Identified a Finicity Client Secret, which could lead to compromised financial service integrations and data breaches.",
+		RuleID:          "finicity-client-secret",
+		Regex:           FinicityClientSecretRegex,
+		Keywords:        []string{"finicity"},
+		Severity:        "High",
+		Tags:            []string{TagClientSecret},
+		ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4},
 	}
 }

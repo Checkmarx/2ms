@@ -1,0 +1,23 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
+)
+
+var PrefectRegex = utils.GenerateUniqueTokenRegex(`pnu_[a-zA-Z0-9]{36}`, false)
+
+func Prefect() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "8c26d49d-e93b-4cd9-a564-1662f9a4be44",
+		Description: "Detected a Prefect API token, risking unauthorized access to workflow management and automation services.",
+		RuleID:      "prefect-api-token",
+		Regex:       PrefectRegex,
+		Entropy:     2,
+		Keywords: []string{
+			"pnu_",
+		},
+		Severity:        "High",
+		Tags:            []string{TagApiToken},
+		ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+	}
+}

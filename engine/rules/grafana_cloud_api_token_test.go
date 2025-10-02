@@ -14,7 +14,7 @@ func TestGrafanaCloudAPIToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "GrafanaCloudAPIToken validation",
+			name: "GrafanaCloudApiToken validation",
 			truePositives: []string{
 				"grafana-cloud-api-tokenToken = \"glc_n3wcenmqn39hxd51x8czx33l3snnq3k8\"",
 				"grafana-cloud-api-token_TOKEN := \"glc_n3wcenmqn39hxd51x8czx33l3snnq3k8\"",
@@ -73,7 +73,7 @@ void GLC_StateBeginUnderwaterAliasModelCaustics(texture_ref base_texture, textur
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(GrafanaCloudAPIToken())
+			rule := ConvertNewRuleToGitleaksRule(GrafanaCloudApiToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

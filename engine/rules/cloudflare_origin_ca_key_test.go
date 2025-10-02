@@ -14,7 +14,7 @@ func TestCloudflareOriginCaKey(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "CloudflareOriginCaKey validation",
+			name: "CloudflareOriginCAKey validation",
 			truePositives: []string{
 				"{\n    \"cloudflare_token\": \"v1.0-aaa334dc886f30631ba0a610-0d98ef66290d7e50aac7c27b5986c99e6f3f1084c881d8ac0eae5de1d1aa0644076ff57022069b3237d19afe60ad045f207ef2b16387ee37b749441b2ae2e9ebe5b4606e846475d4a5\"\n}",
 				"{\"config.ini\": \"CLOUDFLARE_TOKEN=v1.0-aaa334dc886f30631ba0a610-0d98ef66290d7e50aac7c27b5986c99e6f3f1084c881d8ac0eae5de1d1aa0644076ff57022069b3237d19afe60ad045f207ef2b16387ee37b749441b2ae2e9ebe5b4606e846475d4a5\\nBACKUP_ENABLED=true\"}",
@@ -70,7 +70,7 @@ func TestCloudflareOriginCaKey(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(CloudflareOriginCaKey())
+			rule := ConvertNewRuleToGitleaksRule(CloudflareOriginCAKey())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

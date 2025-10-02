@@ -15,6 +15,8 @@ func KucoinAccessToken() *NewRule {
 		Keywords: []string{
 			"kucoin",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryCryptocurrencyExchange, RuleType: 4},
 	}
 }

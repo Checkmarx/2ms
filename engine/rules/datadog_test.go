@@ -14,7 +14,7 @@ func TestDatadogAccessToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "DatadogAccessToken validation",
+			name: "DatadogtokenAccessToken validation",
 			truePositives: []string{
 				"datadogToken = \"ayen4o4yr80wpo1bgnyadugz46eqq3ik4287h3zw\"",
 				"<datadogToken>\n    ayen4o4yr80wpo1bgnyadugz46eqq3ik4287h3zw\n</datadogToken>",
@@ -58,7 +58,7 @@ func TestDatadogAccessToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(DatadogAccessToken())
+			rule := ConvertNewRuleToGitleaksRule(DatadogtokenAccessToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

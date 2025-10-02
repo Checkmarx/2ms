@@ -6,7 +6,7 @@ import (
 
 var GithubPATRegex = regexp.MustCompile(`ghp_[0-9a-zA-Z]{36}`)
 
-func GithubPAT() *NewRule {
+func GitHubPat() *NewRule {
 	return &NewRule{
 		BaseRuleID:  "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
 		Description: "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
@@ -23,5 +23,7 @@ func GithubPAT() *NewRule {
 				},
 			},
 		},
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryDevelopmentPlatform, RuleType: 4},
 	}
 }

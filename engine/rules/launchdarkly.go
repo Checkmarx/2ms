@@ -15,6 +15,8 @@ func LaunchDarklyAccessToken() *NewRule {
 		Keywords: []string{
 			"launchdarkly",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategorySoftwareDevelopment, RuleType: 4},
 	}
 }

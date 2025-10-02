@@ -14,7 +14,7 @@ func TestBitbucketClientId(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "BitbucketClientId validation",
+			name: "BitBucketClientID validation",
 			truePositives: []string{
 				"bitbucketToken = \"w0hgmshg6uhgpqlbotbe15c2anbizrne\"",
 				"{\n    \"bitbucket_token\": \"w0hgmshg6uhgpqlbotbe15c2anbizrne\"\n}",
@@ -58,7 +58,7 @@ func TestBitbucketClientId(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(BitbucketClientId())
+			rule := ConvertNewRuleToGitleaksRule(BitBucketClientID())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

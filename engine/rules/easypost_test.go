@@ -14,7 +14,7 @@ func TestEasypostAPIToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "Easypost validation",
+			name: "EasyPost validation",
 			truePositives: []string{
 				"EZAKToken = \"EZAKE9F4EvBnXB2Pr0Rd0NPHpsenHy7iwMli0NeUjzg25jhl7NWUjuitzC\"",
 				"EZAKToken=EZAKE9F4EvBnXB2Pr0Rd0NPHpsenHy7iwMli0NeUjzg25jhl7NWUjuitzC",
@@ -65,7 +65,7 @@ func TestEasypostAPIToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(Easypost())
+			rule := ConvertNewRuleToGitleaksRule(EasyPost())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

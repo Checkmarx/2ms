@@ -16,7 +16,7 @@ func TestClickhouseCloudApiSecretKey(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "ClickhouseCloudApiSecretKey validation",
+			name: "ClickHouseCloud validation",
 			truePositives: []string{
 				"ClickHouse_token: 4b1dbRdW3rOcB7xLthrM4BTBGK1qPLkHigpN1bXD6z",
 				"string ClickHouseToken = \"4b1dbRdW3rOcB7xLthrM4BTBGK1qPLkHigpN1bXD6z\";",
@@ -93,7 +93,7 @@ func TestClickhouseCloudApiSecretKey(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(ClickhouseCloudApiSecretKey())
+			rule := ConvertNewRuleToGitleaksRule(ClickHouseCloud())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

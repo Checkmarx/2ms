@@ -14,7 +14,7 @@ func TestGithubOauth(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "GithubOauth validation",
+			name: "GitHubOauth validation",
 			truePositives: []string{
 				"githubToken = \"gho_tizalr108n3gvdhtjx18bvqz0zupu7ymog9e\"",
 				"githubToken = \"gho_tizalr108n3gvdhtjx18bvqz0zupu7ymog9e\"",
@@ -61,7 +61,7 @@ func TestGithubOauth(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(GithubOauth())
+			rule := ConvertNewRuleToGitleaksRule(GitHubOauth())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

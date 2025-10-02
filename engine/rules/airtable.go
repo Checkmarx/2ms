@@ -9,9 +9,13 @@ var AirtableRegex = utils.GenerateSemiGenericRegex([]string{"airtable"}, utils.A
 func Airtable() *NewRule {
 	// define rule
 	return &NewRule{
-		Description: "Uncovered a possible Airtable API Key, potentially compromising database access and leading to data leakage or alteration.",
-		RuleID:      "airtable-api-key",
-		Regex:       AirtableRegex,
-		Keywords:    []string{"airtable"},
+		BaseRuleID:      "6869a35b-dfad-439d-b285-3b26a4469224",
+		Description:     "Uncovered a possible Airtable API Key, potentially compromising database access and leading to data leakage or alteration.",
+		RuleID:          "airtable-api-key",
+		Regex:           AirtableRegex,
+		Keywords:        []string{"airtable"},
+		Severity:        "High",
+		Tags:            []string{TagApiKey},
+		ScoreParameters: ScoreParameters{Category: CategoryDatabaseAsAService, RuleType: 4},
 	}
 }

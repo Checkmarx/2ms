@@ -14,7 +14,7 @@ func TestContentfulDeliveryApiToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "ContentfulDeliveryApiToken validation",
+			name: "Contentful validation",
 			truePositives: []string{
 				"$contentfulToken .= \"3erlcg6cvoqdumi6x752piedfeyin13dlz9wc6hj1ig\"",
 				"contentfulToken=\"3erlcg6cvoqdumi6x752piedfeyin13dlz9wc6hj1ig\"",
@@ -58,7 +58,7 @@ func TestContentfulDeliveryApiToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(ContentfulDeliveryApiToken())
+			rule := ConvertNewRuleToGitleaksRule(Contentful())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

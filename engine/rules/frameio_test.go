@@ -14,7 +14,7 @@ func TestFrameioAPIToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "FrameioAPIToken validation",
+			name: "FrameIO validation",
 			truePositives: []string{
 				"frameio_TOKEN = \"fio-u-u8n=6krboppcw02xyrs929u5phck=tso8o=ld=w9mnb3q_xf2gw2sact995m2j=2\"",
 				"frameio_TOKEN := \"fio-u-u8n=6krboppcw02xyrs929u5phck=tso8o=ld=w9mnb3q_xf2gw2sact995m2j=2\"",
@@ -60,7 +60,7 @@ func TestFrameioAPIToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(FrameioAPIToken())
+			rule := ConvertNewRuleToGitleaksRule(FrameIO())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

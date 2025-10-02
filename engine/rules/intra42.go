@@ -18,6 +18,8 @@ func Intra42ClientSecret() *NewRule {
 			"s-s4t2ud-",
 			"s-s4t2af-",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagClientSecret},
+		ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
 	}
 }

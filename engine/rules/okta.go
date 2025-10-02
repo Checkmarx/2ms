@@ -1,0 +1,23 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
+)
+
+var OktaAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{`(?-i:[Oo]kta|OKTA)`}, `00[\w=\-]{40}`, false)
+
+func OktaAccessToken() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "34da24ff-cea1-48c2-bf4f-1f898a662464",
+		Description: "Identified an Okta Access Token, which may compromise identity management services and user authentication data.",
+		RuleID:      "okta-access-token",
+		Regex:       OktaAccessTokenRegex,
+		Entropy:     4,
+		Keywords: []string{
+			"okta",
+		},
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
+	}
+}

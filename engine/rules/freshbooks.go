@@ -15,6 +15,8 @@ func FreshbooksAccessToken() *NewRule {
 		Keywords: []string{
 			"freshbooks",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4},
 	}
 }

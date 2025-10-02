@@ -16,6 +16,8 @@ func KrakenAccessToken() *NewRule {
 		Keywords: []string{
 			"kraken",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryCryptocurrencyExchange, RuleType: 4},
 	}
 }

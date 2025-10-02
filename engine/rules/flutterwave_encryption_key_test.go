@@ -14,7 +14,7 @@ func TestFlutterwaveEncryptionKey(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "FlutterwaveEncryptionKey validation",
+			name: "FlutterwaveEncKey validation",
 			truePositives: []string{
 				"flutterwavePubKeyToken=FLWSECK_TEST-5654db181ee4",
 				"var flutterwavePubKeyToken string = \"FLWSECK_TEST-5654db181ee4\"",
@@ -59,7 +59,7 @@ func TestFlutterwaveEncryptionKey(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(FlutterwaveEncryptionKey())
+			rule := ConvertNewRuleToGitleaksRule(FlutterwaveEncKey())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

@@ -14,7 +14,7 @@ func TestGithubRefreshToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "GithubRefresh validation",
+			name: "GitHubRefresh validation",
 			truePositives: []string{
 				"githubToken=ghr_g2gv180f1z5a25zsgvxvdb9i02vubb5x4jx8",
 				"{\"config.ini\": \"GITHUB_TOKEN=ghr_g2gv180f1z5a25zsgvxvdb9i02vubb5x4jx8\\nBACKUP_ENABLED=true\"}",
@@ -61,7 +61,7 @@ func TestGithubRefreshToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(GithubRefresh())
+			rule := ConvertNewRuleToGitleaksRule(GitHubRefresh())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

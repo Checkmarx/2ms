@@ -14,12 +14,16 @@ var CurlHeaderAuthRegex = regexp.MustCompile(
 
 func CurlHeaderAuth() *NewRule {
 	return &NewRule{
+		BaseRuleID:  "0d6c06db-760d-4414-920e-4f1670c23169",
 		RuleID:      "curl-auth-header",
 		Description: "Discovered a potential authorization token provided in a curl command header, which could compromise the curl accessed resource.",
 		Regex: regexp.MustCompile(
 			// language=regexp
 			fmt.Sprintf(`\bcurl\b(?:.*?|.*?(?:[\r\n]{1,2}.*?){1,5})[ \t\n\r](?:-H|--header)(?:=|[ \t]{0,5})(?:"%s"|'%s')(?:\B|\s|\z)`, authPat, authPat)),
-		Entropy:  2.75,
-		Keywords: []string{"curl"},
+		Entropy:         2.75,
+		Keywords:        []string{"curl"},
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryNetworking, RuleType: 4},
 	}
 }

@@ -14,7 +14,7 @@ func TestJfrogAPIKey(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "JfrogAPIKey validation",
+			name: "JFrogAPIKey validation",
 			truePositives: []string{
 				"--set imagePullSecretJfrog.password=69prcqmp9t93x4fgij4q22qjoc0uywjt7sfka66b6fu0jesn43saspq2q4pnenfvxwq643uwq",
 			},
@@ -34,7 +34,7 @@ func TestJfrogAPIKey(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(JfrogAPIKey())
+			rule := ConvertNewRuleToGitleaksRule(JFrogAPIKey())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

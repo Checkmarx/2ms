@@ -14,7 +14,7 @@ func TestDropboxLongLivedAPIToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name:           "DropboxLongLivedAPIToken validation",
+			name:           "DropBoxLongLivedAPIToken validation",
 			truePositives:  []string{},
 			falsePositives: []string{},
 		},
@@ -32,7 +32,7 @@ func TestDropboxLongLivedAPIToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(DropboxLongLivedAPIToken())
+			rule := ConvertNewRuleToGitleaksRule(DropBoxLongLivedAPIToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

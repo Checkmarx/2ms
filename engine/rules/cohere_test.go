@@ -14,7 +14,7 @@ func TestCohereApiToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "CohereApiToken validation",
+			name: "CohereAPIToken validation",
 			truePositives: []string{
 				"cohere_api_token = \"8heg9kc4F0uHh7WiPWcQ2puihG6b5JR8gb0pyJo8\"",
 				// https://github.com/cohere-ai/cohere-go/blob/abe8044073ed498ffbb206a602d03c2414b64512/client/client.go#L38C30-L38C40
@@ -38,7 +38,7 @@ func TestCohereApiToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(CohereApiToken())
+			rule := ConvertNewRuleToGitleaksRule(CohereAPIToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

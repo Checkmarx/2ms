@@ -14,7 +14,7 @@ func TestCloudflareApiKey(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "CloudflareApiKey validation",
+			name: "CloudflareAPIKey validation",
 			truePositives: []string{
 				"cloudflare_token: 'zvsxz2oifi661ya-p1yh8zpog1n8o00aepble9j0'",
 				"var cloudflareToken string = \"zvsxz2oifi661ya-p1yh8zpog1n8o00aepble9j0\"",
@@ -70,7 +70,7 @@ func TestCloudflareApiKey(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(CloudflareApiKey())
+			rule := ConvertNewRuleToGitleaksRule(CloudflareAPIKey())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

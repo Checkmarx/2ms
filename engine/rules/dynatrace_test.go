@@ -16,7 +16,7 @@ func TestDynatraceAPIToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name:           "DynatraceAPIToken validation",
+			name:           "Dynatrace validation",
 			truePositives:  utils.GenerateSampleSecrets("dynatrace", "dt0c01."+secrets.NewSecret(utils.AlphaNumeric("24"))+"."+secrets.NewSecret(utils.AlphaNumeric("64"))),
 			falsePositives: []string{},
 		},
@@ -34,7 +34,7 @@ func TestDynatraceAPIToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(DynatraceAPIToken())
+			rule := ConvertNewRuleToGitleaksRule(Dynatrace())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

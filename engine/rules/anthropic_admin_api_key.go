@@ -8,9 +8,13 @@ var AnthropicAdminApiKeyRegex = utils.GenerateUniqueTokenRegex(`sk-ant-admin01-[
 
 func AnthropicAdminApiKey() *NewRule {
 	return &NewRule{
-		Description: "Detected an Anthropic Admin API Key, risking unauthorized access to administrative functions and sensitive AI model configurations.",
-		RuleID:      "anthropic-admin-api-key",
-		Regex:       AnthropicAdminApiKeyRegex,
-		Keywords:    []string{"sk-ant-admin01"},
+		BaseRuleID:      "4d6ff5a0-5ab4-430a-9ca9-404b675e6db2",
+		Description:     "Detected an Anthropic Admin API Key, risking unauthorized access to administrative functions and sensitive AI model configurations.",
+		RuleID:          "anthropic-admin-api-key",
+		Regex:           AnthropicAdminApiKeyRegex,
+		Keywords:        []string{"sk-ant-admin01"},
+		Severity:        "High",
+		Tags:            []string{TagApiKey},
+		ScoreParameters: ScoreParameters{Category: CategoryAIAndMachineLearning, RuleType: 4},
 	}
 }

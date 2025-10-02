@@ -15,6 +15,8 @@ func FinnhubAccessToken() *NewRule {
 		Keywords: []string{
 			"finnhub",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4},
 	}
 }

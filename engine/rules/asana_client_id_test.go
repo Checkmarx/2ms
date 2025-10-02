@@ -14,7 +14,7 @@ func TestAsanaClientId(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "AsanaClientId validation",
+			name: "AsanaClientID validation",
 			truePositives: []string{
 				"asanaToken=\"1309455782606278\"",
 				"asanaToken=1309455782606278",
@@ -53,7 +53,7 @@ func TestAsanaClientId(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(AsanaClientId())
+			rule := ConvertNewRuleToGitleaksRule(AsanaClientID())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

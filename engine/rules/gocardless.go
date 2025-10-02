@@ -16,6 +16,8 @@ func GoCardless() *NewRule {
 			"live_",
 			"gocardless",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagApiToken},
+		ScoreParameters: ScoreParameters{Category: CategoryPaymentProcessing, RuleType: 4},
 	}
 }

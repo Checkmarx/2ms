@@ -14,7 +14,7 @@ func TestIntercomAPIKey(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "IntercomAPIKey validation",
+			name: "Intercom validation",
 			truePositives: []string{
 				"intercomToken=\"dsu2inbsugcpc6-yv7o_2hzdx71db6run5k_as7qtn71utex36e8ugso8dg5\"",
 				"intercomToken = dsu2inbsugcpc6-yv7o_2hzdx71db6run5k_as7qtn71utex36e8ugso8dg5",
@@ -59,7 +59,7 @@ func TestIntercomAPIKey(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(IntercomAPIKey())
+			rule := ConvertNewRuleToGitleaksRule(Intercom())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

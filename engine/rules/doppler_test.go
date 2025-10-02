@@ -14,7 +14,7 @@ func TestDopplerAPIToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "DopplerApiToken validation",
+			name: "Doppler validation",
 			truePositives: []string{
 				"dopplerToken := \"dp.pt.3821ku9kup9sz6dad3bwmccmsxvd8qybquupsyqwr8v\"",
 				"var dopplerToken = \"dp.pt.3821ku9kup9sz6dad3bwmccmsxvd8qybquupsyqwr8v\"",
@@ -58,7 +58,7 @@ func TestDopplerAPIToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(DopplerApiToken())
+			rule := ConvertNewRuleToGitleaksRule(Doppler())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

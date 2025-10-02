@@ -8,11 +8,13 @@ var JfrogIdentityTokenRegex = utils.GenerateSemiGenericRegex([]string{"jfrog", "
 
 func JFrogIdentityToken() *NewRule {
 	return &NewRule{
-		BaseRuleID:  "05985187-9847-4301-81a3-bce901c14dc4",
-		Description: "Discovered a JFrog Identity Token, potentially compromising access to JFrog services and sensitive software artifacts.",
-		RuleID:      "jfrog-identity-token",
-		Regex:       JfrogIdentityTokenRegex,
-		Keywords:    []string{"jfrog", "artifactory", "bintray", "xray"},
-		Severity:    "High",
+		BaseRuleID:      "05985187-9847-4301-81a3-bce901c14dc4",
+		Description:     "Discovered a JFrog Identity Token, potentially compromising access to JFrog services and sensitive software artifacts.",
+		RuleID:          "jfrog-identity-token",
+		Regex:           JfrogIdentityTokenRegex,
+		Keywords:        []string{"jfrog", "artifactory", "bintray", "xray"},
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
 	}
 }

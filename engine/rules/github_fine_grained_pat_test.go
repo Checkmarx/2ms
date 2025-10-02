@@ -14,7 +14,7 @@ func TestGithubFineGrainedPAT(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "GithubFineGrainedPat validation",
+			name: "GitHubFineGrainedPat validation",
 			truePositives: []string{
 				"githubToken=\"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\"",
 				"{\"config.ini\": \"GITHUB_TOKEN=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\\nBACKUP_ENABLED=true\"}",
@@ -61,7 +61,7 @@ func TestGithubFineGrainedPAT(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(GithubFineGrainedPat())
+			rule := ConvertNewRuleToGitleaksRule(GitHubFineGrainedPat())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

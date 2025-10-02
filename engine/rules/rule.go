@@ -25,13 +25,14 @@ type NewRule struct {
 	Regex           *regexp.Regexp
 	Keywords        []string
 	Entropy         float64
-	Path            *regexp.Regexp  // present in some gitleaks secrets
-	SecretGroup     int             // used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	ScoreParameters ScoreParameters //used for ASPM
+	Path            *regexp.Regexp // present in some gitleaks secrets
+	SecretGroup     int            // used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
 	Severity        string
 	OldSeverity     string //fallback for when the tenant has Critical FF turned OFF
 	Deprecated      bool   //deprecated rules will remain in 2ms, with this as true
 	AllowLists      []*AllowList
+	Tags            []string
+	ScoreParameters ScoreParameters //used for ASPM
 }
 
 type AllowList struct { // For patterns that are allowed to be ignored

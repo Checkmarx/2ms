@@ -14,7 +14,7 @@ func TestGcpAPIKey(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "GcpAPIKey validation",
+			name: "GCPAPIKey validation",
 			truePositives: []string{
 				// non-word character at end
 				`AIzaSyNHxIf32IQ1a1yjl3ZJIqKZqzLAK1XhDk-`, // gitleaks:allow
@@ -57,7 +57,7 @@ func TestGcpAPIKey(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(GcpAPIKey())
+			rule := ConvertNewRuleToGitleaksRule(GCPAPIKey())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

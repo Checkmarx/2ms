@@ -16,6 +16,8 @@ func LobAPIToken() *NewRule {
 			"test_",
 			"live_",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagApiKey},
+		ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
 	}
 }

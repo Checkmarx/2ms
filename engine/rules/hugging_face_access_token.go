@@ -16,6 +16,8 @@ func HuggingFaceAccessToken() *NewRule {
 		Keywords: []string{
 			"hf_",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryAIAndMachineLearning, RuleType: 4},
 	}
 }

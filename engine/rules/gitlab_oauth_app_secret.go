@@ -8,10 +8,12 @@ var GitlabOauthAppSecretRegex = regexp.MustCompile(`gloas-[0-9a-zA-Z_\-]{64}`)
 
 func GitlabOauthAppSecret() *NewRule {
 	return &NewRule{
-		RuleID:      "gitlab-oauth-app-secret",
-		Description: "Identified a GitLab OIDC Application Secret, risking access to apps using GitLab as authentication provider.",
-		Regex:       GitlabOauthAppSecretRegex,
-		Entropy:     3,
-		Keywords:    []string{"gloas-"},
+		RuleID:          "gitlab-oauth-app-secret",
+		Description:     "Identified a GitLab OIDC Application Secret, risking access to apps using GitLab as authentication provider.",
+		Regex:           GitlabOauthAppSecretRegex,
+		Entropy:         3,
+		Keywords:        []string{"gloas-"},
+		Tags:            []string{TagSecretKey},
+		ScoreParameters: ScoreParameters{Category: CategorySourceCodeManagement, RuleType: 4},
 	}
 }

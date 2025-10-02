@@ -14,7 +14,7 @@ func TestDatabricksApiToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "DatabricksApiToken validation",
+			name: "Databricks validation",
 			truePositives: []string{
 				"System.setProperty(\"DATABRICKS_TOKEN\", \"dapi4d332ee2c7d03f21ad34dc322982290c\")",
 				"databricksToken=dapi4d332ee2c7d03f21ad34dc322982290c",
@@ -61,7 +61,7 @@ func TestDatabricksApiToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(DatabricksApiToken())
+			rule := ConvertNewRuleToGitleaksRule(Databricks())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

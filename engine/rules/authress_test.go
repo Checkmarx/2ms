@@ -14,7 +14,7 @@ func TestAuthressServiceClientAccessKey(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "AuthressServiceClientAccessKey validation",
+			name: "Authress validation",
 			truePositives: []string{
 				"authress_TOKEN ::= \"sc_i7z3km4wuf.tx6m.acc_6hwnkejm5d.x7f2nx64-cepuqmzzce799-f8xxjfia7vur7xyop\"",
 				"authress_TOKEN ?= \"sc_i7z3km4wuf.tx6m.acc_6hwnkejm5d.x7f2nx64-cepuqmzzce799-f8xxjfia7vur7xyop\"",
@@ -53,7 +53,7 @@ func TestAuthressServiceClientAccessKey(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(AuthressServiceClientAccessKey())
+			rule := ConvertNewRuleToGitleaksRule(Authress())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

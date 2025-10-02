@@ -1,0 +1,26 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
+)
+
+var NewRelicInsertKeyRegex = utils.GenerateSemiGenericRegex([]string{
+	"new-relic",
+	"newrelic",
+	"new_relic",
+}, `NRII-[a-z0-9-]{32}`, true)
+
+func NewRelicInsertKey() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "3ba5a85e-a516-4b94-8cb6-714cecc08a18",
+		Description: "Discovered a New Relic insight insert key, compromising data injection into the platform.",
+		RuleID:      "new-relic-insert-key",
+		Regex:       NewRelicInsertKeyRegex,
+		Keywords: []string{
+			"NRII-",
+		},
+		Severity:        "High",
+		Tags:            []string{TagApiKey},
+		ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
+	}
+}

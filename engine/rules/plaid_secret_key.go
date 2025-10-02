@@ -1,0 +1,23 @@
+package rules
+
+import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
+)
+
+var PlaidSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"plaid"}, utils.AlphaNumeric("30"), true)
+
+func PlaidSecretKey() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "8016c551-324e-4728-97e8-72a4fd138f01",
+		Description: "Detected a Plaid Secret key, risking unauthorized access to financial accounts and sensitive transaction data.",
+		RuleID:      "plaid-secret-key",
+		Regex:       PlaidSecretKeyRegex,
+		Entropy:     3.5,
+		Keywords: []string{
+			"plaid",
+		},
+		Severity:        "High",
+		Tags:            []string{TagSecretKey},
+		ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4},
+	}
+}

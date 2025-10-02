@@ -14,7 +14,7 @@ func TestDefinedNetworkingApiToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "DefinedNetworkingApiToken validation",
+			name: "DefinedNetworkingAPIToken validation",
 			truePositives: []string{
 				"dnkey_TOKEN ::= \"dnkey-5ae44c7musw8f70owbulcot0rr-5ae44c7musw8f70owbulcot0rrq1v=ysmx4owp0vno=y488v2qeb\"",
 				"dnkey_TOKEN :::= \"dnkey-5ae44c7musw8f70owbulcot0rr-5ae44c7musw8f70owbulcot0rrq1v=ysmx4owp0vno=y488v2qeb\"",
@@ -58,7 +58,7 @@ func TestDefinedNetworkingApiToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(DefinedNetworkingApiToken())
+			rule := ConvertNewRuleToGitleaksRule(DefinedNetworkingAPIToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

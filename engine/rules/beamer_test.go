@@ -14,7 +14,7 @@ func TestBeamerApiToken(t *testing.T) {
 		falsePositives []string
 	}{
 		{
-			name: "BeamerApiToken validation",
+			name: "Beamer validation",
 			truePositives: []string{
 				"  \"beamerToken\" => \"b_lw=_afiwoy7m-2=urprdkhplfussqvgi5fjv_cmy2s-h\"",
 				"beamerToken = b_lw=_afiwoy7m-2=urprdkhplfussqvgi5fjv_cmy2s-h",
@@ -62,7 +62,7 @@ func TestBeamerApiToken(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(BeamerApiToken())
+			rule := ConvertNewRuleToGitleaksRule(Beamer())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

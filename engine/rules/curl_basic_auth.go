@@ -8,6 +8,7 @@ var CurlBasicAuthRegex = regexp.MustCompile(`\bcurl\b(?:.*|.*(?:[\r\n]{1,2}.*){1
 
 func CurlBasicAuth() *NewRule {
 	return &NewRule{
+		BaseRuleID:  "a80aed71-d4ac-499a-a154-befb592e461b",
 		RuleID:      "curl-auth-user",
 		Description: "Discovered a potential basic authorization token provided in a curl command, which could compromise the curl accessed resource.",
 		Regex:       CurlBasicAuthRegex,
@@ -25,5 +26,8 @@ func CurlBasicAuth() *NewRule {
 				},
 			},
 		},
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategoryNetworking, RuleType: 4},
 	}
 }

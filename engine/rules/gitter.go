@@ -16,6 +16,8 @@ func GitterAccessToken() *NewRule {
 		Keywords: []string{
 			"gitter",
 		},
-		Severity: "High",
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
 	}
 }

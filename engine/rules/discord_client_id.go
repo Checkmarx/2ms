@@ -8,10 +8,14 @@ var DiscordClientIdRegex = utils.GenerateSemiGenericRegex([]string{"discord"}, u
 
 func DiscordClientID() *NewRule {
 	return &NewRule{
-		Description: "Identified a Discord client ID, which may lead to unauthorized integrations and data exposure in Discord applications.",
-		RuleID:      "discord-client-id",
-		Regex:       DiscordClientIdRegex,
-		Entropy:     2,
-		Keywords:    []string{"discord"},
+		BaseRuleID:      "5c0a6af7-9fa7-4d15-b25c-8884197fc9da",
+		Description:     "Identified a Discord client ID, which may lead to unauthorized integrations and data exposure in Discord applications.",
+		RuleID:          "discord-client-id",
+		Regex:           DiscordClientIdRegex,
+		Entropy:         2,
+		Keywords:        []string{"discord"},
+		Severity:        "High",
+		Tags:            []string{TagClientId},
+		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 1},
 	}
 }
