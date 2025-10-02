@@ -412,7 +412,6 @@ func TestFetchPageAtVersion(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "123", actual.ID)
 	assert.Equal(t, 7, actual.Version.Number)
-	assert.NotNil(t, actual.Body.Storage)
 	assert.Equal(t, "<p>x</p>", actual.Body.Storage.Value)
 }
 
