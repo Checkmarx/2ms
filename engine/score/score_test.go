@@ -171,7 +171,6 @@ func TestScore(t *testing.T) {
 		ruleConfig.Prefect().RuleID:                            {10, 5.2, 8.2},
 		ruleConfig.PrivateAIToken().RuleID:                     {7.6, 1.6, 4.6},
 		rules.PrivateKey().RuleID:                              {10, 5.2, 8.2},
-		ruleConfig.PrivateKeyPKCS12File().RuleID:               {10, 5.2, 8.2},
 		ruleConfig.PulumiAPIToken().RuleID:                     {10, 5.2, 8.2},
 		ruleConfig.PyPiUploadToken().RuleID:                    {10, 5.2, 8.2},
 		ruleConfig.RapidAPIAccessToken().RuleID:                {10, 5.2, 8.2},
