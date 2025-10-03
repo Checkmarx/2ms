@@ -164,7 +164,6 @@ Here is a complete list of all the rules that are currently implemented.
 | prefect-api-token | Detected a Prefect API token, risking unauthorized access to workflow management and automation services. | api-token |  |
 | privateai-api-token | Identified a PrivateAI Token, posing a risk of unauthorized access to AI services and data manipulation. | api-token |  |
 | private-key | Identified a Private Key, which may compromise cryptographic security and sensitive data encryption. | private-key |  |
-| pkcs12-file | Found a PKCS #12 file, which commonly contain bundled private keys. | private-key |  |
 | pulumi-api-token | Found a Pulumi API token, posing a risk to infrastructure as code services and cloud resource management. | api-token |  |
 | pypi-upload-token | Discovered a PyPI upload token, potentially compromising Python package distribution and repository integrity. | upload-token |  |
 | rapidapi-access-token | Uncovered a RapidAPI Access Token, which could lead to unauthorized access to various APIs and data services. | access-token |  |

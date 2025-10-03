@@ -857,11 +857,6 @@ func GetDefaultRules() []*Rule { //nolint:funlen // This function contains all r
 			ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
 		},
 		{
-			Rule:            *rules.PrivateKeyPKCS12File(),
-			Tags:            []string{TagPrivateKey},
-			ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
-		},
-		{
 			Rule:            *rules.PulumiAPIToken(),
 			Tags:            []string{TagApiToken},
 			ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
