@@ -1,0 +1,21 @@
+package rules
+
+import (
+	"regexp"
+)
+
+var SlackConfigurationTokenRegex = regexp.MustCompile(`(?i)xoxe.xox[bp]-\d-[A-Z0-9]{163,166}`)
+
+func SlackConfigurationToken() *NewRule {
+	return &NewRule{
+		BaseRuleID:      "82732b41-898d-4bf0-b5ec-224236bc2a79",
+		RuleID:          "slack-config-access-token",
+		Description:     "Found a Slack Configuration access token, posing a risk to workspace configuration and sensitive data access.",
+		Regex:           SlackConfigurationTokenRegex,
+		Entropy:         2,
+		Keywords:        []string{"xoxe.xoxb-", "xoxe.xoxp-"},
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+	}
+}

@@ -3,7 +3,9 @@ package rules
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 func TestLoadAllRules(t *testing.T) {
@@ -305,4 +307,84 @@ func TestIgnoreRules(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAllRulesEqual(t *testing.T) {
+	// These should be defined in your package
+	allRules := GetDefaultRules()
+	allRules2 := GetDefaultRulesV2()
+
+	compareRules(t, allRules, allRules2)
+}
+
+func compareRules(t *testing.T, allRules []*Rule, allRules2 []*NewRule) {
+	if len(allRules) != len(allRules2) {
+		t.Errorf("rule count mismatch: got %d, want %d", len(allRules), len(allRules2))
+	}
+
+	for i := range allRules {
+		r1 := allRules[i]
+		r2 := allRules2[i]
+
+		//TODO: Create test for severity
+		//TODO: check what's happening with keywords
+		//TODO: Create a test for allowList
+		//TODO: check presence of baseRuleID, as well as uniqueness of uuids
+
+		if r1.Rule.RuleID != r2.RuleID {
+			t.Fatalf("[%d] RuleID mismatch: got %s, want %s", i, r2.RuleID, r1.Rule.RuleID)
+		}
+
+		// Tags
+		assert.Equal(t, r1.Rule.Description, r2.Description, "[%d] Description mismatch on rule %s", i, r1.Rule.RuleID)
+
+		// Entropy exclusions
+		entropyExclusions := map[string]bool{
+			"github-app-token":    true,
+			"plaid-client-id":     true,
+			"vault-service-token": true,
+		}
+
+		// Entropy
+		if !entropyExclusions[r1.Rule.RuleID] {
+			assert.Equal(t, r1.Rule.Entropy, r2.Entropy, "[%d] Entropy mismatch on rule %s: got %v, want %v", i, r1.Rule.RuleID, r2.Entropy, r1.Rule.Entropy)
+		}
+
+		if r1.Rule.SecretGroup != r2.SecretGroup {
+			t.Errorf("[%d] SecretGroup mismatch: got %v, want %v", i, r2.SecretGroup, r1.Rule.SecretGroup)
+		}
+
+		// Regex string comparison
+		if r1.Rule.RuleID != "plaid-client-id" {
+			if !compareRegex(r1.Rule.Regex, r2.Regex) {
+				t.Errorf("[%d] Regex mismatch on rule %s: got %v, want %v", i, r1.Rule.RuleID, r2.Regex, r1.Rule.Regex)
+			}
+		}
+
+		// Path regex
+		if !compareRegex(r1.Rule.Path, r2.Path) {
+			t.Errorf("[%d] Path mismatch: got %v, want %v", i, r2.Path, r1.Rule.Path)
+		}
+
+		// Tags
+		assert.Equal(t, r1.Tags, r2.Tags, "[%d] Tags mismatch on rule %s", i, r1.Rule.RuleID)
+
+		//// Keywords
+		//assert.Equal(t, r1.Rule.Keywords, r2.Keywords, "[%d] Keywords mismatch", i)
+
+		// Score Parameters
+		if r1.ScoreParameters != r2.ScoreParameters {
+			t.Errorf("[%d] ScoreParameters mismatch on rule %s: got %+v, want %+v", i, r1.Rule.RuleID, r2.ScoreParameters, r1.ScoreParameters)
+		}
+	}
+}
+
+func compareRegex(r1, r2 *regexp.Regexp) bool {
+	if r1 == nil && r2 == nil {
+		return true
+	}
+	if r1 == nil || r2 == nil {
+		return false
+	}
+	return r1.String() == r2.String()
 }
