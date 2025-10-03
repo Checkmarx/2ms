@@ -11,7 +11,9 @@ require (
 	github.com/alitto/pond/v2 v2.5.0
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/gitleaks/go-gitdiff v0.9.1
+	github.com/google/uuid v1.6.0
 	github.com/h2non/filetype v1.1.3
+	github.com/iancoleman/strcase v0.3.0
 	github.com/rs/zerolog v1.33.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/slack-go/slack v0.12.2
@@ -47,13 +49,11 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
