@@ -1,23 +1,26 @@
 package rules
 
 import (
-	"regexp"
-
-	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
-func AuthenticatedURL() *config.Rule {
-	regex := regexp.MustCompile(`://(\w+:\w\S+)@\S+\.\S+`)
-	return &config.Rule{
+var AuthenticatedURLRegex = regexp.MustCompile(`://(\w+:\w\S+)@\S+\.\S+`)
+
+func AuthenticatedURL() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "98e88a4f-4b7d-4c56-a6fa-9835dfb7c8d7",
 		Description: "Identify username:password inside URLS",
 		RuleID:      "authenticated-url",
-		Regex:       regex,
+		Regex:       AuthenticatedURLRegex,
 		Keywords:    []string{"://"},
 		SecretGroup: 1,
-		Allowlists: []*config.Allowlist{
+		AllowLists: []*AllowList{
 			{
 				StopWords: []string{"password", "pass"},
 			},
 		},
+		Severity:        "High",
+		Tags:            []string{TagSensitiveUrl},
+		ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
 	}
 }

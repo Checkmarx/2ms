@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 )
 
 func TestClickhouseCloudApiSecretKey(t *testing.T) {
@@ -80,11 +78,8 @@ func TestClickhouseCloudApiSecretKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tps := utils.GenerateSampleSecrets("ClickHouse", "4b1dbRdW3rOcB7xLthrM4BTBGK1qPLkHigpN1bXD6z")
-			tps = append(tps, utils.GenerateSampleSecrets("ClickHouse", "4b1d"+secrets.NewSecret("[A-Za-z0-9]{38}"))...)
-
 			fmt.Println("truePositives := []string{")
-			for _, s := range tps {
+			for _, s := range tt.truePositives {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")

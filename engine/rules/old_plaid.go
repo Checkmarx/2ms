@@ -4,7 +4,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-func PlaidAccessID() *config.Rule {
+func OldPlaidAccessID() *config.Rule {
 	return &config.Rule{
 		RuleID:      "plaid-client-id",
 		Description: "Uncovered a Plaid Client ID, which could lead to unauthorized financial service integrations and data breaches.",

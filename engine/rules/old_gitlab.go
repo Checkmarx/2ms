@@ -6,7 +6,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-func GitlabPatRoutable() *config.Rule {
+func OldGitlabPatRoutable() *config.Rule {
 	return &config.Rule{
 		RuleID:      "gitlab-pat-routable",
 		Description: "Identified a GitLab Personal Access Token (routable), risking unauthorized access to GitLab repositories and codebase exposure.", //nolint:lll
@@ -16,7 +16,7 @@ func GitlabPatRoutable() *config.Rule {
 	}
 }
 
-func GitlabRunnerAuthenticationTokenRoutable() *config.Rule {
+func OldGitlabRunnerAuthenticationTokenRoutable() *config.Rule {
 	return &config.Rule{
 		RuleID:      "gitlab-runner-authentication-token-routable",
 		Description: "Discovered a GitLab Runner Authentication Token (Routable), posing a risk to CI/CD pipeline integrity and unauthorized access.", //nolint:lll

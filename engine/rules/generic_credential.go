@@ -1,29 +1,28 @@
 package rules
 
 import (
-	"regexp"
-
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
-	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
-func GenericCredential() *config.Rule {
-	regex := generateSemiGenericRegexIncludingXml([]string{
-		"access",
-		"auth",
-		`(?-i:[Aa]pi|API)`,
-		"credential",
-		"creds",
-		"key",
-		"passw(?:or)?d",
-		"secret",
-		"token",
-	}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true)
+var GenericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
+	"access",
+	"auth",
+	`(?-i:[Aa]pi|API)`,
+	"credential",
+	"creds",
+	"key",
+	"passw(?:or)?d",
+	"secret",
+	"token",
+}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true)
 
-	return &config.Rule{
+func GenericCredential() *NewRule {
+	return &NewRule{
+		BaseRuleID:  "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
 		RuleID:      "generic-api-key",
 		Description: "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
-		Regex:       regex,
+		Regex:       GenericCredentialRegex,
 		Keywords: []string{
 			"access",
 			"api",
@@ -37,7 +36,7 @@ func GenericCredential() *config.Rule {
 			"token",
 		},
 		Entropy: 3.5,
-		Allowlists: []*config.Allowlist{
+		AllowLists: []*AllowList{
 			{
 				// NOTE: this is a goofy hack to get around the fact there golang's regex engine does not support positive lookaheads.
 				// Ideally we would want to ensure the secret contains both numbers and alphabetical characters, not just alphabetical characters.
@@ -47,7 +46,7 @@ func GenericCredential() *config.Rule {
 			},
 			{
 				Description:    "Allowlist for Generic API Keys",
-				MatchCondition: config.AllowlistMatchOr,
+				MatchCondition: "OR",
 				RegexTarget:    "match",
 				Regexes: []*regexp.Regexp{
 					regexp.MustCompile(`(?i)(?:` +
@@ -107,7 +106,7 @@ func GenericCredential() *config.Rule {
 				},
 			},
 			{
-				MatchCondition: config.AllowlistMatchAnd,
+				MatchCondition: "AND",
 				RegexTarget:    "line",
 				Regexes: []*regexp.Regexp{
 					regexp.MustCompile(`LICENSE[^=]*=\s*"[^"]+`),
@@ -122,5 +121,8 @@ func GenericCredential() *config.Rule {
 				},
 			},
 		},
+		Severity:        "High",
+		Tags:            []string{TagApiKey},
+		ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
 	}
 }

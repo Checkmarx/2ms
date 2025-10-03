@@ -58,7 +58,7 @@ func TestBitbucketClientSecret(t *testing.T) {
 				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
 			}
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(BitbucketClientSecret())
+			rule := ConvertNewRuleToGitleaksRule(BitBucketClientSecret())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

@@ -9,10 +9,13 @@ var AlibabaSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"alibaba"}, 
 func AlibabaSecretKey() *NewRule {
 	// define rule
 	return &NewRule{
-		RuleID:      "alibaba-secret-key",
-		Description: "Discovered a potential Alibaba Cloud Secret Key, potentially allowing unauthorized operations and data access within Alibaba Cloud.",
-		Regex:       AlibabaSecretKeyRegex,
-		Entropy:     2,
-		Keywords:    []string{"alibaba"},
+		RuleID:          "alibaba-secret-key",
+		Description:     "Discovered a potential Alibaba Cloud Secret Key, potentially allowing unauthorized operations and data access within Alibaba Cloud.",
+		Regex:           AlibabaSecretKeyRegex,
+		Entropy:         2,
+		Keywords:        []string{"alibaba"},
+		Severity:        "High",
+		Tags:            []string{TagSecretKey},
+		ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
 	}
 }

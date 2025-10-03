@@ -8,7 +8,7 @@ import (
 
 // OnePasswordSecretKey Reference:
 // - https://1passwordstatic.com/files/security/1password-white-paper.pdf
-func OnePasswordSecretKey() *config.Rule {
+func OldOnePasswordSecretKey() *config.Rule {
 	// 1Password secret keys include several hyphens but these are only for readability
 	// and are stripped during 1Password login. This means that the following are technically
 	// the same valid key:

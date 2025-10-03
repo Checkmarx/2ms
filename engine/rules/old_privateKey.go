@@ -6,7 +6,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-func PrivateKey() *config.Rule {
+func OldPrivateKey() *config.Rule {
 	return &config.Rule{
 		RuleID:      "private-key",
 		Description: "Identified a Private Key, which may compromise cryptographic security and sensitive data encryption.",
