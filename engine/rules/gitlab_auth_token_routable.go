@@ -14,6 +14,7 @@ func GitlabRunnerAuthenticationTokenRoutable() *NewRule {
 		Regex:           GitlabRunnerAuthenticationTokenRoutableRegex,
 		Entropy:         4,
 		Keywords:        []string{"glrt-"},
+		Severity:        "High",
 		Tags:            []string{TagAccessToken},
 		ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
 	}

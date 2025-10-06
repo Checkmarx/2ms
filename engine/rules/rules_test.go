@@ -1,8 +1,11 @@
 package rules
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/regexp"
@@ -309,7 +312,7 @@ func TestIgnoreRules(t *testing.T) {
 	}
 }
 
-func TestAllRulesEqual(t *testing.T) {
+func TestOldVsNewRulesEqual(t *testing.T) {
 	// These should be defined in your package
 	allRules := GetDefaultRules()
 	allRules2 := GetDefaultRulesV2()
@@ -321,10 +324,21 @@ func compareRules(t *testing.T, allRules []*Rule, allRules2 []*NewRule) {
 	if len(allRules) != len(allRules2) {
 		t.Errorf("rule count mismatch: got %d, want %d", len(allRules), len(allRules2))
 	}
-
+	var rulesWithAllowList []string
+	baseRuleIDsMap := make(map[string]bool)
 	for i := range allRules {
 		r1 := allRules[i]
 		r2 := allRules2[i]
+
+		// Severity
+		assert.Equal(t, "High", r2.Severity, "[%d] Wrong Severity on rule %s", i, r2.RuleID)
+
+		// Check for unique baseRuleIDs
+		assert.NotEqual(t, "", r2.BaseRuleID, "[%d] No BaseRuleId found on rule %s", i, r2.RuleID)
+		assert.Nil(t, uuid.Validate(r2.BaseRuleID), "[%d] BaseRuleID %s is not a valid UUID", i, r2.BaseRuleID)
+		_, ok := baseRuleIDsMap[r2.BaseRuleID]
+		assert.False(t, ok, "[%d] BaseRuleID %s already found in another rule", i, r2.BaseRuleID)
+		baseRuleIDsMap[r2.BaseRuleID] = true
 
 		//TODO: Create test for severity
 		//TODO: check what's happening with keywords
@@ -369,14 +383,54 @@ func compareRules(t *testing.T, allRules []*Rule, allRules2 []*NewRule) {
 		// Tags
 		assert.Equal(t, r1.Tags, r2.Tags, "[%d] Tags mismatch on rule %s", i, r1.Rule.RuleID)
 
-		//// Keywords
-		//assert.Equal(t, r1.Rule.Keywords, r2.Keywords, "[%d] Keywords mismatch", i)
+		// Keywords
+		// Normalize keywords to lowercase for comparison because validate on gitleaks side performs strings.ToLower(keyword)
+		for j := range r2.Keywords {
+			r2.Keywords[j] = strings.ToLower(r2.Keywords[j])
+		}
+		for k := range r1.Rule.Keywords {
+			r1.Rule.Keywords[k] = strings.ToLower(r1.Rule.Keywords[k])
+		}
 
+		if r1.Rule.RuleID != "vault-service-token" { // for these rules keywords were updated with latest version of gitleaks
+			assert.Equal(t, r1.Rule.Keywords, r2.Keywords, "[%d] Keywords mismatch on rule %s", i, r1.Rule.RuleID)
+		}
 		// Score Parameters
 		if r1.ScoreParameters != r2.ScoreParameters {
 			t.Errorf("[%d] ScoreParameters mismatch on rule %s: got %+v, want %+v", i, r1.Rule.RuleID, r2.ScoreParameters, r1.ScoreParameters)
 		}
+
+		if r1.Rule.Allowlists != nil {
+			rulesWithAllowList = append(rulesWithAllowList, r1.Rule.RuleID)
+			// AllowList
+			for i2 := range r1.Rule.Allowlists {
+				al1 := r1.Rule.Allowlists[i2]
+				al2 := r2.AllowLists[i2]
+
+				assert.Equal(t, al1.Description, al2.Description, "[%d][%d] Allowlist description mismatch on rule %s", i, i2, r1.Rule.RuleID)
+				assert.Equal(t, al1.MatchCondition, toGitleaksMatchCondition(al2.MatchCondition), "[%d][%d] Allowlist MatchCondition mismatch on rule %s", i, i2, r1.Rule.RuleID)
+				assert.Equal(t, al1.RegexTarget, al2.RegexTarget, "[%d][%d] Allowlist RegexTarget mismatch on rule %s", i, i2, r1.Rule.RuleID)
+				assert.Equal(t, al1.StopWords, al2.StopWords, "[%d][%d] Allowlist StopWords mismatch on rule %s", i, i2, r1.Rule.RuleID)
+
+				// Paths
+				for j := range al1.Paths {
+					if !compareRegex(al1.Paths[j], al2.Paths[j]) {
+						t.Errorf("[%d][%d][%d] Allowlist Paths regex mismatch on rule %s: got %v, want %v", i, i2, j, r1.Rule.RuleID, al2.Paths[j], al1.Paths[j])
+					}
+				}
+
+				// Regexes
+				for j := range al1.Regexes {
+					if !compareRegex(al1.Regexes[j], al2.Regexes[j]) {
+						t.Errorf("[%d][%d][%d] Allowlist Regexes regex mismatch on rule %s: got %v, want %v", i, i2, j, r1.Rule.RuleID, al2.Regexes[j], al1.Regexes[j])
+					}
+				}
+			}
+		}
+
 	}
+	// Log all rules with allowList
+	fmt.Printf("Rules with allowList: %v\n", rulesWithAllowList)
 }
 
 func compareRegex(r1, r2 *regexp.Regexp) bool {

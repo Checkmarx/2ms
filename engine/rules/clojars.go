@@ -14,6 +14,7 @@ func Clojars() *NewRule {
 		Regex:           ClojarsRegex,
 		Entropy:         2,
 		Keywords:        []string{"clojars"}, //changed from clojars_ due to https://checkmarx.atlassian.net/browse/AST-96700
+		Severity:        "High",
 		Tags:            []string{TagApiToken},
 		ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4},
 	}

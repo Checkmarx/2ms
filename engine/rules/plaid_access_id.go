@@ -16,6 +16,7 @@ func PlaidAccessID() *NewRule {
 		Keywords: []string{
 			"plaid",
 		},
+		Severity:        "High",
 		Tags:            []string{TagClientId},
 		ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 1},
 	}

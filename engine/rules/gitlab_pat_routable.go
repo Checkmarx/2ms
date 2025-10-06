@@ -14,6 +14,7 @@ func GitlabPatRoutable() *NewRule {
 		Regex:           GitlabPatRoutableRegex,
 		Entropy:         4,
 		Keywords:        []string{"glpat-"},
+		Severity:        "High",
 		Tags:            []string{TagAccessToken},
 		ScoreParameters: ScoreParameters{Category: CategorySourceCodeManagement, RuleType: 4},
 	}
