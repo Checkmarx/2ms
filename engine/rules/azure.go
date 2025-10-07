@@ -4,7 +4,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
-var AzureActiveDirectoryClientSecretRegex = regexp.MustCompile(`(?:^|[\\'"\x60\s>=:(,)])([a-zA-Z0-9_~.]{3}\dQ~[a-zA-Z0-9_~.-]{31,34})(?:$|[\\'"\x60\s<),])`)
+var AzureActiveDirectoryClientSecretRegex = regexp.MustCompile(`(?:^|[\\'"\x60\s>=:(,)])([a-zA-Z0-9_~.]{3}\dQ~[a-zA-Z0-9_~.-]{31,34})(?:$|[\\'"\x60\s<),])`) //nolint:lll
 
 func AzureActiveDirectoryClientSecret() *NewRule {
 	return &NewRule{

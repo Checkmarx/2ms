@@ -22,7 +22,7 @@ func NugetConfigPassword() *NewRule {
 					regexp.MustCompile(`33f!!lloppa`),
 					regexp.MustCompile(`hal\+9ooo_da!sY`),
 					// exclude environment variables
-					regexp.MustCompile(`^\%\S.*\%$`),
+					regexp.MustCompile(`^\%\S.*\%$`), //nolint:gocritic
 				},
 			},
 		},

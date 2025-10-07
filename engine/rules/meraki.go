@@ -8,8 +8,9 @@ var CiscoMerakiAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{`(?-i:[Mm]e
 
 func Meraki() *NewRule {
 	return &NewRule{
-		BaseRuleID:      "bf05ece5-600c-4012-b115-70a9c5bead23",
-		Description:     "Cisco Meraki is a cloud-managed IT solution that provides networking, security, and device management through an easy-to-use interface.",
+		BaseRuleID: "bf05ece5-600c-4012-b115-70a9c5bead23",
+		Description: "Cisco Meraki is a cloud-managed IT solution that provides networking," +
+			" security, and device management through an easy-to-use interface.",
 		RuleID:          "cisco-meraki-api-key",
 		Regex:           CiscoMerakiAPIKeyRegex,
 		Entropy:         3,

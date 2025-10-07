@@ -10,7 +10,7 @@ func AWS() *NewRule {
 	return &NewRule{
 		BaseRuleID:  "3551707c-5e9a-4f7a-b433-8d824900f3c4",
 		RuleID:      "aws-access-token",
-		Description: "Identified a pattern that may indicate AWS credentials, risking unauthorized cloud resource access and data breaches on AWS platforms.",
+		Description: "Identified a pattern that may indicate AWS credentials, risking unauthorized cloud resource access and data breaches on AWS platforms.", //nolint:lll
 		Regex:       AWSRegex,
 		Entropy:     3,
 		Keywords: []string{

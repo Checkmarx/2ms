@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var SlackUserTokenRegex = regexp.MustCompile(`xox[pe](?:-[0-9]{10,13}){3}-[a-zA-Z0-9-]{28,34}`)
+var SlackUserTokenRegex = regexp.MustCompile(`xox[pe](?:-[0-9]{10,13}){3}-[a-zA-Z0-9-]{28,34}`) //nolint:gocritic
 
 func SlackUserToken() *NewRule {
 	return &NewRule{

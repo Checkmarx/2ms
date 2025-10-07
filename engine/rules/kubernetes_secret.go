@@ -11,11 +11,9 @@ var kubernetesKindPat = `\bkind:[ \t]*["']?\bsecret\b["']?`
 // Only matches values (`key: value`) under `data:` that are:
 // - valid base64 characters
 // - longer than 10 characters (no "YmFyCg==")
-// language=regexp
-var kubernetesDataPat = `\bdata:(?s:.){0,100}?\s+([\w.-]+:(?:[ \t]*(?:\||>[-+]?)\s+)?[ \t]*(?:["']?[a-z0-9+/]{10,}={0,3}["']?|\{\{[ \t\w"|$:=,.-]+}}|""|''))`
+var kubernetesDataPat = `\bdata:(?s:.){0,100}?\s+([\w.-]+:(?:[ \t]*(?:\||>[-+]?)\s+)?[ \t]*(?:["']?[a-z0-9+/]{10,}={0,3}["']?|\{\{[ \t\w"|$:=,.-]+}}|""|''))` //nolint:lll
 
 var KubernetesSecretRegex = regexp.MustCompile(fmt.Sprintf(
-	//language=regexp
 	`(?i)(?:%s(?s:.){0,200}?%s|%s(?s:.){0,200}?%s)`, kubernetesKindPat, kubernetesDataPat, kubernetesDataPat, kubernetesKindPat))
 
 func KubernetesSecret() *NewRule {

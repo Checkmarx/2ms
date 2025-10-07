@@ -4,7 +4,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
-var PrivateKeyRegex = regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----[\s\S-]{64,}?KEY(?: BLOCK)?-----`)
+var PrivateKeyRegex = regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----[\s\S-]{64,}?KEY(?: BLOCK)?-----`) //nolint:gocritic,lll
 
 func PrivateKey() *NewRule {
 	return &NewRule{

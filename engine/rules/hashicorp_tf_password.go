@@ -8,7 +8,7 @@ import (
 )
 
 var hashicorpKeywords = []string{"administrator_login_password", "password"}
-var HashicorpTfPasswordRegex = utils.GenerateSemiGenericRegex(hashicorpKeywords, fmt.Sprintf(`"%s"`, utils.AlphaNumericExtended("8,20")), true)
+var HashicorpTfPasswordRegex = utils.GenerateSemiGenericRegex(hashicorpKeywords, fmt.Sprintf(`"%s"`, utils.AlphaNumericExtended("8,20")), true) //nolint:gocritic
 
 func HashicorpField() *NewRule {
 	return &NewRule{

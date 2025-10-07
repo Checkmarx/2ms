@@ -4,7 +4,8 @@ import (
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
 )
 
-var JfrogIdentityTokenRegex = utils.GenerateSemiGenericRegex([]string{"jfrog", "artifactory", "bintray", "xray"}, utils.AlphaNumeric("64"), true)
+var JfrogIdentityTokenRegex = utils.GenerateSemiGenericRegex(
+	[]string{"jfrog", "artifactory", "bintray", "xray"}, utils.AlphaNumeric("64"), true)
 
 func JFrogIdentityToken() *NewRule {
 	return &NewRule{

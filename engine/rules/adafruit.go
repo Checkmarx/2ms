@@ -10,8 +10,9 @@ var AdafruitAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"adafruit"}, u
 func AdafruitAPIKey() *NewRule {
 	// define rule
 	return &NewRule{
-		BaseRuleID:      "c29ea920-52c4-4366-9e75-1574e286d1d7",
-		Description:     "Identified a potential Adafruit API Key, which could lead to unauthorized access to Adafruit services and sensitive data exposure.",
+		BaseRuleID: "c29ea920-52c4-4366-9e75-1574e286d1d7",
+		Description: "Identified a potential Adafruit API Key," +
+			" which could lead to unauthorized access to Adafruit services and sensitive data exposure.",
 		RuleID:          "adafruit-api-key",
 		Regex:           AdafruitAPIKeyRegex,
 		Keywords:        []string{"adafruit"},

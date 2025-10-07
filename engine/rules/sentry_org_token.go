@@ -4,7 +4,8 @@ import (
 	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
-var SentryOrgTokenRegex = regexp.MustCompile(`\bsntrys_eyJpYXQiO[a-zA-Z0-9+/]{10,200}(?:LCJyZWdpb25fdXJs|InJlZ2lvbl91cmwi|cmVnaW9uX3VybCI6)[a-zA-Z0-9+/]{10,200}={0,2}_[a-zA-Z0-9+/]{43}(?:[^a-zA-Z0-9+/]|\z)`)
+var SentryOrgTokenRegex = regexp.MustCompile(
+	`\bsntrys_eyJpYXQiO[a-zA-Z0-9+/]{10,200}(?:LCJyZWdpb25fdXJs|InJlZ2lvbl91cmwi|cmVnaW9uX3VybCI6)[a-zA-Z0-9+/]{10,200}={0,2}_[a-zA-Z0-9+/]{43}(?:[^a-zA-Z0-9+/]|\z)`) ////nolint:lll
 
 func SentryOrgToken() *NewRule {
 	// format: sntrys_[base64_json]_[base64_secret]
@@ -18,9 +19,10 @@ func SentryOrgToken() *NewRule {
 	// InJlZ2lvbl91cmwi = `"region_url"`
 	// cmVnaW9uX3VybCI6 = `region_url":`
 	return &NewRule{
-		BaseRuleID:      "12818a31-52a8-44c7-b03b-19974d8fad04",
-		RuleID:          "sentry-org-token",
-		Description:     "Found a Sentry.io Organization Token, risking unauthorized access to error tracking services and sensitive application data.",
+		BaseRuleID: "12818a31-52a8-44c7-b03b-19974d8fad04",
+		RuleID:     "sentry-org-token",
+		Description: "Found a Sentry.io Organization Token," +
+			" risking unauthorized access to error tracking services and sensitive application data.",
 		Regex:           SentryOrgTokenRegex,
 		Entropy:         4.5,
 		Keywords:        []string{"sntrys_eyJpYXQiO"},

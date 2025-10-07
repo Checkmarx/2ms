@@ -9,7 +9,7 @@ var DropboxShortLivedAPITokenRegex = utils.GenerateSemiGenericRegex([]string{"dr
 func DropBoxShortLivedAPIToken() *NewRule {
 	return &NewRule{
 		BaseRuleID:      "e355f363-48a4-4125-b51a-4d267b81b0f8",
-		Description:     "Discovered a Dropbox short-lived API token, posing a risk of temporary but potentially harmful data access and manipulation.",
+		Description:     "Discovered a Dropbox short-lived API token, posing a risk of temporary but potentially harmful data access and manipulation.", //nolint:lll
 		RuleID:          "dropbox-short-lived-api-token",
 		Regex:           DropboxShortLivedAPITokenRegex,
 		Keywords:        []string{"dropbox"},

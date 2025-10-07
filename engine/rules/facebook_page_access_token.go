@@ -9,7 +9,7 @@ var FacebookPageAccessTokenRegex = utils.GenerateUniqueTokenRegex("EAA[MC](?i)[a
 func FacebookPageAccessToken() *NewRule {
 	return &NewRule{
 		BaseRuleID:      "aa0c13ec-cd3f-43a1-806f-05006e342946",
-		Description:     "Discovered a Facebook Page Access Token, posing a risk of unauthorized access to Facebook accounts and personal data exposure.",
+		Description:     "Discovered a Facebook Page Access Token, posing a risk of unauthorized access to Facebook accounts and personal data exposure.", //nolint:lll
 		RuleID:          "facebook-page-access-token",
 		Regex:           FacebookPageAccessTokenRegex,
 		Entropy:         4,

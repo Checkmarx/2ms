@@ -8,13 +8,14 @@ var GithubPATRegex = regexp.MustCompile(`ghp_[0-9a-zA-Z]{36}`)
 
 func GitHubPat() *NewRule {
 	return &NewRule{
-		BaseRuleID:  "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-		Description: "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
-		RuleID:      "github-pat",
-		Regex:       GithubPATRegex,
-		Entropy:     3,
-		Keywords:    []string{"ghp_"},
-		Severity:    "High",
+		BaseRuleID: "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+		Description: "Uncovered a GitHub Personal Access Token," +
+			" potentially leading to unauthorized repository access and sensitive content exposure.",
+		RuleID:   "github-pat",
+		Regex:    GithubPATRegex,
+		Entropy:  3,
+		Keywords: []string{"ghp_"},
+		Severity: "High",
 		AllowLists: []*AllowList{
 			{
 				Paths: []*regexp.Regexp{

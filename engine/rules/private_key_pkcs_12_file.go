@@ -11,7 +11,7 @@ func PrivateKeyPKCS12File() *NewRule {
 		Description: "Found a PKCS #12 file, which commonly contain bundled private keys.",
 		RuleID:      "pkcs12-file",
 
-		Path:     regexp.MustCompile(`(?i)(?:^|\/)[^\/]+\.p(?:12|fx)$`),
+		Path:     regexp.MustCompile(`(?i)(?:^|\/)[^\/]+\.p(?:12|fx)$`), //nolint:gocritic
 		Severity: "High",
 	}
 }

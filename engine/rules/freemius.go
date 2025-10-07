@@ -4,7 +4,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
-var FreemiusSecretKeyRegex = regexp.MustCompile(`(?i)["']secret_key["']\s*=>\s*["'](sk_[\S]{29})["']`)
+var FreemiusSecretKeyRegex = regexp.MustCompile(`(?i)["']secret_key["']\s*=>\s*["'](sk_[\S]{29})["']`) //nolint:gocritic // Regex can be simplified but copied from gitleaks
 
 func Freemius() *NewRule {
 	return &NewRule{

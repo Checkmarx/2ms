@@ -8,11 +8,12 @@ var ClickhouseCloudApiSecretKeyRegex = regexp.MustCompile(`\b(4b1d[A-Za-z0-9]{38
 
 func ClickHouseCloud() *NewRule {
 	return &NewRule{
-		BaseRuleID:  "cc6ac965-1701-486d-858e-0179d15d3429",
-		Description: "Identified a pattern that may indicate clickhouse cloud API secret key, risking unauthorized clickhouse cloud api access and data breaches on ClickHouse Cloud platforms.",
-		RuleID:      "clickhouse-cloud-api-secret-key",
-		Regex:       ClickhouseCloudApiSecretKeyRegex,
-		Entropy:     3,
+		BaseRuleID: "cc6ac965-1701-486d-858e-0179d15d3429",
+		Description: "Identified a pattern that may indicate clickhouse cloud API secret key," +
+			" risking unauthorized clickhouse cloud api access and data breaches on ClickHouse Cloud platforms.",
+		RuleID:  "clickhouse-cloud-api-secret-key",
+		Regex:   ClickhouseCloudApiSecretKeyRegex,
+		Entropy: 3,
 		Keywords: []string{
 			"4b1d",
 		},

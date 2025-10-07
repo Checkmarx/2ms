@@ -5,7 +5,8 @@ import (
 )
 
 // regex for rule
-var OnePasswordSecretKeyRegex = regexp.MustCompile(`\bA3-[A-Z0-9]{6}-(?:(?:[A-Z0-9]{11})|(?:[A-Z0-9]{6}-[A-Z0-9]{5}))-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\b`)
+var OnePasswordSecretKeyRegex = regexp.MustCompile(
+	`\bA3-[A-Z0-9]{6}-(?:(?:[A-Z0-9]{11})|(?:[A-Z0-9]{6}-[A-Z0-9]{5}))-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\b`)
 
 func OnePasswordSecretKey() *NewRule {
 	// define rule

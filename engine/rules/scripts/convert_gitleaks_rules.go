@@ -7,7 +7,7 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
-	"io/ioutil"
+	"io/ioutil" //nolint.staticcheck
 	"log"
 	"os"
 	"path/filepath"
@@ -18,9 +18,9 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-func main() {
-	inputDir := "oldRules" // folder with original rules
-	outputDir := "output"  // folder for generated rules
+func main() { //nolint:gocyclo
+	inputDir := "old_rules" // folder with original rules
+	outputDir := "output"   // folder for generated rules
 
 	// runtime.Caller(0) returns info about the current file (main_v3.go)
 	_, currentFile, _, ok := runtime.Caller(0)
@@ -62,7 +62,6 @@ func main() {
 		// Find all config.Rule{...}
 		ast.Inspect(astFile, func(n ast.Node) bool {
 			switch node := n.(type) {
-
 			// Capture the current function name
 			case *ast.FuncDecl:
 				if node.Name != nil {
@@ -112,7 +111,6 @@ func main() {
 					case "Path":
 						pathLine = fmt.Sprintf("Path: %s,", nodeSource(fset, kv.Value))
 					}
-
 				}
 
 				if ruleID == "" {
@@ -155,9 +153,10 @@ func %s() *NewRule {
 		Severity: "High",
 	}
 }
-`, currentFuncName, regexExpr, currentFuncName, baseRuleID, descLine, ruleID, currentFuncName, conditionalLine(entropyLine), keywordsLine, conditionalLine(pathLine))
+`, currentFuncName, regexExpr, currentFuncName, baseRuleID, descLine,
+					ruleID, currentFuncName, conditionalLine(entropyLine), keywordsLine, conditionalLine(pathLine))
 
-				err = ioutil.WriteFile(outputPath, []byte(newContent), 0644)
+				err = ioutil.WriteFile(outputPath, []byte(newContent), 0600)
 				if err != nil {
 					log.Fatalf("writing file %s: %v", outputPath, err)
 				}
@@ -218,16 +217,14 @@ func Test%s(t *testing.T) {
 
 				testOutputPath := strings.TrimSuffix(outputPath, ".go") + "_test.go"
 				// write an empty test file
-				err = ioutil.WriteFile(testOutputPath, []byte(newContentTest), 0644)
+				err = ioutil.WriteFile(testOutputPath, []byte(newContentTest), 0600)
 				if err != nil {
 					log.Fatalf("writing file %s: %v", outputPath, err)
 				}
-
 				return true
 			}
 			return true
 		})
-
 	}
 }
 

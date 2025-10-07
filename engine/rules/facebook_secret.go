@@ -8,8 +8,9 @@ var FacebookSecretRegex = utils.GenerateSemiGenericRegex([]string{"facebook"}, u
 
 func FacebookSecret() *NewRule {
 	return &NewRule{
-		BaseRuleID:      "28ab7c53-4f4e-4ebc-b5c6-87f6cbb1b30e",
-		Description:     "Discovered a Facebook Application secret, posing a risk of unauthorized access to Facebook accounts and personal data exposure.",
+		BaseRuleID: "28ab7c53-4f4e-4ebc-b5c6-87f6cbb1b30e",
+		Description: "Discovered a Facebook Application secret," +
+			" posing a risk of unauthorized access to Facebook accounts and personal data exposure.",
 		RuleID:          "facebook-secret",
 		Regex:           FacebookSecretRegex,
 		Entropy:         3,
