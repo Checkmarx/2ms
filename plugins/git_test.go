@@ -71,18 +71,18 @@ func TestBuildScanOptions(t *testing.T) {
 			expectedOptions: "--full-history --all def456..HEAD",
 		},
 		{
-			name:            "Base commit takes precedence over depth",
+			name:            "Base commit with depth: both flags are used",
 			scanAllBranches: false,
 			depth:           10,
 			baseCommit:      "ghi789",
-			expectedOptions: "--full-history ghi789..HEAD",
+			expectedOptions: "--full-history ghi789..HEAD -n 10",
 		},
 		{
-			name:            "Base commit with all branches takes precedence over depth",
+			name:            "Base commit with all branches and depth: all flags are used",
 			scanAllBranches: true,
 			depth:           15,
 			baseCommit:      "jkl012",
-			expectedOptions: "--full-history --all jkl012..HEAD",
+			expectedOptions: "--full-history --all jkl012..HEAD -n 15",
 		},
 	}
 

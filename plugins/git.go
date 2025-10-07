@@ -303,10 +303,10 @@ func (p *GitPlugin) buildScanOptions() string {
 		options = append(options, "--all")
 	}
 
-	// If base commit is specified, use commit range instead of depth
 	if p.baseCommit != "" {
 		options = append(options, fmt.Sprintf("%s..HEAD", p.baseCommit))
-	} else if p.depth > 0 {
+	}
+	if p.depth > 0 {
 		options = append(options, fmt.Sprintf("-n %d", p.depth))
 	}
 
