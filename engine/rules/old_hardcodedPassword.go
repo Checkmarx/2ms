@@ -7,7 +7,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-func HardcodedPassword() *config.Rule {
+func OldHardcodedPassword() *config.Rule {
 	// This regex is the output regex of 'generic-api-key' rule from gitleaks, with the next changes:
 	// 1. gitleaks/gitleaks#1267
 	// 2. gitleaks/gitleaks#1265

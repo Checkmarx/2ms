@@ -2,8 +2,6 @@ package rules
 
 import (
 	"regexp"
-
-	"github.com/zricethezav/gitleaks/v8/config"
 )
 
 type ScoreParameters struct {
@@ -11,11 +9,11 @@ type ScoreParameters struct {
 	RuleType uint8
 }
 
-type Rule struct {
-	Rule            config.Rule
-	Tags            []string
-	ScoreParameters ScoreParameters
-}
+//type Rule struct {
+//	Rule            config.Rule
+//	Tags            []string
+//	ScoreParameters ScoreParameters
+//}
 
 type NewRule struct {
 	BaseRuleID      string //uuid4, should be consistent across changes in rule
