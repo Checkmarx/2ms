@@ -481,10 +481,10 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		// get rules to filter all and force an error
-		defaultRules := rules.GetDefaultRules()
+		defaultRules := rules.GetDefaultRulesV2()
 		var idOfRules []string
 		for _, rule := range defaultRules {
-			idOfRules = append(idOfRules, rule.Rule.RuleID)
+			idOfRules = append(idOfRules, rule.RuleID)
 		}
 
 		testScanner := NewScanner()

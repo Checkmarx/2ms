@@ -1362,9 +1362,9 @@ func getSpecialRules() []*NewRule {
 	return specialRules
 }
 
-func isRuleMatch(rule Rule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
+func isRuleMatch(rule NewRule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
 	for _, tag := range tags {
-		if strings.EqualFold(rule.Rule.RuleID, tag) {
+		if strings.EqualFold(rule.RuleID, tag) {
 			return true
 		}
 		for _, ruleTag := range rule.Tags {
@@ -1376,8 +1376,8 @@ func isRuleMatch(rule Rule, tags []string) bool { //nolint:gocritic // hugeParam
 	return false
 }
 
-func selectRules(allRules []*Rule, tags []string) []*Rule {
-	selectedRules := []*Rule{}
+func selectRules(allRules []*NewRule, tags []string) []*NewRule {
+	selectedRules := []*NewRule{}
 
 	for _, rule := range allRules {
 		if isRuleMatch(*rule, tags) {
@@ -1387,8 +1387,8 @@ func selectRules(allRules []*Rule, tags []string) []*Rule {
 	return selectedRules
 }
 
-func ignoreRules(allRules []*Rule, tags []string) []*Rule {
-	selectedRules := []*Rule{}
+func ignoreRules(allRules []*NewRule, tags []string) []*NewRule {
+	selectedRules := []*NewRule{}
 
 	for _, rule := range allRules {
 		if !isRuleMatch(*rule, tags) {
@@ -1398,7 +1398,7 @@ func ignoreRules(allRules []*Rule, tags []string) []*Rule {
 	return selectedRules
 }
 
-func FilterRules(selectedList, ignoreList, specialList []string) []*Rule {
+func FilterRules(selectedList, ignoreList, specialList []string) []*NewRule {
 	if len(selectedList) > 0 && len(ignoreList) > 0 {
 		log.Warn().
 			Msgf("Both 'rule' and 'ignoreRule' flags were provided, " +
@@ -1416,7 +1416,7 @@ func FilterRules(selectedList, ignoreList, specialList []string) []*Rule {
 		specialRules := getSpecialRules()
 		for _, rule := range specialRules {
 			for _, id := range specialList {
-				if strings.EqualFold(rule.Rule.RuleID, id) {
+				if strings.EqualFold(rule.RuleID, id) {
 					selectedRules = append(selectedRules, rule)
 				}
 			}

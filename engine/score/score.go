@@ -16,14 +16,14 @@ type scorer struct {
 	rulesToBeApplied   map[string]config.Rule
 }
 
-func NewScorer(selectedRules []*rules.Rule, withValidation bool) *scorer {
+func NewScorer(selectedRules []*rules.NewRule, withValidation bool) *scorer {
 	rulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
 	keywords := make(map[string]struct{})
 	for _, rule := range selectedRules {
-		rulesToBeApplied[rule.Rule.RuleID] = rule.Rule
-		rulesBaseRiskScore[rule.Rule.RuleID] = GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
-		for _, keyword := range rule.Rule.Keywords {
+		rulesToBeApplied[rule.RuleID] = *rules.ConvertNewRuleToGitleaksRule(rule)
+		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
+		for _, keyword := range rule.Keywords {
 			keywords[strings.ToLower(keyword)] = struct{}{}
 		}
 	}

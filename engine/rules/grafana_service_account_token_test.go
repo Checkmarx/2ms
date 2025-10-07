@@ -50,19 +50,6 @@ func TestGrafanaServiceAccountToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tps := append(tt.truePositives,
-				`'Authorization': 'Bearer glsa_pITqMOBIfNH2KL4PkXJqmTyQl0D9QGxF_486f63e1'`,
-			)
-			fmt.Println("truePositives := []string{")
-			for _, s := range tps {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
-			fmt.Println("},")
-			fmt.Println("falsePositives := []string{")
-			for _, s := range tt.falsePositives {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
-			fmt.Println("},")
 			rule := ConvertNewRuleToGitleaksRule(GrafanaServiceAccountToken())
 			d := createSingleRuleDetector(rule)
 

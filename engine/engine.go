@@ -46,7 +46,7 @@ var (
 )
 
 type DetectorConfig struct {
-	SelectedRules         []*rules.Rule
+	SelectedRules         []*rules.NewRule
 	CustomRegexPatterns   []string
 	AdditionalIgnoreRules []string
 	MaxTargetMegabytes    int
@@ -380,18 +380,18 @@ func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) 
 }
 
 // filterIgnoredRules filters out rules that should be ignored
-func filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Rule {
+func filterIgnoredRules(allRules []*rules.NewRule, ignoreList []string) []*rules.NewRule {
 	if len(ignoreList) == 0 {
 		return allRules
 	}
 
-	filtered := make([]*rules.Rule, 0, len(allRules))
+	filtered := make([]*rules.NewRule, 0, len(allRules))
 	for _, rule := range allRules {
 		shouldIgnore := false
 
 		// Check if this rule should be ignored (by ID or tag)
 		for _, ignoreItem := range ignoreList {
-			if strings.EqualFold(rule.Rule.RuleID, ignoreItem) {
+			if strings.EqualFold(rule.RuleID, ignoreItem) {
 				shouldIgnore = true
 				break
 			}
@@ -455,10 +455,10 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",
-					rule.Rule.RuleID,
-					rule.Rule.Description,
+					rule.RuleID,
+					rule.Description,
 					strings.Join(rule.Tags, ","),
-					canValidateDisplay[validation.IsCanValidateRule(rule.Rule.RuleID)],
+					canValidateDisplay[validation.IsCanValidateRule(rule.RuleID)],
 				)
 			}
 			if err := tab.Flush(); err != nil {

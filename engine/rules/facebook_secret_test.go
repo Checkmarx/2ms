@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 )
 
 func TestFacebookSecret(t *testing.T) {
@@ -53,22 +51,6 @@ func TestFacebookSecret(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tps := utils.GenerateSampleSecrets("facebook", secrets.NewSecret(utils.Hex("32")))
-			tps = append(tps,
-				`facebook_app_secret = "6dca6432e45d933e13650d1882bd5e69"`,       // gitleaks:allow
-				`facebook_client_access_token: 26f5fd13099f2c1331aafb86f6489692`, // gitleaks:allow
-			)
-
-			fmt.Println("truePositives := []string{")
-			for _, s := range tps {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
-			fmt.Println("},")
-			fmt.Println("falsePositives := []string{")
-			for _, s := range tt.falsePositives {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
-			fmt.Println("},")
 			rule := ConvertNewRuleToGitleaksRule(FacebookSecret())
 			d := createSingleRuleDetector(rule)
 

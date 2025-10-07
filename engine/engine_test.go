@@ -58,8 +58,8 @@ func Test_Init(t *testing.T) {
 		{
 			name: "selected and ignore flags used together for the same rule",
 			engineConfig: EngineConfig{
-				SelectedList: []string{allRules[0].Rule.RuleID},
-				IgnoreList:   []string{allRules[0].Rule.RuleID},
+				SelectedList: []string{allRules[0].RuleID},
+				IgnoreList:   []string{allRules[0].RuleID},
 				SpecialList:  []string{},
 			},
 			expectedErr: ErrNoRulesSelected,
@@ -786,7 +786,7 @@ func TestProcessItems(t *testing.T) {
 	}()
 
 	ctrl := gomock.NewController(t)
-	for i := range totalItemsToProcess {
+	for i := 0; i < totalItemsToProcess; i++ {
 		mockData := strconv.Itoa(i)
 		mockItem := NewMockISourceItem(ctrl)
 		mockItem.EXPECT().GetContent().Return(&mockData).AnyTimes()

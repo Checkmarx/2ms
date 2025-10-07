@@ -60,16 +60,6 @@ func TestCloudflareApiKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fmt.Println("truePositives := []string{")
-			for _, s := range tt.truePositives {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
-			fmt.Println("},")
-			fmt.Println("falsePositives := []string{")
-			for _, s := range tt.falsePositives {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
-			fmt.Println("},")
 			rule := ConvertNewRuleToGitleaksRule(CloudflareAPIKey())
 			d := createSingleRuleDetector(rule)
 

@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 )
 
 func TestOnePasswordSecretKey(t *testing.T) {
@@ -84,17 +82,6 @@ func TestOnePasswordSecretKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tps := utils.GenerateSampleSecrets("1password", secrets.NewSecret(`A3-[A-Z0-9]{6}-[A-Z0-9]{11}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}`))
-			tps = append(tps, utils.GenerateSampleSecrets("1password", secrets.NewSecret(`A3-[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}`))...)
-			tps = append(tps,
-				// from whitepaper
-				`A3-ASWWYB-798JRYLJVD4-23DC2-86TVM-H43EB`,
-				`A3-ASWWYB-798JRY-LJVD4-23DC2-86TVM-H43EB`,
-			)
-			fmt.Println("truePositives := []string{")
-			for _, s := range tps {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
 			fmt.Println("},")
 			rule := ConvertNewRuleToGitleaksRule(OnePasswordSecretKey())
 			d := createSingleRuleDetector(rule)

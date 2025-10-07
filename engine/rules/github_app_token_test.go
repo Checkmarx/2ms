@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 )
 
 func TestGitHubApp(t *testing.T) {
@@ -80,18 +78,6 @@ func TestGitHubApp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tps := utils.GenerateSampleSecrets("github", "ghs_"+secrets.NewSecret(utils.AlphaNumeric("36")))
-			tps = append(tps, utils.GenerateSampleSecrets("github", "ghu_"+secrets.NewSecret(utils.AlphaNumeric("36")))...)
-			fmt.Println("truePositives := []string{")
-			for _, s := range tps {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
-			fmt.Println("},")
-			fmt.Println("falsePositives := []string{")
-			for _, s := range tt.falsePositives {
-				fmt.Printf("\t%q,\n", s) // %q prints the string with quotes
-			}
-			fmt.Println("},")
 			rule := ConvertNewRuleToGitleaksRule(GitHubApp())
 			d := createSingleRuleDetector(rule)
 
