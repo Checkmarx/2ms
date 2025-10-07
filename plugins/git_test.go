@@ -491,6 +491,7 @@ func TestExtractChanges(t *testing.T) {
 		name           string
 		fragments      []*gitdiff.TextFragment
 		expectedChunks int
+		expectedError  error
 		description    string
 	}{
 		{
@@ -523,30 +524,40 @@ func TestExtractChanges(t *testing.T) {
 			expectedChunks: 3,
 			description:    "Should handle mixed add/delete operations in single chunk",
 		},
+		{
+			name:           "File diff size exceeded",
+			fragments:      createLargeTestFragments(51 * 1024 * 1024), // 51MB
+			expectedChunks: 0,
+			description:    "Should return error when file diff size exceeds limit",
+			expectedError:  ErrFileDiffSizeExceeded,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			changesPool := newGitChangesPool(0)
-			chunks := extractChanges(changesPool, tt.fragments)
+			chunks, err := extractChanges(changesPool, tt.fragments)
 
+			assert.ErrorIs(t, err, tt.expectedError)
 			assert.Equal(t, tt.expectedChunks, len(chunks), tt.description)
 
-			// Verify memory is freed for non-nil fragments
-			for _, fragment := range tt.fragments {
-				if fragment != nil {
-					for _, line := range fragment.Lines {
-						assert.Empty(t, line.Line, "Line content should be cleared to free memory")
+			if tt.expectedError == nil {
+				// Verify memory is freed for non-nil fragments
+				for _, fragment := range tt.fragments {
+					if fragment != nil {
+						for _, line := range fragment.Lines {
+							assert.Empty(t, line.Line, "Line content should be cleared to free memory")
+						}
 					}
 				}
-			}
 
-			// Verify chunks contain expected content types
-			for _, chunk := range chunks {
-				if tt.expectedChunks > 0 {
-					// At least one chunk should have some content
-					hasContent := chunk.Added != "" || chunk.Removed != ""
-					assert.True(t, hasContent, "Chunk should contain added or removed content")
+				// Verify chunks contain expected content types
+				for _, chunk := range chunks {
+					if tt.expectedChunks > 0 {
+						// At least one chunk should have some content
+						hasContent := chunk.Added != "" || chunk.Removed != ""
+						assert.True(t, hasContent, "Chunk should contain added or removed content")
+					}
 				}
 			}
 		})
@@ -554,38 +565,110 @@ func TestExtractChanges(t *testing.T) {
 }
 
 func TestProcessFileDiff(t *testing.T) {
-	plugin := &GitPlugin{
-		Plugin:         Plugin{},
-		projectName:    "test-project",
-		gitChangesPool: newGitChangesPool(0),
-	}
-
-	// Create test file with large diff
-	file := &gitdiff.File{
-		NewName: "test-file.go",
-		OldName: "test-file.go",
-		PatchHeader: &gitdiff.PatchHeader{
-			SHA:   "abc123",
-			Title: "Test commit",
+	tests := []struct {
+		name          string
+		fragmentSize  int
+		isBinary      bool
+		isDelete      bool
+		expectedItems int
+	}{
+		{
+			name:          "normal file with small diff",
+			fragmentSize:  2000, // 2KB
+			expectedItems: 2,
 		},
-		TextFragments: createLargeTestFragments(2 * 1024 * 1024), // 2MB
+		{
+			name:          "normal file with large diff under limit",
+			fragmentSize:  2 * 1024 * 1024, // 2MiB
+			expectedItems: 16,              // (2000 KiB /256 KiB = 8 chunks) x 2 (added and removed)
+		},
+		{
+			name:          "file exceeding size limit",
+			fragmentSize:  60 * 1024 * 1024, // 60MiB - exceeds 50MiB limit
+			expectedItems: 0,
+		},
+		{
+			name:          "binary file",
+			fragmentSize:  1024,
+			isBinary:      true,
+			expectedItems: 0,
+		},
+		{
+			name:          "deleted file",
+			fragmentSize:  1024,
+			isDelete:      true,
+			expectedItems: 1,
+		},
+		{
+			name:          "empty fragments",
+			fragmentSize:  0,
+			expectedItems: 0,
+		},
 	}
 
-	items := make(chan ISourceItem, 100)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			plugin := &GitPlugin{
+				Plugin:         Plugin{},
+				projectName:    "test-project",
+				gitChangesPool: newGitChangesPool(0),
+			}
 
-	plugin.processFileDiff(file, items)
-	close(items)
+			// Create test file
+			file := createTestFile("test-file", "abc123", tt.name, tt.fragmentSize, tt.isBinary, tt.isDelete)
 
-	// Collect all items
-	var itemCount int
-	for item := range items {
-		itemCount++
-		assert.NotNil(t, item.GetContent(), "Item content should not be nil")
-		assert.NotEmpty(t, item.GetID(), "Item ID should not be empty")
+			items := make(chan ISourceItem, 100)
+
+			plugin.processFileDiff(file, items)
+			close(items)
+
+			// Collect all items
+			var itemCount int
+			var collectedItems []ISourceItem
+			for item := range items {
+				itemCount++
+				collectedItems = append(collectedItems, item)
+				assert.NotNil(t, item.GetContent(), "Item content should not be nil")
+				assert.NotEmpty(t, item.GetID(), "Item ID should not be empty")
+			}
+
+			assert.Equal(t, tt.expectedItems, itemCount)
+			if itemCount > 0 {
+				for _, item := range collectedItems {
+					assert.Contains(t, item.GetID(), "abc123", "Item ID should contain commit SHA")
+					assert.Contains(t, item.GetID(), "test-file", "Item ID should contain file name")
+
+					// Validate GitInfo
+					if gitInfo := item.GetGitInfo(); gitInfo != nil {
+						assert.NotNil(t, gitInfo.Hunks, "GitInfo should have hunks")
+						assert.True(t, gitInfo.ContentType == AddedContent || gitInfo.ContentType == RemovedContent,
+							"GitInfo should have valid content type")
+					}
+				}
+			}
+		})
+	}
+}
+
+// createTestFile creates a gitdiff.File for testing with specified parameters
+func createTestFile(fileName, commitSHA, commitTitle string, fragmentSize int, isBinary, isDelete bool) *gitdiff.File {
+	file := &gitdiff.File{
+		NewName: fileName,
+		OldName: fileName,
+		PatchHeader: &gitdiff.PatchHeader{
+			SHA:   commitSHA,
+			Title: commitTitle,
+		},
+		IsBinary: isBinary,
+		IsDelete: isDelete,
 	}
 
-	// Should have created multiple chunks and therefore multiple items
-	assert.Greater(t, itemCount, 1, "Should create multiple items for large file")
+	// Only create fragments for non-binary files with content
+	if !isBinary && fragmentSize > 0 {
+		file.TextFragments = createLargeTestFragments(fragmentSize)
+	}
+
+	return file
 }
 
 func TestStringBuilderPool(t *testing.T) {
@@ -637,11 +720,11 @@ func TestStringBuilderPool(t *testing.T) {
 }
 
 func createLargeTestFragments(totalSize int) []*gitdiff.TextFragment {
-	lineSize := 1024 // 1KB per line
-	numLines := totalSize / lineSize
+	lineSize := 1024                                  // 1KiB per line
+	numLines := (totalSize + lineSize - 1) / lineSize // Ceiling division
 	lines := make([]gitdiff.Line, numLines)
 
-	for i := 0; i < numLines; i++ {
+	for i := range numLines {
 		op := gitdiff.OpAdd
 		if i%2 == 0 {
 			op = gitdiff.OpDelete
