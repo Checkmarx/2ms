@@ -342,7 +342,7 @@ func (e *Engine) detectSecrets(
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
-		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues) {
+		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
 			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -575,13 +575,15 @@ func getStartAndEndLines(
 	return startLine, endLine, nil
 }
 
-func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string) bool {
+func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string, secretLine, secretMatch, pluginName string) bool {
 	for _, allowedValue := range *allowedValues {
 		if secret.Value == allowedValue {
 			return true
 		}
 	}
-
+	if pluginName == "confluence" && isSecretFromConfluenceResourceIdentifier(secret.RuleID, secretLine, secretMatch) {
+		return true
+	}
 	return slices.Contains(*ignoredIds, secret.ID)
 }
 
@@ -739,4 +741,20 @@ func (e *Engine) Scan(pluginName string) {
 
 func (e *Engine) Wait() {
 	e.wg.Wait()
+}
+
+// isSecretFromConfluenceResourceIdentifier reports whether a regex match found in a line
+// actually belongs to Confluence Storage Format metadata (the `ri:` namespace) rather than
+// real user content. This lets us ignore false-positives that cannot be suppressed via the
+// generic-api-key rule allow-list.
+func isSecretFromConfluenceResourceIdentifier(secretRuleID, secretLine, secretMatch string) bool {
+	if secretRuleID != rules.GenericApiKeyID || secretLine == "" || secretMatch == "" {
+		return false
+	}
+
+	q := regexp.QuoteMeta(secretMatch)
+
+	pat := `<[^>]*\sri:` + q + `[^>]*>`
+	re := regexp.MustCompile(pat)
+	return re.MatchString(secretLine)
 }
