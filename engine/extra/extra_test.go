@@ -50,7 +50,9 @@ func TestAddExtraToSecret(t *testing.T) {
 				ExtraDetails: make(map[string]interface{}),
 			}
 
-			AddExtraToSecret(secret)
+			addExtra := RuleIDToFunction[secret.RuleID]
+			extraData := addExtra(secret)
+			UpdateExtraField(secret, "secretDetails", extraData)
 
 			assert.Equal(t, tt.expectedOutput, secret.ExtraDetails["secretDetails"])
 		})

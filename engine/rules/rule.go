@@ -1,8 +1,10 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/config"
+	"regexp"
 )
+
+var SeverityOrder = []string{"Critical", "High", "Medium", "Low", "Info"}
 
 type ScoreParameters struct {
 	Category RuleCategory
@@ -10,7 +12,27 @@ type ScoreParameters struct {
 }
 
 type Rule struct {
-	Rule            config.Rule
+	BaseRuleID      string // uuid4, should be consistent across changes in rule
+	RuleID          string
+	Description     string
+	Regex           *regexp.Regexp
+	Keywords        []string
+	Entropy         float64
+	Path            *regexp.Regexp // present in some gitleaks secrets
+	SecretGroup     int            // used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Severity        string
+	OldSeverity     string // fallback for when critical is not enabled
+	Deprecated      bool   // deprecated rules will remain in 2ms, with this as true
+	AllowLists      []*AllowList
 	Tags            []string
-	ScoreParameters ScoreParameters
+	ScoreParameters ScoreParameters // used for ASPM
+}
+
+type AllowList struct { // For patterns that are allowed to be ignored
+	Description    string
+	MatchCondition string // determines whether all criteria must match. OR or AND
+	Paths          []*regexp.Regexp
+	RegexTarget    string // match or line. Default match
+	Regexes        []*regexp.Regexp
+	StopWords      []string // stop words that are allowed to be ignored
 }
