@@ -18,12 +18,19 @@ import (
 
 // test input results
 var (
-	ruleID1 = "ruleID1"
-	ruleID2 = "ruleID2"
+	ruleID1       = "ruleID1"
+	ruleID2       = "ruleID2"
+	baseRuleID1   = "baseRuleID1"
+	baseRuleID2   = "baseRuleID2"
+	ruleCategory1 = "category1"
+	ruleCategory2 = "category2"
+
 	result1 = &secrets.Secret{
 		ID:               "ID1",
 		Source:           "file1",
 		RuleID:           ruleID1,
+		BaseRuleID:       baseRuleID1,
+		RuleCategory:     ruleCategory1,
 		StartLine:        150,
 		EndLine:          150,
 		LineContent:      "line content",
@@ -32,6 +39,7 @@ var (
 		Value:            "value",
 		ValidationStatus: secrets.ValidResult,
 		CvssScore:        10.0,
+		Severity:         "High",
 		RuleDescription:  "Rule Description",
 	}
 	// this result has a different rule than result1
@@ -39,6 +47,8 @@ var (
 		ID:               "ID2",
 		Source:           "file2",
 		RuleID:           ruleID2,
+		BaseRuleID:       baseRuleID2,
+		RuleCategory:     ruleCategory2,
 		StartLine:        10,
 		EndLine:          10,
 		LineContent:      "line content2",
@@ -46,6 +56,7 @@ var (
 		EndColumn:        160,
 		Value:            "value 2",
 		ValidationStatus: secrets.InvalidResult,
+		Severity:         "Medium",
 		CvssScore:        4.5,
 		RuleDescription:  "Rule Description2",
 	}
@@ -54,6 +65,8 @@ var (
 		ID:               "ID3",
 		Source:           "file3",
 		RuleID:           ruleID1,
+		BaseRuleID:       baseRuleID1,
+		RuleCategory:     ruleCategory1,
 		StartLine:        16,
 		EndLine:          16,
 		LineContent:      "line content3",
@@ -61,6 +74,7 @@ var (
 		EndColumn:        130,
 		Value:            "value 3",
 		ValidationStatus: secrets.UnknownResult,
+		Severity:         "Low",
 		CvssScore:        0.0,
 		RuleDescription:  "Rule Description",
 	}
@@ -74,11 +88,19 @@ var (
 		FullDescription: &Message{
 			Text: result1.RuleDescription,
 		},
+		Properties: Properties{
+			"baseRuleID": baseRuleID1,
+			"category":   ruleCategory1,
+		},
 	}
 	rule2Sarif = &SarifRule{
 		ID: ruleID2,
 		FullDescription: &Message{
 			Text: result2.RuleDescription,
+		},
+		Properties: Properties{
+			"baseRuleID": baseRuleID2,
+			"category":   ruleCategory2,
 		},
 	}
 	// sarif results
@@ -110,6 +132,7 @@ var (
 		},
 		Properties: Properties{
 			"validationStatus": string(result1.ValidationStatus),
+			"severity":         result1.Severity,
 			"cvssScore":        result1.CvssScore,
 		},
 	}
@@ -141,6 +164,7 @@ var (
 		},
 		Properties: Properties{
 			"validationStatus": string(result2.ValidationStatus),
+			"severity":         result2.Severity,
 			"cvssScore":        result2.CvssScore,
 		},
 	}
@@ -172,6 +196,7 @@ var (
 		},
 		Properties: Properties{
 			"validationStatus": string(result3.ValidationStatus),
+			"severity":         result3.Severity,
 			"cvssScore":        result3.CvssScore,
 		},
 	}
@@ -362,6 +387,8 @@ func TestGetOutputYAML(t *testing.T) {
 							ID:               "c6490d749fd4670fde969011d99ea5c4c4b1c0d7",
 							Source:           "..\\2ms\\engine\\rules\\hardcodedPassword.go",
 							RuleID:           "generic-api-key",
+							BaseRuleID:       "f0872990-61ab-4e55-b92a-d627dc1bc066",
+							RuleCategory:     "API Access",
 							StartLine:        45,
 							EndLine:          45,
 							LineContent:      "value",
@@ -369,6 +396,7 @@ func TestGetOutputYAML(t *testing.T) {
 							EndColumn:        64,
 							Value:            "value",
 							ValidationStatus: "",
+							Severity:         "High",
 							CvssScore:        8.2,
 							RuleDescription:  "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
 						},
@@ -387,6 +415,8 @@ func TestGetOutputYAML(t *testing.T) {
 							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
 							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
 							RuleID:           "jwt",
+							BaseRuleID:       "0fc98133-a57b-4e08-9990-60952d4a82df",
+							RuleCategory:     "General or Unknown",
 							StartLine:        1,
 							EndLine:          1,
 							LineContent:      "line content",
@@ -394,6 +424,7 @@ func TestGetOutputYAML(t *testing.T) {
 							EndColumn:        232,
 							Value:            "value",
 							ValidationStatus: "",
+							Severity:         "Medium",
 							CvssScore:        8.2,
 							RuleDescription:  "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
 							ExtraDetails: map[string]interface{}{
@@ -407,6 +438,8 @@ func TestGetOutputYAML(t *testing.T) {
 							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
 							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
 							RuleID:           "jwt",
+							BaseRuleID:       "0fc98133-a57b-4e08-9990-60952d4a82df",
+							RuleCategory:     "General or Unknown",
 							StartLine:        2,
 							EndLine:          2,
 							LineContent:      "line Content",
@@ -415,6 +448,7 @@ func TestGetOutputYAML(t *testing.T) {
 							Value:            "value",
 							ValidationStatus: "",
 							CvssScore:        8.2,
+							Severity:         "Low",
 							RuleDescription:  "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
 							ExtraDetails: map[string]interface{}{
 								"secretDetails": map[string]interface{}{

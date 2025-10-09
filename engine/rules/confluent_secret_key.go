@@ -6,8 +6,8 @@ import (
 
 var ConfluentSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"confluent"}, utils.AlphaNumeric("64"), true)
 
-func ConfluentSecretKey() *NewRule {
-	return &NewRule{
+func ConfluentSecretKey() *Rule {
+	return &Rule{
 		BaseRuleID:  "ec70091b-edd6-4ba4-bb52-8871814241bc",
 		Description: "Found a Confluent Secret Key, potentially risking unauthorized operations and data access within Confluent services.",
 		RuleID:      "confluent-secret-key",

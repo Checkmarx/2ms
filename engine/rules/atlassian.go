@@ -13,8 +13,8 @@ var AtlassianRegex = utils.MergeRegexps(
 	utils.GenerateUniqueTokenRegex(`ATATT3[A-Za-z0-9_\-=]{186}`, false),
 )
 
-func Atlassian() *NewRule {
-	return &NewRule{
+func Atlassian() *Rule {
+	return &Rule{
 		BaseRuleID: "d8bd5d5b-c6b2-4d7d-877b-d73947e2139a",
 		Description: `Detected an OldAtlassian API token, 
 			posing a threat to project management and 

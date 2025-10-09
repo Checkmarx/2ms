@@ -6,9 +6,9 @@ import (
 
 var AdobeClientIDRegex = utils.GenerateSemiGenericRegex([]string{"adobe"}, utils.Hex("32"), true)
 
-func AdobeClientID() *NewRule {
+func AdobeClientID() *Rule {
 	// define rule
-	return &NewRule{
+	return &Rule{
 		BaseRuleID: "59599f26-ea9c-495c-b47f-c69433002c45",
 		RuleID:     "adobe-client-id",
 		Description: "Detected a pattern that resembles an Adobe OAuth Web Client ID," +

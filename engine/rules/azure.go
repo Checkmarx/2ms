@@ -6,8 +6,8 @@ import (
 
 var AzureActiveDirectoryClientSecretRegex = regexp.MustCompile(`(?:^|[\\'"\x60\s>=:(,)])([a-zA-Z0-9_~.]{3}\dQ~[a-zA-Z0-9_~.-]{31,34})(?:$|[\\'"\x60\s<),])`) //nolint:lll
 
-func AzureActiveDirectoryClientSecret() *NewRule {
-	return &NewRule{
+func AzureActiveDirectoryClientSecret() *Rule {
+	return &Rule{
 		BaseRuleID:  "459f11f0-f5b3-497e-bd6b-ad36a0db5f2d",
 		RuleID:      "azure-ad-client-secret",
 		Description: "Azure AD Client Secret",

@@ -6,8 +6,8 @@ import (
 
 var PlaidSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"plaid"}, utils.AlphaNumeric("30"), true)
 
-func PlaidSecretKey() *NewRule {
-	return &NewRule{
+func PlaidSecretKey() *Rule {
+	return &Rule{
 		BaseRuleID:  "8016c551-324e-4728-97e8-72a4fd138f01",
 		Description: "Detected a Plaid Secret key, risking unauthorized access to financial accounts and sensitive transaction data.",
 		RuleID:      "plaid-secret-key",

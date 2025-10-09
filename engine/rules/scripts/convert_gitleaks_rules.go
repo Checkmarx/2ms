@@ -18,7 +18,10 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-func main() { //nolint:gocyclo
+// This script converts gitleaks v8 rules to the new format used in 2ms.
+// It is not a perfect script and could be improved significantly.
+// Rules to be converted need to be in their own folder
+func main() { //nolint:gocyclo,funlen
 	inputDir := "old_rules" // folder with original rules
 	outputDir := "output"   // folder for generated rules
 

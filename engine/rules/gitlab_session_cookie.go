@@ -6,8 +6,8 @@ import (
 
 var GitlabSessionCookieRegex = regexp.MustCompile(`_gitlab_session=[0-9a-z]{32}`)
 
-func GitlabSessionCookie() *NewRule {
-	return &NewRule{
+func GitlabSessionCookie() *Rule {
+	return &Rule{
 		BaseRuleID:      "fa980a88-6add-4a36-93c1-bd35610def6d",
 		RuleID:          "gitlab-session-cookie",
 		Description:     "Discovered a GitLab Session Cookie, posing a risk to unauthorized access to a user account.",

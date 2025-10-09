@@ -10,8 +10,8 @@ var NewRelicUserAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{
 	"new_relic",
 }, `NRAK-[a-z0-9]{27}`, true)
 
-func NewRelicUserID() *NewRule {
-	return &NewRule{
+func NewRelicUserID() *Rule {
+	return &Rule{
 		BaseRuleID:  "bd7d9fd6-896f-49f2-874e-310f950f0057",
 		Description: "Discovered a New Relic user API Key, which could lead to compromised application insights and performance monitoring.",
 		RuleID:      "new-relic-user-api-key",

@@ -16,8 +16,8 @@ var kubernetesDataPat = `\bdata:(?s:.){0,100}?\s+([\w.-]+:(?:[ \t]*(?:\||>[-+]?)
 var KubernetesSecretRegex = regexp.MustCompile(fmt.Sprintf(
 	`(?i)(?:%s(?s:.){0,200}?%s|%s(?s:.){0,200}?%s)`, kubernetesKindPat, kubernetesDataPat, kubernetesDataPat, kubernetesKindPat))
 
-func KubernetesSecret() *NewRule {
-	return &NewRule{
+func KubernetesSecret() *Rule {
+	return &Rule{
 		BaseRuleID:  "7e7caacc-05fb-4e6e-b636-dbd027897a10",
 		RuleID:      "kubernetes-secret-yaml",
 		Description: "Possible Kubernetes Secret detected, posing a risk of leaking credentials/tokens from your deployments",

@@ -6,8 +6,8 @@ import (
 
 var SendbirdAccessIDRegex = utils.GenerateSemiGenericRegex([]string{"sendbird"}, utils.Hex8_4_4_4_12(), true)
 
-func SendbirdAccessID() *NewRule {
-	return &NewRule{
+func SendbirdAccessID() *Rule {
+	return &Rule{
 		BaseRuleID:  "74bd716d-2bb3-4e13-bda3-e56c9a058726",
 		Description: "Discovered a Sendbird Access ID, which could compromise chat and messaging platform integrations.",
 		RuleID:      "sendbird-access-id",

@@ -7,8 +7,8 @@ import (
 
 var VaultServiceTokenRegex = utils.GenerateUniqueTokenRegex(`(?:hvs\.[\w-]{90,120}|s\.(?i:[a-z0-9]{24}))`, false)
 
-func VaultServiceToken() *NewRule {
-	return &NewRule{
+func VaultServiceToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "1cfd6d4a-273d-47f6-92ac-ee8f8f472f66",
 		RuleID:      "vault-service-token",
 		Description: "Identified a Vault Service Token, potentially compromising infrastructure security and access to sensitive credentials.",

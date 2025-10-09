@@ -7,8 +7,8 @@ import (
 var BeamerApiTokenRegex = utils.GenerateSemiGenericRegex([]string{"beamer"},
 	`b_[a-z0-9=_\-]{44}`, true)
 
-func Beamer() *NewRule {
-	return &NewRule{
+func Beamer() *Rule {
+	return &Rule{
 		BaseRuleID: "481dbb49-ccdc-4a83-97ad-e0961a004c8b",
 		Description: "Detected a Beamer API token," +
 			" potentially compromising content management and exposing sensitive notifications and updates.",

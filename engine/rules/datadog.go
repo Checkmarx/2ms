@@ -7,8 +7,8 @@ import (
 var DatadogAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"datadog"},
 	utils.AlphaNumeric("40"), true)
 
-func DatadogtokenAccessToken() *NewRule {
-	return &NewRule{
+func DatadogtokenAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "f0967e3a-826e-4abd-9271-bc7db50d168d",
 		Description: "Detected a Datadog Access Token, potentially risking monitoring and analytics data exposure and manipulation.",
 		RuleID:      "datadog-access-token",

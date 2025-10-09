@@ -8,9 +8,9 @@ import (
 var OnePasswordSecretKeyRegex = regexp.MustCompile(
 	`\bA3-[A-Z0-9]{6}-(?:(?:[A-Z0-9]{11})|(?:[A-Z0-9]{6}-[A-Z0-9]{5}))-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\b`)
 
-func OnePasswordSecretKey() *NewRule {
+func OnePasswordSecretKey() *Rule {
 	// define rule
-	return &NewRule{
+	return &Rule{
 		BaseRuleID:      "4068d686-6833-4976-8f4a-5397e75c7fc5",
 		Description:     "Uncovered a possible 1Password secret key, potentially compromising access to secrets in vaults.",
 		RuleID:          "1password-secret-key",

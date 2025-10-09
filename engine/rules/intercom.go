@@ -6,8 +6,8 @@ import (
 
 var IntercomAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"intercom"}, utils.AlphaNumericExtended("60"), true)
 
-func Intercom() *NewRule {
-	return &NewRule{
+func Intercom() *Rule {
+	return &Rule{
 		BaseRuleID:      "e278713e-4f19-4dda-a459-1512735b598c",
 		Description:     "Identified an Intercom API Token, which could compromise customer communication channels and data privacy.",
 		RuleID:          "intercom-api-key",

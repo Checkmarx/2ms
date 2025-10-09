@@ -6,9 +6,9 @@ import (
 
 var AlgoliaRegex = utils.GenerateSemiGenericRegex([]string{"algolia"}, `[a-z0-9]{32}`, true)
 
-func AlgoliaApiKey() *NewRule {
+func AlgoliaApiKey() *Rule {
 	// define rule
-	return &NewRule{
+	return &Rule{
 		BaseRuleID: "3e3052a1-5be8-4ed8-90a3-f50b94c96fe5",
 		Description: "Identified an Algolia API Key," +
 			" which could result in unauthorized search operations and data exposure on Algolia-managed platforms.",

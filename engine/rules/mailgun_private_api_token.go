@@ -6,8 +6,8 @@ import (
 
 var MailgunPrivateAPITokenRegex = utils.GenerateSemiGenericRegex([]string{"mailgun"}, `key-[a-f0-9]{32}`, true)
 
-func MailGunPrivateAPIToken() *NewRule {
-	return &NewRule{
+func MailGunPrivateAPIToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "edb6d469-f6ab-427f-9d91-93ed56c17784",
 		Description: "Found a Mailgun private API token, risking unauthorized email service operations and data breaches.",
 		RuleID:      "mailgun-private-api-token",

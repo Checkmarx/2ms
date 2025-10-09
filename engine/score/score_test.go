@@ -261,7 +261,7 @@ func TestScore(t *testing.T) {
 			expectedRuleScores := expectedCvssScores[secret.RuleID]
 			validityIndex := getValidityIndex(secret.ValidationStatus)
 
-			scorer.Score(secret)
+			scorer.AssignScoreAndSeverity(secret)
 			assert.Equal(t, expectedRuleScores[validityIndex], secret.CvssScore, "rule: %s", secret.RuleID)
 		}
 	})
@@ -284,10 +284,69 @@ func TestScore(t *testing.T) {
 			expectedRuleScores := expectedCvssScores[secret.RuleID]
 			unknownIndex := getValidityIndex(secrets.UnknownResult)
 
-			scorer.Score(secret)
+			scorer.AssignScoreAndSeverity(secret)
 			assert.Equal(t, expectedRuleScores[unknownIndex], secret.CvssScore, "rule: %s", secret.RuleID)
 		}
 	})
+}
+
+func TestSecrets(t *testing.T) {
+	secretsCases := []struct {
+		name           string
+		inputSecret    *secrets.Secret
+		expectedSecret *secrets.Secret
+	}{
+		{
+			name: "Valid secret with should have severity bumped from high to critical",
+			inputSecret: &secrets.Secret{
+				RuleID:           rules.CloudflareAPIKey().RuleID,
+				ValidationStatus: secrets.ValidResult,
+			},
+			expectedSecret: &secrets.Secret{
+				RuleID:           rules.CloudflareAPIKey().RuleID,
+				Severity:         "Critical",
+				ValidationStatus: secrets.ValidResult,
+				CvssScore:        9.4,
+			},
+		},
+		{
+			name: "Unknown validity secret with should keep default severity for the rule (high)",
+			inputSecret: &secrets.Secret{
+				RuleID:           rules.CloudflareAPIKey().RuleID,
+				ValidationStatus: secrets.UnknownResult,
+			},
+			expectedSecret: &secrets.Secret{
+				RuleID:           rules.CloudflareAPIKey().RuleID,
+				Severity:         "High",
+				ValidationStatus: secrets.UnknownResult,
+				CvssScore:        6.4,
+			},
+		},
+		{
+			name: "Invalid secret with should have severity bumped down from high to medium",
+			inputSecret: &secrets.Secret{
+				RuleID:           rules.CloudflareAPIKey().RuleID,
+				ValidationStatus: secrets.InvalidResult,
+			},
+			expectedSecret: &secrets.Secret{
+				RuleID:           rules.CloudflareAPIKey().RuleID,
+				Severity:         "Medium",
+				ValidationStatus: secrets.InvalidResult,
+				CvssScore:        3.4,
+			},
+		},
+	}
+
+	allRules := rules.FilterRules([]string{}, []string{}, []string{})
+	scorer := NewScorer(allRules, true)
+
+	for _, tt := range secretsCases {
+		t.Run(tt.name, func(t *testing.T) {
+			scorer.AssignScoreAndSeverity(tt.inputSecret)
+			assert.Equal(t, tt.expectedSecret, tt.inputSecret)
+		})
+	}
+
 }
 
 func getValidityIndex(validity secrets.ValidationResult) int {

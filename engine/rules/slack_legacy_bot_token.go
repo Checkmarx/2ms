@@ -6,8 +6,8 @@ import (
 
 var SlackLegacyBotTokenRegex = regexp.MustCompile(`xoxb-[0-9]{8,14}-[a-zA-Z0-9]{18,26}`) //nolint:gocritic
 
-func SlackLegacyBotToken() *NewRule {
-	return &NewRule{
+func SlackLegacyBotToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "e0a8f972-ad70-4dba-85e3-4f19bd447800",
 		RuleID:      "slack-legacy-bot-token",
 		Description: "Uncovered a Slack Legacy bot token, which could lead to compromised legacy bot operations and data exposure.",

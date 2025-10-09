@@ -6,8 +6,8 @@ import (
 
 var FinicityClientSecretRegex = utils.GenerateSemiGenericRegex([]string{"finicity"}, utils.AlphaNumeric("20"), true)
 
-func FinicityClientSecret() *NewRule {
-	return &NewRule{
+func FinicityClientSecret() *Rule {
+	return &Rule{
 		BaseRuleID:      "bc48d7fc-9dca-42f9-aefe-6d38b13f28c1",
 		Description:     "Identified a Finicity Client Secret, which could lead to compromised financial service integrations and data breaches.",
 		RuleID:          "finicity-client-secret",

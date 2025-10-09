@@ -6,8 +6,8 @@ import (
 
 var SentryUserTokenRegex = utils.GenerateUniqueTokenRegex(`sntryu_[a-f0-9]{64}`, false)
 
-func SentryUserToken() *NewRule {
-	return &NewRule{
+func SentryUserToken() *Rule {
+	return &Rule{
 		BaseRuleID:      "583058fd-a4f6-4279-8cb6-c4f60ef5e4a3",
 		RuleID:          "sentry-user-token",
 		Description:     "Found a Sentry.io User Token, risking unauthorized access to error tracking services and sensitive application data.",

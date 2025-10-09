@@ -6,8 +6,8 @@ import (
 
 var SquareSpaceAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"squarespace"}, utils.Hex8_4_4_4_12(), true)
 
-func SquareSpaceAccessToken() *NewRule {
-	return &NewRule{
+func SquareSpaceAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "775c744f-1469-4ac2-bdbf-8480ae246451",
 		Description: "Identified a Squarespace Access Token, which may compromise website management and content control on Squarespace.",
 		RuleID:      "squarespace-access-token",

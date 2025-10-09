@@ -6,8 +6,8 @@ import (
 
 var SquareAccessTokenRegex = utils.GenerateUniqueTokenRegex(`(?:EAAA|sq0atp-)[\w-]{22,60}`, false)
 
-func SquareAccessToken() *NewRule {
-	return &NewRule{
+func SquareAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:      "736ab85d-4250-4162-b3ff-7375fdf697a4",
 		Description:     "Detected a Square Access Token, risking unauthorized payment processing and financial transaction exposure.",
 		RuleID:          "square-access-token",

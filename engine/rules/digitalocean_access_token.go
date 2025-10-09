@@ -6,8 +6,8 @@ import (
 
 var DigitaloceanAccessTokenRegex = utils.GenerateUniqueTokenRegex(`doo_v1_[a-f0-9]{64}`, false)
 
-func DigitalOceanOAuthToken() *NewRule {
-	return &NewRule{
+func DigitalOceanOAuthToken() *Rule {
+	return &Rule{
 		BaseRuleID:      "25360df5-249a-4889-a08a-011d0d5dc7a5",
 		Description:     "Found a DigitalOcean OAuth Access Token, risking unauthorized cloud resource access and data compromise.",
 		RuleID:          "digitalocean-access-token",

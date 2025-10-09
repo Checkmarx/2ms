@@ -119,7 +119,7 @@ func createSingleRuleDetector(r *gitleaksrule.Rule) *detect.Detector {
 	return detect.NewDetector(cfg)
 }
 
-func ConvertNewRuleToGitleaksRule(rule *NewRule) *gitleaksrule.Rule {
+func ConvertNewRuleToGitleaksRule(rule *Rule) *gitleaksrule.Rule {
 	return &gitleaksrule.Rule{
 		RuleID:      rule.RuleID,
 		Description: rule.Description,

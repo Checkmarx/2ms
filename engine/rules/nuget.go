@@ -6,8 +6,8 @@ import (
 
 var NugetConfigPasswordRegex = regexp.MustCompile(`(?i)<add key=\"(?:(?:ClearText)?Password)\"\s*value=\"(.{8,})\"\s*/>`)
 
-func NugetConfigPassword() *NewRule {
-	return &NewRule{
+func NugetConfigPassword() *Rule {
+	return &Rule{
 		BaseRuleID:  "9b6aa003-3d49-4b54-8f20-cee3eb9d0411",
 		Description: "Identified a password within a Nuget config file, potentially compromising package management access.",
 		RuleID:      "nuget-config-password",

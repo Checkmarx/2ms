@@ -6,8 +6,8 @@ import (
 
 var MessagebirdClientIDRegex = utils.GenerateSemiGenericRegex([]string{"message[_-]?bird"}, utils.Hex8_4_4_4_12(), true)
 
-func MessageBirdClientID() *NewRule {
-	return &NewRule{
+func MessageBirdClientID() *Rule {
+	return &Rule{
 		BaseRuleID:  "bb630684-0bfe-457e-bf74-55d655c2011a",
 		Description: "Discovered a MessageBird client ID, potentially compromising API integrations and sensitive communication data.",
 		RuleID:      "messagebird-client-id",

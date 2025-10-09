@@ -56,6 +56,10 @@ func getRules(report *Report) []*SarifRule {
 					FullDescription: &Message{
 						Text: secret.RuleDescription,
 					},
+					Properties: Properties{
+						"baseRuleID": secret.BaseRuleID,
+						"category":   secret.RuleCategory,
+					},
 				}
 				reportRules = append(reportRules, uniqueRulesMap[secret.RuleID])
 			}
@@ -99,6 +103,7 @@ func getResults(report *Report) []Results {
 				Locations: getLocation(secret),
 				Properties: Properties{
 					"validationStatus": secret.ValidationStatus,
+					"severity":         secret.Severity,
 					"cvssScore":        secret.CvssScore,
 				},
 			}
@@ -152,8 +157,9 @@ type Tool struct {
 }
 
 type SarifRule struct {
-	ID              string   `json:"id"`
-	FullDescription *Message `json:"fullDescription,omitempty"`
+	ID              string     `json:"id"`
+	FullDescription *Message   `json:"fullDescription,omitempty"`
+	Properties      Properties `json:"properties,omitempty"`
 }
 
 type Message struct {

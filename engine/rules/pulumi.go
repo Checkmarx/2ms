@@ -6,8 +6,8 @@ import (
 
 var PulumiAPITokenRegex = utils.GenerateUniqueTokenRegex(`pul-[a-f0-9]{40}`, false)
 
-func PulumiAPIToken() *NewRule {
-	return &NewRule{
+func PulumiAPIToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "a106c89b-68ed-47a6-ac7f-ef2fa78cfef2",
 		Description: "Found a Pulumi API token, posing a risk to infrastructure as code services and cloud resource management.",
 		RuleID:      "pulumi-api-token",

@@ -6,8 +6,8 @@ import (
 
 var PlaidAccessIDRegex = utils.GenerateSemiGenericRegex([]string{"plaid"}, utils.AlphaNumeric("24"), true)
 
-func PlaidAccessID() *NewRule {
-	return &NewRule{
+func PlaidAccessID() *Rule {
+	return &Rule{
 		BaseRuleID:  "9f80861a-c2b5-423a-9f8f-81203da136dc",
 		RuleID:      "plaid-client-id",
 		Description: "Uncovered a Plaid Client ID, which could lead to unauthorized financial service integrations and data breaches.",

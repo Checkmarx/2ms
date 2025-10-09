@@ -7,8 +7,8 @@ import (
 var SlackWebHookUrlRegex = regexp.MustCompile(
 	`(?:https?://)?hooks.slack.com/(?:services|workflows|triggers)/[A-Za-z0-9+/]{43,56}`) //nolint:gocritic
 
-func SlackWebHookUrl() *NewRule {
-	return &NewRule{
+func SlackWebHookUrl() *Rule {
+	return &Rule{
 		BaseRuleID:  "2c13ac3b-6279-4535-bd88-c23f938f2408",
 		RuleID:      "slack-webhook-url",
 		Description: "Discovered a Slack Webhook, which could lead to unauthorized message posting and data leakage in Slack channels.",

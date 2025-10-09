@@ -6,8 +6,8 @@ import (
 
 var ReadMeRegex = utils.GenerateUniqueTokenRegex(`rdme_[a-z0-9]{70}`, false)
 
-func ReadMe() *NewRule {
-	return &NewRule{
+func ReadMe() *Rule {
+	return &Rule{
 		BaseRuleID:  "20784aca-b7f1-4657-8314-789b08f591bc",
 		Description: "Detected a Readme API token, risking unauthorized documentation management and content exposure.",
 		RuleID:      "readme-api-token",

@@ -7,8 +7,8 @@ import (
 var AuthressServiceClientAccessKeyRegex = utils.GenerateUniqueTokenRegex(
 	`(?:sc|ext|scauth|authress)_(?i)[a-z0-9]{5,30}\.[a-z0-9]{4,6}\.(?-i:acc)[_-][a-z0-9-]{10,32}\.[a-z0-9+/_=-]{30,120}`, false)
 
-func Authress() *NewRule {
-	return &NewRule{
+func Authress() *Rule {
+	return &Rule{
 		BaseRuleID: "f69c8e7b-e73c-45a6-8707-2fa1a807da27",
 		Description: "Uncovered a possible Authress Service Client Access Key," +
 			" which may compromise access control services and sensitive data.",

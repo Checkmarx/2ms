@@ -6,8 +6,8 @@ import (
 
 var TwitterAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"twitter"}, utils.AlphaNumeric("25"), true)
 
-func TwitterAPIKey() *NewRule {
-	return &NewRule{
+func TwitterAPIKey() *Rule {
+	return &Rule{
 		BaseRuleID:      "92c1a521-9332-488c-b323-b70a280c499f",
 		Description:     "Identified a Twitter API Key, which may compromise Twitter application integrations and user data security.",
 		RuleID:          "twitter-api-key",

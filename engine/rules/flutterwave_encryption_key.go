@@ -6,8 +6,8 @@ import (
 
 var FlutterwaveEncryptionKeyRegex = regexp.MustCompile(`FLWSECK_TEST-(?i)[a-h0-9]{12}`)
 
-func FlutterwaveEncKey() *NewRule {
-	return &NewRule{
+func FlutterwaveEncKey() *Rule {
+	return &Rule{
 		BaseRuleID:      "cb1219fe-fef7-4a5d-81e2-d12164e5e7fc",
 		Description:     "Uncovered a Flutterwave Encryption Key, which may compromise payment processing and sensitive financial information.",
 		RuleID:          "flutterwave-encryption-key",

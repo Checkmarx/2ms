@@ -6,8 +6,8 @@ import (
 
 var GitlabCiCdJobTokenRegex = regexp.MustCompile(`glcbt-[0-9a-zA-Z]{1,5}_[0-9a-zA-Z_-]{20}`)
 
-func GitlabCiCdJobToken() *NewRule {
-	return &NewRule{
+func GitlabCiCdJobToken() *Rule {
+	return &Rule{
 		BaseRuleID: "5282b318-f09a-4bba-b856-922b0151a795",
 		RuleID:     "gitlab-cicd-job-token",
 		Description: "Identified a GitLab CI/CD Job Token," +

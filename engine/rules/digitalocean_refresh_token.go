@@ -6,8 +6,8 @@ import (
 
 var DigitaloceanRefreshTokenRegex = utils.GenerateUniqueTokenRegex(`dor_v1_[a-f0-9]{64}`, true)
 
-func DigitalOceanRefreshToken() *NewRule {
-	return &NewRule{
+func DigitalOceanRefreshToken() *Rule {
+	return &Rule{
 		BaseRuleID:      "38567389-ffda-4c25-b717-486b945027c4",
 		Description:     "Uncovered a DigitalOcean OAuth Refresh Token, which could allow prolonged unauthorized access and resource manipulation.", //nolint:lll
 		RuleID:          "digitalocean-refresh-token",

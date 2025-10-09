@@ -7,8 +7,8 @@ import (
 var CoinbaseAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"coinbase"},
 	utils.AlphaNumericExtendedShort("64"), true)
 
-func CoinbaseAccessToken() *NewRule {
-	return &NewRule{
+func CoinbaseAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID: "8bdcb3ab-5e18-4e26-b0af-b69252618e03",
 		Description: "Detected a Coinbase Access Token," +
 			" posing a risk of unauthorized access to cryptocurrency accounts and financial transactions.",

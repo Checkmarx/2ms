@@ -6,8 +6,8 @@ import (
 
 var MaxmindLicenseKeyRegex = utils.GenerateUniqueTokenRegex(`[A-Za-z0-9]{6}_[A-Za-z0-9]{29}_mmk`, false)
 
-func MaxMindLicenseKey() *NewRule {
-	return &NewRule{
+func MaxMindLicenseKey() *Rule {
+	return &Rule{
 		BaseRuleID:      "f39f3417-fa72-4f3b-a570-29523dc2a72b",
 		Description:     "Discovered a potential MaxMind license key.",
 		RuleID:          "maxmind-license-key",

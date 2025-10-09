@@ -6,8 +6,8 @@ import (
 
 var SlackAppLevelTokenRegex = regexp.MustCompile(`(?i)xapp-\d-[A-Z0-9]+-\d+-[a-z0-9]+`)
 
-func SlackAppLevelToken() *NewRule {
-	return &NewRule{
+func SlackAppLevelToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "dba4da5d-3e56-43d9-a130-ac4af070a7c8",
 		RuleID:      "slack-app-token",
 		Description: "Detected a Slack App-level token, risking unauthorized access to Slack applications and workspace data.",

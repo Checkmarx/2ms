@@ -17,8 +17,8 @@ var HardcodedPasswordRegex = regexp.MustCompile(
 		`(?:['\"\\|\s\x60;<]|$)`,
 )
 
-func HardcodedPassword() *NewRule {
-	return &NewRule{
+func HardcodedPassword() *Rule {
+	return &Rule{
 		BaseRuleID:  "60b6a2aa-2eaf-4a3d-bd3c-6d5f6274b4fc",
 		Description: "Hardcoded password",
 		RuleID:      "hardcoded-password",

@@ -6,8 +6,8 @@ import (
 
 var StripeAccessTokenRegex = utils.GenerateUniqueTokenRegex(`(?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99}`, false)
 
-func StripeAccessToken() *NewRule {
-	return &NewRule{
+func StripeAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "b44c7f22-1458-482c-8e1a-e8b3a854d7d6",
 		Description: "Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data.",
 		RuleID:      "stripe-access-token",

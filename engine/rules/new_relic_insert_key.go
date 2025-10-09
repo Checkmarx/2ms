@@ -10,8 +10,8 @@ var NewRelicInsertKeyRegex = utils.GenerateSemiGenericRegex([]string{
 	"new_relic",
 }, `NRII-[a-z0-9-]{32}`, true)
 
-func NewRelicInsertKey() *NewRule {
-	return &NewRule{
+func NewRelicInsertKey() *Rule {
+	return &Rule{
 		BaseRuleID:  "3ba5a85e-a516-4b94-8cb6-714cecc08a18",
 		Description: "Discovered a New Relic insight insert key, compromising data injection into the platform.",
 		RuleID:      "new-relic-insert-key",

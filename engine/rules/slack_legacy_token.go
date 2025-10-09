@@ -6,8 +6,8 @@ import (
 
 var SlackLegacyTokenRegex = regexp.MustCompile(`xox[os]-\d+-\d+-\d+-[a-fA-F\d]+`)
 
-func SlackLegacyToken() *NewRule {
-	return &NewRule{
+func SlackLegacyToken() *Rule {
+	return &Rule{
 		BaseRuleID:      "36fda798-a1f0-40cb-b836-400c3b11e219",
 		RuleID:          "slack-legacy-token",
 		Description:     "Detected a Slack Legacy token, risking unauthorized access to older Slack integrations and user data.",

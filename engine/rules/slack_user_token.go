@@ -6,8 +6,8 @@ import (
 
 var SlackUserTokenRegex = regexp.MustCompile(`xox[pe](?:-[0-9]{10,13}){3}-[a-zA-Z0-9-]{28,34}`) //nolint:gocritic
 
-func SlackUserToken() *NewRule {
-	return &NewRule{
+func SlackUserToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "c855c7d9-6b81-46c2-977f-e01e73bc860b",
 		RuleID:      "slack-user-token",
 		Description: "Found a Slack User token, posing a risk of unauthorized user impersonation and data access within Slack workspaces.",

@@ -6,8 +6,8 @@ import (
 
 var SumoLogicAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"(?-i:[Ss]umo|SUMO)"}, utils.AlphaNumeric("64"), true)
 
-func SumoLogicAccessToken() *NewRule {
-	return &NewRule{
+func SumoLogicAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "85b0efa8-7e80-41d9-b855-86720a35a39f",
 		RuleID:      "sumologic-access-token",
 		Description: "Uncovered a SumoLogic Access Token, which could lead to unauthorized access to log data and analytics insights.",

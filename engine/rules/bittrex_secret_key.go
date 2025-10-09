@@ -6,8 +6,8 @@ import (
 
 var BittrexSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"bittrex"}, utils.AlphaNumeric("32"), true)
 
-func BittrexSecretKey() *NewRule {
-	return &NewRule{
+func BittrexSecretKey() *Rule {
+	return &Rule{
 		BaseRuleID:      "c2329ef8-b8ac-4758-a808-c4d2058acc57",
 		Description:     "Detected a Bittrex Secret Key, potentially compromising cryptocurrency transactions and financial security.",
 		RuleID:          "bittrex-secret-key",

@@ -7,7 +7,7 @@ import (
 var SentryOrgTokenRegex = regexp.MustCompile(
 	`\bsntrys_eyJpYXQiO[a-zA-Z0-9+/]{10,200}(?:LCJyZWdpb25fdXJs|InJlZ2lvbl91cmwi|cmVnaW9uX3VybCI6)[a-zA-Z0-9+/]{10,200}={0,2}_[a-zA-Z0-9+/]{43}(?:[^a-zA-Z0-9+/]|\z)`) ////nolint:lll
 
-func SentryOrgToken() *NewRule {
+func SentryOrgToken() *Rule {
 	// format: sntrys_[base64_json]_[base64_secret]
 	// the json contains the following fields : {"iat": ,"url": ,"region_url": ,"org": }
 	// Specification: https://github.com/getsentry/rfcs/blob/main/text/0091-ci-upload-tokens.md
@@ -18,7 +18,7 @@ func SentryOrgToken() *NewRule {
 	// LCJyZWdpb25fdXJs = `,"region_url`
 	// InJlZ2lvbl91cmwi = `"region_url"`
 	// cmVnaW9uX3VybCI6 = `region_url":`
-	return &NewRule{
+	return &Rule{
 		BaseRuleID: "12818a31-52a8-44c7-b03b-19974d8fad04",
 		RuleID:     "sentry-org-token",
 		Description: "Found a Sentry.io Organization Token," +

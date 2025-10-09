@@ -6,8 +6,8 @@ import (
 
 var SentryAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"sentry"}, utils.Hex("64"), true)
 
-func SentryAccessToken() *NewRule {
-	return &NewRule{
+func SentryAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID: "ba2a5820-8dfd-4af5-9406-88d6b4c7144e",
 		RuleID:     "sentry-access-token",
 		Description: "Found a Sentry.io Access Token (old format)," +

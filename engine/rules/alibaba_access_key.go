@@ -6,9 +6,9 @@ import (
 
 var AlibabaAccessKeyRegex = utils.GenerateUniqueTokenRegex(`LTAI(?i)[a-z0-9]{20}`, false)
 
-func AlibabaAccessKey() *NewRule {
+func AlibabaAccessKey() *Rule {
 	// define rule
-	return &NewRule{
+	return &Rule{
 		BaseRuleID: "a093db05-dd07-4cb5-a387-05749c098546",
 		RuleID:     "alibaba-access-key-id",
 		Description: "Detected an Alibaba Cloud AccessKey ID," +

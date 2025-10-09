@@ -7,8 +7,8 @@ import (
 var NetlifyAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"netlify"},
 	utils.AlphaNumericExtended("40,46"), true)
 
-func NetlifyAccessToken() *NewRule {
-	return &NewRule{
+func NetlifyAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "c23decf4-9f16-4ec6-8481-b3423f12ed4c",
 		Description: "Detected a Netlify Access Token, potentially compromising web hosting services and site management.",
 		RuleID:      "netlify-access-token",

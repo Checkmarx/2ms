@@ -6,8 +6,8 @@ import (
 
 var SettlemintPersonalAccessTokenRegex = utils.GenerateUniqueTokenRegex(`sm_pat_[a-zA-Z0-9]{16}`, false)
 
-func SettlemintPersonalAccessToken() *NewRule {
-	return &NewRule{
+func SettlemintPersonalAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "7391f3bc-e15b-4f9b-af1d-e355c4cd65c3",
 		Description: "Found a Settlemint Personal Access Token.",
 		RuleID:      "settlemint-personal-access-token",

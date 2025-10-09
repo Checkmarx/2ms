@@ -6,8 +6,8 @@ import (
 
 var TelegramBotTokenRegex = utils.GenerateSemiGenericRegex([]string{"telegr"}, "[0-9]{5,16}:(?-i:A)[a-z0-9_\\-]{34}", true)
 
-func TelegramBotToken() *NewRule {
-	return &NewRule{
+func TelegramBotToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "dc4163ac-6f7a-4260-9067-70764c3bdbc0",
 		Description: "Detected a Telegram Bot API Token, risking unauthorized bot operations and message interception on Telegram.",
 		RuleID:      "telegram-bot-api-token",

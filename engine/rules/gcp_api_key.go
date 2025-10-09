@@ -7,8 +7,8 @@ import (
 
 var GcpAPIKeyRegex = utils.GenerateUniqueTokenRegex(`AIza[\w-]{35}`, false)
 
-func GCPAPIKey() *NewRule {
-	return &NewRule{
+func GCPAPIKey() *Rule {
+	return &Rule{
 		BaseRuleID:  "ddb93a62-fcbd-466b-9e4b-695f5ee0d509",
 		Description: "Uncovered a GCP API key, which could lead to unauthorized access to Google Cloud services and data breaches.",
 		RuleID:      "gcp-api-key",

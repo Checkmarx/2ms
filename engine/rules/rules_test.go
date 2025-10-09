@@ -3,33 +3,55 @@ package rules
 import (
 	"testing"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
 func TestLoadAllRules(t *testing.T) {
-	rules := GetDefaultRulesV2()
+	rules := GetDefaultRules()
 
 	if len(rules) <= 1 {
 		t.Error("no rules were loaded")
 	}
 }
 
-func TestLoadAllRules_DuplicateRuleID(t *testing.T) {
+func TestLoadAllRulesCheckFields(t *testing.T) {
 	ruleIDMap := make(map[string]bool)
-	allRules := GetDefaultRulesV2()
+	baseRuleIDMap := make(map[string]bool)
+	allRules := GetDefaultRules()
 
-	for _, rule := range allRules {
+	for i, rule := range allRules {
+		// Verify existence of all required fields
+		assert.NotEqual(t, "", rule.RuleID, "rule %d: RuleID is not defined for rule %s", i, rule.BaseRuleID)
+		assert.NotEqual(t, "", rule.BaseRuleID, "rule %d: BaseRuleID is not defined for rule %s", i, rule.RuleID)
+		assert.Nil(t, uuid.Validate(rule.BaseRuleID), "rule %d: BaseRuleID is not a valid uuid %s", i, rule.RuleID)
+		assert.NotEqual(t, "", rule.Description, "rule %d: Description is not defined for rule %s", i, rule.RuleID)
+		assert.NotEqual(t, "", rule.Severity, "rule %d: Severity is not defined for rule %s", i, rule.RuleID)
+		assert.Contains(t, SeverityOrder, rule.Severity, "rule %d: Severity %s is not an acceptable severity (%s), in rule %s", i,
+			rule.Severity, SeverityOrder, rule.RuleID)
+		assert.NotNil(t, rule.Regex, "rule %d: Regex is not defined for rule %s", i, rule.RuleID)
+		// Check for ScoreParameters
+		assert.NotEqual(t, RuleCategory(""), rule.ScoreParameters.Category, "rule %d: ScoreParameters.Category is not defined for rule %s", i, rule.RuleID)
+		assert.NotEqual(t, uint8(0), rule.ScoreParameters.RuleType, "rule %d: ScoreParameters.RuleType is not defined for rule %s", i, rule.RuleID)
+
+		// Verify duplicate IDs
 		if _, ok := ruleIDMap[rule.RuleID]; ok {
 			t.Errorf("duplicate rule id found: %s", rule.RuleID)
 		}
 
+		if _, ok := baseRuleIDMap[rule.BaseRuleID]; ok {
+			t.Errorf("duplicate rule base id found: %s", rule.BaseRuleID)
+		}
+
 		ruleIDMap[rule.RuleID] = true
+		baseRuleIDMap[rule.BaseRuleID] = true
 	}
 }
 
 func Test_FilterRules_SelectRules(t *testing.T) {
 	specialRule := HardcodedPassword()
-	allRules := GetDefaultRulesV2()
+	allRules := GetDefaultRules()
 	rulesCount := len(allRules)
 
 	tests := []struct {
@@ -130,13 +152,13 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 func TestSelectRules(t *testing.T) {
 	testCases := []struct {
 		name           string
-		allRules       []*NewRule
+		allRules       []*Rule
 		tags           []string
 		expectedResult map[string]config.Rule
 	}{
 		{
 			name: "No matching tags",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -145,7 +167,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching rule ID",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -154,7 +176,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching tag",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -163,7 +185,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching tag and rule ID",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -172,7 +194,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching multiple tags",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 				createRule("rule3", "tag2", "tag4"),
@@ -203,8 +225,8 @@ func TestSelectRules(t *testing.T) {
 	}
 }
 
-func createRule(ruleID string, tags ...string) *NewRule {
-	return &NewRule{
+func createRule(ruleID string, tags ...string) *Rule {
+	return &Rule{
 		RuleID: ruleID,
 		Tags:   tags,
 	}
@@ -220,8 +242,8 @@ func createRules(ruleIDs ...string) map[string]config.Rule {
 	return rules
 }
 
-func rulesToMap(rules []*NewRule) map[string]NewRule {
-	rulesMap := make(map[string]NewRule)
+func rulesToMap(rules []*Rule) map[string]Rule {
+	rulesMap := make(map[string]Rule)
 	for _, rule := range rules {
 		rulesMap[rule.RuleID] = *rule
 	}
@@ -231,13 +253,13 @@ func rulesToMap(rules []*NewRule) map[string]NewRule {
 func TestIgnoreRules(t *testing.T) {
 	tests := []struct {
 		name           string
-		allRules       []*NewRule
+		allRules       []*Rule
 		tags           []string
 		expectedResult map[string]config.Rule
 	}{
 		{
 			name: "Empty list",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -246,7 +268,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore non-existing tag",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -255,7 +277,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore one rule ID",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -264,7 +286,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore one tag",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -273,7 +295,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore all tags",
-			allRules: []*NewRule{
+			allRules: []*Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -304,129 +326,3 @@ func TestIgnoreRules(t *testing.T) {
 		})
 	}
 }
-
-//func TestOldVsNewRulesEqual(t *testing.T) {
-//	// These should be defined in your package
-//	allRules := GetDefaultRules()
-//	allRules2 := GetDefaultRulesV2()
-//
-//	compareRules(t, allRules, allRules2)
-//}
-//
-//func compareRules(t *testing.T, allRules []*Rule, allRules2 []*NewRule) {
-//	if len(allRules) != len(allRules2) {
-//		t.Errorf("rule count mismatch: got %d, want %d", len(allRules), len(allRules2))
-//	}
-//	var rulesWithAllowList []string
-//	baseRuleIDsMap := make(map[string]bool)
-//	for i := range allRules {
-//		r1 := allRules[i]
-//		r2 := allRules2[i]
-//
-//		// Severity
-//		assert.Equal(t, "High", r2.Severity, "[%d] Wrong Severity on rule %s", i, r2.RuleID)
-//
-//		// Check for unique baseRuleIDs
-//		assert.NotEqual(t, "", r2.BaseRuleID, "[%d] No BaseRuleId found on rule %s", i, r2.RuleID)
-//		assert.Nil(t, uuid.Validate(r2.BaseRuleID), "[%d] BaseRuleID %s is not a valid UUID", i, r2.BaseRuleID)
-//		_, ok := baseRuleIDsMap[r2.BaseRuleID]
-//		assert.False(t, ok, "[%d] BaseRuleID %s already found in another rule", i, r2.BaseRuleID)
-//		baseRuleIDsMap[r2.BaseRuleID] = true
-//
-//		if r1.Rule.RuleID != r2.RuleID {
-//			t.Fatalf("[%d] RuleID mismatch: got %s, want %s", i, r2.RuleID, r1.Rule.RuleID)
-//		}
-//
-//		// Tags
-//		assert.Equal(t, r1.Rule.Description, r2.Description, "[%d] Description mismatch on rule %s", i, r1.Rule.RuleID)
-//
-//		// Entropy exclusions
-//		entropyExclusions := map[string]bool{
-//			"github-app-token":    true,
-//			"plaid-client-id":     true,
-//			"vault-service-token": true,
-//		}
-//
-//		// Entropy
-//		if !entropyExclusions[r1.Rule.RuleID] {
-//			assert.Equal(t, r1.Rule.Entropy, r2.Entropy, "[%d] Entropy mismatch on rule %s: got %v, want %v", i, r1.Rule.RuleID, r2.Entropy, r1.Rule.Entropy)
-//		}
-//
-//		if r1.Rule.SecretGroup != r2.SecretGroup {
-//			t.Errorf("[%d] SecretGroup mismatch: got %v, want %v", i, r2.SecretGroup, r1.Rule.SecretGroup)
-//		}
-//
-//		// Regex string comparison
-//		if r1.Rule.RuleID != "plaid-client-id" {
-//			if !compareRegex(r1.Rule.Regex, r2.Regex) {
-//				t.Errorf("[%d] Regex mismatch on rule %s: got %v, want %v", i, r1.Rule.RuleID, r2.Regex, r1.Rule.Regex)
-//			}
-//		}
-//
-//		// Path regex
-//		if !compareRegex(r1.Rule.Path, r2.Path) {
-//			t.Errorf("[%d] Path mismatch: got %v, want %v", i, r2.Path, r1.Rule.Path)
-//		}
-//
-//		// Tags
-//		assert.Equal(t, r1.Tags, r2.Tags, "[%d] Tags mismatch on rule %s", i, r1.Rule.RuleID)
-//
-//		// Keywords
-//		// Normalize keywords to lowercase for comparison because validate on gitleaks side performs strings.ToLower(keyword)
-//		for j := range r2.Keywords {
-//			r2.Keywords[j] = strings.ToLower(r2.Keywords[j])
-//		}
-//		for k := range r1.Rule.Keywords {
-//			r1.Rule.Keywords[k] = strings.ToLower(r1.Rule.Keywords[k])
-//		}
-//
-//		if r1.Rule.RuleID != "vault-service-token" { // for these rules keywords were updated with latest version of gitleaks
-//			assert.Equal(t, r1.Rule.Keywords, r2.Keywords, "[%d] Keywords mismatch on rule %s", i, r1.Rule.RuleID)
-//		}
-//		// Score Parameters
-//		if r1.ScoreParameters != r2.ScoreParameters {
-//			t.Errorf("[%d] ScoreParameters mismatch on rule %s: got %+v, want %+v", i, r1.Rule.RuleID, r2.ScoreParameters, r1.ScoreParameters)
-//		}
-//
-//		if r1.Rule.Allowlists != nil {
-//			rulesWithAllowList = append(rulesWithAllowList, r1.Rule.RuleID)
-//			// AllowList
-//			for i2 := range r1.Rule.Allowlists {
-//				al1 := r1.Rule.Allowlists[i2]
-//				al2 := r2.AllowLists[i2]
-//
-//				assert.Equal(t, al1.Description, al2.Description, "[%d][%d] Allowlist description mismatch on rule %s", i, i2, r1.Rule.RuleID)
-//				assert.Equal(t, al1.MatchCondition, toGitleaksMatchCondition(al2.MatchCondition), "[%d][%d] Allowlist MatchCondition mismatch on rule %s", i, i2, r1.Rule.RuleID)
-//				assert.Equal(t, al1.RegexTarget, al2.RegexTarget, "[%d][%d] Allowlist RegexTarget mismatch on rule %s", i, i2, r1.Rule.RuleID)
-//				assert.Equal(t, al1.StopWords, al2.StopWords, "[%d][%d] Allowlist StopWords mismatch on rule %s", i, i2, r1.Rule.RuleID)
-//
-//				// Paths
-//				for j := range al1.Paths {
-//					if !compareRegex(al1.Paths[j], al2.Paths[j]) {
-//						t.Errorf("[%d][%d][%d] Allowlist Paths regex mismatch on rule %s: got %v, want %v", i, i2, j, r1.Rule.RuleID, al2.Paths[j], al1.Paths[j])
-//					}
-//				}
-//
-//				// Regexes
-//				for j := range al1.Regexes {
-//					if !compareRegex(al1.Regexes[j], al2.Regexes[j]) {
-//						t.Errorf("[%d][%d][%d] Allowlist Regexes regex mismatch on rule %s: got %v, want %v", i, i2, j, r1.Rule.RuleID, al2.Regexes[j], al1.Regexes[j])
-//					}
-//				}
-//			}
-//		}
-//
-//	}
-//	// Log all rules with allowList
-//	fmt.Printf("Rules with allowList: %v\n", rulesWithAllowList)
-//}
-//
-//func compareRegex(r1, r2 *regexp.Regexp) bool {
-//	if r1 == nil && r2 == nil {
-//		return true
-//	}
-//	if r1 == nil || r2 == nil {
-//		return false
-//	}
-//	return r1.String() == r2.String()
-//}

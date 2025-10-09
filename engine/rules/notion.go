@@ -6,8 +6,8 @@ import (
 
 var NotionAPITokenRegex = utils.GenerateUniqueTokenRegex(`ntn_[0-9]{11}[A-Za-z0-9]{32}[A-Za-z0-9]{3}`, false)
 
-func Notion() *NewRule {
-	return &NewRule{
+func Notion() *Rule {
+	return &Rule{
 		BaseRuleID:      "c8e8d78f-1273-4cd3-a6b5-99735a73ad0f",
 		Description:     "Notion API token",
 		RuleID:          "notion-api-token",

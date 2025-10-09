@@ -8,8 +8,8 @@ var NytimesAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{
 	"nytimes", "new-york-times,", "newyorktimes"},
 	utils.AlphaNumericExtended("32"), true)
 
-func NytimesAccessToken() *NewRule {
-	return &NewRule{
+func NytimesAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "0ee134ac-689a-490a-bcd7-f773e535dfda",
 		Description: "Detected a Nytimes Access Token, risking unauthorized access to New York Times APIs and content services.",
 		RuleID:      "nytimes-access-token",

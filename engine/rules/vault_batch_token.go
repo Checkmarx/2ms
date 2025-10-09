@@ -6,8 +6,8 @@ import (
 
 var VaultBatchTokenRegex = utils.GenerateUniqueTokenRegex(`hvb\.[\w-]{138,300}`, false)
 
-func VaultBatchToken() *NewRule {
-	return &NewRule{
+func VaultBatchToken() *Rule {
+	return &Rule{
 		BaseRuleID:      "32031c1f-7fbc-4047-a2a3-cd618e4b1c0a",
 		Description:     "Detected a Vault Batch Token, risking unauthorized access to secret management services and sensitive data.",
 		RuleID:          "vault-batch-token",

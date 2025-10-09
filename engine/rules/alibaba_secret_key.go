@@ -6,9 +6,9 @@ import (
 
 var AlibabaSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"alibaba"}, utils.AlphaNumeric("30"), true)
 
-func AlibabaSecretKey() *NewRule {
+func AlibabaSecretKey() *Rule {
 	// define rule
-	return &NewRule{
+	return &Rule{
 		BaseRuleID: "29adbc13-0261-418a-b04d-02506551295d",
 		RuleID:     "alibaba-secret-key",
 		Description: "Discovered a potential Alibaba Cloud Secret Key," +

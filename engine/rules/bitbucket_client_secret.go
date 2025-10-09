@@ -6,8 +6,8 @@ import (
 
 var BitbucketClientSecretRegex = utils.GenerateSemiGenericRegex([]string{"bitbucket"}, utils.AlphaNumericExtended("64"), true)
 
-func BitBucketClientSecret() *NewRule {
-	return &NewRule{
+func BitBucketClientSecret() *Rule {
+	return &Rule{
 		BaseRuleID: "2772c249-2dd8-4cc4-8d52-ef264eb71802",
 		Description: "Discovered a potential Bitbucket Client Secret," +
 			" posing a risk of compromised code repositories and unauthorized access.",

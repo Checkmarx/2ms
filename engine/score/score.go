@@ -2,6 +2,7 @@ package score
 
 import (
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/checkmarx/2ms/v4/engine/rules"
@@ -10,36 +11,41 @@ import (
 )
 
 type scorer struct {
-	rulesBaseRiskScore map[string]float64
-	withValidation     bool
-	keywords           map[string]struct{}
-	rulesToBeApplied   map[string]config.Rule
+	rulesBaseRiskScore       map[string]float64
+	withValidation           bool
+	keywords                 map[string]struct{}
+	twomsRulesToBeApplied    map[string]rules.Rule
+	gitleaksRulesToBeApplied map[string]config.Rule // same rules from twomsRulesToBeApplied, converted to gitleaks format
 }
 
-func NewScorer(selectedRules []*rules.NewRule, withValidation bool) *scorer {
-	rulesToBeApplied := make(map[string]config.Rule)
+func NewScorer(selectedRules []*rules.Rule, withValidation bool) *scorer {
+	twomsRulesToBeApplied := make(map[string]rules.Rule)
+	gitleaksRulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
 	keywords := make(map[string]struct{})
 	for _, rule := range selectedRules {
-		rulesToBeApplied[rule.RuleID] = *rules.ConvertNewRuleToGitleaksRule(rule)
+		twomsRulesToBeApplied[rule.RuleID] = *rule
+		gitleaksRulesToBeApplied[rule.RuleID] = *rules.ConvertNewRuleToGitleaksRule(rule)
 		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Keywords {
 			keywords[strings.ToLower(keyword)] = struct{}{}
 		}
 	}
 	return &scorer{
-		rulesBaseRiskScore: rulesBaseRiskScore,
-		withValidation:     withValidation,
-		keywords:           keywords,
-		rulesToBeApplied:   rulesToBeApplied,
+		rulesBaseRiskScore:       rulesBaseRiskScore,
+		withValidation:           withValidation,
+		keywords:                 keywords,
+		twomsRulesToBeApplied:    twomsRulesToBeApplied,
+		gitleaksRulesToBeApplied: gitleaksRulesToBeApplied,
 	}
 }
 
-func (s *scorer) Score(secret *secrets.Secret) {
+func (s *scorer) AssignScoreAndSeverity(secret *secrets.Secret) {
 	validationStatus := secrets.UnknownResult // default validity
 	if s.withValidation {
 		validationStatus = secret.ValidationStatus
 	}
+	secret.Severity = getSeverity(s.twomsRulesToBeApplied[secret.RuleID].Severity, validationStatus)
 	secret.CvssScore = getCvssScore(s.rulesBaseRiskScore[secret.RuleID], validationStatus)
 }
 
@@ -108,12 +114,33 @@ func getCvssScore(baseRiskScore float64, validationStatus secrets.ValidationResu
 	return math.Round(cvssScore*10) / 10
 }
 
+func getSeverity(severity string, validationStatus secrets.ValidationResult) string {
+	severityIndex := slices.Index(rules.SeverityOrder, severity)
+
+	switch validationStatus {
+	case secrets.ValidResult:
+		// severity raises
+		if severityIndex > 0 {
+			severityIndex--
+		}
+	case secrets.InvalidResult:
+		// severity lowers
+		if severityIndex < len(rules.SeverityOrder)-1 {
+			severityIndex++
+		}
+	case secrets.UnknownResult:
+		// severity remains the same
+	}
+
+	return rules.SeverityOrder[severityIndex]
+}
+
 func (s *scorer) GetKeywords() map[string]struct{} {
 	return s.keywords
 }
 
 func (s *scorer) GetRulesToBeApplied() map[string]config.Rule {
-	return s.rulesToBeApplied
+	return s.gitleaksRulesToBeApplied
 }
 
 func (s *scorer) GetRulesBaseRiskScore(ruleId string) float64 {

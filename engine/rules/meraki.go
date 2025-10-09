@@ -6,8 +6,8 @@ import (
 
 var CiscoMerakiAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{`(?-i:[Mm]eraki|MERAKI)`}, `[0-9a-f]{40}`, false)
 
-func Meraki() *NewRule {
-	return &NewRule{
+func Meraki() *Rule {
+	return &Rule{
 		BaseRuleID: "bf05ece5-600c-4012-b115-70a9c5bead23",
 		Description: "Cisco Meraki is a cloud-managed IT solution that provides networking," +
 			" security, and device management through an easy-to-use interface.",

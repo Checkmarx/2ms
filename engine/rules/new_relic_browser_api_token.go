@@ -10,8 +10,8 @@ var NewRelicBrowserAPITokenRegex = utils.GenerateSemiGenericRegex([]string{
 	"new_relic",
 }, `NRJS-[a-f0-9]{19}`, true)
 
-func NewRelicBrowserAPIKey() *NewRule {
-	return &NewRule{
+func NewRelicBrowserAPIKey() *Rule {
+	return &Rule{
 		BaseRuleID: "ed7aad7a-82e5-41c4-b3ba-b8e61fa410fd",
 		Description: "Identified a New Relic ingest browser API token," +
 			" risking unauthorized access to application performance data and analytics.",

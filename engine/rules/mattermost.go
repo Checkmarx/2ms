@@ -6,8 +6,8 @@ import (
 
 var MattermostAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"mattermost"}, utils.AlphaNumeric("26"), true)
 
-func MattermostAccessToken() *NewRule {
-	return &NewRule{
+func MattermostAccessToken() *Rule {
+	return &Rule{
 		BaseRuleID:  "33177814-840a-4057-a281-4c3514a9fcdb",
 		Description: "Identified a Mattermost Access Token, which may compromise team communication channels and data privacy.",
 		RuleID:      "mattermost-access-token",

@@ -46,14 +46,14 @@ var (
 )
 
 type DetectorConfig struct {
-	SelectedRules         []*rules.NewRule
+	SelectedRules         []*rules.Rule
 	CustomRegexPatterns   []string
 	AdditionalIgnoreRules []string
 	MaxTargetMegabytes    int
 }
 
 type Engine struct {
-	rules map[string]*config.Rule
+	rules map[string]*rules.Rule
 
 	detector       *detect.Detector
 	detectorConfig DetectorConfig
@@ -99,7 +99,7 @@ type IEngine interface {
 }
 
 type IScorer interface {
-	Score(secret *secrets.Secret)
+	AssignScoreAndSeverity(secret *secrets.Secret)
 	GetRulesBaseRiskScore(ruleId string) float64
 	GetKeywords() map[string]struct{}
 	GetRulesToBeApplied() map[string]config.Rule
@@ -164,6 +164,11 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}
 
+	engineRules := make(map[string]*rules.Rule)
+	for _, rule := range finalRules {
+		engineRules[rule.RuleID] = rule
+	}
+
 	engine := &Engine{
 		detectorConfig: DetectorConfig{
 			SelectedRules:         finalRules,
@@ -191,7 +196,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		pluginChannels: plugins.NewChannels(),
 		Report:         reporting.New(),
 
-		rules: make(map[string]*config.Rule),
+		rules: engineRules,
 	}
 
 	for _, opt := range opts {
@@ -212,7 +217,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		}
 		for ruleID, customRule := range customRules {
 			log.Debug().Str("rule_id", ruleID).Msg("Adding custom regex rule")
-			cfg.Rules[ruleID] = *customRule
+			cfg.Rules[ruleID] = *rules.ConvertNewRuleToGitleaksRule(customRule)
 			engine.rules[ruleID] = customRule
 		}
 	}
@@ -361,14 +366,14 @@ func (e *Engine) isFileSizeExceedingLimit(fileSize int64) bool {
 }
 
 // createCustomRegexRules creates a map of custom regex rules from the provided patterns
-func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) {
-	customRules := make(map[string]*config.Rule)
+func createCustomRegexRules(patterns []string) (map[string]*rules.Rule, error) {
+	customRules := make(map[string]*rules.Rule)
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
 		}
-		rule := config.Rule{
+		rule := rules.Rule{
 			Description: "Custom Regex Rule From User",
 			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
 			Regex:       regex,
@@ -380,12 +385,12 @@ func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) 
 }
 
 // filterIgnoredRules filters out rules that should be ignored
-func filterIgnoredRules(allRules []*rules.NewRule, ignoreList []string) []*rules.NewRule {
+func filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Rule {
 	if len(ignoreList) == 0 {
 		return allRules
 	}
 
-	filtered := make([]*rules.NewRule, 0, len(allRules))
+	filtered := make([]*rules.Rule, 0, len(allRules))
 	for _, rule := range allRules {
 		shouldIgnore := false
 
@@ -668,29 +673,46 @@ func (e *Engine) processSecretsWithValidation() {
 
 func (e *Engine) processSecretsExtras() {
 	for secret := range e.secretsExtrasChan {
-		extra.AddExtraToSecret(secret)
+		e.addExtrasToSecret(secret)
 	}
 }
 
-func (e *Engine) processValidationAndScoreWithValidation() {
+func (e *Engine) processEvaluationWithValidation() {
 	for secret := range e.validationChan {
 		e.registerForValidation(secret)
-		e.scorer.Score(secret)
+		e.scorer.AssignScoreAndSeverity(secret)
 	}
 	e.validator.Validate()
 }
 
-func (e *Engine) processScoreWithoutValidation() {
+func (e *Engine) processEvaluationWithoutValidation() {
 	for secret := range e.cvssScoreWithoutValidationChan {
-		e.scorer.Score(secret)
+		e.scorer.AssignScoreAndSeverity(secret)
 	}
 }
 
-func (e *Engine) processScore() {
+// processSecretsEvaluation evaluates the secret's validationStatus, Severity and CVSS score
+func (e *Engine) processSecretsEvaluation() {
 	if e.ScanConfig.WithValidation {
-		e.processValidationAndScoreWithValidation()
+		e.processEvaluationWithValidation()
 	} else {
-		e.processScoreWithoutValidation()
+		e.processEvaluationWithoutValidation()
+	}
+}
+
+func (e *Engine) addExtrasToSecret(secret *secrets.Secret) {
+	// add general extra data
+	extra.Mtxs.Lock(secret.ID)
+	secret.BaseRuleID = e.rules[secret.RuleID].BaseRuleID
+	secret.RuleCategory = string(e.rules[secret.RuleID].ScoreParameters.Category)
+	extra.Mtxs.Unlock(secret.ID)
+
+	// add rule specific extra data
+	if addExtra, ok := extra.RuleIDToFunction[secret.RuleID]; ok {
+		extraData := addExtra(secret)
+		if extraData != nil && extraData != "" {
+			extra.UpdateExtraField(secret, "secretDetails", extraData)
+		}
 	}
 }
 
@@ -730,7 +752,7 @@ func (e *Engine) Scan(pluginName string) {
 		e.processSecrets()
 	})
 	e.wg.Go(func() {
-		e.processScore()
+		e.processSecretsEvaluation()
 	})
 	e.wg.Go(func() {
 		e.processSecretsExtras()

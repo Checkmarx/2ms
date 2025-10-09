@@ -17,8 +17,8 @@ var GenericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
 	"token",
 }, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true)
 
-func GenericCredential() *NewRule {
-	return &NewRule{
+func GenericCredential() *Rule {
+	return &Rule{
 		BaseRuleID:  "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
 		RuleID:      "generic-api-key",
 		Description: "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
