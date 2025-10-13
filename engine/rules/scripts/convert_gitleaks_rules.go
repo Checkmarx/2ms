@@ -7,7 +7,7 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
-	"io/ioutil" //nolint.staticcheck
+	"io/ioutil" //nolint:staticcheck
 	"log"
 	"os"
 	"path/filepath"
