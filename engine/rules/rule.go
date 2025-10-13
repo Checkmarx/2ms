@@ -4,7 +4,18 @@ import (
 	"regexp"
 )
 
-var SeverityOrder = []string{"Critical", "High", "Medium", "Low", "Info"}
+// define severity
+type Severity string
+
+const (
+	Critical Severity = "Critical"
+	High     Severity = "High"
+	Medium   Severity = "Medium"
+	Low      Severity = "Low"
+	Info     Severity = "Info"
+)
+
+var SeverityOrder = []Severity{Critical, High, Medium, Low, Info}
 
 type ScoreParameters struct {
 	Category RuleCategory
@@ -20,7 +31,7 @@ type Rule struct {
 	Entropy         float64
 	Path            *regexp.Regexp // present in some gitleaks secrets
 	SecretGroup     int            //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	Severity        string
+	Severity        Severity
 	OldSeverity     string // fallback for when critical is not enabled
 	Deprecated      bool   // deprecated rules will remain in 2ms, with this as true
 	AllowLists      []*AllowList

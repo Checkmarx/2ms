@@ -114,7 +114,12 @@ func getCvssScore(baseRiskScore float64, validationStatus secrets.ValidationResu
 	return math.Round(cvssScore*10) / 10
 }
 
-func getSeverity(severity string, validationStatus secrets.ValidationResult) string {
+func getSeverity(severity rules.Severity, validationStatus secrets.ValidationResult) string {
+	// set severity to default if empty, which can happen for custom regex
+	if severity == "" {
+		severity = rules.High // default severity
+	}
+
 	severityIndex := slices.Index(rules.SeverityOrder, severity)
 
 	switch validationStatus {
@@ -132,7 +137,7 @@ func getSeverity(severity string, validationStatus secrets.ValidationResult) str
 		// severity remains the same
 	}
 
-	return rules.SeverityOrder[severityIndex]
+	return string(rules.SeverityOrder[severityIndex])
 }
 
 func (s *scorer) GetKeywords() map[string]struct{} {
