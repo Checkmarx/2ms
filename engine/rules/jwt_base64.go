@@ -9,9 +9,10 @@ var JWTBase64Regex = regexp.MustCompile(
 
 func JWTBase64() *Rule {
 	return &Rule{
-		BaseRuleID:      "b98d6372-03cb-4987-8163-996c587067b7",
-		RuleID:          "jwt-base64",
-		Description:     "Detected a Base64-encoded JSON Web Token, posing a risk of exposing encoded authentication and data exchange information.",
+		BaseRuleID: "b98d6372-03cb-4987-8163-996c587067b7",
+		RuleID:     "jwt-base64",
+		Description: "Detected a Base64-encoded JSON Web Token," +
+			" posing a risk of exposing encoded authentication and data exchange information.",
 		Regex:           JWTBase64Regex,
 		Entropy:         2,
 		Keywords:        []string{"zxlk"},

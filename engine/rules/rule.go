@@ -19,7 +19,7 @@ type Rule struct {
 	Keywords        []string
 	Entropy         float64
 	Path            *regexp.Regexp // present in some gitleaks secrets
-	SecretGroup     int            // used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	SecretGroup     int            // used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set. //nolint:lll
 	Severity        string
 	OldSeverity     string // fallback for when critical is not enabled
 	Deprecated      bool   // deprecated rules will remain in 2ms, with this as true

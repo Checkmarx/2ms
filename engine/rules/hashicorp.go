@@ -8,8 +8,9 @@ var HashiCorpTerraformRegex = regexp.MustCompile(`(?i)[a-z0-9]{14}\.(?-i:atlasv1
 
 func HashiCorpTerraform() *Rule {
 	return &Rule{
-		BaseRuleID:      "bd82d203-3de7-4647-8986-0df7faad7374",
-		Description:     "Uncovered a HashiCorp Terraform user/org API token, which may lead to unauthorized infrastructure management and security breaches.",
+		BaseRuleID: "bd82d203-3de7-4647-8986-0df7faad7374",
+		Description: "Uncovered a HashiCorp Terraform user/org API token," +
+			" which may lead to unauthorized infrastructure management and security breaches.",
 		RuleID:          "hashicorp-tf-api-token",
 		Regex:           HashiCorpTerraformRegex,
 		Entropy:         3.5,
