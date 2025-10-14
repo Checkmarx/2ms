@@ -1,0 +1,22 @@
+package ruledefine
+
+import (
+	"regexp"
+)
+
+var SlackConfigurationRefreshTokenRegex = regexp.MustCompile(`(?i)xoxe-\d-[A-Z0-9]{146}`)
+
+func SlackConfigurationRefreshToken() *Rule {
+	return &Rule{
+		BaseRuleID: "ca3e4937-076c-42bb-847b-bf558a3f36b3",
+		RuleID:     "slack-config-refresh-token",
+		Description: "Discovered a Slack Configuration refresh token," +
+			" potentially allowing prolonged unauthorized access to configuration settings.",
+		Regex:           SlackConfigurationRefreshTokenRegex,
+		Entropy:         2,
+		Keywords:        []string{"xoxe-"},
+		Severity:        "High",
+		Tags:            []string{TagRefreshToken},
+		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+	}
+}

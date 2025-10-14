@@ -15,6 +15,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"go.uber.org/mock/gomock"
 
 	"github.com/checkmarx/2ms/v4/engine/chunk"
@@ -48,7 +49,7 @@ func newMock(ctrl *gomock.Controller) *mock {
 
 func Test_Init(t *testing.T) {
 	allRules := rules.FilterRules([]string{}, []string{}, []string{})
-	specialRule := rules.HardcodedPassword()
+	specialRule := ruledefine.HardcodedPassword()
 
 	tests := []struct {
 		name         string
@@ -922,26 +923,26 @@ func TestProcessSecretsExtras(t *testing.T) {
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: rules.JWT().RuleID,
+					RuleID: ruledefine.JWT().RuleID,
 					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
 				},
 				{
 					ID:     "mockId2",
-					RuleID: rules.JWT().RuleID,
+					RuleID: ruledefine.JWT().RuleID,
 					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
 				},
 				{
 					ID:     "mockId3",
-					RuleID: rules.HubSpot().RuleID,
+					RuleID: ruledefine.HubSpot().RuleID,
 					Value:  "mockValue",
 				},
 			},
 			expectedSecrets: []*secrets.Secret{
 				{
 					ID:           "mockId",
-					RuleID:       rules.JWT().RuleID,
-					BaseRuleID:   rules.JWT().BaseRuleID,
-					RuleCategory: string(rules.JWT().ScoreParameters.Category),
+					RuleID:       ruledefine.JWT().RuleID,
+					BaseRuleID:   ruledefine.JWT().BaseRuleID,
+					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
 					ExtraDetails: map[string]interface{}{
 						"secretDetails": map[string]interface{}{
@@ -952,9 +953,9 @@ func TestProcessSecretsExtras(t *testing.T) {
 				},
 				{
 					ID:           "mockId2",
-					RuleID:       rules.JWT().RuleID,
-					BaseRuleID:   rules.JWT().BaseRuleID,
-					RuleCategory: string(rules.JWT().ScoreParameters.Category),
+					RuleID:       ruledefine.JWT().RuleID,
+					BaseRuleID:   ruledefine.JWT().BaseRuleID,
+					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
 					ExtraDetails: map[string]interface{}{
 						"secretDetails": map[string]interface{}{
@@ -965,9 +966,9 @@ func TestProcessSecretsExtras(t *testing.T) {
 				},
 				{
 					ID:           "mockId3",
-					RuleID:       rules.HubSpot().RuleID,
-					BaseRuleID:   rules.HubSpot().BaseRuleID,
-					RuleCategory: string(rules.HubSpot().ScoreParameters.Category),
+					RuleID:       ruledefine.HubSpot().RuleID,
+					BaseRuleID:   ruledefine.HubSpot().BaseRuleID,
+					RuleCategory: string(ruledefine.HubSpot().ScoreParameters.Category),
 					Value:        "mockValue",
 				},
 			},
@@ -1009,7 +1010,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 				},
 				{
 					ID:     "mockId2",
-					RuleID: rules.HubSpot().RuleID,
+					RuleID: ruledefine.HubSpot().RuleID,
 					Value:  "mock value",
 				},
 			},
@@ -1024,7 +1025,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 				},
 				{
 					ID:               "mockId2",
-					RuleID:           rules.HubSpot().RuleID,
+					RuleID:           ruledefine.HubSpot().RuleID,
 					Value:            "mock value",
 					ValidationStatus: "Unknown",
 					Severity:         "High",
@@ -1069,7 +1070,7 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 				},
 				{
 					ID:     "mockId2",
-					RuleID: rules.HubSpot().RuleID,
+					RuleID: ruledefine.HubSpot().RuleID,
 					Value:  "mock value",
 				},
 			},
@@ -1084,7 +1085,7 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 				},
 				{
 					ID:               "mockId2",
-					RuleID:           rules.HubSpot().RuleID,
+					RuleID:           ruledefine.HubSpot().RuleID,
 					Value:            "mock value",
 					ValidationStatus: "",
 					Severity:         "High",

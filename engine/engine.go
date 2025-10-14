@@ -20,6 +20,7 @@ import (
 	"github.com/checkmarx/2ms/v4/engine/extra"
 	"github.com/checkmarx/2ms/v4/engine/linecontent"
 	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/checkmarx/2ms/v4/engine/semaphore"
 	"github.com/checkmarx/2ms/v4/engine/validation"
@@ -46,14 +47,14 @@ var (
 )
 
 type DetectorConfig struct {
-	SelectedRules         []*rules.Rule
+	SelectedRules         []*ruledefine.Rule
 	CustomRegexPatterns   []string
 	AdditionalIgnoreRules []string
 	MaxTargetMegabytes    int
 }
 
 type Engine struct {
-	rules map[string]*rules.Rule
+	rules map[string]*ruledefine.Rule
 
 	detector       *detect.Detector
 	detectorConfig DetectorConfig
@@ -164,7 +165,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}
 
-	engineRules := make(map[string]*rules.Rule)
+	engineRules := make(map[string]*ruledefine.Rule)
 	for _, rule := range finalRules {
 		engineRules[rule.RuleID] = rule
 	}
@@ -217,7 +218,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		}
 		for ruleID, customRule := range customRules {
 			log.Debug().Str("rule_id", ruleID).Msg("Adding custom regex rule")
-			cfg.Rules[ruleID] = *rules.ConvertNewRuleToGitleaksRule(customRule)
+			cfg.Rules[ruleID] = *ruledefine.ConvertNewRuleToGitleaksRule(customRule)
 			engine.rules[ruleID] = customRule
 		}
 	}
@@ -366,14 +367,14 @@ func (e *Engine) isFileSizeExceedingLimit(fileSize int64) bool {
 }
 
 // createCustomRegexRules creates a map of custom regex rules from the provided patterns
-func createCustomRegexRules(patterns []string) (map[string]*rules.Rule, error) {
-	customRules := make(map[string]*rules.Rule)
+func createCustomRegexRules(patterns []string) (map[string]*ruledefine.Rule, error) {
+	customRules := make(map[string]*ruledefine.Rule)
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
 		}
-		rule := rules.Rule{
+		rule := ruledefine.Rule{
 			Description: "Custom Regex Rule From User",
 			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
 			Regex:       regex,
@@ -385,12 +386,12 @@ func createCustomRegexRules(patterns []string) (map[string]*rules.Rule, error) {
 }
 
 // filterIgnoredRules filters out rules that should be ignored
-func filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Rule {
+func filterIgnoredRules(allRules []*ruledefine.Rule, ignoreList []string) []*ruledefine.Rule {
 	if len(ignoreList) == 0 {
 		return allRules
 	}
 
-	filtered := make([]*rules.Rule, 0, len(allRules))
+	filtered := make([]*ruledefine.Rule, 0, len(allRules))
 	for _, rule := range allRules {
 		shouldIgnore := false
 

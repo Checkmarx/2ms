@@ -17,15 +17,6 @@ var RuleIDToFunction = map[string]addExtraFunc{
 
 var Mtxs = &NamedMutex{}
 
-func AddExtrasToSecret(secret *secrets.Secret) {
-	if addExtra, ok := RuleIDToFunction[secret.RuleID]; ok {
-		extraData := addExtra(secret)
-		if extraData != nil && extraData != "" {
-			UpdateExtraField(secret, "secretDetails", extraData)
-		}
-	}
-}
-
 func UpdateExtraField(secret *secrets.Secret, extraName string, extraData interface{}) {
 	Mtxs.Lock(secret.ID)
 	defer Mtxs.Unlock(secret.ID)

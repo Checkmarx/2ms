@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/config"
@@ -28,11 +29,11 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 		assert.Nil(t, uuid.Validate(rule.BaseRuleID), "rule %d: BaseRuleID is not a valid uuid %s", i, rule.RuleID)
 		assert.NotEqual(t, "", rule.Description, "rule %d: Description is not defined for rule %s", i, rule.RuleID)
 		assert.NotEqual(t, "", rule.Severity, "rule %d: Severity is not defined for rule %s", i, rule.RuleID)
-		assert.Contains(t, SeverityOrder, rule.Severity, "rule %d: Severity %s is not an acceptable severity (%s), in rule %s", i,
-			rule.Severity, SeverityOrder, rule.RuleID)
+		assert.Contains(t, ruledefine.SeverityOrder, rule.Severity, "rule %d: Severity %s is not an acceptable severity (%s), in rule %s", i,
+			rule.Severity, ruledefine.SeverityOrder, rule.RuleID)
 		assert.NotNil(t, rule.Regex, "rule %d: Regex is not defined for rule %s", i, rule.RuleID)
 		// Check for ScoreParameters
-		assert.NotEqual(t, RuleCategory(""), rule.ScoreParameters.Category, "rule %d: ScoreParameters.Category is not defined for rule %s", i, rule.RuleID)
+		assert.NotEqual(t, ruledefine.RuleCategory(""), rule.ScoreParameters.Category, "rule %d: ScoreParameters.Category is not defined for rule %s", i, rule.RuleID)
 		assert.NotEqual(t, uint8(0), rule.ScoreParameters.RuleType, "rule %d: ScoreParameters.RuleType is not defined for rule %s", i, rule.RuleID)
 
 		// Verify duplicate IDs
@@ -50,7 +51,7 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 }
 
 func Test_FilterRules_SelectRules(t *testing.T) {
-	specialRule := HardcodedPassword()
+	specialRule := ruledefine.HardcodedPassword()
 	allRules := GetDefaultRules()
 	rulesCount := len(allRules)
 
@@ -152,13 +153,13 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 func TestSelectRules(t *testing.T) {
 	testCases := []struct {
 		name           string
-		allRules       []*Rule
+		allRules       []*ruledefine.Rule
 		tags           []string
 		expectedResult map[string]config.Rule
 	}{
 		{
 			name: "No matching tags",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -167,7 +168,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching rule ID",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -176,7 +177,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching tag",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -185,7 +186,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching tag and rule ID",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 			},
@@ -194,7 +195,7 @@ func TestSelectRules(t *testing.T) {
 		},
 		{
 			name: "Matching multiple tags",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag3", "tag4"),
 				createRule("rule3", "tag2", "tag4"),
@@ -225,8 +226,8 @@ func TestSelectRules(t *testing.T) {
 	}
 }
 
-func createRule(ruleID string, tags ...string) *Rule {
-	return &Rule{
+func createRule(ruleID string, tags ...string) *ruledefine.Rule {
+	return &ruledefine.Rule{
 		RuleID: ruleID,
 		Tags:   tags,
 	}
@@ -242,8 +243,8 @@ func createRules(ruleIDs ...string) map[string]config.Rule {
 	return rules
 }
 
-func rulesToMap(rules []*Rule) map[string]Rule {
-	rulesMap := make(map[string]Rule)
+func rulesToMap(rules []*ruledefine.Rule) map[string]ruledefine.Rule {
+	rulesMap := make(map[string]ruledefine.Rule)
 	for _, rule := range rules {
 		rulesMap[rule.RuleID] = *rule
 	}
@@ -253,13 +254,13 @@ func rulesToMap(rules []*Rule) map[string]Rule {
 func TestIgnoreRules(t *testing.T) {
 	tests := []struct {
 		name           string
-		allRules       []*Rule
+		allRules       []*ruledefine.Rule
 		tags           []string
 		expectedResult map[string]config.Rule
 	}{
 		{
 			name: "Empty list",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -268,7 +269,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore non-existing tag",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -277,7 +278,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore one rule ID",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -286,7 +287,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore one tag",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},
@@ -295,7 +296,7 @@ func TestIgnoreRules(t *testing.T) {
 		},
 		{
 			name: "Ignore all tags",
-			allRules: []*Rule{
+			allRules: []*ruledefine.Rule{
 				createRule("rule1", "tag1", "tag2"),
 				createRule("rule2", "tag2", "tag3"),
 			},

@@ -3,300 +3,238 @@ package rules
 import (
 	"strings"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/rs/zerolog/log"
 )
 
-type RuleCategory string
-
-const (
-	CategoryAuthenticationAndAuthorization RuleCategory = "Authentication and Authorization"
-	CategoryCryptocurrencyExchange         RuleCategory = "Cryptocurrency Exchange"
-	CategoryFinancialServices              RuleCategory = "Financial Services"
-	CategoryPaymentProcessing              RuleCategory = "Payment Processing"
-	CategorySecurity                       RuleCategory = "Security"
-	CategoryAPIAccess                      RuleCategory = "API Access"
-	CategoryCICD                           RuleCategory = "CI/CD"
-	CategoryCloudPlatform                  RuleCategory = "Cloud Platform"
-	CategoryDatabaseAsAService             RuleCategory = "Database as a Service"
-	CategoryDevelopmentPlatform            RuleCategory = "Development Platform"
-	CategoryEmailDeliveryService           RuleCategory = "Email Delivery Service"
-	CategoryInfrastructureAsCode           RuleCategory = "Infrastructure as Code (IaC)"
-	CategoryPackageManagement              RuleCategory = "Package Management"
-	CategorySourceCodeManagement           RuleCategory = "Source Code Management"
-	CategoryWebHostingAndDeployment        RuleCategory = "Web Hosting and Deployment"
-	CategoryBackgroundProcessingService    RuleCategory = "Background Processing Service"
-	CategoryCDN                            RuleCategory = "CDN (Content Delivery Network)"
-	CategoryContentManagementSystem        RuleCategory = "Content Management System (CMS)"
-	CategoryCustomerSupport                RuleCategory = "Customer Support"
-	CategoryDataAnalytics                  RuleCategory = "Data Analytics"
-	CategoryFileStorageAndSharing          RuleCategory = "File Storage and Sharing"
-	CategoryIoTPlatform                    RuleCategory = "IoT platform"
-	CategoryMappingAndLocationServices     RuleCategory = "Mapping and Location Services"
-	CategoryNetworking                     RuleCategory = "Networking"
-	CategoryPhotoSharing                   RuleCategory = "Photo Sharing"
-	CategorySaaS                           RuleCategory = "SaaS"
-	CategoryShipping                       RuleCategory = "Shipping"
-	CategorySoftwareDevelopment            RuleCategory = "Software Development"
-	CategoryAIAndMachineLearning           RuleCategory = "AI and Machine Learning"
-	CategoryApplicationMonitoring          RuleCategory = "Application Monitoring"
-	CategoryECommercePlatform              RuleCategory = "E-commerce Platform"
-	CategoryMarketingAutomation            RuleCategory = "Marketing Automation"
-	CategoryNewsAndMedia                   RuleCategory = "News and Media"
-	CategoryOnlineSurveyPlatform           RuleCategory = "Online Survey Platform"
-	CategoryProjectManagement              RuleCategory = "Project Management"
-	CategorySearchService                  RuleCategory = "Search Service"
-	CategorySocialMedia                    RuleCategory = "Social Media"
-	CategoryGeneralOrUnknown               RuleCategory = "General or Unknown"
-)
-
-const TagApiKey = "api-key"
-const TagClientId = "client-id"
-const TagClientSecret = "client-secret"
-const TagSecretKey = "secret-key"
-const TagAccessKey = "access-key"
-const TagAccessId = "access-id"
-const TagApiToken = "api-token"
-const TagAccessToken = "access-token"
-const TagRefreshToken = "refresh-token"
-const TagPrivateKey = "private-key"
-const TagPublicKey = "public-key"
-const TagEncryptionKey = "encryption-key"
-const TagTriggerToken = "trigger-token"
-const TagRegistrationToken = "registration-token"
-const TagPassword = "password"
-const TagUploadToken = "upload-token"
-const TagPublicSecret = "public-secret"
-const TagSensitiveUrl = "sensitive-url"
-const TagWebhook = "webhook"
-
-func GetDefaultRules() []*Rule { //nolint:funlen // This function contains all rule definitions
-	allRules := []*Rule{
-		AdafruitAPIKey(),
-		AdobeClientID(),
-		AdobeClientSecret(),
-		AgeSecretKey(),
-		Airtable(),
-		AlgoliaApiKey(),
-		AlibabaAccessKey(),
-		AlibabaSecretKey(),
-		AnthropicAdminApiKey(),
-		AnthropicApiKey(),
-		AsanaClientID(),
-		AsanaClientSecret(),
-		Atlassian(),
-		AuthenticatedURL(),
-		Authress(),
-		AWS(),
-		AzureActiveDirectoryClientSecret(),
-		BitBucketClientID(),
-		BitBucketClientSecret(),
-		BittrexAccessKey(),
-		BittrexSecretKey(),
-		Beamer(),
-		CodecovAccessToken(),
-		CoinbaseAccessToken(),
-		ClickHouseCloud(),
-		Clojars(),
-		CloudflareAPIKey(),
-		CloudflareGlobalAPIKey(),
-		CloudflareOriginCAKey(),
-		CohereAPIToken(),
-		ConfluentAccessToken(),
-		ConfluentSecretKey(),
-		Contentful(),
-		CurlBasicAuth(),
-		CurlHeaderAuth(),
-		Databricks(),
-		DatadogtokenAccessToken(),
-		DefinedNetworkingAPIToken(),
-		DigitalOceanPAT(),
-		DigitalOceanOAuthToken(),
-		DigitalOceanRefreshToken(),
-		DiscordAPIToken(),
-		DiscordClientID(),
-		DiscordClientSecret(),
-		Doppler(),
-		DropBoxAPISecret(),
-		DropBoxShortLivedAPIToken(),
-		DropBoxLongLivedAPIToken(),
-		DroneciAccessToken(),
-		Duffel(),
-		Dynatrace(),
-		EasyPost(),
-		EasyPostTestAPI(),
-		EtsyAccessToken(),
-		FacebookSecret(),
-		FacebookAccessToken(),
-		FacebookPageAccessToken(),
-		FastlyAPIToken(),
-		FinicityClientSecret(),
-		FinicityAPIToken(),
-		FlickrAccessToken(),
-		FinnhubAccessToken(),
-		FlutterwavePublicKey(),
-		FlutterwaveSecretKey(),
-		FlutterwaveEncKey(),
-		FlyIOAccessToken(),
-		FrameIO(),
-		Freemius(),
-		FreshbooksAccessToken(),
-		GCPAPIKey(),
-		GenericCredential(),
-		GitHubPat(),
-		GitHubFineGrainedPat(),
-		GitHubOauth(),
-		GitHubApp(),
-		GitHubRefresh(),
-		GitlabCiCdJobToken(),
-		GitlabDeployToken(),
-		GitlabFeatureFlagClientToken(),
-		GitlabFeedToken(),
-		GitlabIncomingMailToken(),
-		GitlabKubernetesAgentToken(),
-		GitlabOauthAppSecret(),
-		GitlabPat(),
-		GitlabPatRoutable(),
-		GitlabPipelineTriggerToken(),
-		GitlabRunnerRegistrationToken(),
-		GitlabRunnerAuthenticationToken(),
-		GitlabRunnerAuthenticationTokenRoutable(),
-		GitlabScimToken(),
-		GitlabSessionCookie(),
-		GitterAccessToken(),
-		GoCardless(),
-		GrafanaApiKey(),
-		GrafanaCloudApiToken(),
-		GrafanaServiceAccountToken(),
-		HashiCorpTerraform(),
-		HashicorpField(),
-		Heroku(),
-		HerokuV2(),
-		HubSpot(),
-		HuggingFaceAccessToken(),
-		HuggingFaceOrganizationApiToken(),
-		InfracostAPIToken(),
-		Intercom(),
-		Intra42ClientSecret(),
-		JFrogAPIKey(),
-		JFrogIdentityToken(),
-		JWT(),
-		JWTBase64(),
-		KrakenAccessToken(),
-		KubernetesSecret(),
-		KucoinAccessToken(),
-		KucoinSecretKey(),
-		LaunchDarklyAccessToken(),
-		LinearAPIToken(),
-		LinearClientSecret(),
-		LinkedinClientID(),
-		LinkedinClientSecret(),
-		LobAPIToken(),
-		LobPubAPIToken(),
-		MailChimp(),
-		MailGunPubAPIToken(),
-		MailGunPrivateAPIToken(),
-		MailGunSigningKey(),
-		MapBox(),
-		MattermostAccessToken(),
-		MaxMindLicenseKey(),
-		Meraki(),
-		MessageBirdAPIToken(),
-		MessageBirdClientID(),
-		NetlifyAccessToken(),
-		NewRelicUserID(),
-		NewRelicUserKey(),
-		NewRelicBrowserAPIKey(),
-		NewRelicInsertKey(),
-		Notion(),
-		NPM(),
-		NugetConfigPassword(),
-		NytimesAccessToken(),
-		OctopusDeployApiKey(),
-		OktaAccessToken(),
-		OnePasswordSecretKey(),
-		OnePasswordServiceAccountToken(),
-		OpenAI(),
-		OpenshiftUserToken(),
-		PerplexityAPIKey(),
-		PlaidAccessID(),
-		PlaidSecretKey(),
-		PlaidAccessToken(),
-		PlanetScalePassword(),
-		PlanetScaleAPIToken(),
-		PlanetScaleOAuthToken(),
-		PostManAPI(),
-		Prefect(),
-		PrivateAIToken(),
-		PrivateKey(),
-		PulumiAPIToken(),
-		PyPiUploadToken(),
-		RapidAPIAccessToken(),
-		ReadMe(),
-		RubyGemsAPIToken(),
-		ScalingoAPIToken(),
-		SendbirdAccessID(),
-		SendbirdAccessToken(),
-		SendGridAPIToken(),
-		SendInBlueAPIToken(),
-		SentryAccessToken(),
-		SentryOrgToken(),
-		SentryUserToken(),
-		SettlemintApplicationAccessToken(),
-		SettlemintPersonalAccessToken(),
-		SettlemintServiceAccessToken(),
-		ShippoAPIToken(),
-		ShopifyAccessToken(),
-		ShopifyCustomAccessToken(),
-		ShopifyPrivateAppAccessToken(),
-		ShopifySharedSecret(),
-		SidekiqSecret(),
-		SidekiqSensitiveUrl(),
-		SlackBotToken(),
-		SlackAppLevelToken(),
-		SlackLegacyToken(),
-		SlackUserToken(),
-		SlackConfigurationToken(),
-		SlackConfigurationRefreshToken(),
-		SlackLegacyBotToken(),
-		SlackLegacyWorkspaceToken(),
-		SlackWebHookUrl(),
-		StripeAccessToken(),
-		SquareAccessToken(),
-		SquareSpaceAccessToken(),
-		SumoLogicAccessID(),
-		SumoLogicAccessToken(),
-		Snyk(),
-		TeamsWebhook(),
-		TelegramBotToken(),
-		TravisCIAccessToken(),
-		Twilio(),
-		TwitchAPIToken(),
-		TwitterAPIKey(),
-		TwitterAPISecret(),
-		TwitterAccessToken(),
-		TwitterAccessSecret(),
-		TwitterBearerToken(),
-		Typeform(),
-		VaultBatchToken(),
-		VaultServiceToken(),
-		YandexAPIKey(),
-		YandexAWSAccessToken(),
-		YandexAccessToken(),
-		ZendeskSecretKey(),
+func GetDefaultRules() []*ruledefine.Rule { //nolint:funlen // This function contains all rule definitions
+	allRules := []*ruledefine.Rule{
+		ruledefine.AdafruitAPIKey(),
+		ruledefine.AdobeClientID(),
+		ruledefine.AdobeClientSecret(),
+		ruledefine.AgeSecretKey(),
+		ruledefine.Airtable(),
+		ruledefine.AlgoliaApiKey(),
+		ruledefine.AlibabaAccessKey(),
+		ruledefine.AlibabaSecretKey(),
+		ruledefine.AnthropicAdminApiKey(),
+		ruledefine.AnthropicApiKey(),
+		ruledefine.AsanaClientID(),
+		ruledefine.AsanaClientSecret(),
+		ruledefine.Atlassian(),
+		ruledefine.AuthenticatedURL(),
+		ruledefine.Authress(),
+		ruledefine.AWS(),
+		ruledefine.AzureActiveDirectoryClientSecret(),
+		ruledefine.BitBucketClientID(),
+		ruledefine.BitBucketClientSecret(),
+		ruledefine.BittrexAccessKey(),
+		ruledefine.BittrexSecretKey(),
+		ruledefine.Beamer(),
+		ruledefine.CodecovAccessToken(),
+		ruledefine.CoinbaseAccessToken(),
+		ruledefine.ClickHouseCloud(),
+		ruledefine.Clojars(),
+		ruledefine.CloudflareAPIKey(),
+		ruledefine.CloudflareGlobalAPIKey(),
+		ruledefine.CloudflareOriginCAKey(),
+		ruledefine.CohereAPIToken(),
+		ruledefine.ConfluentAccessToken(),
+		ruledefine.ConfluentSecretKey(),
+		ruledefine.Contentful(),
+		ruledefine.CurlBasicAuth(),
+		ruledefine.CurlHeaderAuth(),
+		ruledefine.Databricks(),
+		ruledefine.DatadogtokenAccessToken(),
+		ruledefine.DefinedNetworkingAPIToken(),
+		ruledefine.DigitalOceanPAT(),
+		ruledefine.DigitalOceanOAuthToken(),
+		ruledefine.DigitalOceanRefreshToken(),
+		ruledefine.DiscordAPIToken(),
+		ruledefine.DiscordClientID(),
+		ruledefine.DiscordClientSecret(),
+		ruledefine.Doppler(),
+		ruledefine.DropBoxAPISecret(),
+		ruledefine.DropBoxShortLivedAPIToken(),
+		ruledefine.DropBoxLongLivedAPIToken(),
+		ruledefine.DroneciAccessToken(),
+		ruledefine.Duffel(),
+		ruledefine.Dynatrace(),
+		ruledefine.EasyPost(),
+		ruledefine.EasyPostTestAPI(),
+		ruledefine.EtsyAccessToken(),
+		ruledefine.FacebookSecret(),
+		ruledefine.FacebookAccessToken(),
+		ruledefine.FacebookPageAccessToken(),
+		ruledefine.FastlyAPIToken(),
+		ruledefine.FinicityClientSecret(),
+		ruledefine.FinicityAPIToken(),
+		ruledefine.FlickrAccessToken(),
+		ruledefine.FinnhubAccessToken(),
+		ruledefine.FlutterwavePublicKey(),
+		ruledefine.FlutterwaveSecretKey(),
+		ruledefine.FlutterwaveEncKey(),
+		ruledefine.FlyIOAccessToken(),
+		ruledefine.FrameIO(),
+		ruledefine.Freemius(),
+		ruledefine.FreshbooksAccessToken(),
+		ruledefine.GCPAPIKey(),
+		ruledefine.GenericCredential(),
+		ruledefine.GitHubPat(),
+		ruledefine.GitHubFineGrainedPat(),
+		ruledefine.GitHubOauth(),
+		ruledefine.GitHubApp(),
+		ruledefine.GitHubRefresh(),
+		ruledefine.GitlabCiCdJobToken(),
+		ruledefine.GitlabDeployToken(),
+		ruledefine.GitlabFeatureFlagClientToken(),
+		ruledefine.GitlabFeedToken(),
+		ruledefine.GitlabIncomingMailToken(),
+		ruledefine.GitlabKubernetesAgentToken(),
+		ruledefine.GitlabOauthAppSecret(),
+		ruledefine.GitlabPat(),
+		ruledefine.GitlabPatRoutable(),
+		ruledefine.GitlabPipelineTriggerToken(),
+		ruledefine.GitlabRunnerRegistrationToken(),
+		ruledefine.GitlabRunnerAuthenticationToken(),
+		ruledefine.GitlabRunnerAuthenticationTokenRoutable(),
+		ruledefine.GitlabScimToken(),
+		ruledefine.GitlabSessionCookie(),
+		ruledefine.GitterAccessToken(),
+		ruledefine.GoCardless(),
+		ruledefine.GrafanaApiKey(),
+		ruledefine.GrafanaCloudApiToken(),
+		ruledefine.GrafanaServiceAccountToken(),
+		ruledefine.HashiCorpTerraform(),
+		ruledefine.HashicorpField(),
+		ruledefine.Heroku(),
+		ruledefine.HerokuV2(),
+		ruledefine.HubSpot(),
+		ruledefine.HuggingFaceAccessToken(),
+		ruledefine.HuggingFaceOrganizationApiToken(),
+		ruledefine.InfracostAPIToken(),
+		ruledefine.Intercom(),
+		ruledefine.Intra42ClientSecret(),
+		ruledefine.JFrogAPIKey(),
+		ruledefine.JFrogIdentityToken(),
+		ruledefine.JWT(),
+		ruledefine.JWTBase64(),
+		ruledefine.KrakenAccessToken(),
+		ruledefine.KubernetesSecret(),
+		ruledefine.KucoinAccessToken(),
+		ruledefine.KucoinSecretKey(),
+		ruledefine.LaunchDarklyAccessToken(),
+		ruledefine.LinearAPIToken(),
+		ruledefine.LinearClientSecret(),
+		ruledefine.LinkedinClientID(),
+		ruledefine.LinkedinClientSecret(),
+		ruledefine.LobAPIToken(),
+		ruledefine.LobPubAPIToken(),
+		ruledefine.MailChimp(),
+		ruledefine.MailGunPubAPIToken(),
+		ruledefine.MailGunPrivateAPIToken(),
+		ruledefine.MailGunSigningKey(),
+		ruledefine.MapBox(),
+		ruledefine.MattermostAccessToken(),
+		ruledefine.MaxMindLicenseKey(),
+		ruledefine.Meraki(),
+		ruledefine.MessageBirdAPIToken(),
+		ruledefine.MessageBirdClientID(),
+		ruledefine.NetlifyAccessToken(),
+		ruledefine.NewRelicUserID(),
+		ruledefine.NewRelicUserKey(),
+		ruledefine.NewRelicBrowserAPIKey(),
+		ruledefine.NewRelicInsertKey(),
+		ruledefine.Notion(),
+		ruledefine.NPM(),
+		ruledefine.NugetConfigPassword(),
+		ruledefine.NytimesAccessToken(),
+		ruledefine.OctopusDeployApiKey(),
+		ruledefine.OktaAccessToken(),
+		ruledefine.OnePasswordSecretKey(),
+		ruledefine.OnePasswordServiceAccountToken(),
+		ruledefine.OpenAI(),
+		ruledefine.OpenshiftUserToken(),
+		ruledefine.PerplexityAPIKey(),
+		ruledefine.PlaidAccessID(),
+		ruledefine.PlaidSecretKey(),
+		ruledefine.PlaidAccessToken(),
+		ruledefine.PlanetScalePassword(),
+		ruledefine.PlanetScaleAPIToken(),
+		ruledefine.PlanetScaleOAuthToken(),
+		ruledefine.PostManAPI(),
+		ruledefine.Prefect(),
+		ruledefine.PrivateAIToken(),
+		ruledefine.PrivateKey(),
+		ruledefine.PulumiAPIToken(),
+		ruledefine.PyPiUploadToken(),
+		ruledefine.RapidAPIAccessToken(),
+		ruledefine.ReadMe(),
+		ruledefine.RubyGemsAPIToken(),
+		ruledefine.ScalingoAPIToken(),
+		ruledefine.SendbirdAccessID(),
+		ruledefine.SendbirdAccessToken(),
+		ruledefine.SendGridAPIToken(),
+		ruledefine.SendInBlueAPIToken(),
+		ruledefine.SentryAccessToken(),
+		ruledefine.SentryOrgToken(),
+		ruledefine.SentryUserToken(),
+		ruledefine.SettlemintApplicationAccessToken(),
+		ruledefine.SettlemintPersonalAccessToken(),
+		ruledefine.SettlemintServiceAccessToken(),
+		ruledefine.ShippoAPIToken(),
+		ruledefine.ShopifyAccessToken(),
+		ruledefine.ShopifyCustomAccessToken(),
+		ruledefine.ShopifyPrivateAppAccessToken(),
+		ruledefine.ShopifySharedSecret(),
+		ruledefine.SidekiqSecret(),
+		ruledefine.SidekiqSensitiveUrl(),
+		ruledefine.SlackBotToken(),
+		ruledefine.SlackAppLevelToken(),
+		ruledefine.SlackLegacyToken(),
+		ruledefine.SlackUserToken(),
+		ruledefine.SlackConfigurationToken(),
+		ruledefine.SlackConfigurationRefreshToken(),
+		ruledefine.SlackLegacyBotToken(),
+		ruledefine.SlackLegacyWorkspaceToken(),
+		ruledefine.SlackWebHookUrl(),
+		ruledefine.StripeAccessToken(),
+		ruledefine.SquareAccessToken(),
+		ruledefine.SquareSpaceAccessToken(),
+		ruledefine.SumoLogicAccessID(),
+		ruledefine.SumoLogicAccessToken(),
+		ruledefine.Snyk(),
+		ruledefine.TeamsWebhook(),
+		ruledefine.TelegramBotToken(),
+		ruledefine.TravisCIAccessToken(),
+		ruledefine.Twilio(),
+		ruledefine.TwitchAPIToken(),
+		ruledefine.TwitterAPIKey(),
+		ruledefine.TwitterAPISecret(),
+		ruledefine.TwitterAccessToken(),
+		ruledefine.TwitterAccessSecret(),
+		ruledefine.TwitterBearerToken(),
+		ruledefine.Typeform(),
+		ruledefine.VaultBatchToken(),
+		ruledefine.VaultServiceToken(),
+		ruledefine.YandexAPIKey(),
+		ruledefine.YandexAWSAccessToken(),
+		ruledefine.YandexAccessToken(),
+		ruledefine.ZendeskSecretKey(),
 	}
 
 	return allRules
 }
 
-func getSpecialRules() []*Rule {
-	specialRules := []*Rule{
-		HardcodedPassword(),
+func getSpecialRules() []*ruledefine.Rule {
+	specialRules := []*ruledefine.Rule{
+		ruledefine.HardcodedPassword(),
 	}
 
 	return specialRules
 }
 
-func isRuleMatch(rule Rule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
+func isRuleMatch(rule ruledefine.Rule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
 	for _, tag := range tags {
 		if strings.EqualFold(rule.RuleID, tag) {
 			return true
@@ -310,8 +248,8 @@ func isRuleMatch(rule Rule, tags []string) bool { //nolint:gocritic // hugeParam
 	return false
 }
 
-func selectRules(allRules []*Rule, tags []string) []*Rule {
-	selectedRules := []*Rule{}
+func selectRules(allRules []*ruledefine.Rule, tags []string) []*ruledefine.Rule {
+	selectedRules := []*ruledefine.Rule{}
 
 	for _, rule := range allRules {
 		if isRuleMatch(*rule, tags) {
@@ -321,8 +259,8 @@ func selectRules(allRules []*Rule, tags []string) []*Rule {
 	return selectedRules
 }
 
-func ignoreRules(allRules []*Rule, tags []string) []*Rule {
-	selectedRules := []*Rule{}
+func ignoreRules(allRules []*ruledefine.Rule, tags []string) []*ruledefine.Rule {
+	selectedRules := []*ruledefine.Rule{}
 
 	for _, rule := range allRules {
 		if !isRuleMatch(*rule, tags) {
@@ -332,7 +270,7 @@ func ignoreRules(allRules []*Rule, tags []string) []*Rule {
 	return selectedRules
 }
 
-func FilterRules(selectedList, ignoreList, specialList []string) []*Rule {
+func FilterRules(selectedList, ignoreList, specialList []string) []*ruledefine.Rule {
 	if len(selectedList) > 0 && len(ignoreList) > 0 {
 		log.Warn().
 			Msgf("Both 'rule' and 'ignoreRule' flags were provided, " +

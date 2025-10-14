@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
@@ -14,18 +14,18 @@ type scorer struct {
 	rulesBaseRiskScore       map[string]float64
 	withValidation           bool
 	keywords                 map[string]struct{}
-	twomsRulesToBeApplied    map[string]rules.Rule
+	twomsRulesToBeApplied    map[string]ruledefine.Rule
 	gitleaksRulesToBeApplied map[string]config.Rule // same rules from twomsRulesToBeApplied, converted to gitleaks format
 }
 
-func NewScorer(selectedRules []*rules.Rule, withValidation bool) *scorer {
-	twomsRulesToBeApplied := make(map[string]rules.Rule)
+func NewScorer(selectedRules []*ruledefine.Rule, withValidation bool) *scorer {
+	twomsRulesToBeApplied := make(map[string]ruledefine.Rule)
 	gitleaksRulesToBeApplied := make(map[string]config.Rule)
 	rulesBaseRiskScore := make(map[string]float64)
 	keywords := make(map[string]struct{})
 	for _, rule := range selectedRules {
 		twomsRulesToBeApplied[rule.RuleID] = *rule
-		gitleaksRulesToBeApplied[rule.RuleID] = *rules.ConvertNewRuleToGitleaksRule(rule)
+		gitleaksRulesToBeApplied[rule.RuleID] = *ruledefine.ConvertNewRuleToGitleaksRule(rule)
 		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 		for _, keyword := range rule.Keywords {
 			keywords[strings.ToLower(keyword)] = struct{}{}
@@ -49,46 +49,46 @@ func (s *scorer) AssignScoreAndSeverity(secret *secrets.Secret) {
 	secret.CvssScore = getCvssScore(s.rulesBaseRiskScore[secret.RuleID], validationStatus)
 }
 
-func getCategoryScore(category rules.RuleCategory) uint8 {
-	CategoryScore := map[rules.RuleCategory]uint8{
-		rules.CategoryAuthenticationAndAuthorization: 4,
-		rules.CategoryCryptocurrencyExchange:         4,
-		rules.CategoryFinancialServices:              4,
-		rules.CategoryPaymentProcessing:              4,
-		rules.CategorySecurity:                       4,
-		rules.CategoryAPIAccess:                      3,
-		rules.CategoryCICD:                           3,
-		rules.CategoryCloudPlatform:                  3,
-		rules.CategoryDatabaseAsAService:             3,
-		rules.CategoryDevelopmentPlatform:            3,
-		rules.CategoryEmailDeliveryService:           3,
-		rules.CategoryGeneralOrUnknown:               3,
-		rules.CategoryInfrastructureAsCode:           3,
-		rules.CategoryPackageManagement:              3,
-		rules.CategorySourceCodeManagement:           3,
-		rules.CategoryWebHostingAndDeployment:        3,
-		rules.CategoryBackgroundProcessingService:    2,
-		rules.CategoryCDN:                            2,
-		rules.CategoryContentManagementSystem:        2,
-		rules.CategoryCustomerSupport:                2,
-		rules.CategoryDataAnalytics:                  2,
-		rules.CategoryFileStorageAndSharing:          2,
-		rules.CategoryIoTPlatform:                    2,
-		rules.CategoryMappingAndLocationServices:     2,
-		rules.CategoryNetworking:                     2,
-		rules.CategoryPhotoSharing:                   2,
-		rules.CategorySaaS:                           2,
-		rules.CategoryShipping:                       2,
-		rules.CategorySoftwareDevelopment:            2,
-		rules.CategoryAIAndMachineLearning:           1,
-		rules.CategoryApplicationMonitoring:          1,
-		rules.CategoryECommercePlatform:              1,
-		rules.CategoryMarketingAutomation:            1,
-		rules.CategoryNewsAndMedia:                   1,
-		rules.CategoryOnlineSurveyPlatform:           1,
-		rules.CategoryProjectManagement:              1,
-		rules.CategorySearchService:                  1,
-		rules.CategorySocialMedia:                    1,
+func getCategoryScore(category ruledefine.RuleCategory) uint8 {
+	CategoryScore := map[ruledefine.RuleCategory]uint8{
+		ruledefine.CategoryAuthenticationAndAuthorization: 4,
+		ruledefine.CategoryCryptocurrencyExchange:         4,
+		ruledefine.CategoryFinancialServices:              4,
+		ruledefine.CategoryPaymentProcessing:              4,
+		ruledefine.CategorySecurity:                       4,
+		ruledefine.CategoryAPIAccess:                      3,
+		ruledefine.CategoryCICD:                           3,
+		ruledefine.CategoryCloudPlatform:                  3,
+		ruledefine.CategoryDatabaseAsAService:             3,
+		ruledefine.CategoryDevelopmentPlatform:            3,
+		ruledefine.CategoryEmailDeliveryService:           3,
+		ruledefine.CategoryGeneralOrUnknown:               3,
+		ruledefine.CategoryInfrastructureAsCode:           3,
+		ruledefine.CategoryPackageManagement:              3,
+		ruledefine.CategorySourceCodeManagement:           3,
+		ruledefine.CategoryWebHostingAndDeployment:        3,
+		ruledefine.CategoryBackgroundProcessingService:    2,
+		ruledefine.CategoryCDN:                            2,
+		ruledefine.CategoryContentManagementSystem:        2,
+		ruledefine.CategoryCustomerSupport:                2,
+		ruledefine.CategoryDataAnalytics:                  2,
+		ruledefine.CategoryFileStorageAndSharing:          2,
+		ruledefine.CategoryIoTPlatform:                    2,
+		ruledefine.CategoryMappingAndLocationServices:     2,
+		ruledefine.CategoryNetworking:                     2,
+		ruledefine.CategoryPhotoSharing:                   2,
+		ruledefine.CategorySaaS:                           2,
+		ruledefine.CategoryShipping:                       2,
+		ruledefine.CategorySoftwareDevelopment:            2,
+		ruledefine.CategoryAIAndMachineLearning:           1,
+		ruledefine.CategoryApplicationMonitoring:          1,
+		ruledefine.CategoryECommercePlatform:              1,
+		ruledefine.CategoryMarketingAutomation:            1,
+		ruledefine.CategoryNewsAndMedia:                   1,
+		ruledefine.CategoryOnlineSurveyPlatform:           1,
+		ruledefine.CategoryProjectManagement:              1,
+		ruledefine.CategorySearchService:                  1,
+		ruledefine.CategorySocialMedia:                    1,
 	}
 	return CategoryScore[category]
 }
@@ -103,7 +103,7 @@ func getValidityScore(baseRiskScore float64, validationStatus secrets.Validation
 	return 0.0
 }
 
-func GetBaseRiskScore(category rules.RuleCategory, ruleType uint8) float64 {
+func GetBaseRiskScore(category ruledefine.RuleCategory, ruleType uint8) float64 {
 	categoryScore := getCategoryScore(category)
 	return float64(categoryScore)*0.6 + float64(ruleType)*0.4
 }
@@ -114,13 +114,13 @@ func getCvssScore(baseRiskScore float64, validationStatus secrets.ValidationResu
 	return math.Round(cvssScore*10) / 10
 }
 
-func getSeverity(severity rules.Severity, validationStatus secrets.ValidationResult) string {
+func getSeverity(severity ruledefine.Severity, validationStatus secrets.ValidationResult) string {
 	// set severity to default if empty, which can happen for custom regex
 	if severity == "" {
-		severity = rules.High // default severity
+		severity = ruledefine.High // default severity
 	}
 
-	severityIndex := slices.Index(rules.SeverityOrder, severity)
+	severityIndex := slices.Index(ruledefine.SeverityOrder, severity)
 
 	switch validationStatus {
 	case secrets.ValidResult:
@@ -130,14 +130,14 @@ func getSeverity(severity rules.Severity, validationStatus secrets.ValidationRes
 		}
 	case secrets.InvalidResult:
 		// severity lowers
-		if severityIndex < len(rules.SeverityOrder)-1 {
+		if severityIndex < len(ruledefine.SeverityOrder)-1 {
 			severityIndex++
 		}
 	case secrets.UnknownResult:
 		// severity remains the same
 	}
 
-	return string(rules.SeverityOrder[severityIndex])
+	return string(ruledefine.SeverityOrder[severityIndex])
 }
 
 func (s *scorer) GetKeywords() map[string]struct{} {
