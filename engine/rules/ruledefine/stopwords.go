@@ -29,7 +29,7 @@ var DefaultStopWords = []string{
 	"add_",
 	"add-on",
 	"addon",
-	"addres", //noling:misspell
+	"addres", //nolint:misspell
 	"admin",
 	"adobe",
 	"advanced",
@@ -170,7 +170,7 @@ var DefaultStopWords = []string{
 	"buildpack",
 	"built",
 	"bundle",
-	"busines", //noling:misspell
+	"busines", //nolint:misspell
 	"but-",
 	"but.",
 	"but_",
@@ -213,7 +213,7 @@ var DefaultStopWords = []string{
 	"chosen",
 	"chrome",
 	"ckeditor",
-	"clas", //noling:misspell
+	"clas", //nolint:misspell
 	"classe",
 	"classic",
 	"clean",
