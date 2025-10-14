@@ -1,8 +1,10 @@
+//go:build goexperiment.jsonv2
+
 package plugins
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +12,8 @@ import (
 	"path"
 	"strconv"
 	"strings"
+
+	"encoding/json/jsontext"
 )
 
 // ConfluenceClient defines the operations required by the Confluence plugin.
@@ -358,21 +362,6 @@ type listVersionsResponse struct {
 	Links   map[string]string `json:"_links"`
 }
 
-// parsePagesResponse decodes a pages response and returns the pages plus any
-// "next" URL found in either the Link header or the body _links.next.
-func parsePagesResponse(headers http.Header, body []byte) ([]*Page, string, string, error) {
-	var payload listPagesResponse
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, "", "", fmt.Errorf("decode pages: %w", err)
-	}
-	linkNext := nextURLFromLinkHeader(headers)
-	bodyNext := ""
-	if payload.Links != nil {
-		bodyNext = payload.Links["next"]
-	}
-	return payload.Results, linkNext, bodyNext, nil
-}
-
 // parseSpacesResponse decodes a spaces response and returns the spaces plus any
 // "next" URL found in either the Link header or the body _links.next.
 func parseSpacesResponse(headers http.Header, body []byte) ([]*Space, string, string, error) {
@@ -434,69 +423,76 @@ func nextURLFromLinkHeader(h http.Header) string {
 
 // streamPagesFromBody streams the Confluence /pages response,
 // calling visit(*Page) for each element in results, and returns body _links.next if present.
-func streamPagesFromBody(r io.Reader, visit func(*Page) error) (bodyLinksNext string, err error) {
-	dec := json.NewDecoder(r)
+func streamPagesFromBody(r io.Reader, visit func(*Page) error) (string, error) {
+	dec := jsontext.NewDecoder(
+		r,
+		// jsontext.WithByteLimit(10MiB), // TODO(go.dev/issue/56733): enable when available
+	)
 
-	// Expect a top-level JSON object
-	tok, err := dec.Token()
+	tok, err := dec.ReadToken()
 	if err != nil {
 		return "", fmt.Errorf("decode: top-level token: %w", err)
 	}
-	if d, ok := tok.(json.Delim); !ok || d != '{' {
+	if tok.Kind() != '{' {
 		return "", fmt.Errorf("decode: expected '{' at top-level")
 	}
 
-	for dec.More() {
-		ktok, err := dec.Token()
-		if err != nil {
-			return "", fmt.Errorf("decode: key token: %w", err)
-		}
-		key, _ := ktok.(string)
+	var bodyLinksNext string
 
-		switch key {
-		case "results":
-			// Start of the array
-			tok, err := dec.Token()
+	for {
+		switch dec.PeekKind() {
+		case '}':
+			if _, err := dec.ReadToken(); err != nil {
+				return "", fmt.Errorf("decode: top-level '}': %w", err)
+			}
+			return bodyLinksNext, nil
+		case '"':
+			keyTok, err := dec.ReadToken()
 			if err != nil {
-				return "", fmt.Errorf("decode: results '[': %w", err)
+				return "", fmt.Errorf("decode: key token: %w", err)
 			}
-			if d, ok := tok.(json.Delim); !ok || d != '[' {
-				return "", fmt.Errorf("decode: expected '[' for results")
-			}
-			for dec.More() {
-				var p Page
-				if err := dec.Decode(&p); err != nil {
-					return "", fmt.Errorf("decode: page: %w", err)
-				}
-				if err := visit(&p); err != nil {
-					return "", err
-				}
-			}
-			// Consume closing ']'
-			if _, err := dec.Token(); err != nil {
-				return "", fmt.Errorf("decode: results ']': %w", err)
-			}
+			key := keyTok.String()
 
-		case "_links":
-			// We only need "next"; decode into a small map.
-			var ln map[string]string
-			if err := dec.Decode(&ln); err != nil {
-				return "", fmt.Errorf("decode: _links: %w", err)
+			switch key {
+			case "results":
+				tok, err := dec.ReadToken()
+				if err != nil {
+					return "", fmt.Errorf("decode: results '[': %w", err)
+				}
+				if tok.Kind() != '[' {
+					return "", fmt.Errorf("decode: expected '[' for results")
+				}
+				for {
+					switch dec.PeekKind() {
+					case ']':
+						if _, err := dec.ReadToken(); err != nil {
+							return "", fmt.Errorf("decode: results ']': %w", err)
+						}
+						goto nextField
+					default:
+						var p Page
+						if err := json.UnmarshalDecode(dec, &p); err != nil {
+							return "", fmt.Errorf("decode: page: %w", err)
+						}
+						if err := visit(&p); err != nil {
+							return "", err
+						}
+					}
+				}
+			case "_links":
+				var ln map[string]string
+				if err := json.UnmarshalDecode(dec, &ln); err != nil {
+					return "", fmt.Errorf("decode: _links: %w", err)
+				}
+				bodyLinksNext = ln["next"]
+			default:
+				if err := dec.SkipValue(); err != nil {
+					return "", fmt.Errorf("decode: skip %q: %w", key, err)
+				}
 			}
-			bodyLinksNext = ln["next"]
-
 		default:
-			// Skip unknown/small fields without loading them fully elsewhere
-			var discard json.RawMessage
-			if err := dec.Decode(&discard); err != nil {
-				return "", fmt.Errorf("decode: skip %q: %w", key, err)
-			}
+			return "", fmt.Errorf("decode: unexpected token kind %q", dec.PeekKind())
 		}
+	nextField:
 	}
-
-	// Consume closing '}'
-	if tok, err = dec.Token(); err != nil {
-		return "", fmt.Errorf("decode: top-level '}': %w", err)
-	}
-	return bodyLinksNext, nil
 }

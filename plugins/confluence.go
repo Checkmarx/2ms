@@ -1,13 +1,16 @@
 package plugins
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/checkmarx/2ms/v4/engine/chunk"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -200,6 +203,42 @@ func (p *ConfluencePlugin) scanByPageIDs(ctx context.Context, wikiBaseURL string
 	return nil
 }
 
+// emitInChunks emits page content as one or many items.
+func (p *ConfluencePlugin) emitInChunks(page *Page, wikiBaseURL string) error {
+	ch := chunk.New()
+
+	if page.Body.Storage == nil || len(page.Body.Storage.Value) < int(ch.GetFileThreshold()) {
+		p.itemsChan <- p.convertPageToItem(page, wikiBaseURL, page.Version.Number)
+		return nil
+	}
+
+	reader := bufio.NewReaderSize(strings.NewReader(page.Body.Storage.Value), ch.GetSize()+ch.GetMaxPeekSize())
+
+	// We don't care about line-count logic here
+	totalLines := -1
+
+	for {
+		chunkStr, err := ch.ReadChunk(reader, totalLines)
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return fmt.Errorf("failed to read chunk for page %s: %w", page.ID, err)
+		}
+		if chunkStr == "" {
+			// nothing more to emit
+			return nil
+		}
+
+		tmp := *page
+		tmp.Body.Storage = &struct {
+			Value string `json:"value"`
+		}{Value: chunkStr}
+
+		p.itemsChan <- p.convertPageToItem(&tmp, wikiBaseURL, page.Version.Number)
+	}
+}
+
 // emitUniquePage emits the current version of a page (and, if enabled, its historical versions)
 // ensuring each page ID is emitted only once.
 func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page, wikiBaseURL string, seenPageIDs map[string]struct{}) error {
@@ -209,7 +248,9 @@ func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page, wikiB
 	seenPageIDs[page.ID] = struct{}{}
 
 	// current version
-	p.itemsChan <- p.convertPageToItem(page, wikiBaseURL, 0)
+	if err := p.emitInChunks(page, wikiBaseURL); err != nil {
+		return err
+	}
 
 	if p.History {
 		if err := p.emitHistory(ctx, page, wikiBaseURL); err != nil {
@@ -222,17 +263,16 @@ func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page, wikiB
 // emitHistory enumerates all versions of a page and emits each version
 // except the current one (which is already emitted by emitUniquePage).
 func (p *ConfluencePlugin) emitHistory(ctx context.Context, page *Page, wikiBaseURL string) error {
-	currentVersion := page.Version.Number
+	current := page.Version.Number
 	return p.client.WalkPageVersions(ctx, page.ID, maxPageSize, func(versionNumber int) error {
-		if versionNumber == currentVersion {
+		if versionNumber == current {
 			return nil // already emitted current version
 		}
 		versionedPage, err := p.client.FetchPageAtVersion(ctx, page.ID, versionNumber)
 		if err != nil {
 			return err
 		}
-		p.itemsChan <- p.convertPageToItem(versionedPage, wikiBaseURL, versionNumber)
-		return nil
+		return p.emitInChunks(versionedPage, wikiBaseURL)
 	})
 }
 
