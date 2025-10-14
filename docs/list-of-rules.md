@@ -17,7 +17,7 @@ Here is a complete list of all the rules that are currently implemented.
 | anthropic-api-key | Identified an Anthropic API Key, which may compromise AI assistant integrations and expose sensitive data to unauthorized access. | api-key |  |
 | asana-client-id | Discovered a potential Asana Client ID, risking unauthorized access to Asana projects and sensitive task information. | client-id |  |
 | asana-client-secret | Identified an Asana Client Secret, which could lead to compromised project management integrity and unauthorized access. | client-secret |  |
-| atlassian-api-token | Detected an Atlassian API token, | | |
+| atlassian-api-token | Detected an Atlassian API token,  |  |  |
 |  | posing a threat to project management and  |  |  |
 |  | collaboration tool security and data confidentiality. | api-token |  |
 | authenticated-url | Identify username:password inside URLS | sensitive-url |  |
