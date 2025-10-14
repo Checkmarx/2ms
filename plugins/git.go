@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -20,8 +21,11 @@ const (
 	AddedContent DiffType = iota
 	RemovedContent
 
-	maxChunkSize = 256 * 1024 // 256KB max chunk size for git diff content (optimized for regexp)
+	maxChunkSize    = 256 * 1024       // 256KB max chunk size for git diff content (optimized for regexp)
+	maxFileDiffSize = 50 * 1024 * 1024 // 50MB max file diff size limit
 )
+
+var ErrFileDiffSizeExceeded = errors.New("file diff size exceeded")
 
 const (
 	argDepth           = "depth"
@@ -299,10 +303,10 @@ func (p *GitPlugin) buildScanOptions() string {
 		options = append(options, "--all")
 	}
 
-	// If base commit is specified, use commit range instead of depth
 	if p.baseCommit != "" {
 		options = append(options, fmt.Sprintf("%s..HEAD", p.baseCommit))
-	} else if p.depth > 0 {
+	}
+	if p.depth > 0 {
 		options = append(options, fmt.Sprintf("-n %d", p.depth))
 	}
 
@@ -348,7 +352,18 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 		return
 	}
 
-	chunks := extractChanges(p.gitChangesPool, file.TextFragments)
+	chunks, err := extractChanges(p.gitChangesPool, file.TextFragments)
+	defer p.gitChangesPool.putSlice(chunks)
+
+	// Check if file diff size exceeded the limit during extraction
+	if err != nil {
+		log.Warn().
+			Str("file", fileName).
+			Str("commit", file.PatchHeader.SHA).
+			Err(err).
+			Msg("Skipping file diff")
+		return
+	}
 
 	for _, chunk := range chunks {
 		id := fmt.Sprintf("%s-%s-%s-%s", p.GetName(), p.projectName, file.PatchHeader.SHA, fileName)
@@ -378,12 +393,10 @@ func (p *GitPlugin) processFileDiff(file *gitdiff.File, itemsChan chan ISourceIt
 			}
 		}
 	}
-
-	p.gitChangesPool.putSlice(chunks)
 }
 
 // extractChanges performs memory-bounded chunked processing of git diff fragments
-func extractChanges(changesPool *gitChangesPool, fragments []*gitdiff.TextFragment) []gitdiffChunk {
+func extractChanges(changesPool *gitChangesPool, fragments []*gitdiff.TextFragment) ([]gitdiffChunk, error) {
 	chunks := changesPool.getSlice()
 	currentAdded := addedPool.Get()
 	defer addedPool.Put(currentAdded)
@@ -391,19 +404,27 @@ func extractChanges(changesPool *gitChangesPool, fragments []*gitdiff.TextFragme
 	defer removedPool.Put(currentRemoved)
 
 	currentSize := 0
+	totalSize := 0
 
 	for _, tf := range fragments {
 		if tf == nil {
 			continue
 		}
-
 		for i := range tf.Lines {
 			line := tf.Lines[i].Line
 			lineSize := len(line)
 
+			totalSize += lineSize
+			if totalSize > maxFileDiffSize {
+				tf.Lines[i].Line = ""
+				changesPool.putSlice(chunks)
+				return nil, fmt.Errorf("%w: file diff size %d bytes exceeds max limit %d bytes",
+					ErrFileDiffSizeExceeded, totalSize, maxFileDiffSize)
+			}
+
 			// Skip excessively large lines (potential issue)
 			if lineSize > 1024*1024 { // 1MB line limit
-				tf.Lines[i].Line = "" // Clear line to free memory
+				tf.Lines[i].Line = ""
 				continue
 			}
 
@@ -443,7 +464,7 @@ func extractChanges(changesPool *gitChangesPool, fragments []*gitdiff.TextFragme
 		})
 	}
 
-	return chunks
+	return chunks, nil
 }
 
 func (p *GitPlugin) readGitLog(path, scanOptions string, errChan chan error) (<-chan *gitdiff.File, func()) {
