@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var CloudflareGlobalApiKeyRegex = utils.GenerateSemiGenericRegex(cloudfareIdentifiers, utils.Hex("37"), true)
+var CloudflareGlobalApiKeyRegex = generateSemiGenericRegex(cloudfareIdentifiers, Hex("37"), true)
 
 func CloudflareGlobalAPIKey() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DigitaloceanAccessTokenRegex = utils.GenerateUniqueTokenRegex(`doo_v1_[a-f0-9]{64}`, false)
+var DigitaloceanAccessTokenRegex = generateUniqueTokenRegex(`doo_v1_[a-f0-9]{64}`, false)
 
 func DigitalOceanOAuthToken() *Rule {
 	return &Rule{

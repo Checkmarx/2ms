@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var StripeAccessTokenRegex = utils.GenerateUniqueTokenRegex(`(?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99}`, false)
+var StripeAccessTokenRegex = generateUniqueTokenRegex(`(?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99}`, false)
 
 func StripeAccessToken() *Rule {
 	return &Rule{

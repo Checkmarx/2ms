@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var RubyGemsAPITokenRegex = utils.GenerateUniqueTokenRegex(`rubygems_[a-f0-9]{48}`, false)
+var RubyGemsAPITokenRegex = generateUniqueTokenRegex(`rubygems_[a-f0-9]{48}`, false)
 
 func RubyGemsAPIToken() *Rule {
 	return &Rule{

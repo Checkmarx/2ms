@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var AdobeClientIDRegex = utils.GenerateSemiGenericRegex([]string{"adobe"}, utils.Hex("32"), true)
+var AdobeClientIDRegex = generateSemiGenericRegex([]string{"adobe"}, Hex("32"), true)
 
 func AdobeClientID() *Rule {
 	// define rule

@@ -1,11 +1,7 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var CoinbaseAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"coinbase"},
-	utils.AlphaNumericExtendedShort("64"), true)
+var CoinbaseAccessTokenRegex = generateSemiGenericRegex([]string{"coinbase"},
+	AlphaNumericExtendedShort("64"), true)
 
 func CoinbaseAccessToken() *Rule {
 	return &Rule{

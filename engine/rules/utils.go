@@ -16,7 +16,7 @@ const (
 	identifierCaseInsensitivePrefix = `[\w.-]{0,50}?(?i:`
 	identifierCaseInsensitiveSuffix = `)`
 	identifierPrefix                = `[\w.-]{0,50}?(?:`
-	identifierSuffix                = `)(?:[0-9a-z\-_\t .]{0,20})(?:[\s|']|[\s|"]){0,3}`
+	identifierSuffix                = `)(?:[ \t\w.-]{0,20})[\s'"]{0,3}`
 	identifierSuffixIncludingXml    = `)(?:[0-9a-z\-_\t .]{0,20})(?:<\/key>\s{0,10}<string)?(?:[\s|']|[\s|"]){0,3}`
 
 	// commonly used assignment operators or function call
@@ -58,6 +58,17 @@ func writeIdentifiers(sb *strings.Builder, identifiers []string) {
 
 func alphaNumeric(size string) string {
 	return fmt.Sprintf(`[a-z0-9]{%s}`, size)
+}
+
+func generateUniqueTokenRegex(secretRegex string, isCaseInsensitive bool) *regexp.Regexp {
+	var sb strings.Builder
+	if isCaseInsensitive {
+		sb.WriteString(caseInsensitive)
+	}
+	sb.WriteString(secretPrefixUnique)
+	sb.WriteString(secretRegex)
+	sb.WriteString(secretSuffix)
+	return regexp.MustCompile(sb.String())
 }
 
 // generateSemiGenericRegexIncludingXml generates a regex that includes XML detection patterns
@@ -125,4 +136,32 @@ func toGitleaksMatchCondition(s string) gitleaksrule.AllowlistMatchCondition {
 		// default or fallback
 		return gitleaksrule.AllowlistMatchOr
 	}
+}
+
+func Numeric(size string) string {
+	return fmt.Sprintf(`[0-9]{%s}`, size)
+}
+
+func Hex(size string) string {
+	return fmt.Sprintf(`[a-f0-9]{%s}`, size)
+}
+
+func AlphaNumeric(size string) string {
+	return fmt.Sprintf(`[a-z0-9]{%s}`, size)
+}
+
+func AlphaNumericExtendedShort(size string) string {
+	return fmt.Sprintf(`[a-z0-9_-]{%s}`, size)
+}
+
+func AlphaNumericExtended(size string) string {
+	return fmt.Sprintf(`[a-z0-9=_\-]{%s}`, size)
+}
+
+func AlphaNumericExtendedLong(size string) string {
+	return fmt.Sprintf(`[a-z0-9\/=_\+\-]{%s}`, size)
+}
+
+func Hex8_4_4_4_12() string {
+	return `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`
 }

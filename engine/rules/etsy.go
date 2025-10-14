@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var EtsyAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"(?-i:ETSY|[Ee]tsy)"}, utils.AlphaNumeric("24"), true)
+var EtsyAccessTokenRegex = generateSemiGenericRegex([]string{"(?-i:ETSY|[Ee]tsy)"}, AlphaNumeric("24"), true)
 
 func EtsyAccessToken() *Rule {
 	return &Rule{

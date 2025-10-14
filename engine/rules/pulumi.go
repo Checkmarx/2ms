@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var PulumiAPITokenRegex = utils.GenerateUniqueTokenRegex(`pul-[a-f0-9]{40}`, false)
+var PulumiAPITokenRegex = generateUniqueTokenRegex(`pul-[a-f0-9]{40}`, false)
 
 func PulumiAPIToken() *Rule {
 	return &Rule{

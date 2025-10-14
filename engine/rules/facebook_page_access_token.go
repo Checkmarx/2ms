@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FacebookPageAccessTokenRegex = utils.GenerateUniqueTokenRegex("EAA[MC](?i)[a-z0-9]{100,}", false)
+var FacebookPageAccessTokenRegex = generateUniqueTokenRegex("EAA[MC](?i)[a-z0-9]{100,}", false)
 
 func FacebookPageAccessToken() *Rule {
 	return &Rule{

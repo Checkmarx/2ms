@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var PlanetScalePasswordRegex = utils.GenerateUniqueTokenRegex(`pscale_pw_(?i)[\w=\.-]{32,64}`, true)
+var PlanetScalePasswordRegex = generateUniqueTokenRegex(`pscale_pw_(?i)[\w=\.-]{32,64}`, true)
 
 func PlanetScalePassword() *Rule {
 	return &Rule{

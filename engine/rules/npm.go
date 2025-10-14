@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var NpmAccessTokenRegex = utils.GenerateUniqueTokenRegex(`npm_[a-z0-9]{36}`, true)
+var NpmAccessTokenRegex = generateUniqueTokenRegex(`npm_[a-z0-9]{36}`, true)
 
 func NPM() *Rule {
 	return &Rule{

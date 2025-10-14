@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var LobAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"lob"}, `(live|test)_[a-f0-9]{35}`, true)
+var LobAPIKeyRegex = generateSemiGenericRegex([]string{"lob"}, `(live|test)_[a-f0-9]{35}`, true)
 
 func LobAPIToken() *Rule {
 	return &Rule{

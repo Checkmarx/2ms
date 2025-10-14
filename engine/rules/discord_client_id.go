@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DiscordClientIdRegex = utils.GenerateSemiGenericRegex([]string{"discord"}, utils.Numeric("18"), true)
+var DiscordClientIdRegex = generateSemiGenericRegex([]string{"discord"}, Numeric("18"), true)
 
 func DiscordClientID() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var SentryUserTokenRegex = utils.GenerateUniqueTokenRegex(`sntryu_[a-f0-9]{64}`, false)
+var SentryUserTokenRegex = generateUniqueTokenRegex(`sntryu_[a-f0-9]{64}`, false)
 
 func SentryUserToken() *Rule {
 	return &Rule{

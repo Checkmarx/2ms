@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var TwitterAccessSecretRegex = utils.GenerateSemiGenericRegex([]string{"twitter"}, utils.AlphaNumeric("45"), true)
+var TwitterAccessSecretRegex = generateSemiGenericRegex([]string{"twitter"}, AlphaNumeric("45"), true)
 
 func TwitterAccessSecret() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var AsanaClientIdRegex = utils.GenerateSemiGenericRegex([]string{"asana"}, utils.Numeric("16"), true)
+var AsanaClientIdRegex = generateSemiGenericRegex([]string{"asana"}, Numeric("16"), true)
 
 func AsanaClientID() *Rule {
 	return &Rule{

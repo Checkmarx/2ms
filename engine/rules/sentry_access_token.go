@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var SentryAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"sentry"}, utils.Hex("64"), true)
+var SentryAccessTokenRegex = generateSemiGenericRegex([]string{"sentry"}, Hex("64"), true)
 
 func SentryAccessToken() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var MattermostAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"mattermost"}, utils.AlphaNumeric("26"), true)
+var MattermostAccessTokenRegex = generateSemiGenericRegex([]string{"mattermost"}, AlphaNumeric("26"), true)
 
 func MattermostAccessToken() *Rule {
 	return &Rule{

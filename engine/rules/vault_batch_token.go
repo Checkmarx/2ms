@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var VaultBatchTokenRegex = utils.GenerateUniqueTokenRegex(`hvb\.[\w-]{138,300}`, false)
+var VaultBatchTokenRegex = generateUniqueTokenRegex(`hvb\.[\w-]{138,300}`, false)
 
 func VaultBatchToken() *Rule {
 	return &Rule{

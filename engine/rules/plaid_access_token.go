@@ -1,11 +1,7 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var PlaidAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"plaid"},
-	"access-(?:sandbox|development|production)-"+utils.Hex8_4_4_4_12(), true)
+var PlaidAccessTokenRegex = generateSemiGenericRegex([]string{"plaid"},
+	"access-(?:sandbox|development|production)-"+Hex8_4_4_4_12(), true)
 
 func PlaidAccessToken() *Rule {
 	return &Rule{

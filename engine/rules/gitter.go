@@ -1,11 +1,7 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var GitterAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"gitter"},
-	utils.AlphaNumericExtendedShort("40"), true)
+var GitterAccessTokenRegex = generateSemiGenericRegex([]string{"gitter"},
+	AlphaNumericExtendedShort("40"), true)
 
 func GitterAccessToken() *Rule {
 	return &Rule{

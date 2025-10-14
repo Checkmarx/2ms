@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var TwitchAPITokenRegex = utils.GenerateSemiGenericRegex([]string{"twitch"}, utils.AlphaNumeric("30"), true)
+var TwitchAPITokenRegex = generateSemiGenericRegex([]string{"twitch"}, AlphaNumeric("30"), true)
 
 func TwitchAPIToken() *Rule {
 	return &Rule{

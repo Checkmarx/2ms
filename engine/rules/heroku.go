@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var HerokuAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"heroku"}, utils.Hex8_4_4_4_12(), true)
+var HerokuAPIKeyRegex = generateSemiGenericRegex([]string{"heroku"}, Hex8_4_4_4_12(), true)
 
 func Heroku() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var PrefectRegex = utils.GenerateUniqueTokenRegex(`pnu_[a-zA-Z0-9]{36}`, false)
+var PrefectRegex = generateUniqueTokenRegex(`pnu_[a-zA-Z0-9]{36}`, false)
 
 func Prefect() *Rule {
 	return &Rule{

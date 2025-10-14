@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var NewRelicBrowserAPITokenRegex = utils.GenerateSemiGenericRegex([]string{
+var NewRelicBrowserAPITokenRegex = generateSemiGenericRegex([]string{
 	"new-relic",
 	"newrelic",
 	"new_relic",

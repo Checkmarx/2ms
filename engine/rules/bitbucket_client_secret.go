@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var BitbucketClientSecretRegex = utils.GenerateSemiGenericRegex([]string{"bitbucket"}, utils.AlphaNumericExtended("64"), true)
+var BitbucketClientSecretRegex = generateSemiGenericRegex([]string{"bitbucket"}, AlphaNumericExtended("64"), true)
 
 func BitBucketClientSecret() *Rule {
 	return &Rule{

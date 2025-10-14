@@ -2,11 +2,9 @@ package rules
 
 import (
 	"regexp"
-
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
 )
 
-var GcpAPIKeyRegex = utils.GenerateUniqueTokenRegex(`AIza[\w-]{35}`, false)
+var GcpAPIKeyRegex = generateUniqueTokenRegex(`AIza[\w-]{35}`, false)
 
 func GCPAPIKey() *Rule {
 	return &Rule{

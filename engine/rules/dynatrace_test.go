@@ -17,7 +17,7 @@ func TestDynatraceAPIToken(t *testing.T) {
 	}{
 		{
 			name:           "Dynatrace validation",
-			truePositives:  utils.GenerateSampleSecrets("dynatrace", "dt0c01."+secrets.NewSecret(utils.AlphaNumeric("24"))+"."+secrets.NewSecret(utils.AlphaNumeric("64"))),
+			truePositives:  utils.GenerateSampleSecrets("dynatrace", "dt0c01."+secrets.NewSecret(AlphaNumeric("24"))+"."+secrets.NewSecret(AlphaNumeric("64"))),
 			falsePositives: []string{},
 		},
 	}

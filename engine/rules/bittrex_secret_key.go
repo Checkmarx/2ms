@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var BittrexSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"bittrex"}, utils.AlphaNumeric("32"), true)
+var BittrexSecretKeyRegex = generateSemiGenericRegex([]string{"bittrex"}, AlphaNumeric("32"), true)
 
 func BittrexSecretKey() *Rule {
 	return &Rule{

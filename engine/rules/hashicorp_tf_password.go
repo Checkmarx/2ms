@@ -4,13 +4,11 @@ import (
 	"fmt"
 
 	"regexp"
-
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
 )
 
 var hashicorpKeywords = []string{"administrator_login_password", "password"}
-var HashicorpTfPasswordRegex = utils.GenerateSemiGenericRegex(
-	hashicorpKeywords, fmt.Sprintf(`"%s"`, utils.AlphaNumericExtended("8,20")), true) //nolint:gocritic
+var HashicorpTfPasswordRegex = generateSemiGenericRegex(
+	hashicorpKeywords, fmt.Sprintf(`"%s"`, AlphaNumericExtended("8,20")), true) //nolint:gocritic
 
 func HashicorpField() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var MessagebirdClientIDRegex = utils.GenerateSemiGenericRegex([]string{"message[_-]?bird"}, utils.Hex8_4_4_4_12(), true)
+var MessagebirdClientIDRegex = generateSemiGenericRegex([]string{"message[_-]?bird"}, Hex8_4_4_4_12(), true)
 
 func MessageBirdClientID() *Rule {
 	return &Rule{

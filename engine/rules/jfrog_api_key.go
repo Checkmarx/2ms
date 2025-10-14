@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var JfrogAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"jfrog", "artifactory", "bintray", "xray"}, utils.AlphaNumeric("73"), true)
+var JfrogAPIKeyRegex = generateSemiGenericRegex([]string{"jfrog", "artifactory", "bintray", "xray"}, AlphaNumeric("73"), true)
 
 func JFrogAPIKey() *Rule {
 	return &Rule{

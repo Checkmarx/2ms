@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DropboxShortLivedAPITokenRegex = utils.GenerateSemiGenericRegex([]string{"dropbox"}, `sl\.[a-z0-9\-=_]{135}`, true)
+var DropboxShortLivedAPITokenRegex = generateSemiGenericRegex([]string{"dropbox"}, `sl\.[a-z0-9\-=_]{135}`, true)
 
 func DropBoxShortLivedAPIToken() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var HuggingFaceAccessTokenRegex = utils.GenerateUniqueTokenRegex("hf_(?i:[a-z]{34})", false)
+var HuggingFaceAccessTokenRegex = generateUniqueTokenRegex("hf_(?i:[a-z]{34})", false)
 
 func HuggingFaceAccessToken() *Rule {
 	return &Rule{

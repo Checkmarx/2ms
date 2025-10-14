@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FacebookAccessTokenRegex = utils.GenerateUniqueTokenRegex(`\d{15,16}(\||%)[0-9a-z\-_]{27,40}`, true)
+var FacebookAccessTokenRegex = generateUniqueTokenRegex(`\d{15,16}(\||%)[0-9a-z\-_]{27,40}`, true)
 
 func FacebookAccessToken() *Rule {
 	return &Rule{

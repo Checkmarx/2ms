@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DatabricksApiTokenRegex = utils.GenerateUniqueTokenRegex(`dapi[a-f0-9]{32}(?:-\d)?`, false)
+var DatabricksApiTokenRegex = generateUniqueTokenRegex(`dapi[a-f0-9]{32}(?:-\d)?`, false)
 
 func Databricks() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FreshbooksAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"freshbooks"}, utils.AlphaNumeric("64"), true)
+var FreshbooksAccessTokenRegex = generateSemiGenericRegex([]string{"freshbooks"}, AlphaNumeric("64"), true)
 
 func FreshbooksAccessToken() *Rule {
 	return &Rule{

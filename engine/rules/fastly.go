@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FastlyAPITokenRegex = utils.GenerateSemiGenericRegex([]string{"fastly"}, utils.AlphaNumericExtended("32"), true)
+var FastlyAPITokenRegex = generateSemiGenericRegex([]string{"fastly"}, AlphaNumericExtended("32"), true)
 
 func FastlyAPIToken() *Rule {
 	return &Rule{

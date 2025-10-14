@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var ShippoAPITokenRegex = utils.GenerateUniqueTokenRegex(`shippo_(?:live|test)_[a-fA-F0-9]{40}`, false)
+var ShippoAPITokenRegex = generateUniqueTokenRegex(`shippo_(?:live|test)_[a-fA-F0-9]{40}`, false)
 
 func ShippoAPIToken() *Rule {
 	return &Rule{

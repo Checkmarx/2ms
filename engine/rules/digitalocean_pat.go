@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DigitaloceanPatRegex = utils.GenerateUniqueTokenRegex(`dop_v1_[a-f0-9]{64}`, false)
+var DigitaloceanPatRegex = generateUniqueTokenRegex(`dop_v1_[a-f0-9]{64}`, false)
 
 func DigitalOceanPAT() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FlyIOAccessTokenRegex = utils.GenerateUniqueTokenRegex(
+var FlyIOAccessTokenRegex = generateUniqueTokenRegex(
 	`(?:fo1_[\w-]{43}|fm1[ar]_[a-zA-Z0-9+\/]{100,}={0,3}|fm2_[a-zA-Z0-9+\/]{100,}={0,3})`, false)
 
 func FlyIOAccessToken() *Rule {

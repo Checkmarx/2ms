@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var InfracostAPITokenRegex = utils.GenerateUniqueTokenRegex(`ico-[a-zA-Z0-9]{32}`, false)
+var InfracostAPITokenRegex = generateUniqueTokenRegex(`ico-[a-zA-Z0-9]{32}`, false)
 
 func InfracostAPIToken() *Rule {
 	return &Rule{

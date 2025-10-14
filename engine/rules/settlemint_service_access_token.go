@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var SettlemintServiceAccessTokenRegex = utils.GenerateUniqueTokenRegex(`sm_sat_[a-zA-Z0-9]{16}`, false)
+var SettlemintServiceAccessTokenRegex = generateUniqueTokenRegex(`sm_sat_[a-zA-Z0-9]{16}`, false)
 
 func SettlemintServiceAccessToken() *Rule {
 	return &Rule{

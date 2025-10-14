@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var SquareAccessTokenRegex = utils.GenerateUniqueTokenRegex(`(?:EAAA|sq0atp-)[\w-]{22,60}`, false)
+var SquareAccessTokenRegex = generateUniqueTokenRegex(`(?:EAAA|sq0atp-)[\w-]{22,60}`, false)
 
 func SquareAccessToken() *Rule {
 	return &Rule{

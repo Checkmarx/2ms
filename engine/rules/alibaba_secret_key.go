@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var AlibabaSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"alibaba"}, utils.AlphaNumeric("30"), true)
+var AlibabaSecretKeyRegex = generateSemiGenericRegex([]string{"alibaba"}, AlphaNumeric("30"), true)
 
 func AlibabaSecretKey() *Rule {
 	// define rule

@@ -1,11 +1,7 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var RapidAPIAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"rapidapi"},
-	utils.AlphaNumericExtendedShort("50"), true)
+var RapidAPIAccessTokenRegex = generateSemiGenericRegex([]string{"rapidapi"},
+	AlphaNumericExtendedShort("50"), true)
 
 func RapidAPIAccessToken() *Rule {
 	return &Rule{

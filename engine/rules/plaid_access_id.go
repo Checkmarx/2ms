@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var PlaidAccessIDRegex = utils.GenerateSemiGenericRegex([]string{"plaid"}, utils.AlphaNumeric("24"), true)
+var PlaidAccessIDRegex = generateSemiGenericRegex([]string{"plaid"}, AlphaNumeric("24"), true)
 
 func PlaidAccessID() *Rule {
 	return &Rule{

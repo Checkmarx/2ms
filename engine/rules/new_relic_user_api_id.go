@@ -1,14 +1,10 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var NewRelicUserAPIIDRegex = utils.GenerateSemiGenericRegex([]string{
+var NewRelicUserAPIIDRegex = generateSemiGenericRegex([]string{
 	"new-relic",
 	"newrelic",
 	"new_relic",
-}, utils.AlphaNumeric("64"), true)
+}, AlphaNumeric("64"), true)
 
 func NewRelicUserKey() *Rule {
 	return &Rule{

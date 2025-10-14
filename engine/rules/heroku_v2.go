@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var HerokuAPIKeyV2Regex = utils.GenerateUniqueTokenRegex(`(HRKU-AA[0-9a-zA-Z_-]{58})`, false)
+var HerokuAPIKeyV2Regex = generateUniqueTokenRegex(`(HRKU-AA[0-9a-zA-Z_-]{58})`, false)
 
 func HerokuV2() *Rule {
 	return &Rule{

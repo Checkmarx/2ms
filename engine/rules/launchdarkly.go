@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var LaunchdarklyAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"launchdarkly"}, utils.AlphaNumericExtended("40"), true)
+var LaunchdarklyAccessTokenRegex = generateSemiGenericRegex([]string{"launchdarkly"}, AlphaNumericExtended("40"), true)
 
 func LaunchDarklyAccessToken() *Rule {
 	return &Rule{

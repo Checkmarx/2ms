@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var GrafanaCloudAPITokenRegex = utils.GenerateUniqueTokenRegex(`glc_[A-Za-z0-9+/]{32,400}={0,3}`, true)
+var GrafanaCloudAPITokenRegex = generateUniqueTokenRegex(`glc_[A-Za-z0-9+/]{32,400}={0,3}`, true)
 
 func GrafanaCloudApiToken() *Rule {
 	return &Rule{

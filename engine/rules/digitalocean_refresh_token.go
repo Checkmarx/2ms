@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DigitaloceanRefreshTokenRegex = utils.GenerateUniqueTokenRegex(`dor_v1_[a-f0-9]{64}`, true)
+var DigitaloceanRefreshTokenRegex = generateUniqueTokenRegex(`dor_v1_[a-f0-9]{64}`, true)
 
 func DigitalOceanRefreshToken() *Rule {
 	return &Rule{

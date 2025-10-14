@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var LinkedinClientIDRegex = utils.GenerateSemiGenericRegex([]string{"linked[_-]?in"}, utils.AlphaNumeric("14"), true)
+var LinkedinClientIDRegex = generateSemiGenericRegex([]string{"linked[_-]?in"}, AlphaNumeric("14"), true)
 
 func LinkedinClientID() *Rule {
 	return &Rule{

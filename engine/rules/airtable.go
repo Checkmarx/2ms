@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var AirtableRegex = utils.GenerateSemiGenericRegex([]string{"airtable"}, utils.AlphaNumeric("17"), true)
+var AirtableRegex = generateSemiGenericRegex([]string{"airtable"}, AlphaNumeric("17"), true)
 
 func Airtable() *Rule {
 	// define rule

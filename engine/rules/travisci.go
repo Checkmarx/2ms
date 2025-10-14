@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var TravisCIAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"travis"}, utils.AlphaNumeric("22"), true)
+var TravisCIAccessTokenRegex = generateSemiGenericRegex([]string{"travis"}, AlphaNumeric("22"), true)
 
 func TravisCIAccessToken() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FinnhubAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"finnhub"}, utils.AlphaNumeric("20"), true)
+var FinnhubAccessTokenRegex = generateSemiGenericRegex([]string{"finnhub"}, AlphaNumeric("20"), true)
 
 func FinnhubAccessToken() *Rule {
 	return &Rule{

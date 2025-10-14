@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DiscordClientSecretRegex = utils.GenerateSemiGenericRegex([]string{"discord"}, utils.AlphaNumericExtended("32"), true)
+var DiscordClientSecretRegex = generateSemiGenericRegex([]string{"discord"}, AlphaNumericExtended("32"), true)
 
 func DiscordClientSecret() *Rule {
 	return &Rule{

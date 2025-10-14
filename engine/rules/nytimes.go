@@ -1,12 +1,8 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var NytimesAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{
+var NytimesAccessTokenRegex = generateSemiGenericRegex([]string{
 	"nytimes", "new-york-times,", "newyorktimes"},
-	utils.AlphaNumericExtended("32"), true)
+	AlphaNumericExtended("32"), true)
 
 func NytimesAccessToken() *Rule {
 	return &Rule{

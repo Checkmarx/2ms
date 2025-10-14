@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var TypeformRegex = utils.GenerateSemiGenericRegex([]string{"typeform"},
+var TypeformRegex = generateSemiGenericRegex([]string{"typeform"},
 	`tfp_[a-z0-9\-_\.=]{59}`, true)
 
 func Typeform() *Rule {

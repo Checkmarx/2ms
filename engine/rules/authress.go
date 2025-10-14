@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var AuthressServiceClientAccessKeyRegex = utils.GenerateUniqueTokenRegex(
+var AuthressServiceClientAccessKeyRegex = generateUniqueTokenRegex(
 	`(?:sc|ext|scauth|authress)_(?i)[a-z0-9]{5,30}\.[a-z0-9]{4,6}\.(?-i:acc)[_-][a-z0-9-]{10,32}\.[a-z0-9+/_=-]{30,120}`, false)
 
 func Authress() *Rule {

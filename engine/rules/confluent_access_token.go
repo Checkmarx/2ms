@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var ConfluentAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"confluent"}, utils.AlphaNumeric("16"), true)
+var ConfluentAccessTokenRegex = generateSemiGenericRegex([]string{"confluent"}, AlphaNumeric("16"), true)
 
 func ConfluentAccessToken() *Rule {
 	return &Rule{

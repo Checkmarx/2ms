@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var ReadMeRegex = utils.GenerateUniqueTokenRegex(`rdme_[a-z0-9]{70}`, false)
+var ReadMeRegex = generateUniqueTokenRegex(`rdme_[a-z0-9]{70}`, false)
 
 func ReadMe() *Rule {
 	return &Rule{

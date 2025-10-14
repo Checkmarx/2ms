@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var SendGridAPITokenRegex = utils.GenerateUniqueTokenRegex(`SG\.(?i)[a-z0-9=_\-\.]{66}`, false)
+var SendGridAPITokenRegex = generateUniqueTokenRegex(`SG\.(?i)[a-z0-9=_\-\.]{66}`, false)
 
 func SendGridAPIToken() *Rule {
 	return &Rule{

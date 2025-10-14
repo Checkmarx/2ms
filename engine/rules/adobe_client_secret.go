@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var AdobeClientSecretRegex = utils.GenerateUniqueTokenRegex(`p8e-(?i)[a-z0-9]{32}`, false)
+var AdobeClientSecretRegex = generateUniqueTokenRegex(`p8e-(?i)[a-z0-9]{32}`, false)
 
 func AdobeClientSecret() *Rule {
 	// define rule

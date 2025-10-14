@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var AlgoliaRegex = utils.GenerateSemiGenericRegex([]string{"algolia"}, `[a-z0-9]{32}`, true)
+var AlgoliaRegex = generateSemiGenericRegex([]string{"algolia"}, `[a-z0-9]{32}`, true)
 
 func AlgoliaApiKey() *Rule {
 	// define rule

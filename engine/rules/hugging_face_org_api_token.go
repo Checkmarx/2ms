@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var HuggingFaceOrganizationApiTokenRegex = utils.GenerateUniqueTokenRegex("api_org_(?i:[a-z]{34})", false)
+var HuggingFaceOrganizationApiTokenRegex = generateUniqueTokenRegex("api_org_(?i:[a-z]{34})", false)
 
 func HuggingFaceOrganizationApiToken() *Rule {
 	return &Rule{

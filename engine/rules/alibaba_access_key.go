@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var AlibabaAccessKeyRegex = utils.GenerateUniqueTokenRegex(`LTAI(?i)[a-z0-9]{20}`, false)
+var AlibabaAccessKeyRegex = generateUniqueTokenRegex(`LTAI(?i)[a-z0-9]{20}`, false)
 
 func AlibabaAccessKey() *Rule {
 	// define rule

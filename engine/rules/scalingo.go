@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var ScalingoAPITokenRegex = utils.GenerateUniqueTokenRegex(`tk-us-[\w-]{48}`, false)
+var ScalingoAPITokenRegex = generateUniqueTokenRegex(`tk-us-[\w-]{48}`, false)
 
 func ScalingoAPIToken() *Rule {
 	return &Rule{

@@ -1,11 +1,7 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var NetlifyAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"netlify"},
-	utils.AlphaNumericExtended("40,46"), true)
+var NetlifyAccessTokenRegex = generateSemiGenericRegex([]string{"netlify"},
+	AlphaNumericExtended("40,46"), true)
 
 func NetlifyAccessToken() *Rule {
 	return &Rule{

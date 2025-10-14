@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var SendbirdAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"sendbird"}, utils.Hex("40"), true)
+var SendbirdAccessTokenRegex = generateSemiGenericRegex([]string{"sendbird"}, Hex("40"), true)
 
 func SendbirdAccessToken() *Rule {
 	return &Rule{

@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var YandexAWSAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"yandex"},
+var YandexAWSAccessTokenRegex = generateSemiGenericRegex([]string{"yandex"},
 	`YC[a-zA-Z0-9_\-]{38}`, true)
 
 func YandexAWSAccessToken() *Rule {

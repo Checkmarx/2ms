@@ -5,12 +5,12 @@ import (
 )
 
 var AtlassianRegex = utils.MergeRegexps(
-	utils.GenerateSemiGenericRegex(
+	generateSemiGenericRegex(
 		[]string{"(?-i:ATLASSIAN|[Aa]tlassian)", "(?-i:CONFLUENCE|[Cc]onfluence)", "(?-i:JIRA|[Jj]ira)"},
 		`[a-z0-9]{20}[a-f0-9]{4}`, // The last 4 characters are an MD5 hash.
 		true,
 	),
-	utils.GenerateUniqueTokenRegex(`ATATT3[A-Za-z0-9_\-=]{186}`, false),
+	generateUniqueTokenRegex(`ATATT3[A-Za-z0-9_\-=]{186}`, false),
 )
 
 func Atlassian() *Rule {

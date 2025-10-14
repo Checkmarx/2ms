@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DroneciAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"droneci"}, utils.AlphaNumeric("32"), true)
+var DroneciAccessTokenRegex = generateSemiGenericRegex([]string{"droneci"}, AlphaNumeric("32"), true)
 
 func DroneciAccessToken() *Rule {
 	return &Rule{

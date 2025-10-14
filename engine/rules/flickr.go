@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FlickrAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"flickr"}, utils.AlphaNumeric("32"), true)
+var FlickrAccessTokenRegex = generateSemiGenericRegex([]string{"flickr"}, AlphaNumeric("32"), true)
 
 func FlickrAccessToken() *Rule {
 	return &Rule{

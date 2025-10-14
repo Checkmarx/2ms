@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 )
 
@@ -46,8 +45,8 @@ func TestSettlemintApplicationAccessToken(t *testing.T) {
 				"settlemintTokenToken = \"sm_aat_js745fpgq781pr1l\"",
 			},
 			falsePositives: []string{
-				"nonMatchingToken := \"" + secrets.NewSecret(utils.AlphaNumeric("16")) + "\"",
-				"nonMatchingToken := \"sm_aat_" + secrets.NewSecret(utils.AlphaNumeric("10")) + "\"",
+				"nonMatchingToken := \"" + secrets.NewSecret(AlphaNumeric("16")) + "\"",
+				"nonMatchingToken := \"sm_aat_" + secrets.NewSecret(AlphaNumeric("10")) + "\"",
 			},
 		},
 	}

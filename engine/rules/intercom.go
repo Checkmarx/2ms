@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var IntercomAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"intercom"}, utils.AlphaNumericExtended("60"), true)
+var IntercomAPIKeyRegex = generateSemiGenericRegex([]string{"intercom"}, AlphaNumericExtended("60"), true)
 
 func Intercom() *Rule {
 	return &Rule{

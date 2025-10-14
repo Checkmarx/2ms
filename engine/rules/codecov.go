@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var CodecovAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"codecov"}, utils.AlphaNumeric("32"), true)
+var CodecovAccessTokenRegex = generateSemiGenericRegex([]string{"codecov"}, AlphaNumeric("32"), true)
 
 func CodecovAccessToken() *Rule {
 	return &Rule{

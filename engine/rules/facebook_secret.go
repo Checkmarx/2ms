@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FacebookSecretRegex = utils.GenerateSemiGenericRegex([]string{"facebook"}, utils.Hex("32"), true)
+var FacebookSecretRegex = generateSemiGenericRegex([]string{"facebook"}, Hex("32"), true)
 
 func FacebookSecret() *Rule {
 	return &Rule{

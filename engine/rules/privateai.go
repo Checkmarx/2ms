@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var PrivateAITokenRegex = utils.GenerateSemiGenericRegex([]string{"private[_-]?ai"}, `[a-z0-9]{32}`, false)
+var PrivateAITokenRegex = generateSemiGenericRegex([]string{"private[_-]?ai"}, `[a-z0-9]{32}`, false)
 
 func PrivateAIToken() *Rule {
 	return &Rule{

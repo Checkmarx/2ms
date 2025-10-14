@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var HubspotAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"hubspot"},
+var HubspotAPIKeyRegex = generateSemiGenericRegex([]string{"hubspot"},
 	`[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}`, true)
 
 func HubSpot() *Rule {

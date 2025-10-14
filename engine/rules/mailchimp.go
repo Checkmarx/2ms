@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var MailChimpRegex = utils.GenerateSemiGenericRegex([]string{"MailchimpSDK.initialize", "mailchimp"}, utils.Hex("32")+`-us\d\d`, true)
+var MailChimpRegex = generateSemiGenericRegex([]string{"MailchimpSDK.initialize", "mailchimp"}, Hex("32")+`-us\d\d`, true)
 
 func MailChimp() *Rule {
 	return &Rule{

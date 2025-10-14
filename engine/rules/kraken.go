@@ -1,11 +1,7 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var KrakenAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"kraken"},
-	utils.AlphaNumericExtendedLong("80,90"), true)
+var KrakenAccessTokenRegex = generateSemiGenericRegex([]string{"kraken"},
+	AlphaNumericExtendedLong("80,90"), true)
 
 func KrakenAccessToken() *Rule {
 	return &Rule{

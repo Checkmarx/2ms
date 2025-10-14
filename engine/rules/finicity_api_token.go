@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var FinicityAPITokenRegex = utils.GenerateSemiGenericRegex([]string{"finicity"}, utils.Hex("32"), true)
+var FinicityAPITokenRegex = generateSemiGenericRegex([]string{"finicity"}, Hex("32"), true)
 
 func FinicityAPIToken() *Rule {
 	return &Rule{

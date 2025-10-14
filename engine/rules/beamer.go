@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var BeamerApiTokenRegex = utils.GenerateSemiGenericRegex([]string{"beamer"},
+var BeamerApiTokenRegex = generateSemiGenericRegex([]string{"beamer"},
 	`b_[a-z0-9=_\-]{44}`, true)
 
 func Beamer() *Rule {

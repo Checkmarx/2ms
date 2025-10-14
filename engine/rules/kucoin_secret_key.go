@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var KucoinSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"kucoin"}, utils.Hex8_4_4_4_12(), true)
+var KucoinSecretKeyRegex = generateSemiGenericRegex([]string{"kucoin"}, Hex8_4_4_4_12(), true)
 
 func KucoinSecretKey() *Rule {
 	return &Rule{

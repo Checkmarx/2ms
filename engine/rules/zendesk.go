@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var ZendeskSecretKeyRegex = utils.GenerateSemiGenericRegex([]string{"zendesk"}, utils.AlphaNumeric("40"), true)
+var ZendeskSecretKeyRegex = generateSemiGenericRegex([]string{"zendesk"}, AlphaNumeric("40"), true)
 
 func ZendeskSecretKey() *Rule {
 	return &Rule{

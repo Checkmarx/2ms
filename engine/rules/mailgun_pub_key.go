@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var MailgunPubKeyRegex = utils.GenerateSemiGenericRegex([]string{"mailgun"}, `pubkey-[a-f0-9]{32}`, true)
+var MailgunPubKeyRegex = generateSemiGenericRegex([]string{"mailgun"}, `pubkey-[a-f0-9]{32}`, true)
 
 func MailGunPubAPIToken() *Rule {
 	return &Rule{

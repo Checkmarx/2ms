@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var YandexAPIKeyRegex = utils.GenerateSemiGenericRegex([]string{"yandex"},
+var YandexAPIKeyRegex = generateSemiGenericRegex([]string{"yandex"},
 	`AQVN[A-Za-z0-9_\-]{35,38}`, true)
 
 func YandexAPIKey() *Rule {

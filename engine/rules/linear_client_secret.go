@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var LinearClientSecretRegex = utils.GenerateSemiGenericRegex([]string{"linear"}, utils.Hex("32"), true)
+var LinearClientSecretRegex = generateSemiGenericRegex([]string{"linear"}, Hex("32"), true)
 
 func LinearClientSecret() *Rule {
 	return &Rule{

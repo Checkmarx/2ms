@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var SquareSpaceAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"squarespace"}, utils.Hex8_4_4_4_12(), true)
+var SquareSpaceAccessTokenRegex = generateSemiGenericRegex([]string{"squarespace"}, Hex8_4_4_4_12(), true)
 
 func SquareSpaceAccessToken() *Rule {
 	return &Rule{

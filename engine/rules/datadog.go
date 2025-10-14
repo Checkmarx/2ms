@@ -1,11 +1,7 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var DatadogAccessTokenRegex = utils.GenerateSemiGenericRegex([]string{"datadog"},
-	utils.AlphaNumeric("40"), true)
+var DatadogAccessTokenRegex = generateSemiGenericRegex([]string{"datadog"},
+	AlphaNumeric("40"), true)
 
 func DatadogtokenAccessToken() *Rule {
 	return &Rule{

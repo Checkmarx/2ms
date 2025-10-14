@@ -1,11 +1,7 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var ContentfulDeliveryApiTokenRegex = utils.GenerateSemiGenericRegex([]string{"contentful"},
-	utils.AlphaNumericExtended("43"), true)
+var ContentfulDeliveryApiTokenRegex = generateSemiGenericRegex([]string{"contentful"},
+	AlphaNumericExtended("43"), true)
 
 func Contentful() *Rule {
 	return &Rule{

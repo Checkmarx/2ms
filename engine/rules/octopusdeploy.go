@@ -1,10 +1,6 @@
 package rules
 
-import (
-	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-)
-
-var OctopusDeployAPIKeyRegex = utils.GenerateUniqueTokenRegex(`API-[A-Z0-9]{26}`, false)
+var OctopusDeployAPIKeyRegex = generateUniqueTokenRegex(`API-[A-Z0-9]{26}`, false)
 
 func OctopusDeployApiKey() *Rule {
 	return &Rule{
