@@ -1066,3 +1066,4 @@ ignore-result:
 - ff63250bb0c72fdf4a4acab33dc35ad5081dffa7 # unit test from curl_header_auth_test.go
 - ffd4ef2692d3198b3a37a13311a630184ac1507a # unit test from curl_header_auth_test.go
 - ffd75d59db49102b4658baccb53b7ceca7f66886 # unit test from droneci_test.go
+- 6274e767dafb57acdedd3f7de6a884acf0cd3f25 # test/development data from old_1password.go

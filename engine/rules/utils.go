@@ -56,10 +56,6 @@ func writeIdentifiers(sb *strings.Builder, identifiers []string) {
 	sb.WriteString(identifierSuffix)
 }
 
-func alphaNumeric(size string) string {
-	return fmt.Sprintf(`[a-z0-9]{%s}`, size)
-}
-
 func generateUniqueTokenRegex(secretRegex string, isCaseInsensitive bool) *regexp.Regexp {
 	var sb strings.Builder
 	if isCaseInsensitive {
