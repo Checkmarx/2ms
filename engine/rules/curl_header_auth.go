@@ -3,7 +3,7 @@ package rules
 import (
 	"fmt"
 
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var authPat = `(?i)(?:Authorization:[ \t]{0,5}(?:Basic[ \t]([a-z0-9+/]{8,}={0,3})|(?:Bearer|(?:Api-)?Token)[ \t]([\w=~@.+/-]{8,})|([\w=~@.+/-]{8,}))|(?:(?:X-(?:[a-z]+-)?)?(?:Api-?)?(?:Key|Token)):[ \t]{0,5}([\w=~@.+/-]{8,}))` //nolint:lll

@@ -1,8 +1,9 @@
 package rules
 
 import (
+	"regexp"
+
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 var VaultServiceTokenRegex = utils.GenerateUniqueTokenRegex(`(?:hvs\.[\w-]{90,120}|s\.(?i:[a-z0-9]{24}))`, false)

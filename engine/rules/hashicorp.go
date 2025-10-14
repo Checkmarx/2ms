@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var HashiCorpTerraformRegex = regexp.MustCompile(`(?i)[a-z0-9]{14}\.(?-i:atlasv1)\.[a-z0-9\-_=]{60,70}`)

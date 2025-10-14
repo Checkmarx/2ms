@@ -1,8 +1,9 @@
 package rules
 
 import (
+	"regexp"
+
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
-	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 // This regex is the output regex of 'generic-api-key' rule from gitleaks, with the next changes:

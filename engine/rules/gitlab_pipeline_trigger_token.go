@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var GitlabPipelineTriggerTokenRegex = regexp.MustCompile(`glptt-[0-9a-f]{40}`)

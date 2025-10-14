@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var GitlabRunnerAuthenticationTokenRoutableRegex = regexp.MustCompile(`\bglrt-t\d_[0-9a-zA-Z_\-]{27,300}\.[0-9a-z]{2}[0-9a-z]{7}\b`)

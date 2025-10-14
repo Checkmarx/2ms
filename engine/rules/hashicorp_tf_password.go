@@ -3,8 +3,9 @@ package rules
 import (
 	"fmt"
 
+	"regexp"
+
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
-	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 var hashicorpKeywords = []string{"administrator_login_password", "password"}

@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var FlutterwaveSecretKeyRegex = regexp.MustCompile(`FLWSECK_TEST-(?i)[a-h0-9]{32}-X`)

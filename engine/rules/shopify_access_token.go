@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var ShopifyAccessTokenRegex = regexp.MustCompile(`shpat_[a-fA-F0-9]{32}`)

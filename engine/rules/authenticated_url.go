@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var AuthenticatedURLRegex = regexp.MustCompile(`://(\w+:\w\S+)@\S+\.\S+`)

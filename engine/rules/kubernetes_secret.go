@@ -3,7 +3,7 @@ package rules
 import (
 	"fmt"
 
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var kubernetesKindPat = `\bkind:[ \t]*["']?\bsecret\b["']?`

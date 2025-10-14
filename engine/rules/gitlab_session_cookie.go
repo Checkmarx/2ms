@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var GitlabSessionCookieRegex = regexp.MustCompile(`_gitlab_session=[0-9a-z]{32}`)

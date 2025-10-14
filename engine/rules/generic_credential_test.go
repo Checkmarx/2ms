@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"regexp"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 func TestGenericCredential(t *testing.T) {

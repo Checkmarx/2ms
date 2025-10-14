@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var LinearAPIKeyRegex = regexp.MustCompile(`lin_api_(?i)[a-z0-9]{40}`)

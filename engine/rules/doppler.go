@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var DopplerAPITokenRegex = regexp.MustCompile(`dp\.pt\.(?i)[a-z0-9]{43}`)

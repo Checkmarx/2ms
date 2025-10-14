@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var FrameioAPITokenRegex = regexp.MustCompile(`fio-u-(?i)[a-z0-9\-_=]{64}`)

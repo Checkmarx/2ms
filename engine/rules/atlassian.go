@@ -16,7 +16,7 @@ var AtlassianRegex = utils.MergeRegexps(
 func Atlassian() *Rule {
 	return &Rule{
 		BaseRuleID: "d8bd5d5b-c6b2-4d7d-877b-d73947e2139a",
-		Description: `Detected an OldAtlassian API token, 
+		Description: `Detected an Atlassian API token, 
 			posing a threat to project management and 
 			collaboration tool security and data confidentiality.`,
 		RuleID:          "atlassian-api-token",

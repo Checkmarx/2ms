@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var GitlabRunnerRegistrationTokenRegex = regexp.MustCompile(`GR1348941[\w-]{20}`)

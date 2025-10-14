@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var EasypostRegex = regexp.MustCompile(`\bEZAK(?i)[a-z0-9]{54}\b`)

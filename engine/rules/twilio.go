@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var TwilioRegex = regexp.MustCompile(`SK[0-9a-fA-F]{32}`)

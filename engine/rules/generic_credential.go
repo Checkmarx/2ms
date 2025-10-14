@@ -1,8 +1,9 @@
 package rules
 
 import (
+	"regexp"
+
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/rules"
-	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 var GenericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{

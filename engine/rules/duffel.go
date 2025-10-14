@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var DuffelAPITokenRegex = regexp.MustCompile(`duffel_(?:test|live)_(?i)[a-z0-9_\-=]{43}`)

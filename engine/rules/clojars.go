@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var ClojarsRegex = regexp.MustCompile(`(?i)CLOJARS_[a-z0-9]{60}`)

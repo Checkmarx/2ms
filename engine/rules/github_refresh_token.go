@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var GithubRefreshTokenRegex = regexp.MustCompile(`ghr_[0-9a-zA-Z]{36}`)

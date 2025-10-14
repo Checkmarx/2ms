@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var GitlabFeatureFlagClientTokenRegex = regexp.MustCompile(`glffct-[0-9a-zA-Z_\-]{20}`)

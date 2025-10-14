@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/zricethezav/gitleaks/v8/regexp"
+	"regexp"
 )
 
 var ShopifySharedSecretRegex = regexp.MustCompile(`shpss_[a-fA-F0-9]{32}`)
