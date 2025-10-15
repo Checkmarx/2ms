@@ -97,18 +97,6 @@ func TestRateLimitMessage(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func TestParsePagesResponse(t *testing.T) {
-	body := []byte(`{"results":[{"id":"1","status":"current","title":"A","spaceId":"S1","type":"page","body":{"storage":{"value":"content"}},"_links":{"self":"/self"}}],"_links":{"next":"/wiki/api/v2/pages?cursor=2"}}`)
-	headers := http.Header{}
-	headers.Set("Link", `</wiki/api/v2/pages?cursor=1>; rel="next"`)
-	pages, linkNext, bodyNext, err := parsePagesResponse(headers, body)
-	assert.NoError(t, err)
-	assert.Len(t, pages, 1)
-	assert.Equal(t, "1", pages[0].ID)
-	assert.Equal(t, "/wiki/api/v2/pages?cursor=1", linkNext)
-	assert.Equal(t, "/wiki/api/v2/pages?cursor=2", bodyNext)
-}
-
 func TestParseSpacesResponse(t *testing.T) {
 	body := []byte(`{"results":[{"id":"S1","key":"KEY1","name":"Space One","_links":{"self":"/s"}}],"_links":{"next":"/wiki/api/v2/spaces?cursor=2"}}`)
 	headers := http.Header{}

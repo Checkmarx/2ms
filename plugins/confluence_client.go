@@ -34,69 +34,152 @@ type httpConfluenceClient struct {
 	httpClient  *http.Client
 	username    string
 	token       string
+	apiBase     string
 }
 
 // NewConfluenceClient constructs a ConfluenceClient for the given base wiki URL
 // (e.g., https://<company id>.atlassian.net/wiki). If username and token are
 // non-empty, requests use HTTP Basic Auth.
-func NewConfluenceClient(baseWikiURL, username, token string) ConfluenceClient {
-	httpClient := &http.Client{Timeout: httpTimeout}
-	return &httpConfluenceClient{
-		baseWikiURL: baseWikiURL,
-		httpClient:  httpClient,
+func NewConfluenceClient(baseWikiURL, username string, tokenType TokenType, tokenValue string) (ConfluenceClient, error) {
+	c := &httpConfluenceClient{
+		baseWikiURL: strings.TrimRight(baseWikiURL, "/"),
+		httpClient:  &http.Client{Timeout: httpTimeout},
 		username:    username,
-		token:       token,
+		token:       tokenValue,
 	}
+	apiBase, err := c.buildAPIBase(context.Background(), tokenType)
+	if err != nil {
+		return nil, err
+	}
+	c.apiBase = apiBase
+	return c, nil
+}
+
+func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType TokenType) (string, error) {
+	switch tokenType {
+	case "", TokenClassic:
+		u, err := url.Parse(c.baseWikiURL)
+		if err != nil {
+			return "", fmt.Errorf("parse base wiki url: %w", err)
+		}
+		u.Path = path.Join(u.Path, "api", "v2")
+		return strings.TrimRight(u.String(), "/"), nil
+
+	case TokenScoped:
+		cloudID, err := c.discoverCloudID(ctx)
+		if err != nil {
+			return "", err
+		}
+		u, _ := url.Parse("https://api.atlassian.com")
+		u.Path = path.Join("/ex/confluence", cloudID, "wiki", "api", "v2")
+		return strings.TrimRight(u.String(), "/"), nil
+
+	default:
+		return "", fmt.Errorf("unsupported token type %q", tokenType)
+	}
+}
+
+// https://support.atlassian.com/jira/kb/retrieve-my-atlassian-sites-cloud-id/
+func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, error) {
+	site, err := url.Parse(c.baseWikiURL)
+	if err != nil {
+		return "", fmt.Errorf("parse base url: %w", err)
+	}
+	site.RawQuery, site.Fragment = "", ""
+	site.Scheme = "https"
+	site.Path = "/_edge/tenant_info"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, site.String(), http.NoBody)
+	if err != nil {
+		return "", fmt.Errorf("build tenant_info request: %w", err)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("tenant_info request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return "", fmt.Errorf("tenant_info http %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+
+	var tmp struct {
+		CloudID string `json:"cloudId"`
+	}
+	if err := json.UnmarshalRead(resp.Body, &tmp); err != nil {
+		return "", fmt.Errorf("decode tenant_info: %w", err)
+	}
+	if tmp.CloudID == "" {
+		return "", fmt.Errorf("tenant_info: empty cloudId")
+	}
+	return tmp.CloudID, nil
 }
 
 // WalkAllPages iterates all accessible pages and calls visit for each Page.
 func (c *httpConfluenceClient) WalkAllPages(ctx context.Context, limit int, visit func(*Page) error) error {
 	apiURL := c.apiURL("/pages")
-	query := apiURL.Query()
-	query.Set("limit", strconv.Itoa(limit))
-	query.Set("body-format", "storage")
-	apiURL.RawQuery = query.Encode()
+	q := apiURL.Query()
+	q.Set("limit", strconv.Itoa(limit))
+	q.Set("body-format", "storage")
+	apiURL.RawQuery = q.Encode()
 	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
 }
 
 // WalkPagesByIDs iterates the given page IDs and calls visit for each Page.
 func (c *httpConfluenceClient) WalkPagesByIDs(ctx context.Context, pageIDs []string, limit int, visit func(*Page) error) error {
 	apiURL := c.apiURL("/pages")
-	query := apiURL.Query()
-	query.Set("limit", strconv.Itoa(limit))
-	query.Set("body-format", "storage")
-	query.Set("id", strings.Join(pageIDs, ","))
-	apiURL.RawQuery = query.Encode()
+	q := apiURL.Query()
+	q.Set("limit", strconv.Itoa(limit))
+	q.Set("body-format", "storage")
+	q.Set("id", strings.Join(pageIDs, ","))
+	apiURL.RawQuery = q.Encode()
 	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
 }
 
 // WalkPagesBySpaceIDs iterates pages across the provided space IDs and calls visit.
 func (c *httpConfluenceClient) WalkPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int, visit func(*Page) error) error {
 	apiURL := c.apiURL("/pages")
-	query := apiURL.Query()
-	query.Set("limit", strconv.Itoa(limit))
-	query.Set("body-format", "storage")
-	query.Set("space-id", strings.Join(spaceIDs, ","))
-	apiURL.RawQuery = query.Encode()
+	q := apiURL.Query()
+	q.Set("limit", strconv.Itoa(limit))
+	q.Set("body-format", "storage")
+	q.Set("space-id", strings.Join(spaceIDs, ","))
+	apiURL.RawQuery = q.Encode()
 	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
 }
 
 // WalkPageVersions lists version numbers for a page and calls visit for each.
 func (c *httpConfluenceClient) WalkPageVersions(ctx context.Context, pageID string, limit int, visit func(int) error) error {
 	apiURL := c.apiURL(fmt.Sprintf("/pages/%s/versions", url.PathEscape(pageID)))
-	query := apiURL.Query()
-	query.Set("limit", strconv.Itoa(limit))
-	apiURL.RawQuery = query.Encode()
-	return c.walkVersionsPaginated(ctx, apiURL.String(), visit)
+	q := apiURL.Query()
+	q.Set("limit", strconv.Itoa(limit))
+	apiURL.RawQuery = q.Encode()
+
+	// Use generic pager but rebuild next using base+cursor.
+	base := baseWithoutCursor(apiURL)
+	return walkPaginated[int](
+		ctx,
+		apiURL.String(),
+		c.getJSON,
+		func(linkNext, bodyNext string) string {
+			cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
+			if cur == "" {
+				return ""
+			}
+			return withCursor(base, cur)
+		},
+		parseVersionsResponse,
+		visit,
+	)
 }
 
 // FetchPageAtVersion fetches a page at a specific version.
 func (c *httpConfluenceClient) FetchPageAtVersion(ctx context.Context, pageID string, version int) (*Page, error) {
 	apiURL := c.apiURL(fmt.Sprintf("/pages/%s", url.PathEscape(pageID)))
-	query := apiURL.Query()
-	query.Set("version", strconv.Itoa(version))
-	query.Set("body-format", "storage")
-	apiURL.RawQuery = query.Encode()
+	q := apiURL.Query()
+	q.Set("version", strconv.Itoa(version))
+	q.Set("body-format", "storage")
+	apiURL.RawQuery = q.Encode()
 
 	bodyBytes, _, err := c.getJSON(ctx, apiURL.String())
 	if err != nil {
@@ -112,11 +195,27 @@ func (c *httpConfluenceClient) FetchPageAtVersion(ctx context.Context, pageID st
 // WalkSpacesByKeys lists spaces by their keys and calls visit for each Space.
 func (c *httpConfluenceClient) WalkSpacesByKeys(ctx context.Context, spaceKeys []string, limit int, visit func(*Space) error) error {
 	apiURL := c.apiURL("/spaces")
-	query := apiURL.Query()
-	query.Set("limit", strconv.Itoa(limit))
-	query.Set("keys", strings.Join(spaceKeys, ","))
-	apiURL.RawQuery = query.Encode()
-	return c.walkSpacesPaginated(ctx, apiURL.String(), visit)
+	q := apiURL.Query()
+	q.Set("limit", strconv.Itoa(limit))
+	q.Set("keys", strings.Join(spaceKeys, ","))
+	apiURL.RawQuery = q.Encode()
+
+	// Use generic pager but rebuild next using base+cursor.
+	base := baseWithoutCursor(apiURL)
+	return walkPaginated[*Space](
+		ctx,
+		apiURL.String(),
+		c.getJSON,
+		func(linkNext, bodyNext string) string {
+			cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
+			if cur == "" {
+				return ""
+			}
+			return withCursor(base, cur)
+		},
+		parseSpacesResponse,
+		visit,
+	)
 }
 
 // Generic pager
@@ -156,6 +255,13 @@ func walkPaginated[T any](
 func (c *httpConfluenceClient) walkPagesPaginated(
 	ctx context.Context, initialURL string, visit func(*Page) error,
 ) error {
+	// Build a base URL without any cursor, then append the next cursor each time.
+	start, err := url.Parse(initialURL)
+	if err != nil {
+		return fmt.Errorf("parse initial pages url: %w", err)
+	}
+	base := baseWithoutCursor(start)
+
 	nextURL := initialURL
 	for {
 		rc, headers, err := c.getJSONStream(ctx, nextURL)
@@ -163,21 +269,23 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 			return err
 		}
 
-		// Prefer Link header; body may also include _links.next
+		// Prefer Link header; body may also include _links.next.
 		linkNext := nextURLFromLinkHeader(headers)
-		bodyNext, decErr := streamPagesFromBody(rc, visit)
+		bodyNext, decodeErr := streamPagesFromBody(rc, visit)
 		closeErr := rc.Close()
-		if decErr != nil {
-			return decErr
+		if decodeErr != nil {
+			return decodeErr
 		}
 		if closeErr != nil {
 			return closeErr
 		}
 
-		nextURL = c.resolveNextPageURL(linkNext, bodyNext)
-		if nextURL == "" {
+		// Extract only the cursor and rebuild the next URL from our base.
+		cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
+		if cur == "" {
 			return nil
 		}
+		nextURL = withCursor(base, cur)
 	}
 }
 
@@ -185,44 +293,48 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 func (c *httpConfluenceClient) walkSpacesPaginated(
 	ctx context.Context, initialURL string, visit func(*Space) error,
 ) error {
-	return walkPaginated[*Space](ctx, initialURL, c.getJSON, c.resolveNextPageURL, parseSpacesResponse, visit)
+	return walkPaginated[*Space](ctx, initialURL, c.getJSON,
+		func(linkNext, bodyNext string) string {
+			base, err := url.Parse(initialURL)
+			if err != nil {
+				return ""
+			}
+			b := baseWithoutCursor(base)
+			cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
+			if cur == "" {
+				return ""
+			}
+			return withCursor(b, cur)
+		},
+		parseSpacesResponse, visit)
 }
 
 // walkVersionsPaginated iterates page versions starting from initialURL.
 func (c *httpConfluenceClient) walkVersionsPaginated(
 	ctx context.Context, initialURL string, visit func(int) error,
 ) error {
-	return walkPaginated[int](ctx, initialURL, c.getJSON, c.resolveNextPageURL, parseVersionsResponse, visit)
+	return walkPaginated[int](ctx, initialURL, c.getJSON,
+		func(linkNext, bodyNext string) string {
+			base, err := url.Parse(initialURL)
+			if err != nil {
+				return ""
+			}
+			b := baseWithoutCursor(base)
+			cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
+			if cur == "" {
+				return ""
+			}
+			return withCursor(b, cur)
+		},
+		parseVersionsResponse, visit)
 }
 
-// apiURL joins the relative API path to the base wiki URL, producing a URL
-// rooted at /wiki/api/v2/<relative>.
+// apiURL joins the relative API path to the base wiki URL or the platform host,
+// producing a URL rooted at .../api/v2/<relative>.
 func (c *httpConfluenceClient) apiURL(relativePath string) *url.URL {
-	parsedURL, _ := url.Parse(c.baseWikiURL) // base ends with /wiki
-	parsedURL.Path = path.Join(parsedURL.Path, "api", "v2", strings.TrimPrefix(relativePath, "/"))
+	parsedURL, _ := url.Parse(c.apiBase)
+	parsedURL.Path = path.Join(parsedURL.Path, strings.TrimPrefix(relativePath, "/"))
 	return parsedURL
-}
-
-// resolveNextPageURL chooses the next page URL, preferring the Link header's
-// rel="next" target and falling back to the body _links.next. Relative URLs
-// are resolved against the base wiki URL.
-func (c *httpConfluenceClient) resolveNextPageURL(linkHeaderNext, bodyLinksNext string) string {
-	next := strings.TrimSpace(linkHeaderNext)
-	if next == "" {
-		next = strings.TrimSpace(bodyLinksNext)
-	}
-	if next == "" {
-		return ""
-	}
-	ref, err := url.Parse(next)
-	if err != nil {
-		return ""
-	}
-	if ref.IsAbs() {
-		return ref.String()
-	}
-	base, _ := url.Parse(c.baseWikiURL)
-	return base.ResolveReference(ref).String()
 }
 
 // getJSON performs a GET request and returns the response body and headers.
@@ -495,4 +607,45 @@ func streamPagesFromBody(r io.Reader, visit func(*Page) error) (string, error) {
 		}
 	nextField:
 	}
+}
+
+// baseWithoutCursor returns a shallow copy of inputURL with the "cursor" query
+// parameter removed. The original URL is not modified.
+func baseWithoutCursor(inputURL *url.URL) *url.URL {
+	cloneURL := *inputURL
+	queryParams := cloneURL.Query()
+	queryParams.Del("cursor")
+	cloneURL.RawQuery = queryParams.Encode()
+	return &cloneURL
+}
+
+// cursorFromURL parses rawURL (absolute or relative) and returns the "cursor"
+// query parameter value if present; otherwise returns an empty string.
+func cursorFromURL(rawURL string) string {
+	if strings.TrimSpace(rawURL) == "" {
+		return ""
+	}
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	return parsedURL.Query().Get("cursor")
+}
+
+// withCursor returns the string form of baseURL with its "cursor" query
+// parameter set to cursorValue (overwriting any existing one).
+func withCursor(baseURL *url.URL, cursorValue string) string {
+	updatedURL := *baseURL
+	queryParams := updatedURL.Query()
+	queryParams.Set("cursor", cursorValue)
+	updatedURL.RawQuery = queryParams.Encode()
+	return updatedURL.String()
+}
+
+// firstNonEmptyString returns primary if it is non-empty; otherwise fallback.
+func firstNonEmptyString(primary, fallback string) string {
+	if primary != "" {
+		return primary
+	}
+	return fallback
 }

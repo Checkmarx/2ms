@@ -16,12 +16,13 @@ import (
 )
 
 const (
-	flagSpaceIDs  = "space-ids"
-	flagSpaceKeys = "space-keys"
-	flagPageIDs   = "page-ids"
-	flagUsername  = "username"
-	flagToken     = "token"
-	flagHistory   = "history"
+	flagSpaceIDs   = "space-ids"
+	flagSpaceKeys  = "space-keys"
+	flagPageIDs    = "page-ids"
+	flagUsername   = "username"
+	flagTokenType  = "token-type"  // "classic" or "scoped"
+	flagTokenValue = "token-value" // required when token-type is set
+	flagHistory    = "history"
 
 	// Confluence Cloud REST API v2 constraints
 	maxPageIDsPerRequest   = 250
@@ -30,6 +31,13 @@ const (
 	maxPageSize            = 250
 
 	httpTimeout = 60 * time.Second
+)
+
+type TokenType string
+
+const (
+	TokenClassic TokenType = "classic"
+	TokenScoped  TokenType = "scoped"
 )
 
 type ConfluencePlugin struct {
@@ -42,7 +50,8 @@ type ConfluencePlugin struct {
 
 	baseWikiURL string
 	username    string
-	token       string
+	tokenType   TokenType
+	tokenValue  string
 
 	itemsChan  chan ISourceItem
 	errorsChan chan error
@@ -62,14 +71,31 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 		Long:    "Scan Confluence Cloud pages for sensitive information",
 		Example: fmt.Sprintf("  2ms %s https://checkmarx.atlassian.net/wiki", p.GetName()),
 		Args:    cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Info().Msg("Confluence plugin started")
-			p.initialize(args[0])
-			if p.username == "" || p.token == "" {
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			p.tokenType = TokenType(strings.ToLower(string(p.tokenType)))
+			if p.tokenValue != "" && p.tokenType == "" {
+				return fmt.Errorf("--%s must be set when --%s is provided", flagTokenType, flagTokenValue)
+			}
+			if !isValidTokenType(p.tokenType) {
+				return fmt.Errorf("invalid --%s %q; valid values are %q or %q",
+					flagTokenType, p.tokenType, TokenClassic, TokenScoped)
+			}
+			if p.tokenType != "" && p.tokenValue == "" {
+				return fmt.Errorf("--%s requires --%s", flagTokenType, flagTokenValue)
+			}
+			if err := p.initialize(args[0]); err != nil {
+				return err
+			}
+			if p.username == "" || p.tokenValue == "" {
 				log.Warn().Msg("Confluence credentials not provided. The scan will run anonymously (public pages only).")
 			}
+			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Info().Msg("Confluence plugin started")
 			if err := p.walkAndEmitPages(context.Background()); err != nil {
 				p.errorsChan <- err
+				return
 			}
 			close(items)
 		},
@@ -80,7 +106,8 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	flags.StringSliceVar(&p.SpaceKeys, flagSpaceKeys, []string{}, "Comma-separated list of Confluence space keys to scan.")
 	flags.StringSliceVar(&p.PageIDs, flagPageIDs, []string{}, "Comma-separated list of Confluence page IDs to scan.")
 	flags.StringVar(&p.username, flagUsername, "", "Confluence user name or email for authentication.")
-	flags.StringVar(&p.token, flagToken, "", "Confluence API token for authentication.")
+	flags.StringVar((*string)(&p.tokenType), flagTokenType, "", `Token type: "classic" or "scoped".`)
+	flags.StringVar(&p.tokenValue, flagTokenValue, "", "Token value.")
 	flags.BoolVar(&p.History, flagHistory, false, "Also scan all page revisions (all versions).")
 
 	return cmd, nil
@@ -99,10 +126,25 @@ func isValidURL(_ *cobra.Command, args []string) error {
 	return nil
 }
 
+func isValidTokenType(tokenType TokenType) bool {
+	switch tokenType {
+	case "", TokenClassic, TokenScoped:
+		return true
+	default:
+		return false
+	}
+}
+
 // initialize stores the base wiki URL and constructs the Confluence client.
-func (p *ConfluencePlugin) initialize(base string) {
+func (p *ConfluencePlugin) initialize(base string) error {
 	p.baseWikiURL = strings.TrimRight(base, "/")
-	p.client = NewConfluenceClient(p.baseWikiURL, p.username, p.token)
+
+	client, err := NewConfluenceClient(p.baseWikiURL, p.username, p.tokenType, p.tokenValue)
+	if err != nil {
+		return err
+	}
+	p.client = client
+	return nil
 }
 
 // walkAndEmitPages discovers pages by the provided selectors (space IDs, space keys, page IDs).
