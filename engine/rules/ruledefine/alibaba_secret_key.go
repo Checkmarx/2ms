@@ -1,6 +1,6 @@
 package ruledefine
 
-var AlibabaSecretKeyRegex = generateSemiGenericRegex([]string{"alibaba"}, AlphaNumeric("30"), true)
+var alibabaSecretKeyRegex = generateSemiGenericRegex([]string{"alibaba"}, AlphaNumeric("30"), true)
 
 func AlibabaSecretKey() *Rule {
 	// define rule
@@ -9,7 +9,7 @@ func AlibabaSecretKey() *Rule {
 		RuleID:     "alibaba-secret-key",
 		Description: "Discovered a potential Alibaba Cloud Secret Key," +
 			" potentially allowing unauthorized operations and data access within Alibaba Cloud.",
-		Regex:           AlibabaSecretKeyRegex,
+		Regex:           alibabaSecretKeyRegex,
 		Entropy:         2,
 		Keywords:        []string{"alibaba"},
 		Severity:        "High",

@@ -4,14 +4,14 @@ import (
 	"regexp"
 )
 
-var GitlabPatRegex = regexp.MustCompile(`glpat-[\w-]{20}`)
+var gitlabPatRegex = regexp.MustCompile(`glpat-[\w-]{20}`)
 
 func GitlabPat() *Rule {
 	return &Rule{
 		BaseRuleID:      "d641ed7c-e79f-4ce6-bbce-c5de97df7752",
 		RuleID:          "gitlab-pat",
 		Description:     "Identified a GitLab Personal Access Token, risking unauthorized access to GitLab repositories and codebase exposure.",
-		Regex:           GitlabPatRegex,
+		Regex:           gitlabPatRegex,
 		Entropy:         3,
 		Keywords:        []string{"glpat-"},
 		Severity:        "High",

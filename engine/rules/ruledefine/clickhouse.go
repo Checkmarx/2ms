@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var ClickhouseCloudApiSecretKeyRegex = regexp.MustCompile(`\b(4b1d[A-Za-z0-9]{38})\b`)
+var clickhouseCloudApiSecretKeyRegex = regexp.MustCompile(`\b(4b1d[A-Za-z0-9]{38})\b`)
 
 func ClickHouseCloud() *Rule {
 	return &Rule{
@@ -12,7 +12,7 @@ func ClickHouseCloud() *Rule {
 		Description: "Identified a pattern that may indicate clickhouse cloud API secret key," +
 			" risking unauthorized clickhouse cloud api access and data breaches on ClickHouse Cloud platforms.",
 		RuleID:  "clickhouse-cloud-api-secret-key",
-		Regex:   ClickhouseCloudApiSecretKeyRegex,
+		Regex:   clickhouseCloudApiSecretKeyRegex,
 		Entropy: 3,
 		Keywords: []string{
 			"4b1d",

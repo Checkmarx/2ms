@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var GenericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
+var genericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
 	"access",
 	"auth",
 	`(?-i:[Aa]pi|API)`,
@@ -21,7 +21,7 @@ func GenericCredential() *Rule {
 		BaseRuleID:  "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
 		RuleID:      "generic-api-key",
 		Description: "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
-		Regex:       GenericCredentialRegex,
+		Regex:       genericCredentialRegex,
 		Keywords: []string{
 			"access",
 			"api",

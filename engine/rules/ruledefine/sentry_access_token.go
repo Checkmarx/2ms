@@ -1,6 +1,6 @@
 package ruledefine
 
-var SentryAccessTokenRegex = generateSemiGenericRegex([]string{"sentry"}, Hex("64"), true)
+var sentryAccessTokenRegex = generateSemiGenericRegex([]string{"sentry"}, Hex("64"), true)
 
 func SentryAccessToken() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func SentryAccessToken() *Rule {
 		RuleID:     "sentry-access-token",
 		Description: "Found a Sentry.io Access Token (old format)," +
 			" risking unauthorized access to error tracking services and sensitive application data.",
-		Regex:   SentryAccessTokenRegex,
+		Regex:   sentryAccessTokenRegex,
 		Entropy: 3,
 		Keywords: []string{
 			"sentry",

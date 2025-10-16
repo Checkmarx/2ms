@@ -1,6 +1,6 @@
 package ruledefine
 
-var BitbucketClientSecretRegex = generateSemiGenericRegex([]string{"bitbucket"}, AlphaNumericExtended("64"), true)
+var bitbucketClientSecretRegex = generateSemiGenericRegex([]string{"bitbucket"}, AlphaNumericExtended("64"), true)
 
 func BitBucketClientSecret() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func BitBucketClientSecret() *Rule {
 		Description: "Discovered a potential Bitbucket Client Secret," +
 			" posing a risk of compromised code repositories and unauthorized access.",
 		RuleID:          "bitbucket-client-secret",
-		Regex:           BitbucketClientSecretRegex,
+		Regex:           bitbucketClientSecretRegex,
 		Keywords:        []string{"bitbucket"},
 		Severity:        "High",
 		Tags:            []string{TagClientSecret},

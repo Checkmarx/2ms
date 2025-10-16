@@ -13,7 +13,7 @@ var kubernetesKindPat = `\bkind:[ \t]*["']?\bsecret\b["']?`
 // - longer than 10 characters (no "YmFyCg==")
 var kubernetesDataPat = `\bdata:(?s:.){0,100}?\s+([\w.-]+:(?:[ \t]*(?:\||>[-+]?)\s+)?[ \t]*(?:["']?[a-z0-9+/]{10,}={0,3}["']?|\{\{[ \t\w"|$:=,.-]+}}|""|''))` //nolint:lll
 
-var KubernetesSecretRegex = regexp.MustCompile(fmt.Sprintf(
+var kubernetesSecretRegex = regexp.MustCompile(fmt.Sprintf(
 	`(?i)(?:%s(?s:.){0,200}?%s|%s(?s:.){0,200}?%s)`, kubernetesKindPat, kubernetesDataPat, kubernetesDataPat, kubernetesKindPat))
 
 func KubernetesSecret() *Rule {
@@ -21,7 +21,7 @@ func KubernetesSecret() *Rule {
 		BaseRuleID:  "7e7caacc-05fb-4e6e-b636-dbd027897a10",
 		RuleID:      "kubernetes-secret-yaml",
 		Description: "Possible Kubernetes Secret detected, posing a risk of leaking credentials/tokens from your deployments",
-		Regex:       KubernetesSecretRegex,
+		Regex:       kubernetesSecretRegex,
 		Keywords: []string{
 			"secret",
 		},

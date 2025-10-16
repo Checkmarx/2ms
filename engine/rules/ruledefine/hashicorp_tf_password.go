@@ -7,7 +7,7 @@ import (
 )
 
 var hashicorpKeywords = []string{"administrator_login_password", "password"}
-var HashicorpTfPasswordRegex = generateSemiGenericRegex(
+var hashicorpTfPasswordRegex = generateSemiGenericRegex(
 	hashicorpKeywords, fmt.Sprintf(`"%s"`, AlphaNumericExtended("8,20")), true) //nolint:gocritic
 
 func HashicorpField() *Rule {
@@ -16,7 +16,7 @@ func HashicorpField() *Rule {
 		Description: "Identified a HashiCorp Terraform password field," +
 			" risking unauthorized infrastructure configuration and security breaches.",
 		RuleID:          "hashicorp-tf-password",
-		Regex:           HashicorpTfPasswordRegex,
+		Regex:           hashicorpTfPasswordRegex,
 		Entropy:         2,
 		Keywords:        hashicorpKeywords,
 		Path:            regexp.MustCompile(`(?i)\.(?:tf|hcl)$`),

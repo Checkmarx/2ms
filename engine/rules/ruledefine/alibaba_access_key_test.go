@@ -23,7 +23,7 @@ func TestAlibabaAccessKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(AlibabaAccessKey())
+			rule := TwomsToGitleaksRule(AlibabaAccessKey())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

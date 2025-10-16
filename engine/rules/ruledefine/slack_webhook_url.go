@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var SlackWebHookUrlRegex = regexp.MustCompile(
+var slackWebHookUrlRegex = regexp.MustCompile(
 	`(?:https?://)?hooks.slack.com/(?:services|workflows|triggers)/[A-Za-z0-9+/]{43,56}`) //nolint:gocritic
 
 func SlackWebHookUrl() *Rule {
@@ -13,7 +13,7 @@ func SlackWebHookUrl() *Rule {
 		RuleID:      "slack-webhook-url",
 		Description: "Discovered a Slack Webhook, which could lead to unauthorized message posting and data leakage in Slack channels.",
 		// If this generates too many false-positives we should define an allowlist (e.g., "xxxx", "00000").
-		Regex: SlackWebHookUrlRegex,
+		Regex: slackWebHookUrlRegex,
 		Keywords: []string{
 			"hooks.slack.com",
 		},

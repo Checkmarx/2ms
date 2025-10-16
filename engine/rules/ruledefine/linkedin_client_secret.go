@@ -1,6 +1,6 @@
 package ruledefine
 
-var LinkedinClientSecretRegex = generateSemiGenericRegex([]string{
+var linkedinClientSecretRegex = generateSemiGenericRegex([]string{
 	"linked[_-]?in",
 }, AlphaNumeric("16"), true)
 
@@ -9,7 +9,7 @@ func LinkedinClientSecret() *Rule {
 		BaseRuleID:  "266e5b15-aa39-4e8f-b7f4-6ce98a624d6a",
 		Description: "Discovered a LinkedIn Client secret, potentially compromising LinkedIn application integrations and user data.",
 		RuleID:      "linkedin-client-secret",
-		Regex:       LinkedinClientSecretRegex,
+		Regex:       linkedinClientSecretRegex,
 		Entropy:     2,
 		Keywords: []string{
 			"linkedin",

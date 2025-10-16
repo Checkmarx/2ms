@@ -8,7 +8,7 @@ import (
 // 1. gitleaks/gitleaks#1267
 // 2. gitleaks/gitleaks#1265
 // 3. Minimum length of 4 characters (was 10)
-var HardcodedPasswordRegex = regexp.MustCompile(
+var hardcodedPasswordRegex = regexp.MustCompile(
 	`(?i)(?:key|api|token|secret|client|passwd|password|auth|access)` +
 		`(?:[0-9a-z\-_\t .]{0,20})(?:\s|'\s|"|\\){0,3}` +
 		`(?:=|>|:{1,3}=|\|\|:|<=|=>|:|\?=)` +
@@ -21,7 +21,7 @@ func HardcodedPassword() *Rule {
 		BaseRuleID:  "60b6a2aa-2eaf-4a3d-bd3c-6d5f6274b4fc",
 		Description: "Hardcoded password",
 		RuleID:      "hardcoded-password",
-		Regex:       HardcodedPasswordRegex,
+		Regex:       hardcodedPasswordRegex,
 		Keywords: []string{
 			"key",
 			"api",

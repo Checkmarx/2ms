@@ -77,7 +77,7 @@ func TestStripeAccessToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(StripeAccessToken())
+			rule := TwomsToGitleaksRule(StripeAccessToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

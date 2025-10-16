@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var SlackConfigurationRefreshTokenRegex = regexp.MustCompile(`(?i)xoxe-\d-[A-Z0-9]{146}`)
+var slackConfigurationRefreshTokenRegex = regexp.MustCompile(`(?i)xoxe-\d-[A-Z0-9]{146}`)
 
 func SlackConfigurationRefreshToken() *Rule {
 	return &Rule{
@@ -12,7 +12,7 @@ func SlackConfigurationRefreshToken() *Rule {
 		RuleID:     "slack-config-refresh-token",
 		Description: "Discovered a Slack Configuration refresh token," +
 			" potentially allowing prolonged unauthorized access to configuration settings.",
-		Regex:           SlackConfigurationRefreshTokenRegex,
+		Regex:           slackConfigurationRefreshTokenRegex,
 		Entropy:         2,
 		Keywords:        []string{"xoxe-"},
 		Severity:        "High",

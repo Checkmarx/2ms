@@ -1,6 +1,6 @@
 package ruledefine
 
-var AdobeClientSecretRegex = generateUniqueTokenRegex(`p8e-(?i)[a-z0-9]{32}`, false)
+var adobeClientSecretRegex = generateUniqueTokenRegex(`p8e-(?i)[a-z0-9]{32}`, false)
 
 func AdobeClientSecret() *Rule {
 	// define rule
@@ -9,7 +9,7 @@ func AdobeClientSecret() *Rule {
 		RuleID:     "adobe-client-secret",
 		Description: "Discovered a potential Adobe Client Secret, which," +
 			" if exposed, could allow unauthorized Adobe service access and data manipulation.",
-		Regex:           AdobeClientSecretRegex,
+		Regex:           adobeClientSecretRegex,
 		Entropy:         2,
 		Keywords:        []string{"p8e-"},
 		Severity:        "High",

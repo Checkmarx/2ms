@@ -1,6 +1,6 @@
 package ruledefine
 
-var TelegramBotTokenRegex = generateSemiGenericRegex([]string{"telegr"}, "[0-9]{5,16}:(?-i:A)[a-z0-9_\\-]{34}", true)
+var telegramBotTokenRegex = generateSemiGenericRegex([]string{"telegr"}, "[0-9]{5,16}:(?-i:A)[a-z0-9_\\-]{34}", true)
 
 func TelegramBotToken() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func TelegramBotToken() *Rule {
 		Description: "Detected a Telegram Bot API Token, risking unauthorized bot operations and message interception on Telegram.",
 		RuleID:      "telegram-bot-api-token",
 
-		Regex: TelegramBotTokenRegex,
+		Regex: telegramBotTokenRegex,
 		Keywords: []string{
 			"telegr",
 		},

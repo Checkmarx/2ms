@@ -51,7 +51,7 @@ func TestHerokuAPIKeyV2(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(HerokuV2())
+			rule := TwomsToGitleaksRule(HerokuV2())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

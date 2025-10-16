@@ -101,7 +101,7 @@ func TestPlanetScaleOAuthToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(PlanetScaleOAuthToken())
+			rule := TwomsToGitleaksRule(PlanetScaleOAuthToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

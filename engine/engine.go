@@ -218,7 +218,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		}
 		for ruleID, customRule := range customRules {
 			log.Debug().Str("rule_id", ruleID).Msg("Adding custom regex rule")
-			cfg.Rules[ruleID] = *ruledefine.ConvertNewRuleToGitleaksRule(customRule)
+			cfg.Rules[ruleID] = *ruledefine.TwomsToGitleaksRule(customRule)
 			engine.rules[ruleID] = customRule
 		}
 	}

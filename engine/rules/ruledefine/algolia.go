@@ -1,6 +1,6 @@
 package ruledefine
 
-var AlgoliaRegex = generateSemiGenericRegex([]string{"algolia"}, `[a-z0-9]{32}`, true)
+var algoliaRegex = generateSemiGenericRegex([]string{"algolia"}, `[a-z0-9]{32}`, true)
 
 func AlgoliaApiKey() *Rule {
 	// define rule
@@ -9,7 +9,7 @@ func AlgoliaApiKey() *Rule {
 		Description: "Identified an Algolia API Key," +
 			" which could result in unauthorized search operations and data exposure on Algolia-managed platforms.",
 		RuleID:          "algolia-api-key",
-		Regex:           AlgoliaRegex,
+		Regex:           algoliaRegex,
 		Keywords:        []string{"algolia"},
 		Severity:        "High",
 		Tags:            []string{TagApiKey},

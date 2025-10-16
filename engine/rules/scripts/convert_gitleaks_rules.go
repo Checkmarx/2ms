@@ -21,6 +21,12 @@ import (
 // This script converts gitleaks v8 rules to the new format used in 2ms.
 // It is not a perfect script and could be improved significantly.
 // Rules to be converted need to be in their own folder
+// If a file contains multiple rules, each rule will be saved in its file.
+//
+//	The name of the first file will be the same as the name of the original,
+//	with the remaining files being named after their specific rule. this could be improved
+//
+// Test files are generated, but they don't have the tps and fps filled out
 func main() { //nolint:gocyclo,funlen
 	inputDir := "old_rules" // folder with original rules
 	outputDir := "output"   // folder for generated rules
@@ -230,10 +236,6 @@ func Test%s(t *testing.T) {
 		})
 	}
 }
-
-//
-// --- Helper functions ---
-//
 
 // Returns Go source of an AST node
 func nodeSource(fset *token.FileSet, n ast.Node) string {

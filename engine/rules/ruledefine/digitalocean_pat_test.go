@@ -48,7 +48,7 @@ func TestDigitalOceanPat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(DigitalOceanPAT())
+			rule := TwomsToGitleaksRule(DigitalOceanPAT())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

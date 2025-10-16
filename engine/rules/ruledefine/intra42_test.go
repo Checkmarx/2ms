@@ -28,7 +28,7 @@ func TestIntra42ClientSecret(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(Intra42ClientSecret())
+			rule := TwomsToGitleaksRule(Intra42ClientSecret())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

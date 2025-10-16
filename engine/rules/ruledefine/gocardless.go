@@ -1,6 +1,6 @@
 package ruledefine
 
-var GocardlessAPITokenRegex = generateSemiGenericRegex([]string{"gocardless"}, `live_(?i)[a-z0-9\-_=]{40}`, true)
+var gocardlessAPITokenRegex = generateSemiGenericRegex([]string{"gocardless"}, `live_(?i)[a-z0-9\-_=]{40}`, true)
 
 func GoCardless() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func GoCardless() *Rule {
 		Description: "Detected a GoCardless API token," +
 			" potentially risking unauthorized direct debit payment operations and financial data exposure.",
 		RuleID: "gocardless-api-token",
-		Regex:  GocardlessAPITokenRegex,
+		Regex:  gocardlessAPITokenRegex,
 		Keywords: []string{
 			"live_",
 			"gocardless",

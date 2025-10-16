@@ -1,6 +1,6 @@
 package ruledefine
 
-var CodecovAccessTokenRegex = generateSemiGenericRegex([]string{"codecov"}, AlphaNumeric("32"), true)
+var codecovAccessTokenRegex = generateSemiGenericRegex([]string{"codecov"}, AlphaNumeric("32"), true)
 
 func CodecovAccessToken() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func CodecovAccessToken() *Rule {
 		Description: "Found a pattern resembling a Codecov Access Token," +
 			" posing a risk of unauthorized access to code coverage reports and sensitive data.",
 		RuleID: "codecov-access-token",
-		Regex:  CodecovAccessTokenRegex,
+		Regex:  codecovAccessTokenRegex,
 		Keywords: []string{
 			"codecov",
 		},

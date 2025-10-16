@@ -63,7 +63,7 @@ void GLC_StateBeginUnderwaterAliasModelCaustics(texture_ref base_texture, textur
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(GrafanaCloudApiToken())
+			rule := TwomsToGitleaksRule(GrafanaCloudApiToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

@@ -1,6 +1,6 @@
 package ruledefine
 
-var AsanaClientSecretRegex = generateSemiGenericRegex([]string{"asana"}, AlphaNumeric("32"), true)
+var asanaClientSecretRegex = generateSemiGenericRegex([]string{"asana"}, AlphaNumeric("32"), true)
 
 func AsanaClientSecret() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func AsanaClientSecret() *Rule {
 		Description: "Identified an Asana Client Secret," +
 			" which could lead to compromised project management integrity and unauthorized access.",
 		RuleID:          "asana-client-secret",
-		Regex:           AsanaClientSecretRegex,
+		Regex:           asanaClientSecretRegex,
 		Keywords:        []string{"asana"},
 		Severity:        "High",
 		Tags:            []string{TagClientSecret},

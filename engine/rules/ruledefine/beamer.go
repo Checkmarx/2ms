@@ -1,6 +1,6 @@
 package ruledefine
 
-var BeamerApiTokenRegex = generateSemiGenericRegex([]string{"beamer"},
+var beamerApiTokenRegex = generateSemiGenericRegex([]string{"beamer"},
 	`b_[a-z0-9=_\-]{44}`, true)
 
 func Beamer() *Rule {
@@ -9,7 +9,7 @@ func Beamer() *Rule {
 		Description: "Detected a Beamer API token," +
 			" potentially compromising content management and exposing sensitive notifications and updates.",
 		RuleID:          "beamer-api-token",
-		Regex:           BeamerApiTokenRegex,
+		Regex:           beamerApiTokenRegex,
 		Keywords:        []string{"beamer"},
 		Severity:        "High",
 		Tags:            []string{TagApiToken},

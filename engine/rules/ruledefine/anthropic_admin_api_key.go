@@ -1,6 +1,6 @@
 package ruledefine
 
-var AnthropicAdminApiKeyRegex = generateUniqueTokenRegex(`sk-ant-admin01-[a-zA-Z0-9_\-]{93}AA`, false)
+var anthropicAdminApiKeyRegex = generateUniqueTokenRegex(`sk-ant-admin01-[a-zA-Z0-9_\-]{93}AA`, false)
 
 func AnthropicAdminApiKey() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func AnthropicAdminApiKey() *Rule {
 		Description: "Detected an Anthropic Admin API Key," +
 			" risking unauthorized access to administrative functions and sensitive AI model configurations.",
 		RuleID:          "anthropic-admin-api-key",
-		Regex:           AnthropicAdminApiKeyRegex,
+		Regex:           anthropicAdminApiKeyRegex,
 		Keywords:        []string{"sk-ant-admin01"},
 		Severity:        "High",
 		Tags:            []string{TagApiKey},

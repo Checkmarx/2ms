@@ -49,7 +49,7 @@ func TestFastlyAPIToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(FastlyAPIToken())
+			rule := TwomsToGitleaksRule(FastlyAPIToken())
 			d := createSingleRuleDetector(rule)
 
 			for _, truePositive := range tt.truePositives {

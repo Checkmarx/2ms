@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var SlackLegacyWorkspaceTokenRegex = regexp.MustCompile(`xox[ar]-(?:\d-)?[0-9a-zA-Z]{8,48}`)
+var slackLegacyWorkspaceTokenRegex = regexp.MustCompile(`xox[ar]-(?:\d-)?[0-9a-zA-Z]{8,48}`)
 
 func SlackLegacyWorkspaceToken() *Rule {
 	return &Rule{
@@ -12,7 +12,7 @@ func SlackLegacyWorkspaceToken() *Rule {
 		RuleID:      "slack-legacy-workspace-token",
 		Description: "Identified a Slack Legacy Workspace token, potentially compromising access to workspace data and legacy features.",
 		// This is by far the least confident pattern.
-		Regex:   SlackLegacyWorkspaceTokenRegex,
+		Regex:   slackLegacyWorkspaceTokenRegex,
 		Entropy: 2,
 		Keywords: []string{
 			"xoxa",

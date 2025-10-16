@@ -1,6 +1,6 @@
 package ruledefine
 
-var FastlyAPITokenRegex = generateSemiGenericRegex([]string{"fastly"}, AlphaNumericExtended("32"), true)
+var fastlyAPITokenRegex = generateSemiGenericRegex([]string{"fastly"}, AlphaNumericExtended("32"), true)
 
 func FastlyAPIToken() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func FastlyAPIToken() *Rule {
 		Description: "Uncovered a Fastly API key," +
 			" which may compromise CDN and edge cloud services, leading to content delivery and security issues.",
 		RuleID:          "fastly-api-token",
-		Regex:           FastlyAPITokenRegex,
+		Regex:           fastlyAPITokenRegex,
 		Keywords:        []string{"fastly"},
 		Severity:        "High",
 		Tags:            []string{TagApiToken, TagApiKey},

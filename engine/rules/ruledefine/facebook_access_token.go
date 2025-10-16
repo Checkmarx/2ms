@@ -1,6 +1,6 @@
 package ruledefine
 
-var FacebookAccessTokenRegex = generateUniqueTokenRegex(`\d{15,16}(\||%)[0-9a-z\-_]{27,40}`, true)
+var facebookAccessTokenRegex = generateUniqueTokenRegex(`\d{15,16}(\||%)[0-9a-z\-_]{27,40}`, true)
 
 func FacebookAccessToken() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func FacebookAccessToken() *Rule {
 		Description: "Discovered a Facebook Access Token," +
 			" posing a risk of unauthorized access to Facebook accounts and personal data exposure.",
 		RuleID:          "facebook-access-token",
-		Regex:           FacebookAccessTokenRegex,
+		Regex:           facebookAccessTokenRegex,
 		Entropy:         3,
 		Keywords:        []string{"facebook"},
 		Severity:        "High",

@@ -1,6 +1,6 @@
 package ruledefine
 
-var FacebookSecretRegex = generateSemiGenericRegex([]string{"facebook"}, Hex("32"), true)
+var facebookSecretRegex = generateSemiGenericRegex([]string{"facebook"}, Hex("32"), true)
 
 func FacebookSecret() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func FacebookSecret() *Rule {
 		Description: "Discovered a Facebook Application secret," +
 			" posing a risk of unauthorized access to Facebook accounts and personal data exposure.",
 		RuleID:          "facebook-secret",
-		Regex:           FacebookSecretRegex,
+		Regex:           facebookSecretRegex,
 		Entropy:         3,
 		Keywords:        []string{"facebook"},
 		Severity:        "High",

@@ -1,13 +1,13 @@
 package ruledefine
 
-var StripeAccessTokenRegex = generateUniqueTokenRegex(`(?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99}`, false)
+var stripeAccessTokenRegex = generateUniqueTokenRegex(`(?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99}`, false)
 
 func StripeAccessToken() *Rule {
 	return &Rule{
 		BaseRuleID:  "b44c7f22-1458-482c-8e1a-e8b3a854d7d6",
 		Description: "Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data.",
 		RuleID:      "stripe-access-token",
-		Regex:       StripeAccessTokenRegex,
+		Regex:       stripeAccessTokenRegex,
 		Entropy:     2,
 		Keywords: []string{
 			"sk_test",

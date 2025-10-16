@@ -1,6 +1,6 @@
 package ruledefine
 
-var NytimesAccessTokenRegex = generateSemiGenericRegex([]string{
+var nytimesAccessTokenRegex = generateSemiGenericRegex([]string{
 	"nytimes", "new-york-times,", "newyorktimes"},
 	AlphaNumericExtended("32"), true)
 
@@ -9,7 +9,7 @@ func NytimesAccessToken() *Rule {
 		BaseRuleID:  "0ee134ac-689a-490a-bcd7-f773e535dfda",
 		Description: "Detected a Nytimes Access Token, risking unauthorized access to New York Times APIs and content services.",
 		RuleID:      "nytimes-access-token",
-		Regex:       NytimesAccessTokenRegex,
+		Regex:       nytimesAccessTokenRegex,
 		Keywords: []string{
 			"nytimes",
 			"new-york-times",

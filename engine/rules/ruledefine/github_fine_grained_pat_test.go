@@ -51,7 +51,7 @@ func TestGithubFineGrainedPAT(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(GitHubFineGrainedPat())
+			rule := TwomsToGitleaksRule(GitHubFineGrainedPat())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

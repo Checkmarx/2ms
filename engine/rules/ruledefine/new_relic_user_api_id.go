@@ -1,6 +1,6 @@
 package ruledefine
 
-var NewRelicUserAPIIDRegex = generateSemiGenericRegex([]string{
+var newRelicUserAPIIDRegex = generateSemiGenericRegex([]string{
 	"new-relic",
 	"newrelic",
 	"new_relic",
@@ -11,7 +11,7 @@ func NewRelicUserKey() *Rule {
 		BaseRuleID:  "12d84d93-c459-4ce9-9b42-56c92753776f",
 		Description: "Found a New Relic user API ID, posing a risk to application monitoring services and data integrity.",
 		RuleID:      "new-relic-user-api-id",
-		Regex:       NewRelicUserAPIIDRegex,
+		Regex:       newRelicUserAPIIDRegex,
 		Keywords: []string{
 			"new-relic",
 			"newrelic",

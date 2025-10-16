@@ -1,13 +1,13 @@
 package ruledefine
 
-var MapboxAPITokenRegex = generateSemiGenericRegex([]string{"mapbox"}, `pk\.[a-z0-9]{60}\.[a-z0-9]{22}`, true)
+var mapboxAPITokenRegex = generateSemiGenericRegex([]string{"mapbox"}, `pk\.[a-z0-9]{60}\.[a-z0-9]{22}`, true)
 
 func MapBox() *Rule {
 	return &Rule{
 		BaseRuleID:      "4e9bfc67-a523-4c9c-abc4-d9f20160aba2",
 		Description:     "Detected a MapBox API token, posing a risk to geospatial services and sensitive location data exposure.",
 		RuleID:          "mapbox-api-token",
-		Regex:           MapboxAPITokenRegex,
+		Regex:           mapboxAPITokenRegex,
 		Keywords:        []string{"mapbox"},
 		Severity:        "High",
 		Tags:            []string{TagApiToken},

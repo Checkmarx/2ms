@@ -1,13 +1,13 @@
 package ruledefine
 
-var DropboxShortLivedAPITokenRegex = generateSemiGenericRegex([]string{"dropbox"}, `sl\.[a-z0-9\-=_]{135}`, true)
+var dropboxShortLivedAPITokenRegex = generateSemiGenericRegex([]string{"dropbox"}, `sl\.[a-z0-9\-=_]{135}`, true)
 
 func DropBoxShortLivedAPIToken() *Rule {
 	return &Rule{
 		BaseRuleID:      "e355f363-48a4-4125-b51a-4d267b81b0f8",
 		Description:     "Discovered a Dropbox short-lived API token, posing a risk of temporary but potentially harmful data access and manipulation.", //nolint:lll
 		RuleID:          "dropbox-short-lived-api-token",
-		Regex:           DropboxShortLivedAPITokenRegex,
+		Regex:           dropboxShortLivedAPITokenRegex,
 		Keywords:        []string{"dropbox"},
 		Severity:        "High",
 		Tags:            []string{TagApiToken},

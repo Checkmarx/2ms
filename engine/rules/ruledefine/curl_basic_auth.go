@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var CurlBasicAuthRegex = regexp.MustCompile(
+var curlBasicAuthRegex = regexp.MustCompile(
 	`\bcurl\b(?:.*|.*(?:[\r\n]{1,2}.*){1,5})[ \t\n\r](?:-u|--user)(?:=|[ \t]{0,5})("(:[^"]{3,}|[^:"]{3,}:|[^:"]{3,}:[^"]{3,})"|'([^:']{3,}:[^']{3,})'|((?:"[^"]{3,}"|'[^']{3,}'|[\w$@.-]+):(?:"[^"]{3,}"|'[^']{3,}'|[\w${}@.-]+)))(?:\s|\z)`) //nolint:lll
 
 func CurlBasicAuth() *Rule {
@@ -12,7 +12,7 @@ func CurlBasicAuth() *Rule {
 		BaseRuleID:  "a80aed71-d4ac-499a-a154-befb592e461b",
 		RuleID:      "curl-auth-user",
 		Description: "Discovered a potential basic authorization token provided in a curl command, which could compromise the curl accessed resource.", //nolint:lll
-		Regex:       CurlBasicAuthRegex,
+		Regex:       curlBasicAuthRegex,
 		Keywords:    []string{"curl"},
 		Entropy:     2,
 		AllowLists: []*AllowList{

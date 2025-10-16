@@ -1,6 +1,6 @@
 package ruledefine
 
-var AirtableRegex = generateSemiGenericRegex([]string{"airtable"}, AlphaNumeric("17"), true)
+var airtableRegex = generateSemiGenericRegex([]string{"airtable"}, AlphaNumeric("17"), true)
 
 func Airtable() *Rule {
 	// define rule
@@ -9,7 +9,7 @@ func Airtable() *Rule {
 		Description: "Uncovered a possible Airtable API Key," +
 			" potentially compromising database access and leading to data leakage or alteration.",
 		RuleID:          "airtable-api-key",
-		Regex:           AirtableRegex,
+		Regex:           airtableRegex,
 		Keywords:        []string{"airtable"},
 		Severity:        "High",
 		Tags:            []string{TagApiKey},

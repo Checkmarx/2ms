@@ -1,6 +1,6 @@
 package ruledefine
 
-var NewRelicBrowserAPITokenRegex = generateSemiGenericRegex([]string{
+var newRelicBrowserAPITokenRegex = generateSemiGenericRegex([]string{
 	"new-relic",
 	"newrelic",
 	"new_relic",
@@ -12,7 +12,7 @@ func NewRelicBrowserAPIKey() *Rule {
 		Description: "Identified a New Relic ingest browser API token," +
 			" risking unauthorized access to application performance data and analytics.",
 		RuleID: "new-relic-browser-api-token",
-		Regex:  NewRelicBrowserAPITokenRegex,
+		Regex:  newRelicBrowserAPITokenRegex,
 		Keywords: []string{
 			"NRJS-",
 		},

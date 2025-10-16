@@ -1,13 +1,13 @@
 package ruledefine
 
-var MailgunPubKeyRegex = generateSemiGenericRegex([]string{"mailgun"}, `pubkey-[a-f0-9]{32}`, true)
+var mailgunPubKeyRegex = generateSemiGenericRegex([]string{"mailgun"}, `pubkey-[a-f0-9]{32}`, true)
 
 func MailGunPubAPIToken() *Rule {
 	return &Rule{
 		BaseRuleID:  "83133dbd-e5b6-4b5c-a37d-78e1c45abeac",
 		Description: "Discovered a Mailgun public validation key, which could expose email verification processes and associated data.",
 		RuleID:      "mailgun-pub-key",
-		Regex:       MailgunPubKeyRegex,
+		Regex:       mailgunPubKeyRegex,
 		Keywords: []string{
 			"mailgun",
 		},

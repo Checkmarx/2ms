@@ -1,13 +1,13 @@
 package ruledefine
 
-var VaultBatchTokenRegex = generateUniqueTokenRegex(`hvb\.[\w-]{138,300}`, false)
+var vaultBatchTokenRegex = generateUniqueTokenRegex(`hvb\.[\w-]{138,300}`, false)
 
 func VaultBatchToken() *Rule {
 	return &Rule{
 		BaseRuleID:      "32031c1f-7fbc-4047-a2a3-cd618e4b1c0a",
 		Description:     "Detected a Vault Batch Token, risking unauthorized access to secret management services and sensitive data.",
 		RuleID:          "vault-batch-token",
-		Regex:           VaultBatchTokenRegex,
+		Regex:           vaultBatchTokenRegex,
 		Entropy:         4,
 		Keywords:        []string{"hvb."},
 		Severity:        "High",

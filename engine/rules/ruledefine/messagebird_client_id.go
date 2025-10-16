@@ -1,13 +1,13 @@
 package ruledefine
 
-var MessagebirdClientIDRegex = generateSemiGenericRegex([]string{"message[_-]?bird"}, Hex8_4_4_4_12(), true)
+var messagebirdClientIDRegex = generateSemiGenericRegex([]string{"message[_-]?bird"}, Hex8_4_4_4_12(), true)
 
 func MessageBirdClientID() *Rule {
 	return &Rule{
 		BaseRuleID:  "bb630684-0bfe-457e-bf74-55d655c2011a",
 		Description: "Discovered a MessageBird client ID, potentially compromising API integrations and sensitive communication data.",
 		RuleID:      "messagebird-client-id",
-		Regex:       MessagebirdClientIDRegex,
+		Regex:       messagebirdClientIDRegex,
 		Keywords: []string{
 			"messagebird",
 			"message-bird",

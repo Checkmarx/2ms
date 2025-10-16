@@ -49,7 +49,7 @@ func TestLinkedinClientSecret(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(LinkedinClientSecret())
+			rule := TwomsToGitleaksRule(LinkedinClientSecret())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var HashiCorpTerraformRegex = regexp.MustCompile(`(?i)[a-z0-9]{14}\.(?-i:atlasv1)\.[a-z0-9\-_=]{60,70}`)
+var hashiCorpTerraformRegex = regexp.MustCompile(`(?i)[a-z0-9]{14}\.(?-i:atlasv1)\.[a-z0-9\-_=]{60,70}`)
 
 func HashiCorpTerraform() *Rule {
 	return &Rule{
@@ -12,7 +12,7 @@ func HashiCorpTerraform() *Rule {
 		Description: "Uncovered a HashiCorp Terraform user/org API token," +
 			" which may lead to unauthorized infrastructure management and security breaches.",
 		RuleID:          "hashicorp-tf-api-token",
-		Regex:           HashiCorpTerraformRegex,
+		Regex:           hashiCorpTerraformRegex,
 		Entropy:         3.5,
 		Keywords:        []string{"atlasv1"},
 		Severity:        "High",

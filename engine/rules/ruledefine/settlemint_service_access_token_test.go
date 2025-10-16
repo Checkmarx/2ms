@@ -53,7 +53,7 @@ func TestSettlemintServiceAccessToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(SettlemintServiceAccessToken())
+			rule := TwomsToGitleaksRule(SettlemintServiceAccessToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

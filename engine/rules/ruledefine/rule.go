@@ -44,7 +44,7 @@ const (
 	CategoryProjectManagement              RuleCategory = "Project Management"
 	CategorySearchService                  RuleCategory = "Search Service"
 	CategorySocialMedia                    RuleCategory = "Social Media"
-	CategoryGeneralOrUnknown               RuleCategory = "General or Unknown"
+	CategoryGeneralOrUnknown               RuleCategory = "General"
 )
 
 const TagApiKey = "api-key"

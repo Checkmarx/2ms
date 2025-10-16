@@ -50,7 +50,7 @@ func TestMessagebirdClientID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(MessageBirdClientID())
+			rule := TwomsToGitleaksRule(MessageBirdClientID())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var GithubPATRegex = regexp.MustCompile(`ghp_[0-9a-zA-Z]{36}`)
+var githubPATRegex = regexp.MustCompile(`ghp_[0-9a-zA-Z]{36}`)
 
 func GitHubPat() *Rule {
 	return &Rule{
@@ -12,7 +12,7 @@ func GitHubPat() *Rule {
 		Description: "Uncovered a GitHub Personal Access Token," +
 			" potentially leading to unauthorized repository access and sensitive content exposure.",
 		RuleID:   "github-pat",
-		Regex:    GithubPATRegex,
+		Regex:    githubPATRegex,
 		Entropy:  3,
 		Keywords: []string{"ghp_"},
 		Severity: "High",

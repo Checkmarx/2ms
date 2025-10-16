@@ -353,7 +353,7 @@ vHVobJ8A
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(JWTBase64())
+			rule := TwomsToGitleaksRule(JWTBase64())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

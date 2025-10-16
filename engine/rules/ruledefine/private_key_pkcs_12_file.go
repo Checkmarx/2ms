@@ -4,6 +4,8 @@ import (
 	"regexp"
 )
 
+var pkcs12FileRegex = regexp.MustCompile(`(?i)(?:^|\/)[^\/]+\.p(?:12|fx)$`)
+
 func PrivateKeyPKCS12File() *Rule {
 	// https://en.wikipedia.org/wiki/PKCS_12
 	return &Rule{
@@ -11,7 +13,7 @@ func PrivateKeyPKCS12File() *Rule {
 		Description: "Found a PKCS #12 file, which commonly contain bundled private keys.",
 		RuleID:      "pkcs12-file",
 
-		Path:     regexp.MustCompile(`(?i)(?:^|\/)[^\/]+\.p(?:12|fx)$`), //nolint:gocritic
+		Path:     pkcs12FileRegex, //nolint:gocritic
 		Severity: "High",
 	}
 }

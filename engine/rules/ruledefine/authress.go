@@ -1,6 +1,6 @@
 package ruledefine
 
-var AuthressServiceClientAccessKeyRegex = generateUniqueTokenRegex(
+var authressServiceClientAccessKeyRegex = generateUniqueTokenRegex(
 	`(?:sc|ext|scauth|authress)_(?i)[a-z0-9]{5,30}\.[a-z0-9]{4,6}\.(?-i:acc)[_-][a-z0-9-]{10,32}\.[a-z0-9+/_=-]{30,120}`, false)
 
 func Authress() *Rule {
@@ -9,7 +9,7 @@ func Authress() *Rule {
 		Description: "Uncovered a possible Authress Service Client Access Key," +
 			" which may compromise access control services and sensitive data.",
 		RuleID:          "authress-service-client-access-key",
-		Regex:           AuthressServiceClientAccessKeyRegex,
+		Regex:           authressServiceClientAccessKeyRegex,
 		Entropy:         2,
 		Keywords:        []string{"sc_", "ext_", "scauth_", "authress_"},
 		Severity:        "High",

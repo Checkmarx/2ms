@@ -83,7 +83,7 @@ func TestOnePasswordSecretKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fmt.Println("},")
-			rule := ConvertNewRuleToGitleaksRule(OnePasswordSecretKey())
+			rule := TwomsToGitleaksRule(OnePasswordSecretKey())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

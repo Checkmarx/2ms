@@ -44,7 +44,7 @@ func TestFreemiusSecretKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(Freemius())
+			rule := TwomsToGitleaksRule(Freemius())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

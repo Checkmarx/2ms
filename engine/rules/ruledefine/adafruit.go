@@ -1,7 +1,7 @@
 package ruledefine
 
 // regex for rule
-var AdafruitAPIKeyRegex = generateSemiGenericRegex([]string{"adafruit"}, AlphaNumericExtendedShort("32"), true)
+var adafruitAPIKeyRegex = generateSemiGenericRegex([]string{"adafruit"}, AlphaNumericExtendedShort("32"), true)
 
 func AdafruitAPIKey() *Rule {
 	// define rule
@@ -10,7 +10,7 @@ func AdafruitAPIKey() *Rule {
 		Description: "Identified a potential Adafruit API Key," +
 			" which could lead to unauthorized access to Adafruit services and sensitive data exposure.",
 		RuleID:          "adafruit-api-key",
-		Regex:           AdafruitAPIKeyRegex,
+		Regex:           adafruitAPIKeyRegex,
 		Keywords:        []string{"adafruit"},
 		Severity:        "High",
 		Tags:            []string{TagApiKey},

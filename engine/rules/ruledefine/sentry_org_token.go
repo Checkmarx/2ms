@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var SentryOrgTokenRegex = regexp.MustCompile(
+var sentryOrgTokenRegex = regexp.MustCompile(
 	`\bsntrys_eyJpYXQiO[a-zA-Z0-9+/]{10,200}(?:LCJyZWdpb25fdXJs|InJlZ2lvbl91cmwi|cmVnaW9uX3VybCI6)[a-zA-Z0-9+/]{10,200}={0,2}_[a-zA-Z0-9+/]{43}(?:[^a-zA-Z0-9+/]|\z)`) ////nolint:lll
 
 func SentryOrgToken() *Rule {
@@ -23,7 +23,7 @@ func SentryOrgToken() *Rule {
 		RuleID:     "sentry-org-token",
 		Description: "Found a Sentry.io Organization Token," +
 			" risking unauthorized access to error tracking services and sensitive application data.",
-		Regex:           SentryOrgTokenRegex,
+		Regex:           sentryOrgTokenRegex,
 		Entropy:         4.5,
 		Keywords:        []string{"sntrys_eyJpYXQiO"},
 		Severity:        "High",

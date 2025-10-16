@@ -93,7 +93,7 @@ func writeIdentifiersIncludingXml(sb *strings.Builder, identifiers []string) {
 	sb.WriteString(identifierSuffixIncludingXml)
 }
 
-func ConvertNewRuleToGitleaksRule(rule *Rule) *gitleaksrule.Rule {
+func TwomsToGitleaksRule(rule *Rule) *gitleaksrule.Rule {
 	return &gitleaksrule.Rule{
 		RuleID:      rule.RuleID,
 		Description: rule.Description,

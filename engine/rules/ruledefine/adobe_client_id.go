@@ -1,6 +1,6 @@
 package ruledefine
 
-var AdobeClientIDRegex = generateSemiGenericRegex([]string{"adobe"}, Hex("32"), true)
+var adobeClientIDRegex = generateSemiGenericRegex([]string{"adobe"}, Hex("32"), true)
 
 func AdobeClientID() *Rule {
 	// define rule
@@ -9,7 +9,7 @@ func AdobeClientID() *Rule {
 		RuleID:     "adobe-client-id",
 		Description: "Detected a pattern that resembles an Adobe OAuth Web Client ID," +
 			" posing a risk of compromised Adobe integrations and data breaches.",
-		Regex:           AdobeClientIDRegex,
+		Regex:           adobeClientIDRegex,
 		Entropy:         2,
 		Keywords:        []string{"adobe"},
 		Severity:        "High",

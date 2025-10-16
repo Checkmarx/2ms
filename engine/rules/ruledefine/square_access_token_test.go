@@ -53,7 +53,7 @@ func TestSquareAccessToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(SquareAccessToken())
+			rule := TwomsToGitleaksRule(SquareAccessToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified

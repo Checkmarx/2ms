@@ -1,13 +1,13 @@
 package ruledefine
 
-var FacebookPageAccessTokenRegex = generateUniqueTokenRegex("EAA[MC](?i)[a-z0-9]{100,}", false)
+var facebookPageAccessTokenRegex = generateUniqueTokenRegex("EAA[MC](?i)[a-z0-9]{100,}", false)
 
 func FacebookPageAccessToken() *Rule {
 	return &Rule{
 		BaseRuleID:      "aa0c13ec-cd3f-43a1-806f-05006e342946",
 		Description:     "Discovered a Facebook Page Access Token, posing a risk of unauthorized access to Facebook accounts and personal data exposure.", //nolint:lll
 		RuleID:          "facebook-page-access-token",
-		Regex:           FacebookPageAccessTokenRegex,
+		Regex:           facebookPageAccessTokenRegex,
 		Entropy:         4,
 		Keywords:        []string{"EAAM", "EAAC"},
 		Severity:        "High",

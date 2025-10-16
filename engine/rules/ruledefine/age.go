@@ -5,7 +5,7 @@ import (
 )
 
 // regex for rule
-var AgeSecretKeyRegex = regexp.MustCompile(`AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}`)
+var ageSecretKeyRegex = regexp.MustCompile(`AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}`)
 
 func AgeSecretKey() *Rule {
 	// define rule
@@ -14,7 +14,7 @@ func AgeSecretKey() *Rule {
 		Description: "Discovered a potential Age encryption tool secret key," +
 			" risking data decryption and unauthorized access to sensitive information.",
 		RuleID:          "age-secret-key",
-		Regex:           AgeSecretKeyRegex,
+		Regex:           ageSecretKeyRegex,
 		Keywords:        []string{"AGE-SECRET-KEY-1"},
 		Severity:        "High",
 		Tags:            []string{TagSecretKey},

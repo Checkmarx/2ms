@@ -1,6 +1,6 @@
 package ruledefine
 
-var NewRelicInsertKeyRegex = generateSemiGenericRegex([]string{
+var newRelicInsertKeyRegex = generateSemiGenericRegex([]string{
 	"new-relic",
 	"newrelic",
 	"new_relic",
@@ -11,7 +11,7 @@ func NewRelicInsertKey() *Rule {
 		BaseRuleID:  "3ba5a85e-a516-4b94-8cb6-714cecc08a18",
 		Description: "Discovered a New Relic insight insert key, compromising data injection into the platform.",
 		RuleID:      "new-relic-insert-key",
-		Regex:       NewRelicInsertKeyRegex,
+		Regex:       newRelicInsertKeyRegex,
 		Keywords: []string{
 			"NRII-",
 		},

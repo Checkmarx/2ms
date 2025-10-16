@@ -1,6 +1,6 @@
 package ruledefine
 
-var BittrexAccessKeyRegex = generateSemiGenericRegex([]string{"bittrex"}, AlphaNumeric("32"), true)
+var bittrexAccessKeyRegex = generateSemiGenericRegex([]string{"bittrex"}, AlphaNumeric("32"), true)
 
 func BittrexAccessKey() *Rule {
 	return &Rule{
@@ -8,7 +8,7 @@ func BittrexAccessKey() *Rule {
 		Description: "Identified a Bittrex Access Key," +
 			" which could lead to unauthorized access to cryptocurrency trading accounts and financial loss.",
 		RuleID:          "bittrex-access-key",
-		Regex:           BittrexAccessKeyRegex,
+		Regex:           bittrexAccessKeyRegex,
 		Keywords:        []string{"bittrex"},
 		Severity:        "High",
 		Tags:            []string{TagAccessKey},

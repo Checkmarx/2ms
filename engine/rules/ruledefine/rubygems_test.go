@@ -50,7 +50,7 @@ func TestRubyGemsAPIToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rule := ConvertNewRuleToGitleaksRule(RubyGemsAPIToken())
+			rule := TwomsToGitleaksRule(RubyGemsAPIToken())
 			d := createSingleRuleDetector(rule)
 
 			// validate true positives if any specified
