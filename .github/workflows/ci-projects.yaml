@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: ${{ vars.CES_EXECUTOR_REPO }}
-          token: ${{ secrets.GITHUB }}
+          token: ${{ secrets.TWOMS_BOT_PAT }}
           path: cli
           ref: master
 
