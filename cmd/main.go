@@ -112,9 +112,17 @@ func Execute() (int, error) {
 		}
 		subCommand.GroupID = group
 
+		pluginPreRun := subCommand.PreRunE
 		// Capture plugin name for closure
 		pluginName := plugin.GetName()
 		subCommand.PreRunE = func(cmd *cobra.Command, args []string) error {
+			// run plugin's own PreRunE (if any)
+			if pluginPreRun != nil {
+				if err := pluginPreRun(cmd, args); err != nil {
+					return err
+				}
+			}
+			// run engine-level PreRunE
 			return preRun(pluginName, engineInstance, cmd, args)
 		}
 		subCommand.PostRunE = func(cmd *cobra.Command, args []string) error {
