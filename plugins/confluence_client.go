@@ -300,46 +300,6 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 	}
 }
 
-// walkSpacesPaginated iterates spaces starting from initialURL
-func (c *httpConfluenceClient) walkSpacesPaginated(
-	ctx context.Context, initialURL string, visit func(*Space) error,
-) error {
-	return walkPaginated[*Space](ctx, initialURL, c.getJSON,
-		func(linkNext, bodyNext string) string {
-			base, err := url.Parse(initialURL)
-			if err != nil {
-				return ""
-			}
-			b := baseWithoutCursor(base)
-			cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
-			if cur == "" {
-				return ""
-			}
-			return withCursor(b, cur)
-		},
-		parseSpacesResponse, visit)
-}
-
-// walkVersionsPaginated iterates page versions starting from initialURL.
-func (c *httpConfluenceClient) walkVersionsPaginated(
-	ctx context.Context, initialURL string, visit func(int) error,
-) error {
-	return walkPaginated[int](ctx, initialURL, c.getJSON,
-		func(linkNext, bodyNext string) string {
-			base, err := url.Parse(initialURL)
-			if err != nil {
-				return ""
-			}
-			b := baseWithoutCursor(base)
-			cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
-			if cur == "" {
-				return ""
-			}
-			return withCursor(b, cur)
-		},
-		parseVersionsResponse, visit)
-}
-
 // apiURL joins the relative API path to the base wiki URL or the platform host,
 // producing a URL rooted at .../api/v2/<relative>.
 func (c *httpConfluenceClient) apiURL(relativePath string) *url.URL {
@@ -463,12 +423,6 @@ type Space struct {
 	Links map[string]string `json:"_links"`
 }
 
-// listPagesResponse models the JSON response returned by /pages queries.
-type listPagesResponse struct {
-	Results []*Page           `json:"results"`
-	Links   map[string]string `json:"_links"`
-}
-
 // listSpacesResponse models the JSON response returned by /spaces queries.
 type listSpacesResponse struct {
 	Results []*Space          `json:"results"`
@@ -569,55 +523,73 @@ func streamPagesFromBody(r io.Reader, visit func(*Page) error) (string, error) {
 				return "", fmt.Errorf("decode: top-level '}': %w", err)
 			}
 			return bodyLinksNext, nil
+
 		case '"':
 			keyTok, err := dec.ReadToken()
 			if err != nil {
 				return "", fmt.Errorf("decode: key token: %w", err)
 			}
-			key := keyTok.String()
-
-			switch key {
+			switch keyTok.String() {
 			case "results":
-				tok, err := dec.ReadToken()
-				if err != nil {
-					return "", fmt.Errorf("decode: results '[': %w", err)
-				}
-				if tok.Kind() != '[' {
-					return "", fmt.Errorf("decode: expected '[' for results")
-				}
-				for {
-					switch dec.PeekKind() {
-					case ']':
-						if _, err := dec.ReadToken(); err != nil {
-							return "", fmt.Errorf("decode: results ']': %w", err)
-						}
-						goto nextField
-					default:
-						var p Page
-						if err := json.UnmarshalDecode(dec, &p); err != nil {
-							return "", fmt.Errorf("decode: page: %w", err)
-						}
-						if err := visit(&p); err != nil {
-							return "", err
-						}
-					}
+				if err := decodeResultsArray(dec, visit); err != nil {
+					return "", err
 				}
 			case "_links":
-				var ln map[string]string
-				if err := json.UnmarshalDecode(dec, &ln); err != nil {
-					return "", fmt.Errorf("decode: _links: %w", err)
+				next, err := decodeLinksNext(dec)
+				if err != nil {
+					return "", err
 				}
-				bodyLinksNext = ln["next"]
+				bodyLinksNext = next
 			default:
 				if err := dec.SkipValue(); err != nil {
-					return "", fmt.Errorf("decode: skip %q: %w", key, err)
+					return "", fmt.Errorf("decode: skip: %w", err)
 				}
 			}
 		default:
 			return "", fmt.Errorf("decode: unexpected token kind %q", dec.PeekKind())
 		}
-	nextField:
 	}
+}
+
+// decodeResultsArray consumes the next token, which must be '[' for a "results"
+// array, then stream-decodes each element into a Page and calls visit for it.
+// It stops at the closing ']' and returns any decoding or visitor error.
+func decodeResultsArray(dec *jsontext.Decoder, visit func(*Page) error) error {
+	tok, err := dec.ReadToken()
+	if err != nil {
+		return fmt.Errorf("decode: results '[': %w", err)
+	}
+	if tok.Kind() != '[' {
+		return fmt.Errorf("decode: expected '[' for results")
+	}
+	for {
+		switch dec.PeekKind() {
+		case ']':
+			if _, err := dec.ReadToken(); err != nil {
+				return fmt.Errorf("decode: results ']': %w", err)
+			}
+			return nil
+		default:
+			var p Page
+			if err := json.UnmarshalDecode(dec, &p); err != nil {
+				return fmt.Errorf("decode: page: %w", err)
+			}
+			if err := visit(&p); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// decodeLinksNext decodes the JSON object that follows the "_links" key and
+// returns its "next" value (empty string if absent). It consumes the entire
+// object and wraps any decoding error with context.
+func decodeLinksNext(dec *jsontext.Decoder) (string, error) {
+	var ln map[string]string
+	if err := json.UnmarshalDecode(dec, &ln); err != nil {
+		return "", fmt.Errorf("decode: _links: %w", err)
+	}
+	return ln["next"], nil
 }
 
 // baseWithoutCursor returns a shallow copy of inputURL with the "cursor" query

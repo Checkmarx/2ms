@@ -534,23 +534,17 @@ func TestGetJSONStream(t *testing.T) {
 }
 
 func TestWalkPagesPaginated(t *testing.T) {
-	firstBatch := listPagesResponse{
-		Results: []*Page{{ID: "1", Title: "A"}, {ID: "2", Title: "B"}},
-	}
-	secondBatch := listPagesResponse{
-		Results: []*Page{{ID: "3", Title: "C"}},
-	}
-
 	var calls int
 	var ts *httptest.Server
 	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		switch calls {
 		case 1:
+			// First page + Link header with a next cursor
 			w.Header().Set("Link", fmt.Sprintf("<%s/wiki/api/v2/pages?cursor=next>; rel=\"next\"", ts.URL))
-			_ = json.NewEncoder(w).Encode(firstBatch)
+			_, _ = io.WriteString(w, `{"results":[{"id":"1","title":"A"},{"id":"2","title":"B"}]}`)
 		default:
-			_ = json.NewEncoder(w).Encode(secondBatch)
+			_, _ = io.WriteString(w, `{"results":[{"id":"3","title":"C"}]}`)
 		}
 	}))
 	defer ts.Close()
@@ -570,86 +564,19 @@ func TestWalkPagesPaginated(t *testing.T) {
 	assert.Equal(t, []string{"1", "2", "3"}, actualIDs)
 }
 
-func TestWalkVersionsPaginated(t *testing.T) {
-	firstBatch := listVersionsResponse{Results: []versionEntry{{Number: 3}, {Number: 2}}}
-	secondBatch := listVersionsResponse{Results: []versionEntry{{Number: 1}}}
-
-	var calls int
-	var testServer *httptest.Server
-	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		switch calls {
-		case 1:
-			w.Header().Set("Link", fmt.Sprintf("<%s/wiki/api/v2/pages/123/versions?cursor=n2>; rel=\"next\"", testServer.URL))
-			_ = json.NewEncoder(w).Encode(firstBatch)
-		default:
-			_ = json.NewEncoder(w).Encode(secondBatch)
-		}
-	}))
-	defer testServer.Close()
-
-	client := &httpConfluenceClient{
-		baseWikiURL: testServer.URL + "/wiki",
-		apiBase:     testServer.URL + "/wiki/api/v2",
-		httpClient:  &http.Client{Timeout: 5 * time.Second},
-	}
-	var actual []int
-	actualErr := client.walkVersionsPaginated(context.Background(), testServer.URL, func(n int) error {
-		actual = append(actual, n)
-		return nil
-	})
-	assert.Equal(t, nil, actualErr)
-	assert.Equal(t, []int{3, 2, 1}, actual)
-}
-
-func TestWalkSpacesPaginated(t *testing.T) {
-	firstBatch := listSpacesResponse{
-		Results: []*Space{{ID: "S1", Key: "KEY1"}},
-		Links:   map[string]string{"next": "/wiki/api/v2/spaces?cursor=2"},
-	}
-	secondBatch := listSpacesResponse{Results: []*Space{{ID: "S2", Key: "KEY2"}}}
-
-	var calls int
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		switch calls {
-		case 1:
-			_ = json.NewEncoder(w).Encode(firstBatch) // no Link header -> body _links.next should be used
-		default:
-			_ = json.NewEncoder(w).Encode(secondBatch)
-		}
-	}))
-	defer testServer.Close()
-
-	client := &httpConfluenceClient{
-		baseWikiURL: testServer.URL + "/wiki",
-		apiBase:     testServer.URL + "/wiki/api/v2",
-		httpClient:  &http.Client{Timeout: 5 * time.Second},
-	}
-	var actual []string
-	actualErr := client.walkSpacesPaginated(context.Background(), testServer.URL, func(s *Space) error {
-		actual = append(actual, s.ID)
-		return nil
-	})
-	assert.Equal(t, nil, actualErr)
-	assert.Equal(t, []string{"S1", "S2"}, actual)
-}
-
 func TestWalkAllPages(t *testing.T) {
 	expectPath := "/wiki/api/v2/pages"
-	resp := listPagesResponse{Results: []*Page{{ID: "1", Title: "A"}, {ID: "2", Title: "B"}}}
-
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
 		assert.Equal(t, "250", r.URL.Query().Get("limit"))
 		assert.Equal(t, "storage", r.URL.Query().Get("body-format"))
-		_ = json.NewEncoder(w).Encode(resp)
+		_, _ = io.WriteString(w, `{"results":[{"id":"1","title":"A"},{"id":"2","title":"B"}]}`)
 	}))
-	defer testServer.Close()
+	defer ts.Close()
 
 	client := &httpConfluenceClient{
-		baseWikiURL: testServer.URL + "/wiki",
-		apiBase:     testServer.URL + "/wiki/api/v2",
+		baseWikiURL: ts.URL + "/wiki",
+		apiBase:     ts.URL + "/wiki/api/v2",
 		httpClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 	var actual []string
@@ -663,20 +590,18 @@ func TestWalkAllPages(t *testing.T) {
 
 func TestWalkPagesByIDs(t *testing.T) {
 	expectPath := "/wiki/api/v2/pages"
-	resp := listPagesResponse{Results: []*Page{{ID: "10"}, {ID: "20"}}}
-
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
 		assert.Equal(t, "2", r.URL.Query().Get("limit"))
 		assert.Equal(t, "1,2", r.URL.Query().Get("id"))
 		assert.Equal(t, "storage", r.URL.Query().Get("body-format"))
-		_ = json.NewEncoder(w).Encode(resp)
+		_, _ = io.WriteString(w, `{"results":[{"id":"10"},{"id":"20"}]}`)
 	}))
-	defer testServer.Close()
+	defer ts.Close()
 
 	client := &httpConfluenceClient{
-		baseWikiURL: testServer.URL + "/wiki",
-		apiBase:     testServer.URL + "/wiki/api/v2",
+		baseWikiURL: ts.URL + "/wiki",
+		apiBase:     ts.URL + "/wiki/api/v2",
 		httpClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 	var actual []string
@@ -690,20 +615,18 @@ func TestWalkPagesByIDs(t *testing.T) {
 
 func TestWalkPagesBySpaceIDs(t *testing.T) {
 	expectPath := "/wiki/api/v2/pages"
-	resp := listPagesResponse{Results: []*Page{{ID: "100"}, {ID: "200"}}}
-
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
 		assert.Equal(t, "2", r.URL.Query().Get("limit"))
 		assert.Equal(t, "S1,S2", r.URL.Query().Get("space-id"))
 		assert.Equal(t, "storage", r.URL.Query().Get("body-format"))
-		_ = json.NewEncoder(w).Encode(resp)
+		_, _ = io.WriteString(w, `{"results":[{"id":"100"},{"id":"200"}]}`)
 	}))
-	defer testServer.Close()
+	defer ts.Close()
 
 	client := &httpConfluenceClient{
-		baseWikiURL: testServer.URL + "/wiki",
-		apiBase:     testServer.URL + "/wiki/api/v2",
+		baseWikiURL: ts.URL + "/wiki",
+		apiBase:     ts.URL + "/wiki/api/v2",
 		httpClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 	var actual []string
