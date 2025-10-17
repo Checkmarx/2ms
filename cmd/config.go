@@ -1,15 +1,19 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -36,6 +40,15 @@ func processFlags(rootCmd *cobra.Command) error {
 	if len(customRegexRuleVar) > 0 {
 		engineConfigVar.CustomRegexPatterns = customRegexRuleVar
 	}
+
+	if customRulesPathVar != "" {
+		rules, err := loadRulesFile(customRulesPathVar)
+		if err != nil {
+			return fmt.Errorf("failed to load custom rules file: %w", err)
+		}
+		engineConfigVar.CustomRules = rules
+	}
+	engineConfigVar.OnlyCustomRules = onlyCustomRulesVar
 
 	setupLogging()
 
@@ -121,4 +134,55 @@ func setupFlags(rootCmd *cobra.Command) {
 
 	rootCmd.PersistentFlags().
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
+
+	rootCmd.PersistentFlags().
+		StringVar(&customRulesPathVar, customRulesFileFlagName, "", "Path to a custom rules file (JSON or YAML). Rules should be a list of ruledefine.rule objects. --rule, --ignore-rule still apply to custom rules")
+
+	rootCmd.PersistentFlags().
+		BoolVar(&onlyCustomRulesVar, onlyCustomRulesFlagName, false, "Only apply custom rules from the provided file path, --rule, --ignore-rule and --add-special-rule flags will be ignored")
+
+}
+
+func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	ext := filepath.Ext(path)
+	var rules []*ruledefine.Rule
+
+	switch ext {
+	case ".json":
+		err = json.Unmarshal(data, &rules)
+	case ".yaml", ".yml":
+		err = yaml.Unmarshal(data, &rules)
+	default:
+		// try to detect  if extension is missing
+		if json.Unmarshal(data, &rules) == nil {
+			return rules, nil
+		}
+		if yaml.Unmarshal(data, &rules) == nil {
+			return rules, nil
+		}
+		return nil, fmt.Errorf("unknown file format, expected JSON or YAML")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return rules, nil
+}
+
+func validateRules(rules []*ruledefine.Rule) error {
+	for _, rule := range rules {
+		if rule.RuleID == "" {
+			return fmt.Errorf("rule with empty RuleID found: %+v", rule)
+		}
+		if rule.Regex == nil && rule.Entropy == 0.0 && len(rule.Keywords) == 0 {
+			return fmt.Errorf("rule %s must have at least one of regex, entropy or keywords defined", rule.RuleID)
+		}
+	}
+	return nil
 }

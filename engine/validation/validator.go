@@ -22,8 +22,8 @@ func NewValidator() *Validator {
 	return &Validator{pairsCollector: newPairsCollector()}
 }
 
-func (v *Validator) RegisterForValidation(secret *secrets.Secret) {
-	if validate, ok := ruleIDToFunction[secret.RuleID]; ok {
+func (v *Validator) RegisterForValidation(secret *secrets.Secret, disableValidation bool) {
+	if validate, ok := ruleIDToFunction[secret.RuleID]; ok && !disableValidation {
 		status, extra := validate(secret)
 		secret.ValidationStatus = status
 		addExtraToSecret(secret, extra)

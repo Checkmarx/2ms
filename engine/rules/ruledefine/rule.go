@@ -1,6 +1,7 @@
 package ruledefine
 
 import (
+	"fmt"
 	"regexp"
 )
 
@@ -100,6 +101,8 @@ type Rule struct {
 	AllowLists      []*AllowList
 	Tags            []string
 	ScoreParameters ScoreParameters // used for ASPM
+	DisableValidation bool // if true, validation checks will be skipped for this rule if any validation is possible
+	//Override bool 		// if true, this rule is allowed to override existing rules with the same RuleID/BaseRuleID
 }
 
 type AllowList struct { // For patterns that are allowed to be ignored
@@ -109,4 +112,25 @@ type AllowList struct { // For patterns that are allowed to be ignored
 	RegexTarget    string // match or line. Default match
 	Regexes        []*regexp.Regexp
 	StopWords      []string // stop words that are allowed to be ignored
+}
+
+// CheckRequiredFields checks that required fields are present in the Rule.
+// This is meant for user defined rules, default rules have more scrict checks in unit tests
+func (r Rule) CheckRequiredFields() []error {
+	var errs []error
+	if r.RuleID == "" && r.BaseRuleID == "" {
+		errs = append(errs, fmt.Errorf("missing both RuleID and BaseRuleID"))
+	}
+	if r.Regex != nil{
+		r.Regex.
+	} else {
+
+	}
+	return nil
+}
+
+func (r Rule) AssignRuleIDIfEmpty() {
+	if r.RuleID != "" {
+		r.RuleID = r.BaseRuleID
+	}
 }
