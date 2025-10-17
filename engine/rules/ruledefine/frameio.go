@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var frameioAPITokenRegex = regexp.MustCompile(`fio-u-(?i)[a-z0-9\-_=]{64}`)
+var frameioAPITokenRegex = regexp.MustCompile(`fio-u-(?i)[a-z0-9\-_=]{64}`).String()
 
 func FrameIO() *Rule {
 	return &Rule{

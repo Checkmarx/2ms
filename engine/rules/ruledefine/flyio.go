@@ -1,7 +1,8 @@
 package ruledefine
 
 var flyIOAccessTokenRegex = generateUniqueTokenRegex(
-	`(?:fo1_[\w-]{43}|fm1[ar]_[a-zA-Z0-9+\/]{100,}={0,3}|fm2_[a-zA-Z0-9+\/]{100,}={0,3})`, false)
+	`(?:fo1_[\w-]{43}|fm1[ar]_[a-zA-Z0-9+\/]{100,}={0,3}|fm2_[a-zA-Z0-9+\/]{100,}={0,3})`,
+	false).String()
 
 func FlyIOAccessToken() *Rule {
 	return &Rule{

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var pyPiUploadTokenRegex = regexp.MustCompile(`pypi-AgEIcHlwaS5vcmc[\w-]{50,1000}`)
+var pyPiUploadTokenRegex = regexp.MustCompile(`pypi-AgEIcHlwaS5vcmc[\w-]{50,1000}`).String()
 
 func PyPiUploadToken() *Rule {
 	return &Rule{

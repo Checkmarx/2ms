@@ -5,7 +5,7 @@ import (
 )
 
 // regex for rule
-var ageSecretKeyRegex = regexp.MustCompile(`AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}`)
+var ageSecretKeyRegex = regexp.MustCompile(`AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}`).String()
 
 func AgeSecretKey() *Rule {
 	// define rule

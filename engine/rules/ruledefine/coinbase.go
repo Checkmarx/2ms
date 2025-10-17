@@ -9,7 +9,7 @@ func CoinbaseAccessToken() *Rule {
 		Description: "Detected a Coinbase Access Token," +
 			" posing a risk of unauthorized access to cryptocurrency accounts and financial transactions.",
 		RuleID: "coinbase-access-token",
-		Regex:  coinbaseAccessTokenRegex,
+		Regex:  coinbaseAccessTokenRegex.String(),
 		Keywords: []string{
 			"coinbase",
 		},

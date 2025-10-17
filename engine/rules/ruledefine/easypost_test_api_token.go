@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var easypostTestAPITokenRegex = regexp.MustCompile(`\bEZTK(?i)[a-z0-9]{54}\b`)
+var easypostTestAPITokenRegex = regexp.MustCompile(`\bEZTK(?i)[a-z0-9]{54}\b`).String()
 
 func EasyPostTestAPI() *Rule {
 	return &Rule{

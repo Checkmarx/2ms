@@ -14,7 +14,7 @@ var hardcodedPasswordRegex = regexp.MustCompile(
 		`(?:=|>|:{1,3}=|\|\|:|<=|=>|:|\?=)` +
 		`(?:'|\"|\\|\s|=|\x60){0,5}([0-9a-z\-_.=!@#\$%\^\&\*]{4,150})` +
 		`(?:['\"\\|\s\x60;<]|$)`,
-)
+).String()
 
 func HardcodedPassword() *Rule {
 	return &Rule{

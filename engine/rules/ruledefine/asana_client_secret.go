@@ -1,6 +1,6 @@
 package ruledefine
 
-var asanaClientSecretRegex = generateSemiGenericRegex([]string{"asana"}, AlphaNumeric("32"), true)
+var asanaClientSecretRegex = generateSemiGenericRegex([]string{"asana"}, AlphaNumeric("32"), true).String()
 
 func AsanaClientSecret() *Rule {
 	return &Rule{

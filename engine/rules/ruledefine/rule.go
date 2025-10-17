@@ -1,9 +1,5 @@
 package ruledefine
 
-import (
-	"regexp"
-)
-
 type RuleCategory string
 
 const (
@@ -89,11 +85,11 @@ type Rule struct {
 	BaseRuleID      string // uuid4, should be consistent across changes in rule
 	RuleID          string
 	Description     string
-	Regex           *regexp.Regexp
+	Regex           string // regex pattern as string
 	Keywords        []string
 	Entropy         float64
-	Path            *regexp.Regexp // present in some gitleaks secrets
-	SecretGroup     int            //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Path            string // present in some gitleaks secrets (regex)
+	SecretGroup     int    //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
 	Severity        Severity
 	OldSeverity     string // fallback for when critical is not enabled
 	Deprecated      bool   // deprecated rules will remain in 2ms, with this as true
@@ -104,9 +100,9 @@ type Rule struct {
 
 type AllowList struct { // For patterns that are allowed to be ignored
 	Description    string
-	MatchCondition string // determines whether all criteria must match. OR or AND
-	Paths          []*regexp.Regexp
-	RegexTarget    string // match or line. Default match
-	Regexes        []*regexp.Regexp
+	MatchCondition string   // determines whether all criteria must match. OR or AND
+	Paths          []string //regex
+	RegexTarget    string   // match or line. Default match
+	Regexes        []string
 	StopWords      []string // stop words that are allowed to be ignored
 }

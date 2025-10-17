@@ -1,6 +1,7 @@
 package ruledefine
 
-var linkedinClientIDRegex = generateSemiGenericRegex([]string{"linked[_-]?in"}, AlphaNumeric("14"), true)
+var linkedinClientIDRegex = generateSemiGenericRegex(
+	[]string{"linked[_-]?in"}, AlphaNumeric("14"), true).String()
 
 func LinkedinClientID() *Rule {
 	return &Rule{

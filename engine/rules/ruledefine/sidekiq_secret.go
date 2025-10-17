@@ -1,7 +1,7 @@
 package ruledefine
 
 var sidekiqSecretRegex = generateSemiGenericRegex([]string{"BUNDLE_ENTERPRISE__CONTRIBSYS__COM", "BUNDLE_GEMS__CONTRIBSYS__COM"},
-	`[a-f0-9]{8}:[a-f0-9]{8}`, true)
+	`[a-f0-9]{8}:[a-f0-9]{8}`, true).String()
 
 func SidekiqSecret() *Rule {
 	return &Rule{

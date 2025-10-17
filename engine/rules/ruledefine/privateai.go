@@ -1,6 +1,6 @@
 package ruledefine
 
-var privateAITokenRegex = generateSemiGenericRegex([]string{"private[_-]?ai"}, `[a-z0-9]{32}`, false)
+var privateAITokenRegex = generateSemiGenericRegex([]string{"private[_-]?ai"}, `[a-z0-9]{32}`, false).String()
 
 func PrivateAIToken() *Rule {
 	return &Rule{

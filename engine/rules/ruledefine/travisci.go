@@ -1,6 +1,6 @@
 package ruledefine
 
-var travisCIAccessTokenRegex = generateSemiGenericRegex([]string{"travis"}, AlphaNumeric("22"), true)
+var travisCIAccessTokenRegex = generateSemiGenericRegex([]string{"travis"}, AlphaNumeric("22"), true).String()
 
 func TravisCIAccessToken() *Rule {
 	return &Rule{

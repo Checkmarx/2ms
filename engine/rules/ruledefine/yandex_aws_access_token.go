@@ -1,7 +1,7 @@
 package ruledefine
 
 var yandexAWSAccessTokenRegex = generateSemiGenericRegex([]string{"yandex"},
-	`YC[a-zA-Z0-9_\-]{38}`, true)
+	`YC[a-zA-Z0-9_\-]{38}`, true).String()
 
 func YandexAWSAccessToken() *Rule {
 	return &Rule{

@@ -1,6 +1,7 @@
 package ruledefine
 
-var fastlyAPITokenRegex = generateSemiGenericRegex([]string{"fastly"}, AlphaNumericExtended("32"), true)
+var fastlyAPITokenRegex = generateSemiGenericRegex(
+	[]string{"fastly"}, AlphaNumericExtended("32"), true).String()
 
 func FastlyAPIToken() *Rule {
 	return &Rule{

@@ -1,6 +1,7 @@
 package ruledefine
 
-var sumoLogicAccessTokenRegex = generateSemiGenericRegex([]string{"(?-i:[Ss]umo|SUMO)"}, AlphaNumeric("64"), true)
+var sumoLogicAccessTokenRegex = generateSemiGenericRegex(
+	[]string{"(?-i:[Ss]umo|SUMO)"}, AlphaNumeric("64"), true).String()
 
 func SumoLogicAccessToken() *Rule {
 	return &Rule{

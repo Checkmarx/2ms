@@ -1,6 +1,6 @@
 package ruledefine
 
-var plaidAccessIDRegex = generateSemiGenericRegex([]string{"plaid"}, AlphaNumeric("24"), true)
+var plaidAccessIDRegex = generateSemiGenericRegex([]string{"plaid"}, AlphaNumeric("24"), true).String()
 
 func PlaidAccessID() *Rule {
 	return &Rule{

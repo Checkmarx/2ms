@@ -1,6 +1,6 @@
 package ruledefine
 
-var huggingFaceAccessTokenRegex = generateUniqueTokenRegex("hf_(?i:[a-z]{34})", false)
+var huggingFaceAccessTokenRegex = generateUniqueTokenRegex("hf_(?i:[a-z]{34})", false).String()
 
 func HuggingFaceAccessToken() *Rule {
 	return &Rule{

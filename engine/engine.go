@@ -377,7 +377,7 @@ func createCustomRegexRules(patterns []string) (map[string]*ruledefine.Rule, err
 		rule := ruledefine.Rule{
 			Description: "Custom Regex Rule From User",
 			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
-			Regex:       regex,
+			Regex:       regex.String(),
 			Keywords:    []string{},
 		}
 		customRules[rule.RuleID] = &rule

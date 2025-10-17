@@ -1,6 +1,6 @@
 package ruledefine
 
-var sentryUserTokenRegex = generateUniqueTokenRegex(`sntryu_[a-f0-9]{64}`, false)
+var sentryUserTokenRegex = generateUniqueTokenRegex(`sntryu_[a-f0-9]{64}`, false).String()
 
 func SentryUserToken() *Rule {
 	return &Rule{

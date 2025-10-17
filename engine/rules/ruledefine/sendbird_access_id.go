@@ -1,6 +1,6 @@
 package ruledefine
 
-var sendbirdAccessIDRegex = generateSemiGenericRegex([]string{"sendbird"}, Hex8_4_4_4_12(), true)
+var sendbirdAccessIDRegex = generateSemiGenericRegex([]string{"sendbird"}, Hex8_4_4_4_12(), true).String()
 
 func SendbirdAccessID() *Rule {
 	return &Rule{

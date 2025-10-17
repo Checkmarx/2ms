@@ -4,7 +4,7 @@ var newRelicInsertKeyRegex = generateSemiGenericRegex([]string{
 	"new-relic",
 	"newrelic",
 	"new_relic",
-}, `NRII-[a-z0-9-]{32}`, true)
+}, `NRII-[a-z0-9-]{32}`, true).String()
 
 func NewRelicInsertKey() *Rule {
 	return &Rule{

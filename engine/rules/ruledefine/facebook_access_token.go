@@ -1,6 +1,7 @@
 package ruledefine
 
-var facebookAccessTokenRegex = generateUniqueTokenRegex(`\d{15,16}(\||%)[0-9a-z\-_]{27,40}`, true)
+var facebookAccessTokenRegex = generateUniqueTokenRegex(
+	`\d{15,16}(\||%)[0-9a-z\-_]{27,40}`, true).String()
 
 func FacebookAccessToken() *Rule {
 	return &Rule{

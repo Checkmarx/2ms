@@ -1,6 +1,6 @@
 package ruledefine
 
-var twitterAPIKeyRegex = generateSemiGenericRegex([]string{"twitter"}, AlphaNumeric("25"), true)
+var twitterAPIKeyRegex = generateSemiGenericRegex([]string{"twitter"}, AlphaNumeric("25"), true).String()
 
 func TwitterAPIKey() *Rule {
 	return &Rule{

@@ -1,6 +1,6 @@
 package ruledefine
 
-var herokuAPIKeyV2Regex = generateUniqueTokenRegex(`(HRKU-AA[0-9a-zA-Z_-]{58})`, false)
+var herokuAPIKeyV2Regex = generateUniqueTokenRegex(`(HRKU-AA[0-9a-zA-Z_-]{58})`, false).String()
 
 func HerokuV2() *Rule {
 	return &Rule{

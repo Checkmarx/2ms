@@ -1,7 +1,8 @@
 package ruledefine
 
 var authressServiceClientAccessKeyRegex = generateUniqueTokenRegex(
-	`(?:sc|ext|scauth|authress)_(?i)[a-z0-9]{5,30}\.[a-z0-9]{4,6}\.(?-i:acc)[_-][a-z0-9-]{10,32}\.[a-z0-9+/_=-]{30,120}`, false)
+	`(?:sc|ext|scauth|authress)_(?i)[a-z0-9]{5,30}\.[a-z0-9]{4,6}\.(?-i:acc)[_-][a-z0-9-]{10,32}\.[a-z0-9+/_=-]{30,120}`,
+	false).String()
 
 func Authress() *Rule {
 	return &Rule{

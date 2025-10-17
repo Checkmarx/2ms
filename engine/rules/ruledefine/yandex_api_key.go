@@ -1,7 +1,7 @@
 package ruledefine
 
 var yandexAPIKeyRegex = generateSemiGenericRegex([]string{"yandex"},
-	`AQVN[A-Za-z0-9_\-]{35,38}`, true)
+	`AQVN[A-Za-z0-9_\-]{35,38}`, true).String()
 
 func YandexAPIKey() *Rule {
 	return &Rule{

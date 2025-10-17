@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabFeatureFlagClientTokenRegex = regexp.MustCompile(`glffct-[0-9a-zA-Z_\-]{20}`)
+var gitlabFeatureFlagClientTokenRegex = regexp.MustCompile(`glffct-[0-9a-zA-Z_\-]{20}`).String()
 
 func GitlabFeatureFlagClientToken() *Rule {
 	return &Rule{

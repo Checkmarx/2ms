@@ -1,6 +1,6 @@
 package ruledefine
 
-var octopusDeployAPIKeyRegex = generateUniqueTokenRegex(`API-[A-Z0-9]{26}`, false)
+var octopusDeployAPIKeyRegex = generateUniqueTokenRegex(`API-[A-Z0-9]{26}`, false).String()
 
 func OctopusDeployApiKey() *Rule {
 	return &Rule{

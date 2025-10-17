@@ -1,7 +1,7 @@
 package ruledefine
 
 var gitterAccessTokenRegex = generateSemiGenericRegex([]string{"gitter"},
-	AlphaNumericExtendedShort("40"), true)
+	AlphaNumericExtendedShort("40"), true).String()
 
 func GitterAccessToken() *Rule {
 	return &Rule{

@@ -2,7 +2,7 @@ package ruledefine
 
 var nytimesAccessTokenRegex = generateSemiGenericRegex([]string{
 	"nytimes", "new-york-times,", "newyorktimes"},
-	AlphaNumericExtended("32"), true)
+	AlphaNumericExtended("32"), true).String()
 
 func NytimesAccessToken() *Rule {
 	return &Rule{

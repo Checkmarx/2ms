@@ -1,6 +1,6 @@
 package ruledefine
 
-var adobeClientIDRegex = generateSemiGenericRegex([]string{"adobe"}, Hex("32"), true)
+var adobeClientIDRegex = generateSemiGenericRegex([]string{"adobe"}, Hex("32"), true).String()
 
 func AdobeClientID() *Rule {
 	// define rule

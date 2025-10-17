@@ -1,7 +1,7 @@
 package ruledefine
 
 var rapidAPIAccessTokenRegex = generateSemiGenericRegex([]string{"rapidapi"},
-	AlphaNumericExtendedShort("50"), true)
+	AlphaNumericExtendedShort("50"), true).String()
 
 func RapidAPIAccessToken() *Rule {
 	return &Rule{

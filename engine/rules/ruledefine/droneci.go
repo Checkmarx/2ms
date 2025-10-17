@@ -1,6 +1,6 @@
 package ruledefine
 
-var droneciAccessTokenRegex = generateSemiGenericRegex([]string{"droneci"}, AlphaNumeric("32"), true)
+var droneciAccessTokenRegex = generateSemiGenericRegex([]string{"droneci"}, AlphaNumeric("32"), true).String()
 
 func DroneciAccessToken() *Rule {
 	return &Rule{

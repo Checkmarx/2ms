@@ -1,6 +1,6 @@
 package ruledefine
 
-var sendGridAPITokenRegex = generateUniqueTokenRegex(`SG\.(?i)[a-z0-9=_\-\.]{66}`, false)
+var sendGridAPITokenRegex = generateUniqueTokenRegex(`SG\.(?i)[a-z0-9=_\-\.]{66}`, false).String()
 
 func SendGridAPIToken() *Rule {
 	return &Rule{

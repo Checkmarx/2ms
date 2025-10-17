@@ -1,6 +1,6 @@
 package ruledefine
 
-var planetScaleAPITokenRegex = generateUniqueTokenRegex(`pscale_tkn_(?i)[\w=\.-]{32,64}`, false)
+var planetScaleAPITokenRegex = generateUniqueTokenRegex(`pscale_tkn_(?i)[\w=\.-]{32,64}`, false).String()
 
 func PlanetScaleAPIToken() *Rule {
 	return &Rule{

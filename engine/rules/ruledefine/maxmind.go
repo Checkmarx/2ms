@@ -1,6 +1,6 @@
 package ruledefine
 
-var maxmindLicenseKeyRegex = generateUniqueTokenRegex(`[A-Za-z0-9]{6}_[A-Za-z0-9]{29}_mmk`, false)
+var maxmindLicenseKeyRegex = generateUniqueTokenRegex(`[A-Za-z0-9]{6}_[A-Za-z0-9]{29}_mmk`, false).String()
 
 func MaxMindLicenseKey() *Rule {
 	return &Rule{

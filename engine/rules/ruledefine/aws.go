@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var aWSRegex = regexp.MustCompile(`\b((?:A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[A-Z2-7]{16})\b`)
+var aWSRegex = regexp.MustCompile(`\b((?:A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[A-Z2-7]{16})\b`).String()
 
 func AWS() *Rule {
 	return &Rule{
@@ -23,8 +23,8 @@ func AWS() *Rule {
 		},
 		AllowLists: []*AllowList{
 			{
-				Regexes: []*regexp.Regexp{
-					regexp.MustCompile(`.+EXAMPLE$`),
+				Regexes: []string{
+					regexp.MustCompile(`.+EXAMPLE$`).String(),
 				},
 			},
 		},

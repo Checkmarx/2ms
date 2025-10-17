@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabFeedTokenRegex = regexp.MustCompile(`glft-[0-9a-zA-Z_\-]{20}`)
+var gitlabFeedTokenRegex = regexp.MustCompile(`glft-[0-9a-zA-Z_\-]{20}`).String()
 
 func GitlabFeedToken() *Rule {
 	return &Rule{

@@ -1,6 +1,6 @@
 package ruledefine
 
-var scalingoAPITokenRegex = generateUniqueTokenRegex(`tk-us-[\w-]{48}`, false)
+var scalingoAPITokenRegex = generateUniqueTokenRegex(`tk-us-[\w-]{48}`, false).String()
 
 func ScalingoAPIToken() *Rule {
 	return &Rule{

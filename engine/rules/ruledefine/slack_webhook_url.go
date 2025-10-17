@@ -5,7 +5,7 @@ import (
 )
 
 var slackWebHookUrlRegex = regexp.MustCompile(
-	`(?:https?://)?hooks.slack.com/(?:services|workflows|triggers)/[A-Za-z0-9+/]{43,56}`) //nolint:gocritic
+	`(?:https?://)?hooks.slack.com/(?:services|workflows|triggers)/[A-Za-z0-9+/]{43,56}`).String() //nolint:gocritic
 
 func SlackWebHookUrl() *Rule {
 	return &Rule{

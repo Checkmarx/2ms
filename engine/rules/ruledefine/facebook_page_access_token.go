@@ -1,6 +1,7 @@
 package ruledefine
 
-var facebookPageAccessTokenRegex = generateUniqueTokenRegex("EAA[MC](?i)[a-z0-9]{100,}", false)
+var facebookPageAccessTokenRegex = generateUniqueTokenRegex(
+	"EAA[MC](?i)[a-z0-9]{100,}", false).String()
 
 func FacebookPageAccessToken() *Rule {
 	return &Rule{

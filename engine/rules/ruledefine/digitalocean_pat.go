@@ -1,6 +1,6 @@
 package ruledefine
 
-var digitaloceanPatRegex = generateUniqueTokenRegex(`dop_v1_[a-f0-9]{64}`, false)
+var digitaloceanPatRegex = generateUniqueTokenRegex(`dop_v1_[a-f0-9]{64}`, false).String()
 
 func DigitalOceanPAT() *Rule {
 	return &Rule{

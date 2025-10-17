@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var privateKeyRegex = regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----[\s\S-]{64,}?KEY(?: BLOCK)?-----`) //nolint:gocritic,lll
+var privateKeyRegex = regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----[\s\S-]{64,}?KEY(?: BLOCK)?-----`).String() //nolint:gocritic,lll
 
 func PrivateKey() *Rule {
 	return &Rule{

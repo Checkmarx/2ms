@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var githubOauthRegex = regexp.MustCompile(`gho_[0-9a-zA-Z]{36}`)
+var githubOauthRegex = regexp.MustCompile(`gho_[0-9a-zA-Z]{36}`).String()
 
 func GitHubOauth() *Rule {
 	return &Rule{

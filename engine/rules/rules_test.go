@@ -31,7 +31,7 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 		assert.NotEqual(t, "", rule.Severity, "rule %d: Severity is not defined for rule %s", i, rule.RuleID)
 		assert.Contains(t, ruledefine.SeverityOrder, rule.Severity, "rule %d: Severity %s is not an acceptable severity (%s), in rule %s", i,
 			rule.Severity, ruledefine.SeverityOrder, rule.RuleID)
-		assert.NotNil(t, rule.Regex, "rule %d: Regex is not defined for rule %s", i, rule.RuleID)
+		assert.NotEqual(t, "", rule.Regex, "rule %d: Regex is not defined for rule %s", i, rule.RuleID)
 		// Check for ScoreParameters
 		assert.NotEqual(t, ruledefine.RuleCategory(""), rule.ScoreParameters.Category, "rule %d: ScoreParameters.Category is not defined for rule %s", i, rule.RuleID)
 		assert.NotEqual(t, uint8(0), rule.ScoreParameters.RuleType, "rule %d: ScoreParameters.RuleType is not defined for rule %s", i, rule.RuleID)

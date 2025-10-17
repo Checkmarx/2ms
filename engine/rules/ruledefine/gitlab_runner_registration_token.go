@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabRunnerRegistrationTokenRegex = regexp.MustCompile(`GR1348941[\w-]{20}`)
+var gitlabRunnerRegistrationTokenRegex = regexp.MustCompile(`GR1348941[\w-]{20}`).String()
 
 func GitlabRunnerRegistrationToken() *Rule {
 	return &Rule{

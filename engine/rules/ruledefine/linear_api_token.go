@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var linearAPIKeyRegex = regexp.MustCompile(`lin_api_(?i)[a-z0-9]{40}`)
+var linearAPIKeyRegex = regexp.MustCompile(`lin_api_(?i)[a-z0-9]{40}`).String()
 
 func LinearAPIToken() *Rule {
 	return &Rule{

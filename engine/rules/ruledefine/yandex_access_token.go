@@ -1,7 +1,7 @@
 package ruledefine
 
 var yandexAccessTokenRegex = generateSemiGenericRegex([]string{"yandex"},
-	`t1\.[A-Z0-9a-z_-]+[=]{0,2}\.[A-Z0-9a-z_-]{86}[=]{0,2}`, true)
+	`t1\.[A-Z0-9a-z_-]+[=]{0,2}\.[A-Z0-9a-z_-]{86}[=]{0,2}`, true).String()
 
 func YandexAccessToken() *Rule {
 	return &Rule{

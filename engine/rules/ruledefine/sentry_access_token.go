@@ -1,6 +1,6 @@
 package ruledefine
 
-var sentryAccessTokenRegex = generateSemiGenericRegex([]string{"sentry"}, Hex("64"), true)
+var sentryAccessTokenRegex = generateSemiGenericRegex([]string{"sentry"}, Hex("64"), true).String()
 
 func SentryAccessToken() *Rule {
 	return &Rule{

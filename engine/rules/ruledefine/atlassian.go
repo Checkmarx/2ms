@@ -11,7 +11,7 @@ var atlassianRegex = utils.MergeRegexps(
 		true,
 	),
 	generateUniqueTokenRegex(`ATATT3[A-Za-z0-9_\-=]{186}`, false),
-)
+).String()
 
 func Atlassian() *Rule {
 	return &Rule{

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabOauthAppSecretRegex = regexp.MustCompile(`gloas-[0-9a-zA-Z_\-]{64}`)
+var gitlabOauthAppSecretRegex = regexp.MustCompile(`gloas-[0-9a-zA-Z_\-]{64}`).String()
 
 func GitlabOauthAppSecret() *Rule {
 	return &Rule{

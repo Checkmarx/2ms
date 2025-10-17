@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var dopplerAPITokenRegex = regexp.MustCompile(`dp\.pt\.(?i)[a-z0-9]{43}`)
+var dopplerAPITokenRegex = regexp.MustCompile(`dp\.pt\.(?i)[a-z0-9]{43}`).String()
 
 func Doppler() *Rule {
 	return &Rule{

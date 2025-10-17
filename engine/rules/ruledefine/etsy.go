@@ -1,6 +1,7 @@
 package ruledefine
 
-var etsyAccessTokenRegex = generateSemiGenericRegex([]string{"(?-i:ETSY|[Ee]tsy)"}, AlphaNumeric("24"), true)
+var etsyAccessTokenRegex = generateSemiGenericRegex(
+	[]string{"(?-i:ETSY|[Ee]tsy)"}, AlphaNumeric("24"), true).String()
 
 func EtsyAccessToken() *Rule {
 	return &Rule{

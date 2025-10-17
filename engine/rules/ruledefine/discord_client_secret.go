@@ -1,6 +1,6 @@
 package ruledefine
 
-var discordClientSecretRegex = generateSemiGenericRegex([]string{"discord"}, AlphaNumericExtended("32"), true)
+var discordClientSecretRegex = generateSemiGenericRegex([]string{"discord"}, AlphaNumericExtended("32"), true).String()
 
 func DiscordClientSecret() *Rule {
 	return &Rule{

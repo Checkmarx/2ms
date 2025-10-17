@@ -5,7 +5,7 @@ import (
 )
 
 // regex for rule
-var onePasswordServiceAccountTokenRegex = regexp.MustCompile(`ops_eyJ[a-zA-Z0-9+/]{250,}={0,3}`)
+var onePasswordServiceAccountTokenRegex = regexp.MustCompile(`ops_eyJ[a-zA-Z0-9+/]{250,}={0,3}`).String()
 
 func OnePasswordServiceAccountToken() *Rule {
 	// define rule

@@ -1,6 +1,6 @@
 package ruledefine
 
-var digitaloceanRefreshTokenRegex = generateUniqueTokenRegex(`dor_v1_[a-f0-9]{64}`, true)
+var digitaloceanRefreshTokenRegex = generateUniqueTokenRegex(`dor_v1_[a-f0-9]{64}`, true).String()
 
 func DigitalOceanRefreshToken() *Rule {
 	return &Rule{

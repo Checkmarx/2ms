@@ -1,6 +1,6 @@
 package ruledefine
 
-var twitchAPITokenRegex = generateSemiGenericRegex([]string{"twitch"}, AlphaNumeric("30"), true)
+var twitchAPITokenRegex = generateSemiGenericRegex([]string{"twitch"}, AlphaNumeric("30"), true).String()
 
 func TwitchAPIToken() *Rule {
 	return &Rule{

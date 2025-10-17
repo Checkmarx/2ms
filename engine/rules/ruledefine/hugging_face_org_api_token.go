@@ -1,6 +1,7 @@
 package ruledefine
 
-var huggingFaceOrganizationApiTokenRegex = generateUniqueTokenRegex("api_org_(?i:[a-z]{34})", false)
+var huggingFaceOrganizationApiTokenRegex = generateUniqueTokenRegex(
+	"api_org_(?i:[a-z]{34})", false).String()
 
 func HuggingFaceOrganizationApiToken() *Rule {
 	return &Rule{

@@ -1,6 +1,6 @@
 package ruledefine
 
-var algoliaRegex = generateSemiGenericRegex([]string{"algolia"}, `[a-z0-9]{32}`, true)
+var algoliaRegex = generateSemiGenericRegex([]string{"algolia"}, `[a-z0-9]{32}`, true).String()
 
 func AlgoliaApiKey() *Rule {
 	// define rule

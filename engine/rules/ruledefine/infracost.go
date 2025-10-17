@@ -1,6 +1,6 @@
 package ruledefine
 
-var infracostAPITokenRegex = generateUniqueTokenRegex(`ico-[a-zA-Z0-9]{32}`, false)
+var infracostAPITokenRegex = generateUniqueTokenRegex(`ico-[a-zA-Z0-9]{32}`, false).String()
 
 func InfracostAPIToken() *Rule {
 	return &Rule{

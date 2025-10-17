@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var slackBotTokenRegex = regexp.MustCompile(`xoxb-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*`) //nolint:gocritic
+var slackBotTokenRegex = regexp.MustCompile(`xoxb-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*`).String() //nolint:gocritic
 
 func SlackBotToken() *Rule {
 	return &Rule{

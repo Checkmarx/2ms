@@ -1,6 +1,6 @@
 package ruledefine
 
-var mattermostAccessTokenRegex = generateSemiGenericRegex([]string{"mattermost"}, AlphaNumeric("26"), true)
+var mattermostAccessTokenRegex = generateSemiGenericRegex([]string{"mattermost"}, AlphaNumeric("26"), true).String()
 
 func MattermostAccessToken() *Rule {
 	return &Rule{

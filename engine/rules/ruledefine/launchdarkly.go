@@ -1,6 +1,7 @@
 package ruledefine
 
-var launchdarklyAccessTokenRegex = generateSemiGenericRegex([]string{"launchdarkly"}, AlphaNumericExtended("40"), true)
+var launchdarklyAccessTokenRegex = generateSemiGenericRegex(
+	[]string{"launchdarkly"}, AlphaNumericExtended("40"), true).String()
 
 func LaunchDarklyAccessToken() *Rule {
 	return &Rule{

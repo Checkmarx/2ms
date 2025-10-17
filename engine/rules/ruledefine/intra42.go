@@ -1,6 +1,6 @@
 package ruledefine
 
-var intra42ClientSecretRegex = generateUniqueTokenRegex(`s-s4t2(?:ud|af)-(?i)[abcdef0123456789]{64}`, false)
+var intra42ClientSecretRegex = generateUniqueTokenRegex(`s-s4t2(?:ud|af)-(?i)[abcdef0123456789]{64}`, false).String()
 
 func Intra42ClientSecret() *Rule {
 	return &Rule{

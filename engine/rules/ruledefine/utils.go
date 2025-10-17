@@ -99,8 +99,8 @@ func TwomsToGitleaksRule(rule *Rule) *gitleaksrule.Rule {
 		Description: rule.Description,
 		Entropy:     rule.Entropy,
 		SecretGroup: rule.SecretGroup,
-		Regex:       rule.Regex,
-		Path:        rule.Path,
+		Regex:       regexp.MustCompile(rule.Regex),
+		Path:        regexp.MustCompile(rule.Path),
 		Keywords:    rule.Keywords,
 		Allowlists:  convertAllowLists(rule.AllowLists),
 	}
@@ -111,13 +111,25 @@ func convertAllowLists(allowLists []*AllowList) []*gitleaksrule.Allowlist {
 		return nil
 	}
 	out := make([]*gitleaksrule.Allowlist, 0, len(allowLists))
+	paths := make([]*regexp.Regexp, 0)
+	regexes := make([]*regexp.Regexp, 0)
 	for _, allowList := range allowLists {
+
+		// convert paths to regex
+		for _, path := range allowList.Paths {
+			paths = append(paths, regexp.MustCompile(path))
+		}
+		// convert regexes strings to regex
+		for _, regex := range allowList.Regexes {
+			regexes = append(paths, regexp.MustCompile(regex))
+		}
+
 		out = append(out, &gitleaksrule.Allowlist{
 			Description:    allowList.Description,
 			MatchCondition: toGitleaksMatchCondition(allowList.MatchCondition),
-			Paths:          allowList.Paths,
+			Paths:          paths,
 			RegexTarget:    allowList.RegexTarget,
-			Regexes:        allowList.Regexes,
+			Regexes:        regexes,
 			StopWords:      allowList.StopWords,
 		})
 	}

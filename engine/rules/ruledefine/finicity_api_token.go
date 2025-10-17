@@ -1,6 +1,6 @@
 package ruledefine
 
-var finicityAPITokenRegex = generateSemiGenericRegex([]string{"finicity"}, Hex("32"), true)
+var finicityAPITokenRegex = generateSemiGenericRegex([]string{"finicity"}, Hex("32"), true).String()
 
 func FinicityAPIToken() *Rule {
 	return &Rule{

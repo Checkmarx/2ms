@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var authenticatedURLRegex = regexp.MustCompile(`://(\w+:\w\S+)@\S+\.\S+`)
+var authenticatedURLRegex = regexp.MustCompile(`://(\w+:\w\S+)@\S+\.\S+`).String()
 
 func AuthenticatedURL() *Rule {
 	return &Rule{

@@ -1,7 +1,7 @@
 package ruledefine
 
 var catadogAccessTokenRegex = generateSemiGenericRegex([]string{"datadog"},
-	AlphaNumeric("40"), true)
+	AlphaNumeric("40"), true).String()
 
 func DatadogtokenAccessToken() *Rule {
 	return &Rule{

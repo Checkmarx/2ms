@@ -1,6 +1,6 @@
 package ruledefine
 
-var alibabaAccessKeyRegex = generateUniqueTokenRegex(`LTAI(?i)[a-z0-9]{20}`, false)
+var alibabaAccessKeyRegex = generateUniqueTokenRegex(`LTAI(?i)[a-z0-9]{20}`, false).String()
 
 func AlibabaAccessKey() *Rule {
 	// define rule

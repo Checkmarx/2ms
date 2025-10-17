@@ -8,7 +8,7 @@ func BittrexAccessKey() *Rule {
 		Description: "Identified a Bittrex Access Key," +
 			" which could lead to unauthorized access to cryptocurrency trading accounts and financial loss.",
 		RuleID:          "bittrex-access-key",
-		Regex:           bittrexAccessKeyRegex,
+		Regex:           bittrexAccessKeyRegex.String(),
 		Keywords:        []string{"bittrex"},
 		Severity:        "High",
 		Tags:            []string{TagAccessKey},

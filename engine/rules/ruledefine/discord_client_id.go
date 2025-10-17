@@ -1,6 +1,6 @@
 package ruledefine
 
-var discordClientIdRegex = generateSemiGenericRegex([]string{"discord"}, Numeric("18"), true)
+var discordClientIdRegex = generateSemiGenericRegex([]string{"discord"}, Numeric("18"), true).String()
 
 func DiscordClientID() *Rule {
 	return &Rule{

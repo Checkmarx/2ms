@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var githubPATRegex = regexp.MustCompile(`ghp_[0-9a-zA-Z]{36}`)
+var githubPATRegex = regexp.MustCompile(`ghp_[0-9a-zA-Z]{36}`).String()
 
 func GitHubPat() *Rule {
 	return &Rule{
@@ -18,9 +18,9 @@ func GitHubPat() *Rule {
 		Severity: "High",
 		AllowLists: []*AllowList{
 			{
-				Paths: []*regexp.Regexp{
+				Paths: []string{
 					// https://github.com/octokit/auth-token.js/?tab=readme-ov-file#createtokenauthtoken-options
-					regexp.MustCompile(`(?:^|/)@octokit/auth-token/README\.md$`),
+					regexp.MustCompile(`(?:^|/)@octokit/auth-token/README\.md$`).String(),
 				},
 			},
 		},

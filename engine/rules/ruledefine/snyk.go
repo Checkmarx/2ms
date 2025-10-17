@@ -1,6 +1,7 @@
 package ruledefine
 
-var snykRegex = generateSemiGenericRegex([]string{"snyk[_.-]?(?:(?:api|oauth)[_.-]?)?(?:key|token)"}, Hex8_4_4_4_12(), true)
+var snykRegex = generateSemiGenericRegex(
+	[]string{"snyk[_.-]?(?:(?:api|oauth)[_.-]?)?(?:key|token)"}, Hex8_4_4_4_12(), true).String()
 
 func Snyk() *Rule {
 	return &Rule{

@@ -1,6 +1,6 @@
 package ruledefine
 
-var pulumiAPITokenRegex = generateUniqueTokenRegex(`pul-[a-f0-9]{40}`, false)
+var pulumiAPITokenRegex = generateUniqueTokenRegex(`pul-[a-f0-9]{40}`, false).String()
 
 func PulumiAPIToken() *Rule {
 	return &Rule{

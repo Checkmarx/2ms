@@ -1,7 +1,7 @@
 package ruledefine
 
 var typeformRegex = generateSemiGenericRegex([]string{"typeform"},
-	`tfp_[a-z0-9\-_\.=]{59}`, true)
+	`tfp_[a-z0-9\-_\.=]{59}`, true).String()
 
 func Typeform() *Rule {
 	return &Rule{

@@ -1,7 +1,7 @@
 package ruledefine
 
 var krakenAccessTokenRegex = generateSemiGenericRegex([]string{"kraken"},
-	AlphaNumericExtendedLong("80,90"), true)
+	AlphaNumericExtendedLong("80,90"), true).String()
 
 func KrakenAccessToken() *Rule {
 	return &Rule{

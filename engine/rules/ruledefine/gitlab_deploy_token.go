@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabDeployTokenRegex = regexp.MustCompile(`gldt-[0-9a-zA-Z_\-]{20}`)
+var gitlabDeployTokenRegex = regexp.MustCompile(`gldt-[0-9a-zA-Z_\-]{20}`).String()
 
 func GitlabDeployToken() *Rule {
 	return &Rule{

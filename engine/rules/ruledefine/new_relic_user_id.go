@@ -4,7 +4,7 @@ var newRelicUserAPIKeyRegex = generateSemiGenericRegex([]string{
 	"new-relic",
 	"newrelic",
 	"new_relic",
-}, `NRAK-[a-z0-9]{27}`, true)
+}, `NRAK-[a-z0-9]{27}`, true).String()
 
 func NewRelicUserID() *Rule {
 	return &Rule{

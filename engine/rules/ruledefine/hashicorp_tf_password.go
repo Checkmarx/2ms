@@ -8,7 +8,7 @@ import (
 
 var hashicorpKeywords = []string{"administrator_login_password", "password"}
 var hashicorpTfPasswordRegex = generateSemiGenericRegex(
-	hashicorpKeywords, fmt.Sprintf(`"%s"`, AlphaNumericExtended("8,20")), true) //nolint:gocritic
+	hashicorpKeywords, fmt.Sprintf(`"%s"`, AlphaNumericExtended("8,20")), true).String() //nolint:gocritic
 
 func HashicorpField() *Rule {
 	return &Rule{
@@ -19,7 +19,7 @@ func HashicorpField() *Rule {
 		Regex:           hashicorpTfPasswordRegex,
 		Entropy:         2,
 		Keywords:        hashicorpKeywords,
-		Path:            regexp.MustCompile(`(?i)\.(?:tf|hcl)$`),
+		Path:            regexp.MustCompile(`(?i)\.(?:tf|hcl)$`).String(),
 		Severity:        "High",
 		Tags:            []string{TagPassword},
 		ScoreParameters: ScoreParameters{Category: CategoryInfrastructureAsCode, RuleType: 4},

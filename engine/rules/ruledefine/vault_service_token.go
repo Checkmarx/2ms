@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var vaultServiceTokenRegex = generateUniqueTokenRegex(`(?:hvs\.[\w-]{90,120}|s\.(?i:[a-z0-9]{24}))`, false)
+var vaultServiceTokenRegex = generateUniqueTokenRegex(`(?:hvs\.[\w-]{90,120}|s\.(?i:[a-z0-9]{24}))`, false).String()
 
 func VaultServiceToken() *Rule {
 	return &Rule{
@@ -16,9 +16,9 @@ func VaultServiceToken() *Rule {
 		Keywords:    []string{"hvs.", "s."},
 		AllowLists: []*AllowList{
 			{
-				Regexes: []*regexp.Regexp{
+				Regexes: []string{
 					// https://github.com/gitleaks/gitleaks/issues/1490#issuecomment-2334166357
-					regexp.MustCompile(`s\.[A-Za-z]{24}`),
+					regexp.MustCompile(`s\.[A-Za-z]{24}`).String(),
 				},
 			},
 		},

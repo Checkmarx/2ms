@@ -1,6 +1,6 @@
 package ruledefine
 
-var readMeRegex = generateUniqueTokenRegex(`rdme_[a-z0-9]{70}`, false)
+var readMeRegex = generateUniqueTokenRegex(`rdme_[a-z0-9]{70}`, false).String()
 
 func ReadMe() *Rule {
 	return &Rule{

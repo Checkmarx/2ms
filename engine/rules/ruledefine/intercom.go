@@ -1,6 +1,6 @@
 package ruledefine
 
-var intercomAPIKeyRegex = generateSemiGenericRegex([]string{"intercom"}, AlphaNumericExtended("60"), true)
+var intercomAPIKeyRegex = generateSemiGenericRegex([]string{"intercom"}, AlphaNumericExtended("60"), true).String()
 
 func Intercom() *Rule {
 	return &Rule{

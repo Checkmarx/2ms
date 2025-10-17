@@ -1,6 +1,6 @@
 package ruledefine
 
-var planetScaleOAuthTokenRegex = generateUniqueTokenRegex(`pscale_oauth_[\w=\.-]{32,64}`, false)
+var planetScaleOAuthTokenRegex = generateUniqueTokenRegex(`pscale_oauth_[\w=\.-]{32,64}`, false).String()
 
 func PlanetScaleOAuthToken() *Rule {
 	return &Rule{

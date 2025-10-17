@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var slackConfigurationRefreshTokenRegex = regexp.MustCompile(`(?i)xoxe-\d-[A-Z0-9]{146}`)
+var slackConfigurationRefreshTokenRegex = regexp.MustCompile(`(?i)xoxe-\d-[A-Z0-9]{146}`).String()
 
 func SlackConfigurationRefreshToken() *Rule {
 	return &Rule{

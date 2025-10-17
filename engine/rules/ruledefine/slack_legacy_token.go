@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var slackLegacyTokenRegex = regexp.MustCompile(`xox[os]-\d+-\d+-\d+-[a-fA-F\d]+`)
+var slackLegacyTokenRegex = regexp.MustCompile(`xox[os]-\d+-\d+-\d+-[a-fA-F\d]+`).String()
 
 func SlackLegacyToken() *Rule {
 	return &Rule{
