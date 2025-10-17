@@ -12,8 +12,13 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"encoding/json/jsontext"
+)
+
+const (
+	httpTimeout = 60 * time.Second
 )
 
 // ConfluenceClient defines the operations required by the Confluence plugin.
@@ -55,6 +60,10 @@ func NewConfluenceClient(baseWikiURL, username string, tokenType TokenType, toke
 	return c, nil
 }
 
+// buildAPIBase returns the REST v2 base URL to use for this client.
+// For classic (or no) tokens it builds "<wikiBase>/api/v2".
+// For scoped tokens it discovers the site's cloudId and builds
+// "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
 func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType TokenType) (string, error) {
 	switch tokenType {
 	case "", TokenClassic:
@@ -79,7 +88,9 @@ func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType Token
 	}
 }
 
-// https://support.atlassian.com/jira/kb/retrieve-my-atlassian-sites-cloud-id/
+// discoverCloudID resolves the Atlassian cloudId for baseWikiURL by calling
+// "https://<site>/_edge/tenant_info" and decoding {"cloudId": "..."}.
+// Used when constructing the v2 API base for scoped tokens.
 func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, error) {
 	site, err := url.Parse(c.baseWikiURL)
 	if err != nil {
@@ -518,16 +529,16 @@ func nextURLFromLinkHeader(h http.Header) string {
 		return ""
 	}
 	// Example: Link: </wiki/api/v2/pages?cursor=...>; rel="next", </wiki/api/v2>; rel="base"
-	parts := strings.Split(link, ",")
-	for _, part := range parts {
-		partTrimmed := strings.TrimSpace(part)
-		if !strings.Contains(partTrimmed, `rel="next"`) {
+	for part := range strings.SplitSeq(link, ",") {
+		part = strings.TrimSpace(part)
+		if !strings.Contains(part, `rel="next"`) {
 			continue
 		}
-		start := strings.Index(partTrimmed, "<")
-		end := strings.Index(partTrimmed, ">")
-		if start >= 0 && end > start+1 {
-			return partTrimmed[start+1 : end]
+		if i := strings.IndexByte(part, '<'); i >= 0 {
+			part = part[i+1:]
+			if j := strings.IndexByte(part, '>'); j >= 0 {
+				return part[:j]
+			}
 		}
 	}
 	return ""

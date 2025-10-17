@@ -5,8 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -14,95 +16,341 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewConfluenceClient(t *testing.T) {
-	actual := NewConfluenceClient("http://example.test/wiki", "user", "token").(*httpConfluenceClient)
-	assert.Equal(t, "http://example.test/wiki", actual.baseWikiURL, "baseWikiURL mismatch")
-	assert.Equal(t, "user", actual.username, "username mismatch")
-	assert.Equal(t, "token", actual.token, "token mismatch")
-	assert.NotNil(t, actual.httpClient, "http client should be set")
-	assert.Equal(t, httpTimeout, actual.httpClient.Timeout, "timeout mismatch")
+func TestBuildAPIBase(t *testing.T) {
+	tlsTenant := func(cloudID string) *httptest.Server {
+		return httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/_edge/tenant_info" {
+				_, _ = w.Write([]byte(`{"cloudId":"` + cloudID + `"}`))
+				return
+			}
+			w.WriteHeader(http.StatusNotFound)
+		}))
+	}
+
+	tests := []struct {
+		name         string
+		setup        func() *httpConfluenceClient
+		tokenType    TokenType
+		expectedBase string
+		expectedErr  error
+	}{
+		{
+			name: "classic",
+			setup: func() *httpConfluenceClient {
+				return &httpConfluenceClient{baseWikiURL: "https://tenant.atlassian.net/wiki"}
+			},
+			tokenType:    TokenClassic,
+			expectedBase: "https://tenant.atlassian.net/wiki/api/v2",
+			expectedErr:  nil,
+		},
+		{
+			name: "scoped (discovers cloudId)",
+			setup: func() *httpConfluenceClient {
+				ts := tlsTenant("abc-123")
+				t.Cleanup(ts.Close)
+				base, _ := url.Parse(ts.URL)
+				base.Path = "/wiki"
+				return &httpConfluenceClient{
+					baseWikiURL: base.String(),
+					httpClient:  ts.Client(), // trust the TLS test server
+				}
+			},
+			tokenType:    TokenScoped,
+			expectedBase: "https://api.atlassian.com/ex/confluence/abc-123/wiki/api/v2",
+			expectedErr:  nil,
+		},
+		{
+			name: "unsupported",
+			setup: func() *httpConfluenceClient {
+				return &httpConfluenceClient{baseWikiURL: "https://example.test/wiki"}
+			},
+			tokenType:   TokenType("bad"),
+			expectedErr: fmt.Errorf(`unsupported token type %q`, TokenType("bad")),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := tc.setup()
+			actualBase, actualErr := c.buildAPIBase(context.Background(), tc.tokenType)
+			assert.Equal(t, tc.expectedErr, actualErr)
+			assert.Equal(t, tc.expectedBase, actualBase)
+		})
+	}
 }
 
 func TestAPIURL(t *testing.T) {
-	t.Run("joins path with leading slash", func(t *testing.T) {
-		c := &httpConfluenceClient{baseWikiURL: "https://example.test/wiki"}
-		actual := c.apiURL("/pages").String()
-		expected := "https://example.test/wiki/api/v2/pages"
-		assert.Equal(t, expected, actual)
-	})
-	t.Run("handles missing leading slash", func(t *testing.T) {
-		c := &httpConfluenceClient{baseWikiURL: "https://example.test/wiki"}
-		actual := c.apiURL("pages").String()
-		expected := "https://example.test/wiki/api/v2/pages"
-		assert.Equal(t, expected, actual)
-	})
-	t.Run("trailing slash base", func(t *testing.T) {
-		base := "https://example.test/wiki/"
-		c := &httpConfluenceClient{baseWikiURL: base}
-		actual := c.apiURL("/pages").String()
-		expected := strings.TrimSuffix(base, "/") + "/api/v2/pages"
-		assert.Equal(t, expected, actual)
-	})
-}
-
-func TestResolveNextPageURL(t *testing.T) {
-	c := &httpConfluenceClient{baseWikiURL: "http://example.test/wiki"}
-
-	t.Run("prefer Link header next (absolute)", func(t *testing.T) {
-		actual := c.resolveNextPageURL("http://example.test/wiki/api/v2/pages?cursor=abc", "")
-		expected := "http://example.test/wiki/api/v2/pages?cursor=abc"
-		assert.Equal(t, expected, actual)
-	})
-
-	t.Run("fallback to body _links.next (relative)", func(t *testing.T) {
-		actual := c.resolveNextPageURL("", "/wiki/api/v2/pages?cursor=xyz")
-		expected := "http://example.test/wiki/api/v2/pages?cursor=xyz"
-		assert.Equal(t, expected, actual)
-	})
-
-	t.Run("empty when none", func(t *testing.T) {
-		actual := c.resolveNextPageURL("", "")
-		assert.Empty(t, actual)
-	})
+	tests := []struct {
+		name         string
+		apiBase      string
+		inPath       string
+		expectedFull string
+	}{
+		{
+			name:         "leading slash",
+			apiBase:      "https://example.test/wiki/api/v2",
+			inPath:       "/pages",
+			expectedFull: "https://example.test/wiki/api/v2/pages",
+		},
+		{
+			name:         "missing leading slash",
+			apiBase:      "https://example.test/wiki/api/v2",
+			inPath:       "pages",
+			expectedFull: "https://example.test/wiki/api/v2/pages",
+		},
+		{
+			name:         "trailing slash base ok",
+			apiBase:      "https://example.test/wiki/api/v2/",
+			inPath:       "/pages",
+			expectedFull: "https://example.test/wiki/api/v2/pages",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &httpConfluenceClient{apiBase: tc.apiBase}
+			actual := c.apiURL(tc.inPath).String()
+			assert.Equal(t, tc.expectedFull, actual)
+		})
+	}
 }
 
 func TestNextURLFromLinkHeader(t *testing.T) {
-	headers := http.Header{}
-	headers.Set("Link", `</wiki/api/v2/pages?cursor=foo>; rel="base", </wiki/api/v2/pages?cursor=bar>; rel="next"`)
-	actual := nextURLFromLinkHeader(headers)
-	expected := "/wiki/api/v2/pages?cursor=bar"
-	assert.Equal(t, expected, actual)
-
-	headers = http.Header{}
-	actual = nextURLFromLinkHeader(headers)
-	assert.Empty(t, actual)
+	tests := []struct {
+		name         string
+		link         string
+		expectedNext string
+	}{
+		{
+			name:         `has rel="next"`,
+			link:         `</wiki/api/v2/pages?cursor=foo>; rel="base", </wiki/api/v2/pages?cursor=bar>; rel="next"`,
+			expectedNext: "/wiki/api/v2/pages?cursor=bar",
+		},
+		{
+			name:         "empty header",
+			link:         "",
+			expectedNext: "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := http.Header{}
+			if tc.link != "" {
+				h.Set("Link", tc.link)
+			}
+			actual := nextURLFromLinkHeader(h)
+			assert.Equal(t, tc.expectedNext, actual)
+		})
+	}
 }
 
 func TestRateLimitMessage(t *testing.T) {
-	headers := http.Header{}
-	headers.Set("Retry-After", "75")
-	actual := rateLimitMessage(headers)
-	expected := "rate limited (429) — retry after 1 minute(s) 15 second(s)"
-	assert.Equal(t, expected, actual)
+	tests := []struct {
+		name         string
+		retryAfter   string
+		expectedText string
+	}{
+		{
+			name:         "seconds to minutes+seconds",
+			retryAfter:   "75",
+			expectedText: "rate limited (429) — retry after 1 minute(s) 15 second(s)",
+		},
+		{
+			name:         "invalid value",
+			retryAfter:   "NotANumber",
+			expectedText: "rate limited (429)",
+		},
+		{
+			name:         "no header",
+			retryAfter:   "",
+			expectedText: "rate limited (429)",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := http.Header{}
+			if tc.retryAfter != "" {
+				h.Set("Retry-After", tc.retryAfter)
+			}
+			actual := rateLimitMessage(h)
+			assert.Equal(t, tc.expectedText, actual)
+		})
+	}
+}
 
-	headers = http.Header{}
-	headers.Set("Retry-After", "NotANumber")
-	actual = rateLimitMessage(headers)
-	expected = "rate limited (429)"
-	assert.Equal(t, expected, actual)
+func TestBaseWithoutCursor(t *testing.T) {
+	tests := []struct {
+		name     string
+		raw      string
+		expected string
+	}{
+		{
+			name:     "remove only cursor",
+			raw:      "https://x.test/wiki/api/v2/pages?cursor=abc&limit=10",
+			expected: "https://x.test/wiki/api/v2/pages?limit=10",
+		},
+		{
+			name:     "no cursor present",
+			raw:      "https://x.test/wiki/api/v2/pages?limit=10",
+			expected: "https://x.test/wiki/api/v2/pages?limit=10",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			u, _ := url.Parse(tc.raw)
+			actual := baseWithoutCursor(u).String()
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
 
-	headers = http.Header{}
-	actual = rateLimitMessage(headers)
-	expected = "rate limited (429)"
-	assert.Equal(t, expected, actual)
+func TestCursorFromURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		in       string
+		expected string
+	}{
+		{"relative with cursor", "/wiki/api/v2/pages?cursor=abc", "abc"},
+		{"empty", "", ""},
+		{"invalid url", "%", ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := cursorFromURL(tc.in)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestWithCursor(t *testing.T) {
+	tests := []struct {
+		name         string
+		raw          string
+		cur          string
+		expectedFull string
+	}{
+		{
+			name:         "add cursor",
+			raw:          "https://x.test/wiki/api/v2/pages?limit=10",
+			cur:          "next",
+			expectedFull: "https://x.test/wiki/api/v2/pages?limit=10&cursor=next",
+		},
+		{
+			name:         "overwrite cursor",
+			raw:          "https://x.test/wiki/api/v2/pages?cursor=old",
+			cur:          "new",
+			expectedFull: "https://x.test/wiki/api/v2/pages?cursor=new",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			u, _ := url.Parse(tc.raw)
+			actual := withCursor(u, tc.cur)
+
+			actualURL, err := url.Parse(actual)
+			assert.NoError(t, err)
+
+			expectedURL, err := url.Parse(tc.expectedFull)
+			assert.NoError(t, err)
+
+			assert.Equal(t, expectedURL.Scheme, actualURL.Scheme)
+			assert.Equal(t, expectedURL.Host, actualURL.Host)
+			assert.Equal(t, expectedURL.Path, actualURL.Path)
+			assert.Equal(t, expectedURL.Query(), actualURL.Query())
+		})
+	}
+}
+
+func TestFirstNonEmptyString(t *testing.T) {
+	tests := []struct {
+		name     string
+		a        string
+		b        string
+		expected string
+	}{
+		{"primary wins", "a", "b", "a"},
+		{"fallback", "", "b", "b"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := firstNonEmptyString(tc.a, tc.b)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestWalkPaginated(t *testing.T) {
+	type payload struct {
+		Results []int             `json:"results"`
+		Links   map[string]string `json:"_links,omitempty"`
+	}
+	first := payload{Results: []int{1, 2}, Links: map[string]string{"next": "/api?cursor=two"}}
+	second := payload{Results: []int{3}}
+
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		switch calls {
+		case 1:
+			_ = json.NewEncoder(w).Encode(first)
+		default:
+			_ = json.NewEncoder(w).Encode(second)
+		}
+	}))
+	defer srv.Close()
+
+	get := func(ctx context.Context, u string) ([]byte, http.Header, error) {
+		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, http.NoBody)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return b, resp.Header.Clone(), nil
+	}
+	resolve := func(linkNext, bodyNext string) string { return bodyNext }
+	parse := func(h http.Header, b []byte) ([]int, string, string, error) {
+		var p payload
+		if err := json.Unmarshal(b, &p); err != nil {
+			return nil, "", "", err
+		}
+		return p.Results, "", p.Links["next"], nil
+	}
+
+	var actual []int
+	actualErr := walkPaginated[int](context.Background(), srv.URL, get, resolve, parse, func(n int) error {
+		actual = append(actual, n)
+		return nil
+	})
+	assert.Equal(t, nil, actualErr)
+	assert.Equal(t, []int{1, 2, 3}, actual)
+}
+
+func TestStreamPagesFromBody(t *testing.T) {
+	body := `{
+	  "results": [
+	    {"id":"1","title":"A","body":{"storage":{"value":"x"}},"_links":{"self":"/s1"}},
+	    {"id":"2","title":"B","body":{"storage":{"value":"y"}},"_links":{"self":"/s2"}}
+	  ],
+	  "_links": {"next": "/wiki/api/v2/pages?cursor=next"}
+	}`
+	var actualVisited []string
+	actualNext, actualErr := streamPagesFromBody(strings.NewReader(body), func(p *Page) error {
+		actualVisited = append(actualVisited, p.ID)
+		return nil
+	})
+	assert.Equal(t, nil, actualErr)
+	assert.Equal(t, []string{"1", "2"}, actualVisited)
+	assert.Equal(t, "/wiki/api/v2/pages?cursor=next", actualNext)
 }
 
 func TestParseSpacesResponse(t *testing.T) {
 	body := []byte(`{"results":[{"id":"S1","key":"KEY1","name":"Space One","_links":{"self":"/s"}}],"_links":{"next":"/wiki/api/v2/spaces?cursor=2"}}`)
 	headers := http.Header{}
 	headers.Set("Link", `</wiki/api/v2/spaces?cursor=1>; rel="next"`)
-	spaces, linkNext, bodyNext, err := parseSpacesResponse(headers, body)
-	assert.NoError(t, err)
+	spaces, linkNext, bodyNext, actualErr := parseSpacesResponse(headers, body)
+	assert.Equal(t, nil, actualErr)
 	assert.Len(t, spaces, 1)
 	assert.Equal(t, "S1", spaces[0].ID)
 	assert.Equal(t, "/wiki/api/v2/spaces?cursor=1", linkNext)
@@ -113,89 +361,176 @@ func TestParseVersionsResponse(t *testing.T) {
 	body := []byte(`{"results":[{"number":3},{"number":2},{"number":1}],"_links":{"next":"/wiki/api/v2/pages/123/versions?cursor=2"}}`)
 	headers := http.Header{}
 	headers.Set("Link", `</wiki/api/v2/pages/123/versions?cursor=1>; rel="next"`)
-	versions, linkNext, bodyNext, err := parseVersionsResponse(headers, body)
-	assert.NoError(t, err)
+	versions, linkNext, bodyNext, actualErr := parseVersionsResponse(headers, body)
+	assert.Equal(t, nil, actualErr)
 	assert.Equal(t, []int{3, 2, 1}, versions)
 	assert.Equal(t, "/wiki/api/v2/pages/123/versions?cursor=1", linkNext)
 	assert.Equal(t, "/wiki/api/v2/pages/123/versions?cursor=2", bodyNext)
 }
 
 func TestGetJSON(t *testing.T) {
-	t.Run("success returns body and headers", func(t *testing.T) {
-		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// verify auth when provided
-			auth := r.Header.Get("Authorization")
-			expected := "Basic " + base64.StdEncoding.EncodeToString([]byte("user:token"))
-			assert.Equal(t, expected, auth, "basic auth header mismatch")
-			w.Header().Set("X-Foo", "bar")
-			_, _ = w.Write([]byte(`{"ok":true}`))
-		}))
-		defer testServer.Close()
+	tests := []struct {
+		name           string
+		username       string
+		token          string
+		setupServer    func(t *testing.T) *httptest.Server
+		expectedErr    error
+		expectedHeader string
+	}{
+		{
+			name:     "success with auth and Accept header",
+			username: "user",
+			token:    "token",
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					// Validate headers
+					expAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte("user:token"))
+					assert.Equal(t, expAuth, r.Header.Get("Authorization"))
+					assert.Equal(t, "application/json", r.Header.Get("Accept"))
+					w.Header().Set("Link", "mockLink")
+					_, _ = w.Write([]byte(`{"ok":true}`))
+				}))
+			},
+			expectedErr:    nil,
+			expectedHeader: "mockLink",
+		},
+		{
+			name: "rate limited 429 returns friendly error",
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Retry-After", "120")
+					w.WriteHeader(http.StatusTooManyRequests)
+				}))
+			},
+			expectedErr:    fmt.Errorf("rate limited (429) — retry after 2 minute(s) 0 second(s)"),
+			expectedHeader: "",
+		},
+		{
+			name: "non-2xx returns snippet",
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "something went wrong", http.StatusInternalServerError)
+				}))
+			},
+			expectedErr:    fmt.Errorf("http 500: something went wrong"),
+			expectedHeader: "",
+		},
+		{
+			name: "no auth header when username/token empty",
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, "", r.Header.Get("Authorization"))
+					_, _ = w.Write([]byte(`{}`))
+				}))
+			},
+			expectedErr:    nil,
+			expectedHeader: "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := tc.setupServer(t)
+			defer ts.Close()
 
-		client := &httpConfluenceClient{
-			baseWikiURL: testServer.URL + "/wiki",
-			httpClient:  &http.Client{Timeout: 5 * time.Second},
-			username:    "user",
-			token:       "token",
-		}
-		body, headers, err := client.getJSON(context.Background(), testServer.URL)
-		assert.NoError(t, err)
-		assert.JSONEq(t, `{"ok":true}`, string(body))
-		assert.Equal(t, "bar", headers.Get("X-Foo"))
-	})
+			client := &httpConfluenceClient{
+				baseWikiURL: ts.URL + "/wiki",
+				httpClient:  &http.Client{Timeout: 5 * time.Second},
+				username:    tc.username,
+				token:       tc.token,
+			}
 
-	t.Run("rate limited 429 returns friendly error", func(t *testing.T) {
-		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Retry-After", "120")
-			w.WriteHeader(http.StatusTooManyRequests)
-		}))
-		defer testServer.Close()
+			_, headers, actualErr := client.getJSON(context.Background(), ts.URL)
+			assert.Equal(t, tc.expectedErr, actualErr)
 
-		client := &httpConfluenceClient{httpClient: &http.Client{Timeout: 5 * time.Second}}
-		_, _, err := client.getJSON(context.Background(), testServer.URL)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "rate limited (429) — retry after 2 minute(s) 0 second(s)")
-	})
+			var actualHeader string
+			if headers != nil {
+				actualHeader = headers.Get("Link")
+			}
+			assert.Equal(t, tc.expectedHeader, actualHeader)
+		})
+	}
+}
 
-	t.Run("non-2xx returns snippet", func(t *testing.T) {
-		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.Error(w, "something went wrong", http.StatusInternalServerError)
-		}))
-		defer testServer.Close()
+func TestGetJSONStream(t *testing.T) {
+	tests := []struct {
+		name           string
+		username       string
+		token          string
+		setupServer    func(t *testing.T) *httptest.Server
+		expectedErr    error
+		expectedHeader string
+		expectedBody   string
+	}{
+		{
+			name:     "success returns ReadCloser and headers",
+			username: "u",
+			token:    "p",
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					expAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte("u:p"))
+					assert.Equal(t, expAuth, r.Header.Get("Authorization"))
+					assert.Equal(t, "application/json", r.Header.Get("Accept"))
+					w.Header().Set("Link", "mockLink")
+					_, _ = w.Write([]byte(`{"ok":true}`))
+				}))
+			},
+			expectedErr:    nil,
+			expectedHeader: "mockLink",
+			expectedBody:   `{"ok":true}`,
+		},
+		{
+			name: "429 returns friendly error",
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Retry-After", "5")
+					w.WriteHeader(http.StatusTooManyRequests)
+				}))
+			},
+			expectedErr:    fmt.Errorf("rate limited (429) — retry after 0 minute(s) 5 second(s)"),
+			expectedHeader: "",
+			expectedBody:   "",
+		},
+		{
+			name: "non-2xx returns snippet",
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Error(w, "boom", http.StatusBadRequest)
+				}))
+			},
+			expectedErr:    fmt.Errorf("http 400: boom"),
+			expectedHeader: "",
+			expectedBody:   "",
+		},
+	}
 
-		client := &httpConfluenceClient{httpClient: &http.Client{Timeout: 5 * time.Second}}
-		_, _, err := client.getJSON(context.Background(), testServer.URL)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "http 500: something went wrong")
-	})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := tc.setupServer(t)
+			defer ts.Close()
 
-	t.Run("sets Accept header", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			expected := "application/json"
-			actual := r.Header.Get("Accept")
-			assert.Equal(t, expected, actual, "Accept header mismatch: expected=%s actual=%s", expected, actual)
-			_, _ = w.Write([]byte(`{}`))
-		}))
-		defer ts.Close()
+			c := &httpConfluenceClient{
+				httpClient: &http.Client{Timeout: 5 * time.Second},
+				username:   tc.username,
+				token:      tc.token,
+			}
+			rc, headers, actualErr := c.getJSONStream(context.Background(), ts.URL)
+			assert.Equal(t, tc.expectedErr, actualErr)
 
-		c := &httpConfluenceClient{httpClient: &http.Client{Timeout: 5 * time.Second}}
-		_, _, err := c.getJSON(context.Background(), ts.URL)
-		assert.NoError(t, err)
-	})
+			var actualHeader string
+			if headers != nil {
+				actualHeader = headers.Get("Link")
+			}
+			assert.Equal(t, tc.expectedHeader, actualHeader)
 
-	t.Run("no auth header when username/token empty", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			expected := ""
-			actual := r.Header.Get("Authorization")
-			assert.Equal(t, expected, actual, "Authorization header mismatch: expected=%q actual=%q", expected, actual)
-			_, _ = w.Write([]byte(`{}`))
-		}))
-		defer ts.Close()
-
-		c := &httpConfluenceClient{httpClient: &http.Client{Timeout: 5 * time.Second}}
-		_, _, err := c.getJSON(context.Background(), ts.URL)
-		assert.NoError(t, err)
-	})
+			var actualBody string
+			if rc != nil {
+				defer rc.Close()
+				b, _ := io.ReadAll(rc)
+				actualBody = strings.TrimSpace(string(b))
+			}
+			assert.Equal(t, strings.TrimSpace(tc.expectedBody), actualBody)
+		})
+	}
 }
 
 func TestWalkPagesPaginated(t *testing.T) {
@@ -222,18 +557,17 @@ func TestWalkPagesPaginated(t *testing.T) {
 
 	c := &httpConfluenceClient{
 		baseWikiURL: ts.URL + "/wiki",
+		apiBase:     ts.URL + "/wiki/api/v2",
 		httpClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 
 	var actualIDs []string
-	err := c.walkPagesPaginated(context.Background(), ts.URL, func(p *Page) error {
+	actualErr := c.walkPagesPaginated(context.Background(), ts.URL, func(p *Page) error {
 		actualIDs = append(actualIDs, p.ID)
 		return nil
 	})
-	assert.NoError(t, err)
-
-	expectedIDs := []string{"1", "2", "3"}
-	assert.Equal(t, expectedIDs, actualIDs)
+	assert.Equal(t, nil, actualErr)
+	assert.Equal(t, []string{"1", "2", "3"}, actualIDs)
 }
 
 func TestWalkVersionsPaginated(t *testing.T) {
@@ -256,19 +590,23 @@ func TestWalkVersionsPaginated(t *testing.T) {
 
 	client := &httpConfluenceClient{
 		baseWikiURL: testServer.URL + "/wiki",
+		apiBase:     testServer.URL + "/wiki/api/v2",
 		httpClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 	var actual []int
-	err := client.walkVersionsPaginated(context.Background(), testServer.URL, func(n int) error {
+	actualErr := client.walkVersionsPaginated(context.Background(), testServer.URL, func(n int) error {
 		actual = append(actual, n)
 		return nil
 	})
-	assert.NoError(t, err)
+	assert.Equal(t, nil, actualErr)
 	assert.Equal(t, []int{3, 2, 1}, actual)
 }
 
 func TestWalkSpacesPaginated(t *testing.T) {
-	firstBatch := listSpacesResponse{Results: []*Space{{ID: "S1", Key: "KEY1"}}, Links: map[string]string{"next": "/wiki/api/v2/spaces?cursor=2"}}
+	firstBatch := listSpacesResponse{
+		Results: []*Space{{ID: "S1", Key: "KEY1"}},
+		Links:   map[string]string{"next": "/wiki/api/v2/spaces?cursor=2"},
+	}
 	secondBatch := listSpacesResponse{Results: []*Space{{ID: "S2", Key: "KEY2"}}}
 
 	var calls int
@@ -283,13 +621,17 @@ func TestWalkSpacesPaginated(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
+	client := &httpConfluenceClient{
+		baseWikiURL: testServer.URL + "/wiki",
+		apiBase:     testServer.URL + "/wiki/api/v2",
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+	}
 	var actual []string
-	err := client.walkSpacesPaginated(context.Background(), testServer.URL, func(s *Space) error {
+	actualErr := client.walkSpacesPaginated(context.Background(), testServer.URL, func(s *Space) error {
 		actual = append(actual, s.ID)
 		return nil
 	})
-	assert.NoError(t, err)
+	assert.Equal(t, nil, actualErr)
 	assert.Equal(t, []string{"S1", "S2"}, actual)
 }
 
@@ -305,13 +647,17 @@ func TestWalkAllPages(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
+	client := &httpConfluenceClient{
+		baseWikiURL: testServer.URL + "/wiki",
+		apiBase:     testServer.URL + "/wiki/api/v2",
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+	}
 	var actual []string
-	err := client.WalkAllPages(context.Background(), 250, func(p *Page) error {
+	actualErr := client.WalkAllPages(context.Background(), 250, func(p *Page) error {
 		actual = append(actual, p.ID)
 		return nil
 	})
-	assert.NoError(t, err)
+	assert.Equal(t, nil, actualErr)
 	assert.Equal(t, []string{"1", "2"}, actual)
 }
 
@@ -328,13 +674,17 @@ func TestWalkPagesByIDs(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
+	client := &httpConfluenceClient{
+		baseWikiURL: testServer.URL + "/wiki",
+		apiBase:     testServer.URL + "/wiki/api/v2",
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+	}
 	var actual []string
-	err := client.WalkPagesByIDs(context.Background(), []string{"1", "2"}, 2, func(p *Page) error {
+	actualErr := client.WalkPagesByIDs(context.Background(), []string{"1", "2"}, 2, func(p *Page) error {
 		actual = append(actual, p.ID)
 		return nil
 	})
-	assert.NoError(t, err)
+	assert.Equal(t, nil, actualErr)
 	assert.Equal(t, []string{"10", "20"}, actual)
 }
 
@@ -351,13 +701,17 @@ func TestWalkPagesBySpaceIDs(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
+	client := &httpConfluenceClient{
+		baseWikiURL: testServer.URL + "/wiki",
+		apiBase:     testServer.URL + "/wiki/api/v2",
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+	}
 	var actual []string
-	err := client.WalkPagesBySpaceIDs(context.Background(), []string{"S1", "S2"}, 2, func(p *Page) error {
+	actualErr := client.WalkPagesBySpaceIDs(context.Background(), []string{"S1", "S2"}, 2, func(p *Page) error {
 		actual = append(actual, p.ID)
 		return nil
 	})
-	assert.NoError(t, err)
+	assert.Equal(t, nil, actualErr)
 	assert.Equal(t, []string{"100", "200"}, actual)
 }
 
@@ -372,21 +726,30 @@ func TestWalkPageVersions(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
+	client := &httpConfluenceClient{
+		baseWikiURL: testServer.URL + "/wiki",
+		apiBase:     testServer.URL + "/wiki/api/v2",
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+	}
 	var actual []int
-	err := client.WalkPageVersions(context.Background(), "123", 50, func(n int) error {
+	actualErr := client.WalkPageVersions(context.Background(), "123", 50, func(n int) error {
 		actual = append(actual, n)
 		return nil
 	})
-	assert.NoError(t, err)
+	assert.Equal(t, nil, actualErr)
 	assert.Equal(t, []int{2, 1}, actual)
 }
 
 func TestFetchPageAtVersion(t *testing.T) {
 	expectPath := "/wiki/api/v2/pages/123"
-	page := Page{ID: "123", Title: "Hello", Version: PageVersion{Number: 7}, Body: PageBody{Storage: &struct {
-		Value string `json:"value"`
-	}{Value: "<p>x</p>"}}}
+	page := Page{
+		ID:      "123",
+		Title:   "Hello",
+		Version: PageVersion{Number: 7},
+		Body: PageBody{Storage: &struct {
+			Value string `json:"value"`
+		}{Value: "<p>x</p>"}},
+	}
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
 		assert.Equal(t, "7", r.URL.Query().Get("version"))
@@ -395,9 +758,13 @@ func TestFetchPageAtVersion(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
-	actual, err := client.FetchPageAtVersion(context.Background(), "123", 7)
-	assert.NoError(t, err)
+	client := &httpConfluenceClient{
+		baseWikiURL: testServer.URL + "/wiki",
+		apiBase:     testServer.URL + "/wiki/api/v2",
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+	}
+	actual, actualErr := client.FetchPageAtVersion(context.Background(), "123", 7)
+	assert.Equal(t, nil, actualErr)
 	assert.Equal(t, "123", actual.ID)
 	assert.Equal(t, 7, actual.Version.Number)
 	assert.Equal(t, "<p>x</p>", actual.Body.Storage.Value)
@@ -405,22 +772,34 @@ func TestFetchPageAtVersion(t *testing.T) {
 
 func TestWalkSpacesByKeys(t *testing.T) {
 	expectPath := "/wiki/api/v2/spaces"
-	resp := listSpacesResponse{Results: []*Space{{ID: "S1", Key: "KEY1"}, {ID: "S2", Key: "KEY2"}}}
+	resp := listSpacesResponse{
+		Results: []*Space{
+			{ID: "S1", Key: "KEY1"},
+			{ID: "S2", Key: "KEY2"},
+		},
+	}
 
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
 		assert.Equal(t, "2", r.URL.Query().Get("limit"))
 		assert.Equal(t, "KEY1,KEY2", r.URL.Query().Get("keys"))
 		_ = json.NewEncoder(w).Encode(resp)
 	}))
-	defer testServer.Close()
+	defer ts.Close()
 
-	client := &httpConfluenceClient{baseWikiURL: testServer.URL + "/wiki", httpClient: &http.Client{Timeout: 5 * time.Second}}
+	client := &httpConfluenceClient{
+		baseWikiURL: ts.URL + "/wiki",
+		apiBase:     ts.URL + "/wiki/api/v2",
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
+	}
+
 	var actual []string
-	err := client.WalkSpacesByKeys(context.Background(), []string{"KEY1", "KEY2"}, 2, func(s *Space) error {
+	actualErr := client.WalkSpacesByKeys(context.Background(), []string{"KEY1", "KEY2"}, 2, func(s *Space) error {
 		actual = append(actual, s.ID)
 		return nil
 	})
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"S1", "S2"}, actual)
+
+	assert.Equal(t, nil, actualErr)
+	expected := []string{"S1", "S2"}
+	assert.Equal(t, expected, actual)
 }

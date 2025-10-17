@@ -8,13 +8,13 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/checkmarx/2ms/v4/engine/chunk"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
+// CLI flags for Confluence.
 const (
 	flagSpaceIDs   = "space-ids"
 	flagSpaceKeys  = "space-keys"
@@ -23,14 +23,25 @@ const (
 	flagTokenType  = "token-type"  // "classic" or "scoped"
 	flagTokenValue = "token-value" // required when token-type is set
 	flagHistory    = "history"
+)
 
-	// Confluence Cloud REST API v2 constraints
-	maxPageIDsPerRequest   = 250
-	maxSpaceIDsPerRequest  = 100
+// Confluence Cloud REST API v2 per-request limits (server caps by endpoint/param).
+const (
+	// maxPageIDsPerRequest is the per-request server cap for the number of page IDs
+	// accepted by GET /pages via the ids= query parameter.
+	maxPageIDsPerRequest = 250
+
+	// maxSpaceIDsPerRequest is the per-request server cap for the number of space IDs
+	// accepted by GET /pages via the space-id= query parameter.
+	maxSpaceIDsPerRequest = 100
+
+	// maxSpaceKeysPerRequest is the per-request server cap for the number of space keys
+	// accepted by GET /spaces via the keys= query parameter.
 	maxSpaceKeysPerRequest = 250
-	maxPageSize            = 250
 
-	httpTimeout = 60 * time.Second
+	// maxPageSize is the requested number of items per page in paginated responses.
+	// Confluence v2 accepts 1–250; we use 250 to minimize requests so we're less likely to hit rate limits.
+	maxPageSize = 250
 )
 
 type TokenType string
@@ -56,7 +67,8 @@ type ConfluencePlugin struct {
 	itemsChan  chan ISourceItem
 	errorsChan chan error
 
-	client ConfluenceClient
+	client  ConfluenceClient
+	chunker chunk.IChunk
 }
 
 func (p *ConfluencePlugin) GetName() string { return "confluence" }
@@ -68,7 +80,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s <URL>", p.GetName()),
 		Short:   "Scan Confluence Cloud",
-		Long:    "Scan Confluence Cloud pages for sensitive information",
+		Long:    "Scan Confluence Cloud for sensitive information",
 		Example: fmt.Sprintf("  2ms %s https://checkmarx.atlassian.net/wiki", p.GetName()),
 		Args:    cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -92,12 +104,12 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+			defer close(items)
 			log.Info().Msg("Confluence plugin started")
 			if err := p.walkAndEmitPages(context.Background()); err != nil {
 				p.errorsChan <- err
 				return
 			}
-			close(items)
 		},
 	}
 
@@ -126,6 +138,8 @@ func isValidURL(_ *cobra.Command, args []string) error {
 	return nil
 }
 
+// isValidTokenType reports whether the provided tokenType is supported.
+// Valid values are the empty string (no auth), "classic", and "scoped".
 func isValidTokenType(tokenType TokenType) bool {
 	switch tokenType {
 	case "", TokenClassic, TokenScoped:
@@ -144,37 +158,38 @@ func (p *ConfluencePlugin) initialize(base string) error {
 		return err
 	}
 	p.client = client
+
+	p.chunker = chunk.New()
 	return nil
 }
 
 // walkAndEmitPages discovers pages by the provided selectors (space IDs, space keys, page IDs).
 // If no selector is provided, it walks all accessible pages. Pages are de-duplicated by ID.
 func (p *ConfluencePlugin) walkAndEmitPages(ctx context.Context) error {
-	wikiBaseURL := p.baseWikiURL
-	seenPageIDs := make(map[string]struct{})
-	seenSpaceIDs := make(map[string]struct{})
+	seenPageIDs := make(map[string]struct{}, len(p.PageIDs))
+	seenSpaceIDs := make(map[string]struct{}, len(p.SpaceIDs))
 
 	if len(p.SpaceIDs) > 0 {
-		if err := p.scanBySpaceIDs(ctx, wikiBaseURL, seenPageIDs, seenSpaceIDs); err != nil {
+		if err := p.scanBySpaceIDs(ctx, seenPageIDs, seenSpaceIDs); err != nil {
 			return err
 		}
 	}
 
 	if len(p.SpaceKeys) > 0 {
-		if err := p.scanBySpaceKeys(ctx, wikiBaseURL, seenPageIDs, seenSpaceIDs); err != nil {
+		if err := p.scanBySpaceKeys(ctx, seenPageIDs, seenSpaceIDs); err != nil {
 			return err
 		}
 	}
 
 	if len(p.PageIDs) > 0 {
-		if err := p.scanByPageIDs(ctx, wikiBaseURL, seenPageIDs); err != nil {
+		if err := p.scanByPageIDs(ctx, seenPageIDs); err != nil {
 			return err
 		}
 	}
 
 	if len(p.SpaceIDs) == 0 && len(p.SpaceKeys) == 0 && len(p.PageIDs) == 0 {
 		if err := p.client.WalkAllPages(ctx, maxPageSize, func(page *Page) error {
-			return p.emitUniquePage(ctx, page, wikiBaseURL, seenPageIDs)
+			return p.emitUniquePage(ctx, page, seenPageIDs)
 		}); err != nil {
 			return err
 		}
@@ -186,7 +201,7 @@ func (p *ConfluencePlugin) walkAndEmitPages(ctx context.Context) error {
 // scanBySpaceIDs walks pages in the explicitly provided space IDs (p.SpaceIDs).
 // It deduplicates space IDs with seenSpaceIDs, batches requests (maxSpaceIDsPerRequest),
 // and emits pages via emitUniquePage while tracking seenPageIDs.
-func (p *ConfluencePlugin) scanBySpaceIDs(ctx context.Context, wikiBaseURL string, seenPageIDs, seenSpaceIDs map[string]struct{}) error {
+func (p *ConfluencePlugin) scanBySpaceIDs(ctx context.Context, seenPageIDs, seenSpaceIDs map[string]struct{}) error {
 	var uniqueSpaceIDs []string
 	for _, spaceID := range p.SpaceIDs {
 		if _, alreadySeen := seenSpaceIDs[spaceID]; alreadySeen {
@@ -195,20 +210,20 @@ func (p *ConfluencePlugin) scanBySpaceIDs(ctx context.Context, wikiBaseURL strin
 		seenSpaceIDs[spaceID] = struct{}{}
 		uniqueSpaceIDs = append(uniqueSpaceIDs, spaceID)
 	}
-	for _, spaceIDBatch := range chunkStrings(uniqueSpaceIDs, maxSpaceIDsPerRequest) {
-		if err := p.client.WalkPagesBySpaceIDs(ctx, spaceIDBatch, maxPageSize, func(page *Page) error {
-			return p.emitUniquePage(ctx, page, wikiBaseURL, seenPageIDs)
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
+
+	return p.walkPagesByIDBatches(
+		ctx,
+		uniqueSpaceIDs,
+		maxSpaceIDsPerRequest,
+		seenPageIDs,
+		p.client.WalkPagesBySpaceIDs,
+	)
 }
 
 // scanBySpaceKeys resolves space keys (p.SpaceKeys) to space IDs, deduplicates with
 // seenSpaceIDs, then walks pages by those IDs in batches. Each page is emitted via
 // emitUniquePage, updating seenPageIDs.
-func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context, wikiBaseURL string, seenPageIDs, seenSpaceIDs map[string]struct{}) error {
+func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context, seenPageIDs, seenSpaceIDs map[string]struct{}) error {
 	for _, spaceKeyBatch := range chunkStrings(p.SpaceKeys, maxSpaceKeysPerRequest) {
 		var newlyResolvedSpaceIDs []string
 		if err := p.client.WalkSpacesByKeys(ctx, spaceKeyBatch, maxPageSize, func(space *Space) error {
@@ -221,12 +236,15 @@ func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context, wikiBaseURL stri
 		}); err != nil {
 			return err
 		}
-		for _, spaceIDBatch := range chunkStrings(newlyResolvedSpaceIDs, maxSpaceIDsPerRequest) {
-			if err := p.client.WalkPagesBySpaceIDs(ctx, spaceIDBatch, maxPageSize, func(page *Page) error {
-				return p.emitUniquePage(ctx, page, wikiBaseURL, seenPageIDs)
-			}); err != nil {
-				return err
-			}
+
+		if err := p.walkPagesByIDBatches(
+			ctx,
+			newlyResolvedSpaceIDs,
+			maxSpaceIDsPerRequest,
+			seenPageIDs,
+			p.client.WalkPagesBySpaceIDs,
+		); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -234,33 +252,36 @@ func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context, wikiBaseURL stri
 
 // scanByPageIDs walks the specific page IDs in p.PageIDs, batching requests (maxPageIDsPerRequest),
 // and emits each page via emitUniquePage while tracking seenPageIDs to avoid duplicates.
-func (p *ConfluencePlugin) scanByPageIDs(ctx context.Context, wikiBaseURL string, seenPageIDs map[string]struct{}) error {
-	for _, pageIDBatch := range chunkStrings(p.PageIDs, maxPageIDsPerRequest) {
-		if err := p.client.WalkPagesByIDs(ctx, pageIDBatch, maxPageSize, func(page *Page) error {
-			return p.emitUniquePage(ctx, page, wikiBaseURL, seenPageIDs)
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
+func (p *ConfluencePlugin) scanByPageIDs(ctx context.Context, seenPageIDs map[string]struct{}) error {
+	return p.walkPagesByIDBatches(
+		ctx,
+		p.PageIDs,
+		maxPageIDsPerRequest,
+		seenPageIDs,
+		p.client.WalkPagesByIDs,
+	)
 }
 
 // emitInChunks emits page content as one or many items.
-func (p *ConfluencePlugin) emitInChunks(page *Page, wikiBaseURL string) error {
-	ch := chunk.New()
-
-	if page.Body.Storage == nil || len(page.Body.Storage.Value) < int(ch.GetFileThreshold()) {
-		p.itemsChan <- p.convertPageToItem(page, wikiBaseURL, page.Version.Number)
+func (p *ConfluencePlugin) emitInChunks(page *Page) error {
+	if page.Body.Storage == nil {
 		return nil
 	}
 
-	reader := bufio.NewReaderSize(strings.NewReader(page.Body.Storage.Value), ch.GetSize()+ch.GetMaxPeekSize())
+	if len(page.Body.Storage.Value) < int(p.chunker.GetFileThreshold()) {
+		p.itemsChan <- p.convertPageToItem(page)
+		return nil
+	}
+
+	reader := bufio.NewReaderSize(
+		strings.NewReader(page.Body.Storage.Value), p.chunker.GetSize()+p.chunker.GetMaxPeekSize(),
+	)
 
 	// We don't care about line-count logic here
 	totalLines := -1
 
 	for {
-		chunkStr, err := ch.ReadChunk(reader, totalLines)
+		chunkStr, err := p.chunker.ReadChunk(reader, totalLines)
 		if err != nil {
 			if err == io.EOF {
 				return nil
@@ -277,25 +298,25 @@ func (p *ConfluencePlugin) emitInChunks(page *Page, wikiBaseURL string) error {
 			Value string `json:"value"`
 		}{Value: chunkStr}
 
-		p.itemsChan <- p.convertPageToItem(&tmp, wikiBaseURL, page.Version.Number)
+		p.itemsChan <- p.convertPageToItem(&tmp)
 	}
 }
 
 // emitUniquePage emits the current version of a page (and, if enabled, its historical versions)
 // ensuring each page ID is emitted only once.
-func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page, wikiBaseURL string, seenPageIDs map[string]struct{}) error {
+func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page, seenPageIDs map[string]struct{}) error {
 	if _, alreadySeen := seenPageIDs[page.ID]; alreadySeen {
 		return nil
 	}
 	seenPageIDs[page.ID] = struct{}{}
 
 	// current version
-	if err := p.emitInChunks(page, wikiBaseURL); err != nil {
+	if err := p.emitInChunks(page); err != nil {
 		return err
 	}
 
 	if p.History {
-		if err := p.emitHistory(ctx, page, wikiBaseURL); err != nil {
+		if err := p.emitHistory(ctx, page); err != nil {
 			return err
 		}
 	}
@@ -304,7 +325,7 @@ func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page, wikiB
 
 // emitHistory enumerates all versions of a page and emits each version
 // except the current one (which is already emitted by emitUniquePage).
-func (p *ConfluencePlugin) emitHistory(ctx context.Context, page *Page, wikiBaseURL string) error {
+func (p *ConfluencePlugin) emitHistory(ctx context.Context, page *Page) error {
 	current := page.Version.Number
 	return p.client.WalkPageVersions(ctx, page.ID, maxPageSize, func(versionNumber int) error {
 		if versionNumber == current {
@@ -314,7 +335,7 @@ func (p *ConfluencePlugin) emitHistory(ctx context.Context, page *Page, wikiBase
 		if err != nil {
 			return err
 		}
-		return p.emitInChunks(versionedPage, wikiBaseURL)
+		return p.emitInChunks(versionedPage)
 	})
 }
 
@@ -325,38 +346,35 @@ func chunkStrings(input []string, chunkSize int) [][]string {
 	}
 	var chunks [][]string
 	for startIndex := 0; startIndex < len(input); startIndex += chunkSize {
-		endIndex := startIndex + chunkSize
-		if endIndex > len(input) {
-			endIndex = len(input)
-		}
+		endIndex := min(startIndex+chunkSize, len(input))
 		chunks = append(chunks, input[startIndex:endIndex])
 	}
 	return chunks
 }
 
 // convertPageToItem converts a Confluence Page into an ISourceItem
-func (p *ConfluencePlugin) convertPageToItem(page *Page, wikiBaseURL string, versionNumber int) ISourceItem {
+func (p *ConfluencePlugin) convertPageToItem(page *Page) ISourceItem {
 	itemID := fmt.Sprintf("%s-%s-%s", p.GetName(), page.ID, strconv.Itoa(page.Version.Number))
 
 	sourceURL := ""
-	if resolvedURL, ok := resolveConfluenceSourceURL(page, wikiBaseURL, versionNumber); ok {
+	if resolvedURL, ok := resolveConfluenceSourceURL(page, p.baseWikiURL, page.Version.Number); ok {
 		sourceURL = resolvedURL
 	}
 
-	content := ""
+	var content *string
 	if page.Body.Storage != nil {
-		content = page.Body.Storage.Value
+		content = &page.Body.Storage.Value
 	}
 
 	return &item{
 		ID:      itemID,
 		Source:  sourceURL,
-		Content: &content,
+		Content: content,
 	}
 }
 
 // resolveConfluenceSourceURL resolves a URL for a page.
-// It prefers the "_links.webui" path and appends pageVersion when > 0.
+// It prefers the "_links.webui" path and appends pageVersion.
 // Falls back to "_links.base" when webui is unavailable.
 func resolveConfluenceSourceURL(page *Page, wikiBaseURL string, versionNumber int) (string, bool) {
 	if page.Links == nil {
@@ -373,13 +391,10 @@ func resolveConfluenceSourceURL(page *Page, wikiBaseURL string, versionNumber in
 		if err != nil {
 			return "", false
 		}
-
 		resolvedURL := baseURL.ResolveReference(relativeURL) // preserves /wiki
-		if versionNumber > 0 {
-			queryValues := resolvedURL.Query()
-			queryValues.Set("pageVersion", strconv.Itoa(versionNumber))
-			resolvedURL.RawQuery = queryValues.Encode()
-		}
+		queryValues := resolvedURL.Query()
+		queryValues.Set("pageVersion", strconv.Itoa(versionNumber))
+		resolvedURL.RawQuery = queryValues.Encode()
 		return resolvedURL.String(), true
 	}
 
@@ -389,4 +404,22 @@ func resolveConfluenceSourceURL(page *Page, wikiBaseURL string, versionNumber in
 	}
 
 	return "", false
+}
+
+// walkPagesByIDBatches batch IDs and emit pages using the provided walker.
+func (p *ConfluencePlugin) walkPagesByIDBatches(
+	ctx context.Context,
+	ids []string,
+	perBatch int,
+	seenPageIDs map[string]struct{},
+	walker func(context.Context, []string, int, func(*Page) error) error,
+) error {
+	for _, idBatch := range chunkStrings(ids, perBatch) {
+		if err := walker(ctx, idBatch, maxPageSize, func(page *Page) error {
+			return p.emitUniquePage(ctx, page, seenPageIDs)
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
