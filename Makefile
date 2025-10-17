@@ -26,7 +26,7 @@ modtidy:
 
 .PHONY: test
 test:
-	go test -race -vet all -coverprofile=cover.out.tmp ./...
+	GOEXPERIMENT=jsonv2 go test -race -vet all -coverprofile=cover.out.tmp ./...
 	grep -v -e "_mock\.go:" -e "/mocks/" -e "/docs/" cover.out.tmp > cover.out
 	go tool cover -func=cover.out
 	rm cover.out.tmp
