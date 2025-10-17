@@ -1,0 +1,90 @@
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+env:
+  ENGINE_VERSION: ${{ vars.ENGINE_VERSION }}
+  PLATFORM: "LINUX_X64"
+  ENGINE: "2ms"
+  CES_ENVIROMENT: "prod"
+
+jobs:
+  ci-projects:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: "^1.22"
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Checkmarx-CxSast/2ms-internal
+          path: 2ms
+
+      - name: Build 2ms Binary
+        run: |
+          cd $GITHUB_WORKSPACE/2ms
+          go build -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
+          chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
+
+      - name: Checkout CLI repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ vars.CES_EXECUTOR_REPO }}
+          token: ${{ secrets.GITHUB }}
+          path: cli
+          ref: master
+
+      - name: Build Engines Excutor
+        run: |
+          cd cli
+          go build -o excutor
+
+      - name: Download projects from s3
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/zips/"
+          cd cli
+          ./excutor sources -s $GITHUB_WORKSPACE/zips/ -e 2ms
+          cd "$GITHUB_WORKSPACE/zips/"
+          for zip in *.zip; do
+            [ -e "$zip" ] || continue
+            echo "::add-mask::$(pwd)/$zip"
+            zip_name=$(basename "$zip" .zip)
+            unzip -oq "$zip" -d "./$zip_name"
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
+
+      - name: Create Metadata File
+        run: |
+          COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
+          METADATA_PATH="$GITHUB_WORKSPACE/pr-metadata.json"
+          echo '{
+            "seq": "'"${COMMIT_TIMESTAMP}"'",
+            "tag": "'"${{ github.event.number }}"'",
+            "comment": "'"${{ github.event.pull_request.title }}"'",
+            "commit": "'"${{ github.sha }}"'",
+            "owner": "'"${{ github.actor }}"'",
+            "branch": "'"${{ github.base_ref }}"'",
+            "engine": "'"${ENGINE}"'",
+            "platform": "'"${PLATFORM}"'",
+            "version": "'"${ENGINE_VERSION}"'"
+          }' > "$METADATA_PATH"
+
+      - name: Run Engines Executor
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/results
+          ./cli/excutor run -b $GITHUB_WORKSPACE/2ms/dist/2ms -s $GITHUB_WORKSPACE/zips/ -r $GITHUB_WORKSPACE/results -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -p 1 --env $CES_ENVIROMENT
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
