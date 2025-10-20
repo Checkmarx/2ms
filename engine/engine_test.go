@@ -786,9 +786,7 @@ func TestIsSecretFromConfluenceResourceIdentifier(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := isSecretFromConfluenceResourceIdentifier(tt.ruleID, tt.line, tt.match)
-			if got != tt.want {
-				t.Errorf("got %v, want %v (ruleID=%q, line=%q, match=%q)", got, tt.want, tt.ruleID, tt.line, tt.match)
-			}
+			assert.Equal(t, tt.want, got, "ruleID=%q, line=%q, match=%q", tt.ruleID, tt.line, tt.match)
 		})
 	}
 }
