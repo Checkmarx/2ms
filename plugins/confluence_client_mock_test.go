@@ -124,3 +124,17 @@ func (mr *MockConfluenceClientMockRecorder) WalkSpacesByKeys(ctx, spaceKeys, lim
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WalkSpacesByKeys", reflect.TypeOf((*MockConfluenceClient)(nil).WalkSpacesByKeys), ctx, spaceKeys, limit, visit)
 }
+
+// WikiBaseURL mocks base method.
+func (m *MockConfluenceClient) WikiBaseURL() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WikiBaseURL")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// WikiBaseURL indicates an expected call of WikiBaseURL.
+func (mr *MockConfluenceClientMockRecorder) WikiBaseURL() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WikiBaseURL", reflect.TypeOf((*MockConfluenceClient)(nil).WikiBaseURL))
+}

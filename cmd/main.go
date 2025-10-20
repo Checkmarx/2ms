@@ -49,7 +49,7 @@ var configFilePath string
 var vConfig = viper.New()
 
 var allPlugins = []plugins.IPlugin{
-	&plugins.ConfluencePlugin{},
+	plugins.NewConfluencePlugin(),
 	&plugins.DiscordPlugin{},
 	&plugins.FileSystemPlugin{},
 	&plugins.SlackPlugin{},

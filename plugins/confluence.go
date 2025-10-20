@@ -59,16 +59,17 @@ type ConfluencePlugin struct {
 	PageIDs   []string
 	History   bool
 
-	baseWikiURL string
-	username    string
-	tokenType   TokenType
-	tokenValue  string
-
 	itemsChan  chan ISourceItem
 	errorsChan chan error
 
 	client  ConfluenceClient
 	chunker chunk.IChunk
+}
+
+func NewConfluencePlugin() IPlugin {
+	return &ConfluencePlugin{
+		chunker: chunk.New(),
+	}
 }
 
 func (p *ConfluencePlugin) GetName() string { return "confluence" }
@@ -77,6 +78,10 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	p.itemsChan = items
 	p.errorsChan = errs
 
+	var username string
+	var tokenType TokenType
+	var tokenValue string
+
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s <URL>", p.GetName()),
 		Short:   "Scan Confluence Cloud",
@@ -84,21 +89,21 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 		Example: fmt.Sprintf("  2ms %s https://checkmarx.atlassian.net/wiki", p.GetName()),
 		Args:    cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			p.tokenType = TokenType(strings.ToLower(string(p.tokenType)))
-			if p.tokenValue != "" && p.tokenType == "" {
+			tokenType = TokenType(strings.ToLower(string(tokenType)))
+			if tokenValue != "" && tokenType == "" {
 				return fmt.Errorf("--%s must be set when --%s is provided", flagTokenType, flagTokenValue)
 			}
-			if !isValidTokenType(p.tokenType) {
+			if !isValidTokenType(tokenType) {
 				return fmt.Errorf("invalid --%s %q; valid values are %q or %q",
-					flagTokenType, p.tokenType, TokenClassic, TokenScoped)
+					flagTokenType, tokenType, TokenClassic, TokenScoped)
 			}
-			if p.tokenType != "" && p.tokenValue == "" {
+			if tokenType != "" && tokenValue == "" {
 				return fmt.Errorf("--%s requires --%s", flagTokenType, flagTokenValue)
 			}
-			if err := p.initialize(args[0]); err != nil {
+			if err := p.initialize(args[0], username, tokenType, tokenValue); err != nil {
 				return err
 			}
-			if p.username == "" || p.tokenValue == "" {
+			if username == "" || tokenValue == "" {
 				log.Warn().Msg("Confluence credentials not provided. The scan will run anonymously (public pages only).")
 			}
 			return nil
@@ -117,9 +122,9 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	flags.StringSliceVar(&p.SpaceIDs, flagSpaceIDs, []string{}, "Comma-separated list of Confluence space IDs to scan.")
 	flags.StringSliceVar(&p.SpaceKeys, flagSpaceKeys, []string{}, "Comma-separated list of Confluence space keys to scan.")
 	flags.StringSliceVar(&p.PageIDs, flagPageIDs, []string{}, "Comma-separated list of Confluence page IDs to scan.")
-	flags.StringVar(&p.username, flagUsername, "", "Confluence user name or email for authentication.")
-	flags.StringVar((*string)(&p.tokenType), flagTokenType, "", `Token type: "classic" or "scoped".`)
-	flags.StringVar(&p.tokenValue, flagTokenValue, "", "Token value.")
+	flags.StringVar(&username, flagUsername, "", "Confluence user name or email for authentication.")
+	flags.StringVar((*string)(&tokenType), flagTokenType, "", `Token type: "classic" or "scoped".`)
+	flags.StringVar(&tokenValue, flagTokenValue, "", "Token value.")
 	flags.BoolVar(&p.History, flagHistory, false, "Also scan all page revisions (all versions).")
 
 	return cmd, nil
@@ -150,16 +155,15 @@ func isValidTokenType(tokenType TokenType) bool {
 }
 
 // initialize stores the base wiki URL and constructs the Confluence client.
-func (p *ConfluencePlugin) initialize(base string) error {
-	p.baseWikiURL = strings.TrimRight(base, "/")
+func (p *ConfluencePlugin) initialize(base string, username string, tokenType TokenType, tokenValue string) error {
+	baseWikiURL := strings.TrimRight(base, "/")
 
-	client, err := NewConfluenceClient(p.baseWikiURL, p.username, p.tokenType, p.tokenValue)
+	client, err := NewConfluenceClient(baseWikiURL, username, tokenType, tokenValue)
 	if err != nil {
 		return err
 	}
 	p.client = client
 
-	p.chunker = chunk.New()
 	return nil
 }
 
@@ -357,7 +361,7 @@ func (p *ConfluencePlugin) convertPageToItem(page *Page) ISourceItem {
 	itemID := fmt.Sprintf("%s-%s-%s", p.GetName(), page.ID, strconv.Itoa(page.Version.Number))
 
 	sourceURL := ""
-	if resolvedURL, ok := resolveConfluenceSourceURL(page, p.baseWikiURL, page.Version.Number); ok {
+	if resolvedURL, ok := p.resolveConfluenceSourceURL(page, page.Version.Number); ok {
 		sourceURL = resolvedURL
 	}
 
@@ -376,14 +380,14 @@ func (p *ConfluencePlugin) convertPageToItem(page *Page) ISourceItem {
 // resolveConfluenceSourceURL resolves a URL for a page.
 // It prefers the "_links.webui" path and appends pageVersion.
 // Falls back to "_links.base" when webui is unavailable.
-func resolveConfluenceSourceURL(page *Page, wikiBaseURL string, versionNumber int) (string, bool) {
+func (p *ConfluencePlugin) resolveConfluenceSourceURL(page *Page, versionNumber int) (string, bool) {
 	if page.Links == nil {
 		return "", false
 	}
 
 	// Prefer "webui"
 	if webUIPath, ok := page.Links["webui"]; ok && webUIPath != "" {
-		baseURL, err := url.Parse(strings.TrimRight(wikiBaseURL, "/") + "/") // e.g., https://tenant.atlassian.net/wiki/
+		baseURL, err := url.Parse(strings.TrimRight(p.client.WikiBaseURL(), "/") + "/") // e.g., https://tenant.atlassian.net/wiki/
 		if err != nil {
 			return "", false
 		}

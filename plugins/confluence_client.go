@@ -30,6 +30,7 @@ type ConfluenceClient interface {
 	WalkPageVersions(ctx context.Context, pageID string, limit int, visit func(int) error) error
 	FetchPageAtVersion(ctx context.Context, pageID string, version int) (*Page, error)
 	WalkSpacesByKeys(ctx context.Context, spaceKeys []string, limit int, visit func(*Space) error) error
+	WikiBaseURL() string
 }
 
 // httpConfluenceClient is a ConfluenceClient implementation backed by net/http.
@@ -59,6 +60,9 @@ func NewConfluenceClient(baseWikiURL, username string, tokenType TokenType, toke
 	c.apiBase = apiBase
 	return c, nil
 }
+
+// WikiBaseURL returns the base Confluence wiki URL configured for this client.
+func (c *httpConfluenceClient) WikiBaseURL() string { return c.baseWikiURL }
 
 // buildAPIBase returns the REST v2 base URL to use for this client.
 // For classic (or no) tokens it builds "<wikiBase>/api/v2".

@@ -104,7 +104,6 @@ func TestInitialize(t *testing.T) {
 		username       string
 		tokenValue     string
 		expectedErr    error
-		expectChunker  bool
 		expectedClient ConfluenceClient
 	}{
 		{
@@ -121,7 +120,6 @@ func TestInitialize(t *testing.T) {
 				token:       tokenValue,
 				apiBase:     expectedAPIBase,
 			},
-			expectChunker: true,
 		},
 		{
 			name:           "invalid initialization (unsupported token type)",
@@ -131,23 +129,16 @@ func TestInitialize(t *testing.T) {
 			tokenValue:     tokenValue,
 			expectedErr:    fmt.Errorf(`unsupported token type %q`, TokenType("bad")),
 			expectedClient: nil,
-			expectChunker:  false,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			p := &ConfluencePlugin{
-				username:   tc.username,
-				tokenType:  tc.tokenType,
-				tokenValue: tc.tokenValue,
-			}
-			actualErr := p.initialize(tc.base)
+			p := NewConfluencePlugin().(*ConfluencePlugin)
+			actualErr := p.initialize(tc.base, tc.username, tc.tokenType, tc.tokenValue)
 
-			assert.Equal(t, tc.base, p.baseWikiURL)
 			assert.Equal(t, tc.expectedErr, actualErr)
 			assert.Equal(t, tc.expectedClient, p.client)
-			assert.Equal(t, tc.expectChunker, p.chunker != nil, "chunker presence should match")
 		})
 	}
 }
@@ -192,8 +183,15 @@ func TestChunkStrings(t *testing.T) {
 
 func TestConvertPageToItem(t *testing.T) {
 	const base = "https://checkmarx.atlassian.net/wiki"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := NewMockConfluenceClient(ctrl)
+	mockClient.EXPECT().WikiBaseURL().Return(base).AnyTimes()
+
 	p := &ConfluencePlugin{
-		baseWikiURL: base,
+		client: mockClient,
 	}
 
 	tests := []struct {
@@ -245,10 +243,18 @@ func TestConvertPageToItem(t *testing.T) {
 
 func TestResolveConfluenceSourceURL(t *testing.T) {
 	const base = "https://checkmarx.atlassian.net/wiki"
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := NewMockConfluenceClient(ctrl)
+	mockClient.EXPECT().WikiBaseURL().Return(base).AnyTimes()
+
+	p := &ConfluencePlugin{client: mockClient}
+
 	tests := []struct {
 		name        string
 		links       map[string]string
-		baseURL     string
 		version     int
 		canResolve  bool
 		expectedURL string
@@ -256,7 +262,6 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 		{
 			name:        "webui relative + version",
 			links:       map[string]string{"webui": "/pages/viewpage.action?pageId=123"},
-			baseURL:     base,
 			version:     4,
 			canResolve:  true,
 			expectedURL: base + "/pages/viewpage.action?pageId=123&pageVersion=4",
@@ -264,7 +269,6 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 		{
 			name:        "webui absolute + version",
 			links:       map[string]string{"webui": base + "/pages/viewpage.action?pageId=456"},
-			baseURL:     base,
 			version:     2,
 			canResolve:  true,
 			expectedURL: base + "/pages/viewpage.action?pageId=456&pageVersion=2",
@@ -272,7 +276,6 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 		{
 			name:        "fallback base",
 			links:       map[string]string{"base": base},
-			baseURL:     base,
 			version:     1,
 			canResolve:  true,
 			expectedURL: base,
@@ -280,7 +283,6 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 		{
 			name:        "missing links",
 			links:       nil,
-			baseURL:     base,
 			version:     1,
 			canResolve:  false,
 			expectedURL: "",
@@ -288,24 +290,16 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 		{
 			name:        "invalid webui",
 			links:       map[string]string{"webui": "%"},
-			baseURL:     base,
-			version:     1,
-			canResolve:  false,
-			expectedURL: "",
-		},
-		{
-			name:        "invalid base",
-			links:       map[string]string{"webui": "/pages/viewpage.action?pageId=123"},
-			baseURL:     "http://[::1",
 			version:     1,
 			canResolve:  false,
 			expectedURL: "",
 		},
 	}
+
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			page := &Page{Links: tc.links}
-			actualURL, ok := resolveConfluenceSourceURL(page, tc.baseURL, tc.version)
+			actualURL, ok := p.resolveConfluenceSourceURL(page, tc.version)
 			assert.Equal(t, tc.canResolve, ok)
 			assert.Equal(t, tc.expectedURL, actualURL)
 		})
@@ -355,7 +349,15 @@ func TestWalkPagesByIDBatches(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			chunker := chunk.New()
-			p := &ConfluencePlugin{itemsChan: make(chan ISourceItem, 100), chunker: chunker}
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockClient := NewMockConfluenceClient(ctrl)
+			mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").AnyTimes()
+			p := &ConfluencePlugin{
+				itemsChan: make(chan ISourceItem, 100),
+				chunker:   chunker,
+				client:    mockClient,
+			}
 			seen := map[string]struct{}{}
 			var seenBatches [][]string
 			walker := func(ctx context.Context, ids []string, lim int, v func(*Page) error) error {
@@ -371,6 +373,12 @@ func TestWalkPagesByIDBatches(t *testing.T) {
 }
 
 func TestEmitUniquePage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := NewMockConfluenceClient(ctrl)
+	mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").AnyTimes()
+
 	tests := []struct {
 		name              string
 		seenPages         map[string]struct{}
@@ -392,7 +400,11 @@ func TestEmitUniquePage(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			p := &ConfluencePlugin{itemsChan: make(chan ISourceItem, 10), chunker: chunk.New()}
+			p := &ConfluencePlugin{
+				itemsChan: make(chan ISourceItem, 10),
+				chunker:   chunk.New(),
+				client:    mockClient,
+			}
 			actualErr := p.emitUniquePage(context.Background(), tc.page, tc.seenPages)
 			assert.NoError(t, actualErr)
 			assert.Len(t, collectEmittedItems(p.itemsChan), tc.expectedEmitCount)
@@ -713,52 +725,50 @@ func TestWalkAndEmitPages(t *testing.T) {
 func TestDefineCommand(t *testing.T) {
 	tests := []struct {
 		name        string
-		setup       func(p *ConfluencePlugin)
+		setFlags    func(cmd *cobra.Command)
 		args        []string
 		expectedErr error
 	}{
 		{
 			name: "token value but no token type",
-			setup: func(p *ConfluencePlugin) {
-				p.tokenValue = "value"
-				p.tokenType = ""
+			setFlags: func(cmd *cobra.Command) {
+				_ = cmd.Flags().Set("token-value", "value")
+				// token-type intentionally not set
 			},
 			args:        []string{"https://tenant.atlassian.net/wiki"},
 			expectedErr: fmt.Errorf("--token-type must be set when --token-value is provided"),
 		},
 		{
 			name: "invalid token type",
-			setup: func(p *ConfluencePlugin) {
-				p.tokenType = "bad"
-				p.tokenValue = ""
+			setFlags: func(cmd *cobra.Command) {
+				_ = cmd.Flags().Set("token-type", "bad")
 			},
 			args:        []string{"https://tenant.atlassian.net/wiki"},
 			expectedErr: fmt.Errorf("invalid --token-type \"bad\"; valid values are \"classic\" or \"scoped\""),
 		},
 		{
 			name: "token type classic but without token value",
-			setup: func(p *ConfluencePlugin) {
-				p.tokenType = TokenClassic
-				p.tokenValue = ""
+			setFlags: func(cmd *cobra.Command) {
+				_ = cmd.Flags().Set("token-type", string(TokenClassic))
+				// no token-value
 			},
 			args:        []string{"https://tenant.atlassian.net/wiki"},
 			expectedErr: fmt.Errorf("--token-type requires --token-value"),
 		},
 		{
 			name: "without credentials",
-			setup: func(p *ConfluencePlugin) {
-				p.tokenType = ""
-				p.tokenValue = ""
+			setFlags: func(cmd *cobra.Command) {
+				// nothing set
 			},
 			args:        []string{"https://tenant.atlassian.net/wiki"},
 			expectedErr: nil,
 		},
 		{
 			name: "token type classic and token value provided",
-			setup: func(p *ConfluencePlugin) {
-				p.username = "user@example.com"
-				p.tokenType = TokenClassic
-				p.tokenValue = "tok"
+			setFlags: func(cmd *cobra.Command) {
+				_ = cmd.Flags().Set("username", "user@example.com")
+				_ = cmd.Flags().Set("token-type", string(TokenClassic))
+				_ = cmd.Flags().Set("token-value", "tok")
 			},
 			args:        []string{"https://tenant.atlassian.net/wiki"},
 			expectedErr: nil,
@@ -769,7 +779,10 @@ func TestDefineCommand(t *testing.T) {
 			p := &ConfluencePlugin{}
 			cmd, err := p.DefineCommand(make(chan ISourceItem, 1), make(chan error, 1))
 			assert.NoError(t, err)
-			tc.setup(p)
+
+			if tc.setFlags != nil {
+				tc.setFlags(cmd)
+			}
 			err = cmd.PreRunE(cmd, tc.args)
 			assert.Equal(t, tc.expectedErr, err)
 		})
@@ -902,11 +915,13 @@ func TestEmitInChunks(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockChunk := chunk.NewMockIChunk(ctrl)
+			mockClient := NewMockConfluenceClient(ctrl)
+			mockClient.EXPECT().WikiBaseURL().Return(base).AnyTimes()
 
 			p := &ConfluencePlugin{
-				itemsChan:   make(chan ISourceItem, 16),
-				chunker:     mockChunk,
-				baseWikiURL: base,
+				itemsChan: make(chan ISourceItem, 16),
+				chunker:   mockChunk,
+				client:    mockClient,
 			}
 
 			tc.setupMock(mockChunk)
@@ -942,11 +957,11 @@ func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *Mo
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	mock := NewMockConfluenceClient(ctrl)
+	mock.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").AnyTimes()
 	p := &ConfluencePlugin{
-		itemsChan:   make(chan ISourceItem, 1000),
-		client:      mock,
-		chunker:     chunk.New(),
-		baseWikiURL: "https://tenant.atlassian.net/wiki",
+		itemsChan: make(chan ISourceItem, 1000),
+		client:    mock,
+		chunker:   chunk.New(),
 	}
 	return p, ctrl, mock
 }
