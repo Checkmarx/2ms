@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -80,5 +81,25 @@ func TestPreRun(t *testing.T) {
 			err = preRun("mock", engineInstance, rootCmd, nil)
 			assert.ErrorIs(t, err, tt.expectedPreRunErr)
 		})
+	}
+}
+
+// TODO temporary, move it to organized integrations tests later
+func TestVersionFlagExitZero(t *testing.T) {
+	// Preserve and restore process globals altered in the test.
+	oldArgs := os.Args
+	t.Cleanup(func() {
+		os.Args = oldArgs
+	})
+
+	// Simulate: 2ms --version
+	os.Args = []string{"2ms", "--version"}
+
+	code, err := Execute()
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got: %d", code)
 	}
 }
