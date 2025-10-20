@@ -29,9 +29,13 @@ jobs:
           path: 2ms
 
       - name: Build 2ms Binary
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
         run: |
           cd $GITHUB_WORKSPACE/2ms
-          go build -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
+          go build -ldflags "-s -w" -a -installsuffix cgo -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
       - name: Checkout CLI repo
