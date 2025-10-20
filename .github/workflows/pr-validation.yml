@@ -36,7 +36,7 @@ jobs:
         run: GOEXPERIMENT=jsonv2 go test -v ./...
 
       - name: Run 2ms Scan
-        run: go run . git . --config .2ms.yml
+        run: GOEXPERIMENT=jsonv2 go run . git . --config .2ms.yml
 
   build:
     runs-on: ubuntu-latest

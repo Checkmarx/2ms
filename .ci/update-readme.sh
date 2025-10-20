@@ -13,7 +13,7 @@ update_readme() {
 }
 
 # Update the README with the help message
-help_message=$(go run .)
+help_message=$(GOEXPERIMENT=jsonv2 go run .)
 
 echo "" >output.txt
 echo '```text' >>output.txt
@@ -23,7 +23,7 @@ echo "" >>output.txt
 update_readme "output.txt" "command-line" "README.md"
 rm output.txt
 
-go run . rules | awk 'BEGIN{FS = "   *"}{print "| " $1 " | " $2 " | " $3 " | " $4 " |";}' >output.txt
+GOEXPERIMENT=jsonv2 go run . rules | awk 'BEGIN{FS = "   *"}{print "| " $1 " | " $2 " | " $3 " | " $4 " |";}' >output.txt
 update_readme "output.txt" "table" "./docs/list-of-rules.md"
 rm output.txt
 
