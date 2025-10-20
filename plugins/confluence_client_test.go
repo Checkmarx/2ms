@@ -206,16 +206,28 @@ func TestBaseWithoutCursor(t *testing.T) {
 func TestCursorFromURL(t *testing.T) {
 	tests := []struct {
 		name     string
-		in       string
+		rawURL   string
 		expected string
 	}{
-		{"relative with cursor", "/wiki/api/v2/pages?cursor=abc", "abc"},
-		{"empty", "", ""},
-		{"invalid url", "%", ""},
+		{
+			name:     "relative with cursor",
+			rawURL:   "/wiki/api/v2/pages?cursor=abc",
+			expected: "abc",
+		},
+		{
+			name:     "empty",
+			rawURL:   "",
+			expected: "",
+		},
+		{
+			name:     "invalid url",
+			rawURL:   "%",
+			expected: "",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := cursorFromURL(tc.in)
+			actual := cursorFromURL(tc.rawURL)
 			assert.Equal(t, tc.expected, actual)
 		})
 	}
@@ -264,16 +276,26 @@ func TestWithCursor(t *testing.T) {
 func TestFirstNonEmptyString(t *testing.T) {
 	tests := []struct {
 		name     string
-		a        string
-		b        string
+		first    string
+		second   string
 		expected string
 	}{
-		{"primary wins", "a", "b", "a"},
-		{"fallback", "", "b", "b"},
+		{
+			name:     "primary",
+			first:    "a",
+			second:   "b",
+			expected: "a",
+		},
+		{
+			name:     "fallback",
+			first:    "",
+			second:   "b",
+			expected: "b",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := firstNonEmptyString(tc.a, tc.b)
+			actual := firstNonEmptyString(tc.first, tc.second)
 			assert.Equal(t, tc.expected, actual)
 		})
 	}
@@ -494,10 +516,10 @@ func TestGetJSONStream(t *testing.T) {
 			name: "non-2xx returns snippet",
 			setupServer: func(t *testing.T) *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					http.Error(w, "boom", http.StatusBadRequest)
+					http.Error(w, "simulated error", http.StatusBadRequest)
 				}))
 			},
-			expectedErr:    fmt.Errorf("http 400: boom"),
+			expectedErr:    fmt.Errorf("http 400: simulated error"),
 			expectedHeader: "",
 			expectedBody:   "",
 		},
@@ -593,7 +615,7 @@ func TestWalkPagesByIDs(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectPath, r.URL.Path)
 		assert.Equal(t, "2", r.URL.Query().Get("limit"))
-		assert.Equal(t, "1,2", r.URL.Query().Get("id"))
+		assert.Equal(t, "10,20", r.URL.Query().Get("id"))
 		assert.Equal(t, "storage", r.URL.Query().Get("body-format"))
 		_, _ = io.WriteString(w, `{"results":[{"id":"10"},{"id":"20"}]}`)
 	}))
@@ -605,7 +627,7 @@ func TestWalkPagesByIDs(t *testing.T) {
 		httpClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 	var actual []string
-	actualErr := client.WalkPagesByIDs(context.Background(), []string{"1", "2"}, 2, func(p *Page) error {
+	actualErr := client.WalkPagesByIDs(context.Background(), []string{"10", "20"}, 2, func(p *Page) error {
 		actual = append(actual, p.ID)
 		return nil
 	})
