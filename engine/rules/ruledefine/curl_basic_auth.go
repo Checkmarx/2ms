@@ -23,7 +23,7 @@ func CurlBasicAuth() *Rule {
 					regexp.MustCompile(`[^:]+:\[[^]]+]`).String(),                                                // [placeholder]
 					regexp.MustCompile(`['"]?[^:]+['"]?:['"]?\$(?:\d|\w+|\{(?:\d|\w+)})['"]?`).String(),          // $1 or $VARIABLE
 					regexp.MustCompile(`\$\([^)]+\):\$\([^)]+\)`).String(),                                       // $(cat login.txt)
-					regexp.MustCompile(`['"]?\$?{{[^}]+}}['"]?:['"]?\$?{{[^}]+}}['"]?`).String(),                 // ${{ secrets.FOO }} or {{ .Values.foo }}
+					regexp.MustCompile(`['"]?\$?{{[^}]+}}['"]?:['"]?\$?{{[^}]+}}['"]?`).String(),                 // ${{ secrets.FOO }} or {{ .Values.foo }} //nolint:lll
 				},
 			},
 		},

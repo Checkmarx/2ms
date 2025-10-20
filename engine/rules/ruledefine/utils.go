@@ -114,7 +114,6 @@ func convertAllowLists(allowLists []*AllowList) []*gitleaksrule.Allowlist {
 	paths := make([]*regexp.Regexp, 0)
 	regexes := make([]*regexp.Regexp, 0)
 	for _, allowList := range allowLists {
-
 		// convert paths to regex
 		for _, path := range allowList.Paths {
 			paths = append(paths, regexp.MustCompile(path))

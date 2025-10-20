@@ -101,7 +101,7 @@ type Rule struct {
 type AllowList struct { // For patterns that are allowed to be ignored
 	Description    string
 	MatchCondition string   // determines whether all criteria must match. OR or AND
-	Paths          []string //regex
+	Paths          []string // regex
 	RegexTarget    string   // match or line. Default match
 	Regexes        []string
 	StopWords      []string // stop words that are allowed to be ignored
