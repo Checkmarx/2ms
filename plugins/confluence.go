@@ -155,7 +155,7 @@ func isValidTokenType(tokenType TokenType) bool {
 }
 
 // initialize stores the base wiki URL and constructs the Confluence client.
-func (p *ConfluencePlugin) initialize(base string, username string, tokenType TokenType, tokenValue string) error {
+func (p *ConfluencePlugin) initialize(base, username string, tokenType TokenType, tokenValue string) error {
 	baseWikiURL := strings.TrimRight(base, "/")
 
 	client, err := NewConfluenceClient(baseWikiURL, username, tokenType, tokenValue)
