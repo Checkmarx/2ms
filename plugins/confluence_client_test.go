@@ -65,16 +65,140 @@ func TestBuildAPIBase(t *testing.T) {
 				return &httpConfluenceClient{baseWikiURL: "https://example.test/wiki"}
 			},
 			tokenType:   TokenType("bad"),
-			expectedErr: fmt.Errorf(`unsupported token type %q`, TokenType("bad")),
+			expectedErr: ErrUnsupportedTokenType,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			c := tc.setup()
-			actualBase, actualErr := c.buildAPIBase(context.Background(), tc.tokenType)
-			assert.Equal(t, tc.expectedErr, actualErr)
+			actualBase, err := c.buildAPIBase(context.Background(), tc.tokenType)
+			assert.ErrorIs(t, err, tc.expectedErr)
 			assert.Equal(t, tc.expectedBase, actualBase)
+		})
+	}
+}
+
+func TestDiscoverCloudID(t *testing.T) {
+	tests := []struct {
+		name        string
+		ctx         context.Context
+		setup       func(t *testing.T) (*httpConfluenceClient, func())
+		expectedID  string
+		expectedErr error
+	}{
+		{
+			name: "success",
+			setup: func(t *testing.T) (*httpConfluenceClient, func()) {
+				ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, "/_edge/tenant_info", r.URL.Path)
+					_, _ = io.WriteString(w, `{"cloudId":"abc-123"}`)
+				}))
+				// base has /wiki just like real-world usage
+				base, _ := url.Parse(ts.URL)
+				base.Path = "/wiki"
+				c := &httpConfluenceClient{
+					baseWikiURL: base.String(),
+					httpClient:  ts.Client(),
+				}
+				return c, ts.Close
+			},
+			expectedID:  "abc-123",
+			expectedErr: nil,
+		},
+		{
+			name: "parse base url error",
+			setup: func(t *testing.T) (*httpConfluenceClient, func()) {
+				c := &httpConfluenceClient{
+					baseWikiURL: "http://[::1", // invalid
+					httpClient:  &http.Client{Timeout: 5 * time.Second},
+				}
+				return c, func() {}
+			},
+			expectedID:  "",
+			expectedErr: fmt.Errorf("parse \"http://[::1\": missing ']' in host"),
+		},
+		{
+			name: "client do error",
+			setup: func(t *testing.T) (*httpConfluenceClient, func()) {
+				c := &httpConfluenceClient{
+					baseWikiURL: "https://127.0.0.1:1/wiki",
+					httpClient:  &http.Client{Timeout: 200 * time.Millisecond},
+				}
+				return c, func() {}
+			},
+			expectedID:  "",
+			expectedErr: fmt.Errorf("the target machine actively refused it"),
+		},
+		{
+			name: "non-200 http with snippet",
+			setup: func(t *testing.T) (*httpConfluenceClient, func()) {
+				ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, "/_edge/tenant_info", r.URL.Path)
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = io.WriteString(w, "fail")
+				}))
+				base, _ := url.Parse(ts.URL)
+				base.Path = "/wiki"
+				c := &httpConfluenceClient{
+					baseWikiURL: base.String(),
+					httpClient:  ts.Client(),
+				}
+				return c, ts.Close
+			},
+			expectedID:  "",
+			expectedErr: ErrUnexpectedHTTPStatus,
+		},
+		{
+			name: "decode error",
+			setup: func(t *testing.T) (*httpConfluenceClient, func()) {
+				ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, "/_edge/tenant_info", r.URL.Path)
+					_, _ = io.WriteString(w, "{") // invalid JSON
+				}))
+				base, _ := url.Parse(ts.URL)
+				base.Path = "/wiki"
+				c := &httpConfluenceClient{
+					baseWikiURL: base.String(),
+					httpClient:  ts.Client(),
+				}
+				return c, ts.Close
+			},
+			expectedID:  "",
+			expectedErr: io.ErrUnexpectedEOF,
+		},
+		{
+			name: "empty cloudId",
+			setup: func(t *testing.T) (*httpConfluenceClient, func()) {
+				ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, "/_edge/tenant_info", r.URL.Path)
+					_, _ = io.WriteString(w, `{"cloudId":""}`)
+				}))
+				base, _ := url.Parse(ts.URL)
+				base.Path = "/wiki"
+				c := &httpConfluenceClient{
+					baseWikiURL: base.String(),
+					httpClient:  ts.Client(),
+				}
+				return c, ts.Close
+			},
+			expectedID:  "",
+			expectedErr: ErrEmptyCloudID,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c, cleanup := tc.setup(t)
+			defer cleanup()
+
+			actualID, err := c.discoverCloudID(context.Background())
+			assert.Equal(t, tc.expectedID, actualID)
+			if tc.name == "parse base url error" || tc.name == "client do error" {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
 		})
 	}
 }
@@ -331,7 +455,6 @@ func TestWalkPaginated(t *testing.T) {
 		b, _ := io.ReadAll(resp.Body)
 		return b, resp.Header.Clone(), nil
 	}
-	resolve := func(linkNext, bodyNext string) string { return bodyNext }
 	parse := func(h http.Header, b []byte) ([]int, string, string, error) {
 		var p payload
 		if err := json.Unmarshal(b, &p); err != nil {
@@ -341,7 +464,8 @@ func TestWalkPaginated(t *testing.T) {
 	}
 
 	var actual []int
-	actualErr := walkPaginated[int](context.Background(), srv.URL, get, resolve, parse, func(n int) error {
+	startURL, _ := url.Parse(srv.URL + "/api")
+	actualErr := walkPaginated[int](context.Background(), startURL, get, parse, func(n int) error {
 		actual = append(actual, n)
 		return nil
 	})
@@ -417,7 +541,7 @@ func TestGetJSON(t *testing.T) {
 			expectedHeader: "mockLink",
 		},
 		{
-			name: "rate limited 429 returns friendly error",
+			name: "429 returns friendly error",
 			setupServer: func(t *testing.T) *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Retry-After", "120")
@@ -434,7 +558,7 @@ func TestGetJSON(t *testing.T) {
 					http.Error(w, "something went wrong", http.StatusInternalServerError)
 				}))
 			},
-			expectedErr:    fmt.Errorf("http 500: something went wrong"),
+			expectedErr:    ErrUnexpectedHTTPStatus,
 			expectedHeader: "",
 		},
 		{
@@ -461,8 +585,12 @@ func TestGetJSON(t *testing.T) {
 				token:       tc.token,
 			}
 
-			_, headers, actualErr := client.getJSON(context.Background(), ts.URL)
-			assert.Equal(t, tc.expectedErr, actualErr)
+			_, headers, err := client.getJSON(context.Background(), ts.URL)
+			if tc.name == "429 returns friendly error" {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
 
 			var actualHeader string
 			if headers != nil {
@@ -519,7 +647,7 @@ func TestGetJSONStream(t *testing.T) {
 					http.Error(w, "simulated error", http.StatusBadRequest)
 				}))
 			},
-			expectedErr:    fmt.Errorf("http 400: simulated error"),
+			expectedErr:    ErrUnexpectedHTTPStatus,
 			expectedHeader: "",
 			expectedBody:   "",
 		},
@@ -535,8 +663,12 @@ func TestGetJSONStream(t *testing.T) {
 				username:   tc.username,
 				token:      tc.token,
 			}
-			rc, headers, actualErr := c.getJSONStream(context.Background(), ts.URL)
-			assert.Equal(t, tc.expectedErr, actualErr)
+			rc, headers, err := c.getJSONStream(context.Background(), ts.URL)
+			if tc.name == "429 returns friendly error" {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
 
 			var actualHeader string
 			if headers != nil {

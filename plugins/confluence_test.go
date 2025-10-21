@@ -27,7 +27,6 @@ func TestIsValidURL(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
-		wantErr     bool
 		expectedErr error
 	}{
 		{
@@ -38,19 +37,23 @@ func TestIsValidURL(t *testing.T) {
 		{
 			name:        "invalid scheme",
 			input:       "http://checkmarx.atlassian.net/wiki",
-			expectedErr: fmt.Errorf("invalid URL: must use https"),
+			expectedErr: ErrHTTPSRequired,
 		},
 		{
 			name:        "not a url",
-			input:       "something",
-			expectedErr: fmt.Errorf("invalid URL: must use https"),
+			input:       "%",
+			expectedErr: fmt.Errorf("invalid URL escape"),
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			args := []string{tc.input}
 			err := isValidURL(&cobra.Command{}, args)
-			assert.Equal(t, tc.expectedErr, err)
+			if tc.name == "not a url" {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
 		})
 	}
 }
@@ -127,7 +130,7 @@ func TestInitialize(t *testing.T) {
 			tokenType:      TokenType("bad"),
 			username:       username,
 			tokenValue:     tokenValue,
-			expectedErr:    fmt.Errorf(`unsupported token type %q`, TokenType("bad")),
+			expectedErr:    ErrUnsupportedTokenType,
 			expectedClient: nil,
 		},
 	}
@@ -135,9 +138,9 @@ func TestInitialize(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			p := NewConfluencePlugin().(*ConfluencePlugin)
-			actualErr := p.initialize(tc.base, tc.username, tc.tokenType, tc.tokenValue)
+			err := p.initialize(tc.base, tc.username, tc.tokenType, tc.tokenValue)
 
-			assert.Equal(t, tc.expectedErr, actualErr)
+			assert.ErrorIs(t, err, tc.expectedErr)
 			assert.Equal(t, tc.expectedClient, p.client)
 		})
 	}
