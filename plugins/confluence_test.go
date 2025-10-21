@@ -18,6 +18,8 @@ import (
 
 //go:generate mockgen -destination=confluence_client_mock_test.go -package=plugins github.com/checkmarx/2ms/v4/plugins ConfluenceClient
 
+const mockGetFileThresholdReturn = 1_000_000
+
 func TestGetName(t *testing.T) {
 	p := &ConfluencePlugin{}
 	assert.Equal(t, "confluence", p.GetName())
@@ -187,20 +189,10 @@ func TestChunkStrings(t *testing.T) {
 func TestConvertPageToItem(t *testing.T) {
 	const base = "https://checkmarx.atlassian.net/wiki"
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockClient := NewMockConfluenceClient(ctrl)
-	mockClient.EXPECT().WikiBaseURL().Return(base).AnyTimes()
-
-	p := &ConfluencePlugin{
-		client: mockClient,
-	}
-
 	tests := []struct {
 		name            string
 		page            *Page
-		version         int
+		expectCalls     int // WikiBaseURL calls
 		expectedID      string
 		expectedSrc     string
 		expectedContent *string
@@ -216,7 +208,7 @@ func TestConvertPageToItem(t *testing.T) {
 				Links:   map[string]string{"webui": "/pages/viewpage.action?pageId=123"},
 				Version: PageVersion{Number: 4},
 			},
-			version:         4,
+			expectCalls:     1,
 			expectedID:      "confluence-123-4",
 			expectedSrc:     base + "/pages/viewpage.action?pageId=123&pageVersion=4",
 			expectedContent: ptr("<p>content</p>"),
@@ -228,15 +220,26 @@ func TestConvertPageToItem(t *testing.T) {
 				Links:   map[string]string{"base": base},
 				Version: PageVersion{Number: 1},
 			},
-			version:     0,
-			expectedID:  "confluence-456-1",
-			expectedSrc: base,
+			expectCalls:     0,
+			expectedID:      "confluence-456-1",
+			expectedSrc:     base,
+			expectedContent: nil,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockClient := NewMockConfluenceClient(ctrl)
+			if tc.expectCalls > 0 {
+				mockClient.EXPECT().WikiBaseURL().Return(base).Times(tc.expectCalls)
+			}
+
+			p := &ConfluencePlugin{client: mockClient}
 			item := p.convertPageToItem(tc.page)
+
 			assert.Equal(t, tc.expectedID, item.GetID())
 			assert.Equal(t, tc.expectedSrc, item.GetSource())
 			assert.Equal(t, tc.expectedContent, item.GetContent())
@@ -247,18 +250,11 @@ func TestConvertPageToItem(t *testing.T) {
 func TestResolveConfluenceSourceURL(t *testing.T) {
 	const base = "https://checkmarx.atlassian.net/wiki"
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockClient := NewMockConfluenceClient(ctrl)
-	mockClient.EXPECT().WikiBaseURL().Return(base).AnyTimes()
-
-	p := &ConfluencePlugin{client: mockClient}
-
 	tests := []struct {
 		name        string
 		links       map[string]string
 		version     int
+		expectCalls int // WikiBaseURL calls
 		canResolve  bool
 		expectedURL string
 	}{
@@ -266,6 +262,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 			name:        "webui relative + version",
 			links:       map[string]string{"webui": "/pages/viewpage.action?pageId=123"},
 			version:     4,
+			expectCalls: 1,
 			canResolve:  true,
 			expectedURL: base + "/pages/viewpage.action?pageId=123&pageVersion=4",
 		},
@@ -273,6 +270,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 			name:        "webui absolute + version",
 			links:       map[string]string{"webui": base + "/pages/viewpage.action?pageId=456"},
 			version:     2,
+			expectCalls: 1,
 			canResolve:  true,
 			expectedURL: base + "/pages/viewpage.action?pageId=456&pageVersion=2",
 		},
@@ -280,6 +278,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 			name:        "fallback base",
 			links:       map[string]string{"base": base},
 			version:     1,
+			expectCalls: 0,
 			canResolve:  true,
 			expectedURL: base,
 		},
@@ -287,6 +286,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 			name:        "missing links",
 			links:       nil,
 			version:     1,
+			expectCalls: 0,
 			canResolve:  false,
 			expectedURL: "",
 		},
@@ -294,6 +294,7 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 			name:        "invalid webui",
 			links:       map[string]string{"webui": "%"},
 			version:     1,
+			expectCalls: 1,
 			canResolve:  false,
 			expectedURL: "",
 		},
@@ -301,6 +302,15 @@ func TestResolveConfluenceSourceURL(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockClient := NewMockConfluenceClient(ctrl)
+			if tc.expectCalls > 0 {
+				mockClient.EXPECT().WikiBaseURL().Return(base).Times(tc.expectCalls)
+			}
+
+			p := &ConfluencePlugin{client: mockClient}
 			page := &Page{Links: tc.links}
 			actualURL, ok := p.resolveConfluenceSourceURL(page, tc.version)
 			assert.Equal(t, tc.canResolve, ok)
@@ -349,24 +359,31 @@ func TestWalkPagesByIDBatches(t *testing.T) {
 			expectedErr:       fmt.Errorf("simulated error"),
 		},
 	}
+
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			chunker := chunk.New()
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+
+			mockChunk := chunk.NewMockIChunk(ctrl)
+			mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(tc.expectedEmitCount)
+
 			mockClient := NewMockConfluenceClient(ctrl)
-			mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").AnyTimes()
+			mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(tc.expectedEmitCount)
+
 			p := &ConfluencePlugin{
 				itemsChan: make(chan ISourceItem, 100),
-				chunker:   chunker,
+				chunker:   mockChunk,
 				client:    mockClient,
 			}
+
 			seen := map[string]struct{}{}
 			var seenBatches [][]string
 			walker := func(ctx context.Context, ids []string, lim int, v func(*Page) error) error {
 				seenBatches = append(seenBatches, append([]string(nil), ids...))
 				return tc.setupWalker()(ctx, ids, lim, v)
 			}
+
 			actualErr := p.walkPagesByIDBatches(context.Background(), tc.allIDs, tc.perBatch, seen, walker)
 			assert.Equal(t, tc.expectedErr, actualErr)
 			assert.Equal(t, tc.expectedBatches, seenBatches)
@@ -374,14 +391,7 @@ func TestWalkPagesByIDBatches(t *testing.T) {
 		})
 	}
 }
-
 func TestEmitUniquePage(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockClient := NewMockConfluenceClient(ctrl)
-	mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").AnyTimes()
-
 	tests := []struct {
 		name              string
 		seenPages         map[string]struct{}
@@ -401,13 +411,24 @@ func TestEmitUniquePage(t *testing.T) {
 			expectedEmitCount: 0,
 		},
 	}
+
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockChunk := chunk.NewMockIChunk(ctrl)
+			mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(tc.expectedEmitCount)
+
+			mockClient := NewMockConfluenceClient(ctrl)
+			mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(tc.expectedEmitCount)
+
 			p := &ConfluencePlugin{
 				itemsChan: make(chan ISourceItem, 10),
-				chunker:   chunk.New(),
+				chunker:   mockChunk,
 				client:    mockClient,
 			}
+
 			actualErr := p.emitUniquePage(context.Background(), tc.page, tc.seenPages)
 			assert.NoError(t, actualErr)
 			assert.Len(t, collectEmittedItems(p.itemsChan), tc.expectedEmitCount)
@@ -416,11 +437,22 @@ func TestEmitUniquePage(t *testing.T) {
 }
 
 func TestEmitHistory(t *testing.T) {
-	p, ctrl, mock := newPluginWithMock(t)
+	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	mockChunk := chunk.NewMockIChunk(ctrl)
+	mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(4) // v1..v4
+
+	mock := NewMockConfluenceClient(ctrl)
+	mock.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(4) // v1..v4
+
+	p := &ConfluencePlugin{
+		client:    mock,
+		itemsChan: make(chan ISourceItem, 10),
+		chunker:   mockChunk,
+	}
+
 	cur := mkPage("200", 5)
-	p.itemsChan = make(chan ISourceItem, 10)
 
 	mock.EXPECT().
 		WalkPageVersions(gomock.Any(), "200", maxPageSize, gomock.Any()).
@@ -441,22 +473,34 @@ func TestEmitHistory(t *testing.T) {
 
 	actualErr := p.emitHistory(context.Background(), cur)
 	assert.NoError(t, actualErr)
-	items := collectEmittedItems(p.itemsChan)
 
+	items := collectEmittedItems(p.itemsChan)
 	actualIDs := []string{items[0].ID, items[1].ID, items[2].ID, items[3].ID}
 	expectedIDs := []string{"confluence-200-1", "confluence-200-2", "confluence-200-3", "confluence-200-4"}
 	assert.ElementsMatch(t, expectedIDs, actualIDs)
 }
 
 func TestScanBySpaceIDs(t *testing.T) {
-	p, ctrl, mock := newPluginWithMock(t)
+	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	p.itemsChan = make(chan ISourceItem, 10)
+
+	mockChunk := chunk.NewMockIChunk(ctrl)
+	mockClient := NewMockConfluenceClient(ctrl)
+
+	mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(2)
+	mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(2)
+
+	p := &ConfluencePlugin{
+		itemsChan: make(chan ISourceItem, 10),
+		client:    mockClient,
+		chunker:   mockChunk,
+	}
 	p.SpaceIDs = []string{"S1", "S2", "S1"} // dedupe
+
 	seenPages := map[string]struct{}{}
 	seenSpaces := map[string]struct{}{}
 
-	mock.EXPECT().
+	mockClient.EXPECT().
 		WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 		DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
 			assert.ElementsMatch(t, []string{"S1", "S2"}, ids)
@@ -471,14 +515,26 @@ func TestScanBySpaceIDs(t *testing.T) {
 }
 
 func TestScanBySpaceKeys(t *testing.T) {
-	p, ctrl, mock := newPluginWithMock(t)
+	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	p.itemsChan = make(chan ISourceItem, 10)
-	p.SpaceKeys = []string{"K1", "K2", "K1"} // dedupe across resolved IDs
+
+	mockChunk := chunk.NewMockIChunk(ctrl)
+	mockClient := NewMockConfluenceClient(ctrl)
+
+	mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(2)
+	mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(2)
+
+	p := &ConfluencePlugin{
+		itemsChan: make(chan ISourceItem, 10),
+		client:    mockClient,
+		chunker:   mockChunk,
+	}
+	p.SpaceKeys = []string{"K1", "K2", "K1"}
+
 	seenPages := map[string]struct{}{}
 	seenSpaces := map[string]struct{}{}
 
-	mock.EXPECT().
+	mockClient.EXPECT().
 		WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 		DoAndReturn(func(_ context.Context, keys []string, _ int, visit func(*Space) error) error {
 			for _, k := range keys {
@@ -492,7 +548,7 @@ func TestScanBySpaceKeys(t *testing.T) {
 			return nil
 		}).Times(1)
 
-	mock.EXPECT().
+	mockClient.EXPECT().
 		WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 		DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
 			assert.ElementsMatch(t, []string{"S1", "S2"}, ids)
@@ -504,6 +560,7 @@ func TestScanBySpaceKeys(t *testing.T) {
 
 	err := p.scanBySpaceKeys(context.Background(), seenPages, seenSpaces)
 	assert.NoError(t, err)
+
 	items := collectEmittedItems(p.itemsChan)
 	assert.ElementsMatch(t,
 		[]string{"confluence-P-S1-1", "confluence-P-S2-1"},
@@ -512,13 +569,25 @@ func TestScanBySpaceKeys(t *testing.T) {
 }
 
 func TestScanByPageIDs(t *testing.T) {
-	p, ctrl, mock := newPluginWithMock(t)
+	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	p.itemsChan = make(chan ISourceItem, 10)
+
+	mockChunk := chunk.NewMockIChunk(ctrl)
+	mockClient := NewMockConfluenceClient(ctrl)
+
+	mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(3)
+	mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(3)
+
+	p := &ConfluencePlugin{
+		itemsChan: make(chan ISourceItem, 10),
+		client:    mockClient,
+		chunker:   mockChunk,
+	}
 	p.PageIDs = []string{"1", "2", "3"}
+
 	seenPages := map[string]struct{}{}
 
-	mock.EXPECT().
+	mockClient.EXPECT().
 		WalkPagesByIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 		DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
 			assert.ElementsMatch(t, []string{"1", "2", "3"}, ids)
@@ -535,17 +604,19 @@ func TestScanByPageIDs(t *testing.T) {
 
 func TestWalkAndEmitPages(t *testing.T) {
 	tests := []struct {
-		name            string
-		setupMocks      func(p *ConfluencePlugin, m *MockConfluenceClient)
-		setupPlugin     func(p *ConfluencePlugin)
-		expectedErr     error
-		expectedIDs     []string
-		expectedSources []string
-		expectedBodies  []string
+		name               string
+		setupMocks         func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk)
+		setupPlugin        func(p *ConfluencePlugin)
+		expectedErr        error
+		expectedIDs        []string
+		expectedSources    []string
+		expectedBodies     []string
+		fileThresholdCalls int
+		wikiBaseURLCalls   int
 	}{
 		{
 			name: "no filters, history off",
-			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient) {
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				page := mkPage("100", 3)
 				m.EXPECT().
 					WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
@@ -553,21 +624,24 @@ func TestWalkAndEmitPages(t *testing.T) {
 						return visit(page)
 					}).Times(1)
 			},
-			setupPlugin:     func(p *ConfluencePlugin) { p.History = false },
-			expectedErr:     nil,
-			expectedIDs:     []string{"confluence-100-3"},
-			expectedSources: []string{"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=100&pageVersion=3"},
-			expectedBodies:  []string{"content 100"},
+			setupPlugin:        func(p *ConfluencePlugin) { p.History = false },
+			expectedErr:        nil,
+			expectedIDs:        []string{"confluence-100-3"},
+			expectedSources:    []string{"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=100&pageVersion=3"},
+			expectedBodies:     []string{"content 100"},
+			fileThresholdCalls: 1,
+			wikiBaseURLCalls:   1,
 		},
 		{
 			name: "no filters, history on (current + older versions)",
-			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient) {
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				cur := mkPage("200", 5)
 				m.EXPECT().
 					WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ int, visit func(*Page) error) error {
 						return visit(cur)
 					}).Times(1)
+
 				m.EXPECT().
 					WalkPageVersions(gomock.Any(), "200", maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ string, _ int, visit func(int) error) error {
@@ -576,6 +650,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 						}
 						return nil
 					}).Times(1)
+
 				for _, v := range []int{1, 2, 3, 4} {
 					m.EXPECT().
 						FetchPageAtVersion(gomock.Any(), "200", v).
@@ -594,11 +669,13 @@ func TestWalkAndEmitPages(t *testing.T) {
 				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=200&pageVersion=3",
 				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=200&pageVersion=4",
 			},
-			expectedBodies: []string{"content 200", "content 200", "content 200", "content 200", "content 200"},
+			expectedBodies:     []string{"content 200", "content 200", "content 200", "content 200", "content 200"},
+			fileThresholdCalls: 5,
+			wikiBaseURLCalls:   5,
 		},
 		{
 			name: "SpaceIDs only (dedupe pages)",
-			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient) {
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				m.EXPECT().
 					WalkPagesBySpaceIDs(gomock.Any(), []string{"S1", "S2"}, maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Page) error) error {
@@ -615,11 +692,13 @@ func TestWalkAndEmitPages(t *testing.T) {
 				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P1&pageVersion=2",
 				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P2&pageVersion=1",
 			},
-			expectedBodies: []string{"content P1", "content P2"},
+			expectedBodies:     []string{"content P1", "content P2"},
+			fileThresholdCalls: 2,
+			wikiBaseURLCalls:   2,
 		},
 		{
 			name: "PageIDs only (dedupe)",
-			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient) {
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				m.EXPECT().
 					WalkPagesByIDs(gomock.Any(), []string{"10", "20", "10"}, maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
@@ -636,11 +715,13 @@ func TestWalkAndEmitPages(t *testing.T) {
 				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=10&pageVersion=1",
 				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=20&pageVersion=1",
 			},
-			expectedBodies: []string{"content 10", "content 20"},
+			expectedBodies:     []string{"content 10", "content 20"},
+			fileThresholdCalls: 2,
+			wikiBaseURLCalls:   2,
 		},
 		{
 			name: "filters collide (unique by page ID)",
-			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient) {
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				m.EXPECT().
 					WalkPagesBySpaceIDs(gomock.Any(), []string{"S1"}, maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Page) error) error {
@@ -648,12 +729,14 @@ func TestWalkAndEmitPages(t *testing.T) {
 						_ = visit(mkPage("P2", 1))
 						return nil
 					}).Times(1)
+
 				m.EXPECT().
 					WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Space) error) error {
 						_ = visit(&Space{ID: "S1", Key: "Key1"})
 						return nil
 					}).Times(1)
+
 				m.EXPECT().
 					WalkPagesByIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
@@ -675,38 +758,55 @@ func TestWalkAndEmitPages(t *testing.T) {
 				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P2&pageVersion=1",
 				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P3&pageVersion=1",
 			},
-			expectedBodies: []string{"content P1", "content P2", "content P3"},
+			expectedBodies:     []string{"content P1", "content P2", "content P3"},
+			fileThresholdCalls: 3,
+			wikiBaseURLCalls:   3,
 		},
 		{
 			name: "error propagation",
-			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient) {
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				m.EXPECT().
 					WalkPagesByIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ []string, _ int, _ func(*Page) error) error {
 						return fmt.Errorf("simulated error")
 					}).Times(1)
 			},
-			setupPlugin:     func(p *ConfluencePlugin) { p.PageIDs = []string{"1", "2"} },
-			expectedErr:     fmt.Errorf("simulated error"),
-			expectedIDs:     []string{},
-			expectedSources: []string{},
-			expectedBodies:  []string{},
+			setupPlugin:        func(p *ConfluencePlugin) { p.PageIDs = []string{"1", "2"} },
+			expectedErr:        fmt.Errorf("simulated error"),
+			expectedIDs:        []string{},
+			expectedSources:    []string{},
+			expectedBodies:     []string{},
+			fileThresholdCalls: 0,
+			wikiBaseURLCalls:   0,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			p, ctrl, mock := newPluginWithMock(t)
+			p, ctrl, mockClient, mockChunk := newPluginWithMock(t)
 			defer ctrl.Finish()
-			p.itemsChan = make(chan ISourceItem, 200)
 
+			p.itemsChan = make(chan ISourceItem, 200)
 			if tc.setupPlugin != nil {
 				tc.setupPlugin(p)
 			}
-			tc.setupMocks(p, mock)
+
+			if tc.fileThresholdCalls > 0 {
+				mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(tc.fileThresholdCalls)
+			}
+			if tc.wikiBaseURLCalls > 0 {
+				mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(tc.wikiBaseURLCalls)
+			}
+
+			tc.setupMocks(p, mockClient, mockChunk)
 
 			actualErr := p.walkAndEmitPages(context.Background())
-			assert.Equal(t, tc.expectedErr, actualErr)
+			if tc.expectedErr != nil {
+				assert.Error(t, actualErr)
+				assert.EqualError(t, actualErr, tc.expectedErr.Error())
+			} else {
+				assert.NoError(t, actualErr)
+			}
 
 			items := collectEmittedItems(p.itemsChan)
 			actualIDs := make([]string, 0, len(items))
@@ -717,7 +817,6 @@ func TestWalkAndEmitPages(t *testing.T) {
 				actualSources = append(actualSources, it.Source)
 				actualBodies = append(actualBodies, it.Content)
 			}
-
 			assert.ElementsMatch(t, tc.expectedIDs, actualIDs)
 			assert.ElementsMatch(t, tc.expectedSources, actualSources)
 			assert.ElementsMatch(t, tc.expectedBodies, actualBodies)
@@ -956,17 +1055,19 @@ func TestEmitInChunks(t *testing.T) {
 	}
 }
 
-func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *MockConfluenceClient) {
+func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *MockConfluenceClient, *chunk.MockIChunk) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
-	mock := NewMockConfluenceClient(ctrl)
-	mock.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").AnyTimes()
+
+	mockClient := NewMockConfluenceClient(ctrl)
+	mockChunk := chunk.NewMockIChunk(ctrl)
+
 	p := &ConfluencePlugin{
 		itemsChan: make(chan ISourceItem, 1000),
-		client:    mock,
-		chunker:   chunk.New(),
+		client:    mockClient,
+		chunker:   mockChunk,
 	}
-	return p, ctrl, mock
+	return p, ctrl, mockClient, mockChunk
 }
 
 func mkPage(id string, ver int) *Page {
