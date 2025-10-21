@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabScimTokenRegex = regexp.MustCompile(`glsoat-[0-9a-zA-Z_\-]{20}`)
+var gitlabScimTokenRegex = regexp.MustCompile(`glsoat-[0-9a-zA-Z_\-]{20}`).String()
 
 func GitlabScimToken() *Rule {
 	return &Rule{

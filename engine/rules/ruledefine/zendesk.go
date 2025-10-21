@@ -1,6 +1,6 @@
 package ruledefine
 
-var zendeskSecretKeyRegex = generateSemiGenericRegex([]string{"zendesk"}, AlphaNumeric("40"), true)
+var zendeskSecretKeyRegex = generateSemiGenericRegex([]string{"zendesk"}, AlphaNumeric("40"), true).String()
 
 func ZendeskSecretKey() *Rule {
 	return &Rule{

@@ -1,6 +1,7 @@
 package ruledefine
 
-var mailChimpRegex = generateSemiGenericRegex([]string{"MailchimpSDK.initialize", "mailchimp"}, Hex("32")+`-us\d\d`, true)
+var mailChimpRegex = generateSemiGenericRegex(
+	[]string{"MailchimpSDK.initialize", "mailchimp"}, Hex("32")+`-us\d\d`, true).String()
 
 func MailChimp() *Rule {
 	return &Rule{

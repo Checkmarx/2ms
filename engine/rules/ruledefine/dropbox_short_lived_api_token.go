@@ -1,6 +1,7 @@
 package ruledefine
 
-var dropboxShortLivedAPITokenRegex = generateSemiGenericRegex([]string{"dropbox"}, `sl\.[a-z0-9\-=_]{135}`, true)
+var dropboxShortLivedAPITokenRegex = generateSemiGenericRegex(
+	[]string{"dropbox"}, `sl\.[a-z0-9\-=_]{135}`, true).String()
 
 func DropBoxShortLivedAPIToken() *Rule {
 	return &Rule{

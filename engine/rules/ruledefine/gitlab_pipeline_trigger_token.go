@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabPipelineTriggerTokenRegex = regexp.MustCompile(`glptt-[0-9a-f]{40}`)
+var gitlabPipelineTriggerTokenRegex = regexp.MustCompile(`glptt-[0-9a-f]{40}`).String()
 
 func GitlabPipelineTriggerToken() *Rule {
 	return &Rule{

@@ -1,6 +1,7 @@
 package ruledefine
 
-var dropboxLongLivedAPITokenRegex = generateSemiGenericRegex([]string{"dropbox"}, `[a-z0-9]{11}(AAAAAAAAAA)[a-z0-9\-_=]{43}`, true)
+var dropboxLongLivedAPITokenRegex = generateSemiGenericRegex(
+	[]string{"dropbox"}, `[a-z0-9]{11}(AAAAAAAAAA)[a-z0-9\-_=]{43}`, true).String()
 
 func DropBoxLongLivedAPIToken() *Rule {
 	return &Rule{

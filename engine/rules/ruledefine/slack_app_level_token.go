@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var slackAppLevelTokenRegex = regexp.MustCompile(`(?i)xapp-\d-[A-Z0-9]+-\d+-[a-z0-9]+`)
+var slackAppLevelTokenRegex = regexp.MustCompile(`(?i)xapp-\d-[A-Z0-9]+-\d+-[a-z0-9]+`).String()
 
 func SlackAppLevelToken() *Rule {
 	return &Rule{

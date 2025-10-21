@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var slackLegacyWorkspaceTokenRegex = regexp.MustCompile(`xox[ar]-(?:\d-)?[0-9a-zA-Z]{8,48}`)
+var slackLegacyWorkspaceTokenRegex = regexp.MustCompile(`xox[ar]-(?:\d-)?[0-9a-zA-Z]{8,48}`).String()
 
 func SlackLegacyWorkspaceToken() *Rule {
 	return &Rule{

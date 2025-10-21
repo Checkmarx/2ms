@@ -1,6 +1,6 @@
 package ruledefine
 
-var plaidSecretKeyRegex = generateSemiGenericRegex([]string{"plaid"}, AlphaNumeric("30"), true)
+var plaidSecretKeyRegex = generateSemiGenericRegex([]string{"plaid"}, AlphaNumeric("30"), true).String()
 
 func PlaidSecretKey() *Rule {
 	return &Rule{

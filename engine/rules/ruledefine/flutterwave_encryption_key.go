@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var flutterwaveEncryptionKeyRegex = regexp.MustCompile(`FLWSECK_TEST-(?i)[a-h0-9]{12}`)
+var flutterwaveEncryptionKeyRegex = regexp.MustCompile(`FLWSECK_TEST-(?i)[a-h0-9]{12}`).String()
 
 func FlutterwaveEncKey() *Rule {
 	return &Rule{

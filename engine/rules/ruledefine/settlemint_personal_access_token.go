@@ -1,6 +1,6 @@
 package ruledefine
 
-var settlemintPersonalAccessTokenRegex = generateUniqueTokenRegex(`sm_pat_[a-zA-Z0-9]{16}`, false)
+var settlemintPersonalAccessTokenRegex = generateUniqueTokenRegex(`sm_pat_[a-zA-Z0-9]{16}`, false).String()
 
 func SettlemintPersonalAccessToken() *Rule {
 	return &Rule{

@@ -8,7 +8,7 @@ func BitBucketClientSecret() *Rule {
 		Description: "Discovered a potential Bitbucket Client Secret," +
 			" posing a risk of compromised code repositories and unauthorized access.",
 		RuleID:          "bitbucket-client-secret",
-		Regex:           bitbucketClientSecretRegex,
+		Regex:           bitbucketClientSecretRegex.String(),
 		Keywords:        []string{"bitbucket"},
 		Severity:        "High",
 		Tags:            []string{TagClientSecret},

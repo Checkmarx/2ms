@@ -1,6 +1,6 @@
 package ruledefine
 
-var kucoinAccessTokenRegex = generateSemiGenericRegex([]string{"kucoin"}, Hex("24"), true)
+var kucoinAccessTokenRegex = generateSemiGenericRegex([]string{"kucoin"}, Hex("24"), true).String()
 
 func KucoinAccessToken() *Rule {
 	return &Rule{

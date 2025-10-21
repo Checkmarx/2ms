@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var githubRefreshTokenRegex = regexp.MustCompile(`ghr_[0-9a-zA-Z]{36}`)
+var githubRefreshTokenRegex = regexp.MustCompile(`ghr_[0-9a-zA-Z]{36}`).String()
 
 func GitHubRefresh() *Rule {
 	return &Rule{

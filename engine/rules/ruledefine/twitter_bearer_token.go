@@ -1,6 +1,7 @@
 package ruledefine
 
-var twitterBearerTokenRegex = generateSemiGenericRegex([]string{"twitter"}, "A{22}[a-zA-Z0-9%]{80,100}", true)
+var twitterBearerTokenRegex = generateSemiGenericRegex(
+	[]string{"twitter"}, "A{22}[a-zA-Z0-9%]{80,100}", true).String()
 
 func TwitterBearerToken() *Rule {
 	return &Rule{

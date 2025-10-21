@@ -1,6 +1,7 @@
 package ruledefine
 
-var finnhubAccessTokenRegex = generateSemiGenericRegex([]string{"finnhub"}, AlphaNumeric("20"), true)
+var finnhubAccessTokenRegex = generateSemiGenericRegex(
+	[]string{"finnhub"}, AlphaNumeric("20"), true).String()
 
 func FinnhubAccessToken() *Rule {
 	return &Rule{

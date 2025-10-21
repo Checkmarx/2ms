@@ -1,6 +1,6 @@
 package ruledefine
 
-var mailgunPubKeyRegex = generateSemiGenericRegex([]string{"mailgun"}, `pubkey-[a-f0-9]{32}`, true)
+var mailgunPubKeyRegex = generateSemiGenericRegex([]string{"mailgun"}, `pubkey-[a-f0-9]{32}`, true).String()
 
 func MailGunPubAPIToken() *Rule {
 	return &Rule{

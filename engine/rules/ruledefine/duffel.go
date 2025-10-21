@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var duffelAPITokenRegex = regexp.MustCompile(`duffel_(?:test|live)_(?i)[a-z0-9_\-=]{43}`)
+var duffelAPITokenRegex = regexp.MustCompile(`duffel_(?:test|live)_(?i)[a-z0-9_\-=]{43}`).String()
 
 func Duffel() *Rule {
 	return &Rule{

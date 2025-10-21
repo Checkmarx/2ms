@@ -1,6 +1,7 @@
 package ruledefine
 
-var jfrogAPIKeyRegex = generateSemiGenericRegex([]string{"jfrog", "artifactory", "bintray", "xray"}, AlphaNumeric("73"), true)
+var jfrogAPIKeyRegex = generateSemiGenericRegex([]string{
+	"jfrog", "artifactory", "bintray", "xray"}, AlphaNumeric("73"), true).String()
 
 func JFrogAPIKey() *Rule {
 	return &Rule{

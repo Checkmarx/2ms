@@ -9,7 +9,7 @@ import (
 var authPat = `(?i)(?:Authorization:[ \t]{0,5}(?:Basic[ \t]([a-z0-9+/]{8,}={0,3})|(?:Bearer|(?:Api-)?Token)[ \t]([\w=~@.+/-]{8,})|([\w=~@.+/-]{8,}))|(?:(?:X-(?:[a-z]+-)?)?(?:Api-?)?(?:Key|Token)):[ \t]{0,5}([\w=~@.+/-]{8,}))` //nolint:lll
 
 var curlHeaderAuthRegex = regexp.MustCompile(
-	fmt.Sprintf(`\bcurl\b(?:.*?|.*?(?:[\r\n]{1,2}.*?){1,5})[ \t\n\r](?:-H|--header)(?:=|[ \t]{0,5})(?:"%s"|'%s')(?:\B|\s|\z)`, authPat, authPat)) //nolint:gocritic,lll
+	fmt.Sprintf(`\bcurl\b(?:.*?|.*?(?:[\r\n]{1,2}.*?){1,5})[ \t\n\r](?:-H|--header)(?:=|[ \t]{0,5})(?:"%s"|'%s')(?:\B|\s|\z)`, authPat, authPat)).String() //nolint:gocritic,lll
 
 func CurlHeaderAuth() *Rule {
 	return &Rule{

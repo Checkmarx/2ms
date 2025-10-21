@@ -1,6 +1,7 @@
 package ruledefine
 
-var jwtRegex = generateUniqueTokenRegex(`ey[a-zA-Z0-9]{17,}\.ey[a-zA-Z0-9\/\\_-]{17,}\.(?:[a-zA-Z0-9\/\\_-]{10,}={0,2})?`, false)
+var jwtRegex = generateUniqueTokenRegex(
+	`ey[a-zA-Z0-9]{17,}\.ey[a-zA-Z0-9\/\\_-]{17,}\.(?:[a-zA-Z0-9\/\\_-]{10,}={0,2})?`, false).String()
 
 func JWT() *Rule {
 	return &Rule{

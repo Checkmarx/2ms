@@ -1,7 +1,7 @@
 package ruledefine
 
 var netlifyAccessTokenRegex = generateSemiGenericRegex([]string{"netlify"},
-	AlphaNumericExtended("40,46"), true)
+	AlphaNumericExtended("40,46"), true).String()
 
 func NetlifyAccessToken() *Rule {
 	return &Rule{

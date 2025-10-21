@@ -1,6 +1,6 @@
 package ruledefine
 
-var squareAccessTokenRegex = generateUniqueTokenRegex(`(?:EAAA|sq0atp-)[\w-]{22,60}`, false)
+var squareAccessTokenRegex = generateUniqueTokenRegex(`(?:EAAA|sq0atp-)[\w-]{22,60}`, false).String()
 
 func SquareAccessToken() *Rule {
 	return &Rule{

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabCiCdJobTokenRegex = regexp.MustCompile(`glcbt-[0-9a-zA-Z]{1,5}_[0-9a-zA-Z_-]{20}`)
+var gitlabCiCdJobTokenRegex = regexp.MustCompile(`glcbt-[0-9a-zA-Z]{1,5}_[0-9a-zA-Z_-]{20}`).String()
 
 func GitlabCiCdJobToken() *Rule {
 	return &Rule{

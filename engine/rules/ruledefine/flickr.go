@@ -1,6 +1,7 @@
 package ruledefine
 
-var flickrAccessTokenRegex = generateSemiGenericRegex([]string{"flickr"}, AlphaNumeric("32"), true)
+var flickrAccessTokenRegex = generateSemiGenericRegex(
+	[]string{"flickr"}, AlphaNumeric("32"), true).String()
 
 func FlickrAccessToken() *Rule {
 	return &Rule{

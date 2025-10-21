@@ -1,6 +1,6 @@
 package ruledefine
 
-var squareSpaceAccessTokenRegex = generateSemiGenericRegex([]string{"squarespace"}, Hex8_4_4_4_12(), true)
+var squareSpaceAccessTokenRegex = generateSemiGenericRegex([]string{"squarespace"}, Hex8_4_4_4_12(), true).String()
 
 func SquareSpaceAccessToken() *Rule {
 	return &Rule{

@@ -1,6 +1,7 @@
 package ruledefine
 
-var ciscoMerakiAPIKeyRegex = generateSemiGenericRegex([]string{`(?-i:[Mm]eraki|MERAKI)`}, `[0-9a-f]{40}`, false)
+var ciscoMerakiAPIKeyRegex = generateSemiGenericRegex(
+	[]string{`(?-i:[Mm]eraki|MERAKI)`}, `[0-9a-f]{40}`, false).String()
 
 func Meraki() *Rule {
 	return &Rule{

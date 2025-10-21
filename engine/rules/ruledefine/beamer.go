@@ -9,7 +9,7 @@ func Beamer() *Rule {
 		Description: "Detected a Beamer API token," +
 			" potentially compromising content management and exposing sensitive notifications and updates.",
 		RuleID:          "beamer-api-token",
-		Regex:           beamerApiTokenRegex,
+		Regex:           beamerApiTokenRegex.String(),
 		Keywords:        []string{"beamer"},
 		Severity:        "High",
 		Tags:            []string{TagApiToken},

@@ -8,7 +8,7 @@ func CodecovAccessToken() *Rule {
 		Description: "Found a pattern resembling a Codecov Access Token," +
 			" posing a risk of unauthorized access to code coverage reports and sensitive data.",
 		RuleID: "codecov-access-token",
-		Regex:  codecovAccessTokenRegex,
+		Regex:  codecovAccessTokenRegex.String(),
 		Keywords: []string{
 			"codecov",
 		},

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var sidekiqSensitiveUrlRegex = regexp.MustCompile(`(?i)\bhttps?://([a-f0-9]{8}:[a-f0-9]{8})@(?:gems.contribsys.com|enterprise.contribsys.com)(?:[\/|\#|\?|:]|$)`) //nolint:gocritic,lll
+var sidekiqSensitiveUrlRegex = regexp.MustCompile(`(?i)\bhttps?://([a-f0-9]{8}:[a-f0-9]{8})@(?:gems.contribsys.com|enterprise.contribsys.com)(?:[\/|\#|\?|:]|$)`).String() //nolint:gocritic,lll
 
 func SidekiqSensitiveUrl() *Rule {
 	return &Rule{

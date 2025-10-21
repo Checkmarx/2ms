@@ -1,6 +1,7 @@
 package ruledefine
 
-var mapboxAPITokenRegex = generateSemiGenericRegex([]string{"mapbox"}, `pk\.[a-z0-9]{60}\.[a-z0-9]{22}`, true)
+var mapboxAPITokenRegex = generateSemiGenericRegex(
+	[]string{"mapbox"}, `pk\.[a-z0-9]{60}\.[a-z0-9]{22}`, true).String()
 
 func MapBox() *Rule {
 	return &Rule{

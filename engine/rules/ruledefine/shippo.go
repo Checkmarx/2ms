@@ -1,6 +1,6 @@
 package ruledefine
 
-var shippoAPITokenRegex = generateUniqueTokenRegex(`shippo_(?:live|test)_[a-fA-F0-9]{40}`, false)
+var shippoAPITokenRegex = generateUniqueTokenRegex(`shippo_(?:live|test)_[a-fA-F0-9]{40}`, false).String()
 
 func ShippoAPIToken() *Rule {
 	return &Rule{

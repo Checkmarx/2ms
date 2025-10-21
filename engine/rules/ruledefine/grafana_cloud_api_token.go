@@ -1,6 +1,6 @@
 package ruledefine
 
-var grafanaCloudAPITokenRegex = generateUniqueTokenRegex(`glc_[A-Za-z0-9+/]{32,400}={0,3}`, true)
+var grafanaCloudAPITokenRegex = generateUniqueTokenRegex(`glc_[A-Za-z0-9+/]{32,400}={0,3}`, true).String()
 
 func GrafanaCloudApiToken() *Rule {
 	return &Rule{

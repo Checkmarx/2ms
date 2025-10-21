@@ -1,6 +1,6 @@
 package ruledefine
 
-var prefectRegex = generateUniqueTokenRegex(`pnu_[a-zA-Z0-9]{36}`, false)
+var prefectRegex = generateUniqueTokenRegex(`pnu_[a-zA-Z0-9]{36}`, false).String()
 
 func Prefect() *Rule {
 	return &Rule{

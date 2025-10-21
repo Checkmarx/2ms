@@ -1,6 +1,7 @@
 package ruledefine
 
-var messagebirdClientIDRegex = generateSemiGenericRegex([]string{"message[_-]?bird"}, Hex8_4_4_4_12(), true)
+var messagebirdClientIDRegex = generateSemiGenericRegex(
+	[]string{"message[_-]?bird"}, Hex8_4_4_4_12(), true).String()
 
 func MessageBirdClientID() *Rule {
 	return &Rule{

@@ -1,6 +1,6 @@
 package ruledefine
 
-var adobeClientSecretRegex = generateUniqueTokenRegex(`p8e-(?i)[a-z0-9]{32}`, false)
+var adobeClientSecretRegex = generateUniqueTokenRegex(`p8e-(?i)[a-z0-9]{32}`, false).String()
 
 func AdobeClientSecret() *Rule {
 	// define rule

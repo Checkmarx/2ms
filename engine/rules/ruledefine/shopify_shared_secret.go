@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var shopifySharedSecretRegex = regexp.MustCompile(`shpss_[a-fA-F0-9]{32}`)
+var shopifySharedSecretRegex = regexp.MustCompile(`shpss_[a-fA-F0-9]{32}`).String()
 
 func ShopifySharedSecret() *Rule {
 	return &Rule{

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var shopifyPrivateAppAccessTokenRegex = regexp.MustCompile(`shppa_[a-fA-F0-9]{32}`)
+var shopifyPrivateAppAccessTokenRegex = regexp.MustCompile(`shppa_[a-fA-F0-9]{32}`).String()
 
 func ShopifyPrivateAppAccessToken() *Rule {
 	return &Rule{

@@ -1,6 +1,6 @@
 package ruledefine
 
-var dropboxAPITokenRegex = generateSemiGenericRegex([]string{"dropbox"}, AlphaNumeric("15"), true)
+var dropboxAPITokenRegex = generateSemiGenericRegex([]string{"dropbox"}, AlphaNumeric("15"), true).String()
 
 func DropBoxAPISecret() *Rule {
 	return &Rule{

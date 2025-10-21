@@ -14,7 +14,7 @@ func AzureActiveDirectoryClientSecret() *Rule {
 		// After inspecting dozens of secrets, I'm fairly confident that they start with `xxx\dQ~`.
 		// However, this may not be (entirely) true, and this rule might need to be further refined in the future.
 		// Furthermore, it's possible that secrets have a checksum that could be used to further constrain this pattern.
-		Regex:   azureActiveDirectoryClientSecretRegex,
+		Regex:   azureActiveDirectoryClientSecretRegex.String(),
 		Entropy: 3,
 		Keywords: []string{
 			"Q~",

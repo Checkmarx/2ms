@@ -4,7 +4,8 @@ import (
 	"regexp"
 )
 
-var nugetConfigPasswordRegex = regexp.MustCompile(`(?i)<add key=\"(?:(?:ClearText)?Password)\"\s*value=\"(.{8,})\"\s*/>`)
+var nugetConfigPasswordRegex = regexp.MustCompile(
+	`(?i)<add key=\"(?:(?:ClearText)?Password)\"\s*value=\"(.{8,})\"\s*/>`).String()
 
 func NugetConfigPassword() *Rule {
 	return &Rule{
@@ -14,15 +15,15 @@ func NugetConfigPassword() *Rule {
 		Regex:       nugetConfigPasswordRegex,
 		Entropy:     1,
 		Keywords:    []string{"<add key="},
-		Path:        regexp.MustCompile(`(?i)nuget\.config$`),
+		Path:        regexp.MustCompile(`(?i)nuget\.config$`).String(),
 		AllowLists: []*AllowList{
 			{
-				Regexes: []*regexp.Regexp{
+				Regexes: []string{
 					// samples from https://learn.microsoft.com/en-us/nuget/reference/nuget-config-file
-					regexp.MustCompile(`33f!!lloppa`),
-					regexp.MustCompile(`hal\+9ooo_da!sY`),
+					regexp.MustCompile(`33f!!lloppa`).String(),
+					regexp.MustCompile(`hal\+9ooo_da!sY`).String(),
 					// exclude environment variables
-					regexp.MustCompile(`^\%\S.*\%$`), //nolint:gocritic
+					regexp.MustCompile(`^\%\S.*\%$`).String(), //nolint:gocritic
 				},
 			},
 		},

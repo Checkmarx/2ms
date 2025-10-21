@@ -1,6 +1,6 @@
 package ruledefine
 
-var herokuAPIKeyRegex = generateSemiGenericRegex([]string{"heroku"}, Hex8_4_4_4_12(), true)
+var herokuAPIKeyRegex = generateSemiGenericRegex([]string{"heroku"}, Hex8_4_4_4_12(), true).String()
 
 func Heroku() *Rule {
 	return &Rule{

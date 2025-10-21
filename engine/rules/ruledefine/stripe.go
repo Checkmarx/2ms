@@ -1,6 +1,6 @@
 package ruledefine
 
-var stripeAccessTokenRegex = generateUniqueTokenRegex(`(?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99}`, false)
+var stripeAccessTokenRegex = generateUniqueTokenRegex(`(?:sk|rk)_(?:test|live|prod)_[a-zA-Z0-9]{10,99}`, false).String()
 
 func StripeAccessToken() *Rule {
 	return &Rule{

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabSessionCookieRegex = regexp.MustCompile(`_gitlab_session=[0-9a-z]{32}`)
+var gitlabSessionCookieRegex = regexp.MustCompile(`_gitlab_session=[0-9a-z]{32}`).String()
 
 func GitlabSessionCookie() *Rule {
 	return &Rule{

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabKubernetesAgentTokenRegex = regexp.MustCompile(`glagent-[0-9a-zA-Z_\-]{50}`)
+var gitlabKubernetesAgentTokenRegex = regexp.MustCompile(`glagent-[0-9a-zA-Z_\-]{50}`).String()
 
 func GitlabKubernetesAgentToken() *Rule {
 	return &Rule{

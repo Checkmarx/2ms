@@ -14,7 +14,7 @@ var genericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
 	"passw(?:or)?d",
 	"secret",
 	"token",
-}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true)
+}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
 
 func GenericCredential() *Rule {
 	return &Rule{
@@ -39,15 +39,15 @@ func GenericCredential() *Rule {
 			{
 				// NOTE: this is a goofy hack to get around the fact there golang's regex engine does not support positive lookaheads.
 				// Ideally we would want to ensure the secret contains both numbers and alphabetical characters, not just alphabetical characters.
-				Regexes: []*regexp.Regexp{
-					regexp.MustCompile(`^[a-zA-Z_.-]+$`),
+				Regexes: []string{
+					regexp.MustCompile(`^[a-zA-Z_.-]+$`).String(),
 				},
 			},
 			{
 				Description:    "Allowlist for Generic API Keys",
 				MatchCondition: "OR",
 				RegexTarget:    "match",
-				Regexes: []*regexp.Regexp{
+				Regexes: []string{
 					regexp.MustCompile(`(?i)(?:` +
 						// Access
 						`access(?:ibility|or)` +
@@ -89,7 +89,7 @@ func GenericCredential() *Rule {
 						// Empty variables capturing the next line (e.g., .env files)
 						`|(?-i:(?:[A-Z_]+=\n[A-Z_]+=|[a-z_]+=\n[a-z_]+=)(?:\n|\z))` +
 						`|(?-i:(?:[A-Z.]+=\n[A-Z.]+=|[a-z.]+=\n[a-z.]+=)(?:\n|\z))` +
-						`)`),
+						`)`).String(),
 				},
 				StopWords: append(DefaultStopWords,
 					"6fe4476ee5a1832882e326b506d14126", // https://github.com/yarnpkg/berry/issues/6201
@@ -97,26 +97,26 @@ func GenericCredential() *Rule {
 			},
 			{
 				RegexTarget: "line",
-				Regexes: []*regexp.Regexp{
+				Regexes: []string{
 					// Docker build secrets (https://docs.docker.com/build/building/secrets/#using-build-secrets).
-					regexp.MustCompile(`--mount=type=secret,`),
+					regexp.MustCompile(`--mount=type=secret,`).String(),
 					//  https://github.com/gitleaks/gitleaks/issues/1800
-					regexp.MustCompile(`import[ \t]+{[ \t\w,]+}[ \t]+from[ \t]+['"][^'"]+['"]`),
+					regexp.MustCompile(`import[ \t]+{[ \t\w,]+}[ \t]+from[ \t]+['"][^'"]+['"]`).String(),
 				},
 			},
 			{
 				MatchCondition: "AND",
 				RegexTarget:    "line",
-				Regexes: []*regexp.Regexp{
-					regexp.MustCompile(`LICENSE[^=]*=\s*"[^"]+`),
-					regexp.MustCompile(`LIC_FILES_CHKSUM[^=]*=\s*"[^"]+`),
-					regexp.MustCompile(`SRC[^=]*=\s*"[a-zA-Z0-9]+`),
+				Regexes: []string{
+					regexp.MustCompile(`LICENSE[^=]*=\s*"[^"]+`).String(),
+					regexp.MustCompile(`LIC_FILES_CHKSUM[^=]*=\s*"[^"]+`).String(),
+					regexp.MustCompile(`SRC[^=]*=\s*"[a-zA-Z0-9]+`).String(),
 				},
-				Paths: []*regexp.Regexp{
-					regexp.MustCompile(`\.bb$`),
-					regexp.MustCompile(`\.bbappend$`),
-					regexp.MustCompile(`\.bbclass$`),
-					regexp.MustCompile(`\.inc$`),
+				Paths: []string{
+					regexp.MustCompile(`\.bb$`).String(),
+					regexp.MustCompile(`\.bbappend$`).String(),
+					regexp.MustCompile(`\.bbclass$`).String(),
+					regexp.MustCompile(`\.inc$`).String(),
 				},
 			},
 		},

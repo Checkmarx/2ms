@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabPatRoutableRegex = regexp.MustCompile(`\bglpat-[0-9a-zA-Z_-]{27,300}\.[0-9a-z]{2}[0-9a-z]{7}\b`)
+var gitlabPatRoutableRegex = regexp.MustCompile(`\bglpat-[0-9a-zA-Z_-]{27,300}\.[0-9a-z]{2}[0-9a-z]{7}\b`).String()
 
 func GitlabPatRoutable() *Rule {
 	return &Rule{

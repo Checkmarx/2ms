@@ -1,6 +1,6 @@
 package ruledefine
 
-var databricksApiTokenRegex = generateUniqueTokenRegex(`dapi[a-f0-9]{32}(?:-\d)?`, false)
+var databricksApiTokenRegex = generateUniqueTokenRegex(`dapi[a-f0-9]{32}(?:-\d)?`, false).String()
 
 func Databricks() *Rule {
 	return &Rule{

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var easypostRegex = regexp.MustCompile(`\bEZAK(?i)[a-z0-9]{54}\b`)
+var easypostRegex = regexp.MustCompile(`\bEZAK(?i)[a-z0-9]{54}\b`).String()
 
 func EasyPost() *Rule {
 	return &Rule{

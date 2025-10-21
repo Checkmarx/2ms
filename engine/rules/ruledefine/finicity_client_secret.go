@@ -1,6 +1,7 @@
 package ruledefine
 
-var finicityClientSecretRegex = generateSemiGenericRegex([]string{"finicity"}, AlphaNumeric("20"), true)
+var finicityClientSecretRegex = generateSemiGenericRegex(
+	[]string{"finicity"}, AlphaNumeric("20"), true).String()
 
 func FinicityClientSecret() *Rule {
 	return &Rule{

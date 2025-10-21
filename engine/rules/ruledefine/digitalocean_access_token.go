@@ -1,6 +1,6 @@
 package ruledefine
 
-var digitaloceanAccessTokenRegex = generateUniqueTokenRegex(`doo_v1_[a-f0-9]{64}`, false)
+var digitaloceanAccessTokenRegex = generateUniqueTokenRegex(`doo_v1_[a-f0-9]{64}`, false).String()
 
 func DigitalOceanOAuthToken() *Rule {
 	return &Rule{

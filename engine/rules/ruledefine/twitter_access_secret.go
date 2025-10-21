@@ -1,6 +1,6 @@
 package ruledefine
 
-var twitterAccessSecretRegex = generateSemiGenericRegex([]string{"twitter"}, AlphaNumeric("45"), true)
+var twitterAccessSecretRegex = generateSemiGenericRegex([]string{"twitter"}, AlphaNumeric("45"), true).String()
 
 func TwitterAccessSecret() *Rule {
 	return &Rule{

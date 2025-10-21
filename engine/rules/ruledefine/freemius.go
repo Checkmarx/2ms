@@ -5,7 +5,7 @@ import (
 )
 
 var freemiusSecretKeyRegex = regexp.MustCompile(
-	`(?i)["']secret_key["']\s*=>\s*["'](sk_[\S]{29})["']`) //nolint:gocritic // Regex can be simplified but copied from gitleaks
+	`(?i)["']secret_key["']\s*=>\s*["'](sk_[\S]{29})["']`).String() //nolint:gocritic // Regex can be simplified but copied from gitleaks
 
 func Freemius() *Rule {
 	return &Rule{
@@ -14,7 +14,7 @@ func Freemius() *Rule {
 		RuleID:          "freemius-secret-key",
 		Regex:           freemiusSecretKeyRegex,
 		Keywords:        []string{"secret_key"},
-		Path:            regexp.MustCompile(`(?i)\.php$`),
+		Path:            regexp.MustCompile(`(?i)\.php$`).String(),
 		Severity:        "High",
 		Tags:            []string{TagSecretKey},
 		ScoreParameters: ScoreParameters{Category: CategoryECommercePlatform, RuleType: 4},

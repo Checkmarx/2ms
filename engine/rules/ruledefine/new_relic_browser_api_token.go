@@ -4,7 +4,7 @@ var newRelicBrowserAPITokenRegex = generateSemiGenericRegex([]string{
 	"new-relic",
 	"newrelic",
 	"new_relic",
-}, `NRJS-[a-f0-9]{19}`, true)
+}, `NRJS-[a-f0-9]{19}`, true).String()
 
 func NewRelicBrowserAPIKey() *Rule {
 	return &Rule{

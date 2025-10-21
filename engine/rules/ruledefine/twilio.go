@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var twilioRegex = regexp.MustCompile(`SK[0-9a-fA-F]{32}`)
+var twilioRegex = regexp.MustCompile(`SK[0-9a-fA-F]{32}`).String()
 
 func Twilio() *Rule {
 	return &Rule{

@@ -1,6 +1,7 @@
 package ruledefine
 
-var messagebirdAPITokenRegex = generateSemiGenericRegex([]string{"message[_-]?bird"}, AlphaNumeric("25"), true)
+var messagebirdAPITokenRegex = generateSemiGenericRegex(
+	[]string{"message[_-]?bird"}, AlphaNumeric("25"), true).String()
 
 func MessageBirdAPIToken() *Rule {
 	return &Rule{

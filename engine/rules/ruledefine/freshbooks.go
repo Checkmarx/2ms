@@ -1,6 +1,7 @@
 package ruledefine
 
-var freshbooksAccessTokenRegex = generateSemiGenericRegex([]string{"freshbooks"}, AlphaNumeric("64"), true)
+var freshbooksAccessTokenRegex = generateSemiGenericRegex(
+	[]string{"freshbooks"}, AlphaNumeric("64"), true).String()
 
 func FreshbooksAccessToken() *Rule {
 	return &Rule{

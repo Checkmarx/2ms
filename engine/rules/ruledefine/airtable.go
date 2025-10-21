@@ -1,6 +1,6 @@
 package ruledefine
 
-var airtableRegex = generateSemiGenericRegex([]string{"airtable"}, AlphaNumeric("17"), true)
+var airtableRegex = generateSemiGenericRegex([]string{"airtable"}, AlphaNumeric("17"), true).String()
 
 func Airtable() *Rule {
 	// define rule

@@ -2,7 +2,7 @@ package ruledefine
 
 var linkedinClientSecretRegex = generateSemiGenericRegex([]string{
 	"linked[_-]?in",
-}, AlphaNumeric("16"), true)
+}, AlphaNumeric("16"), true).String()
 
 func LinkedinClientSecret() *Rule {
 	return &Rule{

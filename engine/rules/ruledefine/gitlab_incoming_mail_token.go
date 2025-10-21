@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabIncomingMailTokenRegex = regexp.MustCompile(`glimt-[0-9a-zA-Z_\-]{25}`)
+var gitlabIncomingMailTokenRegex = regexp.MustCompile(`glimt-[0-9a-zA-Z_\-]{25}`).String()
 
 func GitlabIncomingMailToken() *Rule {
 	return &Rule{

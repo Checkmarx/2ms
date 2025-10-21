@@ -1,7 +1,7 @@
 package ruledefine
 
 var jfrogIdentityTokenRegex = generateSemiGenericRegex(
-	[]string{"jfrog", "artifactory", "bintray", "xray"}, AlphaNumeric("64"), true)
+	[]string{"jfrog", "artifactory", "bintray", "xray"}, AlphaNumeric("64"), true).String()
 
 func JFrogIdentityToken() *Rule {
 	return &Rule{

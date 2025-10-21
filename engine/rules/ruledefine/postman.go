@@ -1,6 +1,6 @@
 package ruledefine
 
-var postManAPIRegex = generateUniqueTokenRegex(`PMAK-(?i)[a-f0-9]{24}\-[a-f0-9]{34}`, false)
+var postManAPIRegex = generateUniqueTokenRegex(`PMAK-(?i)[a-f0-9]{24}\-[a-f0-9]{34}`, false).String()
 
 func PostManAPI() *Rule {
 	return &Rule{

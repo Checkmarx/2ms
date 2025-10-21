@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var githubAppTokenRegex = regexp.MustCompile(`(?:ghu|ghs)_[0-9a-zA-Z]{36}`)
+var githubAppTokenRegex = regexp.MustCompile(`(?:ghu|ghs)_[0-9a-zA-Z]{36}`).String()
 
 func GitHubApp() *Rule {
 	return &Rule{

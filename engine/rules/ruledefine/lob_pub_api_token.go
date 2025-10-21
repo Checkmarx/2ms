@@ -1,6 +1,7 @@
 package ruledefine
 
-var lobPubAPIKeyRegex = generateSemiGenericRegex([]string{"lob"}, `(test|live)_pub_[a-f0-9]{31}`, true)
+var lobPubAPIKeyRegex = generateSemiGenericRegex(
+	[]string{"lob"}, `(test|live)_pub_[a-f0-9]{31}`, true).String()
 
 func LobPubAPIToken() *Rule {
 	return &Rule{

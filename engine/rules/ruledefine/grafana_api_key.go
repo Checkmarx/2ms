@@ -1,6 +1,6 @@
 package ruledefine
 
-var grafanaAPIKeyRegex = generateUniqueTokenRegex(`eyJrIjoi[A-Za-z0-9]{70,400}={0,3}`, true)
+var grafanaAPIKeyRegex = generateUniqueTokenRegex(`eyJrIjoi[A-Za-z0-9]{70,400}={0,3}`, true).String()
 
 func GrafanaApiKey() *Rule {
 	return &Rule{

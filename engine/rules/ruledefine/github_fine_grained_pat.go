@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var githubFineGrainedPATRegex = regexp.MustCompile(`github_pat_\w{82}`)
+var githubFineGrainedPATRegex = regexp.MustCompile(`github_pat_\w{82}`).String()
 
 func GitHubFineGrainedPat() *Rule {
 	return &Rule{

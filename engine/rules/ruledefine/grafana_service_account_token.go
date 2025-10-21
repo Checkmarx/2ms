@@ -1,6 +1,6 @@
 package ruledefine
 
-var grafanaServiceAccountTokenRegex = generateUniqueTokenRegex(`glsa_[A-Za-z0-9]{32}_[A-Fa-f0-9]{8}`, true)
+var grafanaServiceAccountTokenRegex = generateUniqueTokenRegex(`glsa_[A-Za-z0-9]{32}_[A-Fa-f0-9]{8}`, true).String()
 
 func GrafanaServiceAccountToken() *Rule {
 	return &Rule{

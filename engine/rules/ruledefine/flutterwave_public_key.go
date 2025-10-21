@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var flutterwavePublicKeyRegex = regexp.MustCompile(`FLWPUBK_TEST-(?i)[a-h0-9]{32}-X`)
+var flutterwavePublicKeyRegex = regexp.MustCompile(`FLWPUBK_TEST-(?i)[a-h0-9]{32}-X`).String()
 
 func FlutterwavePublicKey() *Rule {
 	return &Rule{

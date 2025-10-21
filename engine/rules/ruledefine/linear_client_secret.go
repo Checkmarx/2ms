@@ -1,6 +1,6 @@
 package ruledefine
 
-var linearClientSecretRegex = generateSemiGenericRegex([]string{"linear"}, Hex("32"), true)
+var linearClientSecretRegex = generateSemiGenericRegex([]string{"linear"}, Hex("32"), true).String()
 
 func LinearClientSecret() *Rule {
 	return &Rule{

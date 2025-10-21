@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var openshiftUserTokenRegex = regexp.MustCompile(`\b(sha256~[\w-]{43})(?:[^\w-]|\z)`)
+var openshiftUserTokenRegex = regexp.MustCompile(`\b(sha256~[\w-]{43})(?:[^\w-]|\z)`).String()
 
 func OpenshiftUserToken() *Rule {
 	return &Rule{

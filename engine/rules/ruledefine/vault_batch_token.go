@@ -1,6 +1,6 @@
 package ruledefine
 
-var vaultBatchTokenRegex = generateUniqueTokenRegex(`hvb\.[\w-]{138,300}`, false)
+var vaultBatchTokenRegex = generateUniqueTokenRegex(`hvb\.[\w-]{138,300}`, false).String()
 
 func VaultBatchToken() *Rule {
 	return &Rule{

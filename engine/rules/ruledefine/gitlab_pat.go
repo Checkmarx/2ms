@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabPatRegex = regexp.MustCompile(`glpat-[\w-]{20}`)
+var gitlabPatRegex = regexp.MustCompile(`glpat-[\w-]{20}`).String()
 
 func GitlabPat() *Rule {
 	return &Rule{

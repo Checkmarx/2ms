@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var hashiCorpTerraformRegex = regexp.MustCompile(`(?i)[a-z0-9]{14}\.(?-i:atlasv1)\.[a-z0-9\-_=]{60,70}`)
+var hashiCorpTerraformRegex = regexp.MustCompile(`(?i)[a-z0-9]{14}\.(?-i:atlasv1)\.[a-z0-9\-_=]{60,70}`).String()
 
 func HashiCorpTerraform() *Rule {
 	return &Rule{

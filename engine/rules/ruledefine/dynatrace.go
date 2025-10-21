@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var dynatraceAPITokenRegex = regexp.MustCompile(`dt0c01\.(?i)[a-z0-9]{24}\.[a-z0-9]{64}`)
+var dynatraceAPITokenRegex = regexp.MustCompile(`dt0c01\.(?i)[a-z0-9]{24}\.[a-z0-9]{64}`).String()
 
 func Dynatrace() *Rule {
 	return &Rule{

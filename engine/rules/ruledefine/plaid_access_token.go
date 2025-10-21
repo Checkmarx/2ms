@@ -1,7 +1,7 @@
 package ruledefine
 
 var plaidAccessTokenRegex = generateSemiGenericRegex([]string{"plaid"},
-	"access-(?:sandbox|development|production)-"+Hex8_4_4_4_12(), true)
+	"access-(?:sandbox|development|production)-"+Hex8_4_4_4_12(), true).String()
 
 func PlaidAccessToken() *Rule {
 	return &Rule{

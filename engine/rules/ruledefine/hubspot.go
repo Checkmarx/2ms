@@ -1,7 +1,7 @@
 package ruledefine
 
 var gubspotAPIKeyRegex = generateSemiGenericRegex([]string{"hubspot"},
-	`[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}`, true)
+	`[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}`, true).String()
 
 func HubSpot() *Rule {
 	return &Rule{

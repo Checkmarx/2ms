@@ -1,6 +1,7 @@
 package ruledefine
 
-var sendInBlueAPITokenRegex = generateUniqueTokenRegex(`xkeysib-[a-f0-9]{64}\-(?i)[a-z0-9]{16}`, false)
+var sendInBlueAPITokenRegex = generateUniqueTokenRegex(
+	`xkeysib-[a-f0-9]{64}\-(?i)[a-z0-9]{16}`, false).String()
 
 func SendInBlueAPIToken() *Rule {
 	return &Rule{

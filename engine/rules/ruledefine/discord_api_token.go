@@ -1,6 +1,6 @@
 package ruledefine
 
-var discordApiTokenRegex = generateSemiGenericRegex([]string{"discord"}, Hex("64"), true)
+var discordApiTokenRegex = generateSemiGenericRegex([]string{"discord"}, Hex("64"), true).String()
 
 func DiscordAPIToken() *Rule {
 	return &Rule{

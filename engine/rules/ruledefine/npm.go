@@ -1,6 +1,6 @@
 package ruledefine
 
-var npmAccessTokenRegex = generateUniqueTokenRegex(`npm_[a-z0-9]{36}`, true)
+var npmAccessTokenRegex = generateUniqueTokenRegex(`npm_[a-z0-9]{36}`, true).String()
 
 func NPM() *Rule {
 	return &Rule{

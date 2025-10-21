@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var gitlabRunnerAuthenticationTokenRegex = regexp.MustCompile(`glrt-[0-9a-zA-Z_\-]{20}`)
+var gitlabRunnerAuthenticationTokenRegex = regexp.MustCompile(`glrt-[0-9a-zA-Z_\-]{20}`).String()
 
 func GitlabRunnerAuthenticationToken() *Rule {
 	return &Rule{

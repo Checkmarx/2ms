@@ -1,6 +1,6 @@
 package ruledefine
 
-var planetScalePasswordRegex = generateUniqueTokenRegex(`pscale_pw_(?i)[\w=\.-]{32,64}`, true)
+var planetScalePasswordRegex = generateUniqueTokenRegex(`pscale_pw_(?i)[\w=\.-]{32,64}`, true).String()
 
 func PlanetScalePassword() *Rule {
 	return &Rule{

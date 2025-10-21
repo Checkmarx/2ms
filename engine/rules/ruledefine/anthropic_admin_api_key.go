@@ -1,6 +1,6 @@
 package ruledefine
 
-var anthropicAdminApiKeyRegex = generateUniqueTokenRegex(`sk-ant-admin01-[a-zA-Z0-9_\-]{93}AA`, false)
+var anthropicAdminApiKeyRegex = generateUniqueTokenRegex(`sk-ant-admin01-[a-zA-Z0-9_\-]{93}AA`, false).String()
 
 func AnthropicAdminApiKey() *Rule {
 	return &Rule{

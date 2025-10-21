@@ -12,7 +12,7 @@ func ClickHouseCloud() *Rule {
 		Description: "Identified a pattern that may indicate clickhouse cloud API secret key," +
 			" risking unauthorized clickhouse cloud api access and data breaches on ClickHouse Cloud platforms.",
 		RuleID:  "clickhouse-cloud-api-secret-key",
-		Regex:   clickhouseCloudApiSecretKeyRegex,
+		Regex:   clickhouseCloudApiSecretKeyRegex.String(),
 		Entropy: 3,
 		Keywords: []string{
 			"4b1d",

@@ -1,6 +1,7 @@
 package ruledefine
 
-var oktaAccessTokenRegex = generateSemiGenericRegex([]string{`(?-i:[Oo]kta|OKTA)`}, `00[\w=\-]{40}`, false)
+var oktaAccessTokenRegex = generateSemiGenericRegex(
+	[]string{`(?-i:[Oo]kta|OKTA)`}, `00[\w=\-]{40}`, false).String()
 
 func OktaAccessToken() *Rule {
 	return &Rule{

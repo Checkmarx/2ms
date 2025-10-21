@@ -1,6 +1,6 @@
 package ruledefine
 
-var rubyGemsAPITokenRegex = generateUniqueTokenRegex(`rubygems_[a-f0-9]{48}`, false)
+var rubyGemsAPITokenRegex = generateUniqueTokenRegex(`rubygems_[a-f0-9]{48}`, false).String()
 
 func RubyGemsAPIToken() *Rule {
 	return &Rule{

@@ -4,7 +4,7 @@ import (
 	"regexp"
 )
 
-var perplexityAPIKeyRegex = regexp.MustCompile(`\b(pplx-[a-zA-Z0-9]{48})(?:[\x60'"\s;]|\\[nr]|$|\b)`)
+var perplexityAPIKeyRegex = regexp.MustCompile(`\b(pplx-[a-zA-Z0-9]{48})(?:[\x60'"\s;]|\\[nr]|$|\b)`).String()
 
 func PerplexityAPIKey() *Rule {
 	return &Rule{

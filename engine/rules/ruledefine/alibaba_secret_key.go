@@ -1,6 +1,6 @@
 package ruledefine
 
-var alibabaSecretKeyRegex = generateSemiGenericRegex([]string{"alibaba"}, AlphaNumeric("30"), true)
+var alibabaSecretKeyRegex = generateSemiGenericRegex([]string{"alibaba"}, AlphaNumeric("30"), true).String()
 
 func AlibabaSecretKey() *Rule {
 	// define rule

@@ -1,6 +1,7 @@
 package ruledefine
 
-var mailgunSigningKeyRegex = generateSemiGenericRegex([]string{"mailgun"}, `[a-h0-9]{32}-[a-h0-9]{8}-[a-h0-9]{8}`, true)
+var mailgunSigningKeyRegex = generateSemiGenericRegex(
+	[]string{"mailgun"}, `[a-h0-9]{32}-[a-h0-9]{8}-[a-h0-9]{8}`, true).String()
 
 func MailGunSigningKey() *Rule {
 	return &Rule{

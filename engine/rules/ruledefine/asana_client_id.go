@@ -1,6 +1,6 @@
 package ruledefine
 
-var asanaClientIdRegex = generateSemiGenericRegex([]string{"asana"}, Numeric("16"), true)
+var asanaClientIdRegex = generateSemiGenericRegex([]string{"asana"}, Numeric("16"), true).String()
 
 func AsanaClientID() *Rule {
 	return &Rule{

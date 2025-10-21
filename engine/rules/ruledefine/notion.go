@@ -1,6 +1,7 @@
 package ruledefine
 
-var notionAPITokenRegex = generateUniqueTokenRegex(`ntn_[0-9]{11}[A-Za-z0-9]{32}[A-Za-z0-9]{3}`, false)
+var notionAPITokenRegex = generateUniqueTokenRegex(
+	`ntn_[0-9]{11}[A-Za-z0-9]{32}[A-Za-z0-9]{3}`, false).String()
 
 func Notion() *Rule {
 	return &Rule{
