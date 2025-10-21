@@ -801,12 +801,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 			tc.setupMocks(p, mockClient, mockChunk)
 
 			actualErr := p.walkAndEmitPages(context.Background())
-			if tc.expectedErr != nil {
-				assert.Error(t, actualErr)
-				assert.EqualError(t, actualErr, tc.expectedErr.Error())
-			} else {
-				assert.NoError(t, actualErr)
-			}
+			assert.Equal(t, tc.expectedErr, actualErr)
 
 			items := collectEmittedItems(p.itemsChan)
 			actualIDs := make([]string, 0, len(items))

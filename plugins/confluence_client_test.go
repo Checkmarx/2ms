@@ -128,7 +128,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, func() {}
 			},
 			expectedID:  "",
-			expectedErr: fmt.Errorf("the target machine actively refused it"),
+			expectedErr: fmt.Errorf("tenant_info request"),
 		},
 		{
 			name: "non-200 http with snippet",
