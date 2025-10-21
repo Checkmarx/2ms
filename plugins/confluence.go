@@ -3,6 +3,7 @@ package plugins
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -12,6 +13,10 @@ import (
 	"github.com/checkmarx/2ms/v4/engine/chunk"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+)
+
+var (
+	ErrHTTPSRequired = errors.New("must use https")
 )
 
 // CLI flags for Confluence.
@@ -138,7 +143,7 @@ func isValidURL(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid URL: %w", err)
 	}
 	if parsedURL.Scheme != "https" {
-		return fmt.Errorf("invalid URL: must use https")
+		return fmt.Errorf("invalid URL: %w", ErrHTTPSRequired)
 	}
 	return nil
 }

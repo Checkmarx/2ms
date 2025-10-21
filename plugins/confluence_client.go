@@ -5,6 +5,7 @@ package plugins
 import (
 	"context"
 	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,12 @@ import (
 
 const (
 	httpTimeout = 60 * time.Second
+)
+
+var (
+	ErrUnsupportedTokenType = errors.New("unsupported token type")
+	ErrEmptyCloudID         = errors.New("empty cloudID")
+	ErrUnexpectedHTTPStatus = errors.New("unexpected http status")
 )
 
 // ConfluenceClient defines the operations required by the Confluence plugin.
@@ -88,7 +95,7 @@ func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType Token
 		return strings.TrimRight(u.String(), "/"), nil
 
 	default:
-		return "", fmt.Errorf("unsupported token type %q", tokenType)
+		return "", fmt.Errorf("%w %q", ErrUnsupportedTokenType, tokenType)
 	}
 }
 
@@ -116,7 +123,7 @@ func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, err
 
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return "", fmt.Errorf("tenant_info http %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
+		return "", fmt.Errorf("tenant_info: %w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(b)))
 	}
 
 	var tmp struct {
@@ -126,7 +133,7 @@ func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, err
 		return "", fmt.Errorf("decode tenant_info: %w", err)
 	}
 	if tmp.CloudID == "" {
-		return "", fmt.Errorf("tenant_info: empty cloudId")
+		return "", fmt.Errorf("tenant_info: %w", ErrEmptyCloudID)
 	}
 	return tmp.CloudID, nil
 }
@@ -170,19 +177,10 @@ func (c *httpConfluenceClient) WalkPageVersions(ctx context.Context, pageID stri
 	q.Set("limit", strconv.Itoa(limit))
 	apiURL.RawQuery = q.Encode()
 
-	// Use generic pager but rebuild next using base+cursor.
-	base := baseWithoutCursor(apiURL)
 	return walkPaginated[int](
 		ctx,
-		apiURL.String(),
+		apiURL,
 		c.getJSON,
-		func(linkNext, bodyNext string) string {
-			cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
-			if cur == "" {
-				return ""
-			}
-			return withCursor(base, cur)
-		},
 		parseVersionsResponse,
 		visit,
 	)
@@ -215,19 +213,10 @@ func (c *httpConfluenceClient) WalkSpacesByKeys(ctx context.Context, spaceKeys [
 	q.Set("keys", strings.Join(spaceKeys, ","))
 	apiURL.RawQuery = q.Encode()
 
-	// Use generic pager but rebuild next using base+cursor.
-	base := baseWithoutCursor(apiURL)
 	return walkPaginated[*Space](
 		ctx,
-		apiURL.String(),
+		apiURL,
 		c.getJSON,
-		func(linkNext, bodyNext string) string {
-			cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
-			if cur == "" {
-				return ""
-			}
-			return withCursor(base, cur)
-		},
 		parseSpacesResponse,
 		visit,
 	)
@@ -238,31 +227,44 @@ func (c *httpConfluenceClient) WalkSpacesByKeys(ctx context.Context, spaceKeys [
 // and advances using resolveNext until there is no next page.
 func walkPaginated[T any](
 	ctx context.Context,
-	initialURL string,
+	apiURL *url.URL,
 	get func(context.Context, string) ([]byte, http.Header, error),
-	resolveNext func(string, string) string,
 	parse func(http.Header, []byte) ([]T, string, string, error),
 	visit func(T) error,
 ) error {
-	nextURL := initialURL
+	base := baseWithoutCursor(apiURL)
+	nextURL := apiURL.String()
+
 	for {
 		body, headers, err := get(ctx, nextURL)
 		if err != nil {
 			return err
 		}
+
 		items, linkNext, bodyNext, err := parse(headers, body)
 		if err != nil {
 			return err
 		}
+
 		for _, it := range items {
 			if err := visit(it); err != nil {
 				return err
 			}
 		}
-		nextURL = resolveNext(linkNext, bodyNext)
-		if nextURL == "" {
+
+		rawNext := linkNext
+		if rawNext == "" {
+			rawNext = bodyNext
+		}
+		if rawNext == "" {
 			return nil
 		}
+
+		cur := cursorFromURL(rawNext)
+		if cur == "" {
+			return nil
+		}
+		nextURL = withCursor(base, cur)
 	}
 }
 
@@ -337,7 +339,7 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
-		return nil, nil, fmt.Errorf("http %d: %s", resp.StatusCode, strings.TrimSpace(string(snippet)))
+		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(snippet)))
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -372,7 +374,7 @@ func (c *httpConfluenceClient) getJSONStream(ctx context.Context, reqURL string)
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		defer resp.Body.Close()
 		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
-		return nil, nil, fmt.Errorf("http %d: %s", resp.StatusCode, strings.TrimSpace(string(snippet)))
+		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(snippet)))
 	}
 
 	// Caller must Close.
