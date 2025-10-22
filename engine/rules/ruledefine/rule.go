@@ -2,6 +2,7 @@ package ruledefine
 
 import (
 	"fmt"
+
 	"regexp"
 )
 
@@ -82,50 +83,59 @@ const (
 var SeverityOrder = []Severity{Critical, High, Medium, Low, Info}
 
 type ScoreParameters struct {
-	Category RuleCategory
-	RuleType uint8
+	Category RuleCategory `json:"category"`
+	RuleType uint8        `json:"ruleType"`
 }
 
 type Rule struct {
-	BaseRuleID      string // uuid4, should be consistent across changes in rule
-	RuleID          string
-	Description     string
-	Regex           string // regex pattern as string
-	Keywords        []string
-	Entropy         float64
-	Path            string // present in some gitleaks secrets (regex)
-	SecretGroup     int    //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	Severity        Severity
-	OldSeverity     string // fallback for when critical is not enabled
-	Deprecated      bool   // deprecated rules will remain in 2ms, with this as true
-	AllowLists      []*AllowList
-	Tags            []string
-	ScoreParameters ScoreParameters // used for ASPM
-	DisableValidation bool // if true, validation checks will be skipped for this rule if any validation is possible
+	BaseRuleID        string          `json:"baseRuleId"` // uuid4, should be consistent across changes in rule
+	RuleID            string          `json:"ruleId"`
+	Description       string          `json:"description"`
+	Regex             string          `json:"regex"` // regex pattern as string
+	Keywords          []string        `json:"keywords"`
+	Entropy           float64         `json:"entropy"`
+	Path              string          `json:"path"`        // present in some gitleaks secrets (regex)
+	SecretGroup       int             `json:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Severity          Severity        `json:"severity"`
+	OldSeverity       string          `json:"oldSeverity"` // fallback for when critical is not enabled
+	AllowLists        []*AllowList    `json:"allowLists"`
+	Tags              []string        `json:"tags"`
+	ScoreParameters   ScoreParameters `json:"scoreParameters"`   // used for ASPM
+	DisableValidation bool            `json:"disableValidation"` // if true, validation checks will be skipped for this rule if any validation is possible
+	Deprecated        bool            `json:"deprecated"`        // deprecated rules will remain in 2ms, with deprecated as true
 	//Override bool 		// if true, this rule is allowed to override existing rules with the same RuleID/BaseRuleID
 }
 
 type AllowList struct { // For patterns that are allowed to be ignored
-	Description    string
-	MatchCondition string   // determines whether all criteria must match. OR or AND
-	Paths          []string // regex
-	RegexTarget    string   // match or line. Default match
-	Regexes        []string
-	StopWords      []string // stop words that are allowed to be ignored
+	Description    string   `json:"description"`
+	MatchCondition string   `json:"matchCondition"` // determines whether all criteria must match. OR or AND
+	Paths          []string `json:"paths"`          // regex
+	RegexTarget    string   `json:"regexTarget"`    // match or line. Default match
+	Regexes        []string `json:"regexes"`
+	StopWords      []string `json:"stopWords"` // stop words that are allowed to be ignored
 }
 
 // CheckRequiredFields checks that required fields are present in the Rule.
-// This is meant for user defined rules, default rules have more scrict checks in unit tests
+// This is meant for user defined rules, default rules have more strict checks in unit tests
 func (r Rule) CheckRequiredFields() []error {
 	var errs []error
-	if r.RuleID == "" && r.BaseRuleID == "" {
-		errs = append(errs, fmt.Errorf("missing both RuleID and BaseRuleID"))
+	if r.RuleID == "" || r.BaseRuleID == "" {
+		errs = append(errs, fmt.Errorf("missing RuleID and/or BaseRuleID. Both are required"))
 	}
-	if r.Regex != nil{
-		r.Regex.
-	} else {
+	//Check for match with default rules
+	//defaultRulesBaseIDs := getDefaultRulesBaseIDs()
+	//defaultRuleIDs := getDefaultRulesIDs()
+	//if
 
+	switch {
+	case r.Regex == "":
+		errs = append(errs, fmt.Errorf("missing regex"))
+	default:
+		if _, err := regexp.Compile(r.Regex); err != nil {
+			errs = append(errs, fmt.Errorf("invalid regex: %w", err))
+		}
 	}
+
 	return nil
 }
 

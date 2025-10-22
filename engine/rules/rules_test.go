@@ -10,7 +10,7 @@ import (
 )
 
 func TestLoadAllRules(t *testing.T) {
-	rules := GetDefaultRules()
+	rules := GetDefaultRules(false)
 
 	if len(rules) <= 1 {
 		t.Error("no rules were loaded")
@@ -20,7 +20,7 @@ func TestLoadAllRules(t *testing.T) {
 func TestLoadAllRulesCheckFields(t *testing.T) {
 	ruleIDMap := make(map[string]bool)
 	baseRuleIDMap := make(map[string]bool)
-	allRules := GetDefaultRules()
+	allRules := GetDefaultRules(false)
 
 	for i, rule := range allRules {
 		// Verify existence of all required fields
@@ -52,7 +52,7 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 
 func Test_FilterRules_SelectRules(t *testing.T) {
 	specialRule := ruledefine.HardcodedPassword()
-	allRules := GetDefaultRules()
+	allRules := GetDefaultRules(false)
 	rulesCount := len(allRules)
 
 	tests := []struct {
@@ -141,7 +141,7 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			secrets := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList)
+			secrets := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList, []*ruledefine.Rule{}, false)
 
 			if len(secrets) != tt.expectedLen {
 				t.Errorf("expected %d rules, but got %d", tt.expectedLen, len(secrets))

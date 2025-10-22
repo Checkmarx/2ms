@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
@@ -167,7 +169,11 @@ func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
 		}
 		return nil, fmt.Errorf("unknown file format, expected JSON or YAML")
 	}
+	if err != nil {
+		return nil, err
+	}
 
+	err = checkRulesRequiredFields(rules)
 	if err != nil {
 		return nil, err
 	}
@@ -175,14 +181,40 @@ func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
 	return rules, nil
 }
 
-func validateRules(rules []*ruledefine.Rule) error {
-	for _, rule := range rules {
-		if rule.RuleID == "" {
-			return fmt.Errorf("rule with empty RuleID found: %+v", rule)
+// checkRequiredFields checks that required fields are present in the Rule.
+// This is meant for user defined rules, default rules have more strict checks in unit tests
+func checkRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
+	var err error
+	for i, rule := range rulesToCheck {
+		errorStart := fmt.Sprintf("Rule#%d;RuleID:%s;BaseRuleID:%s-", i, rule.RuleID, rule.BaseRuleID)
+		if rule.RuleID == "" || rule.BaseRuleID == "" {
+			err = errors.Join(err, fmt.Errorf(errorStart+"missing RuleID and/or BaseRuleID. Both are required"))
 		}
-		if rule.Regex == nil && rule.Entropy == 0.0 && len(rule.Keywords) == 0 {
-			return fmt.Errorf("rule %s must have at least one of regex, entropy or keywords defined", rule.RuleID)
+		//Check for match with default rules
+		//defaultRulesBaseIDs := rules.GetDefaultRulesBaseIDsMap()
+		//defaultRuleIDs := rules.GetDefaultRulesIDsMap()
+		//defaultID, existsID := defaultRulesBaseIDs[rule.BaseRuleID]
+		//defaultBaseID, existsBaseID := defaultRuleIDs[rule.RuleID]
+
+		if rule.Regex == "" {
+			err = errors.Join(err, fmt.Errorf(errorStart+"missing regex"))
+		} else {
+			if _, errRegex := regexp.Compile(rule.Regex); errRegex != nil {
+				err = errors.Join(err, fmt.Errorf(errorStart+"invalid regex: %w", errRegex))
+			}
+		}
+
+		if rule.Severity != "" {
+			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
+				err = errors.Join(err, fmt.Errorf(errorStart+"Severity %s is not an acceptable severity (%s)", rule.Severity, ruledefine.SeverityOrder))
+			}
 		}
 	}
-	return nil
+
+	// Add a newline at start of error if it's not nil, for better presentation
+	if err != nil {
+		err = fmt.Errorf("\n%s", err.Error())
+	}
+
+	return err
 }
