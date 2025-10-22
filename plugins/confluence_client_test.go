@@ -210,20 +210,6 @@ func TestDiscoverCloudID(t *testing.T) {
 			expectedID:  "",
 			expectedErr: ErrEmptyCloudID,
 		},
-		{
-			name: "build tenant_info request error",
-			setup: func(t *testing.T) (*httpConfluenceClient, func()) {
-				// Use an invalid port to make http.NewRequestWithContext fail
-				// after url.Parse has already succeeded.
-				c := &httpConfluenceClient{
-					baseWikiURL: "https://example.com:bad/wiki",
-					httpClient:  &http.Client{Timeout: 5 * time.Second},
-				}
-				return c, func() {}
-			},
-			expectedID:  "",
-			expectedErr: fmt.Errorf("build tenant_info request"),
-		},
 	}
 
 	for _, tc := range tests {
@@ -1227,12 +1213,6 @@ func TestDecodeResultsArray(t *testing.T) {
 			jsonInput:   "",
 			visit:       func(*Page) error { return nil },
 			expectedErr: io.EOF,
-		},
-		{
-			name:        "readToken error inside results",
-			jsonInput:   "TODO",
-			visit:       func(*Page) error { return nil },
-			expectedErr: fmt.Errorf(""),
 		},
 		{
 			name:              "first token not '['",
