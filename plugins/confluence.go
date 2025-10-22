@@ -297,11 +297,6 @@ func (p *ConfluencePlugin) emitInChunks(page *Page) error {
 			}
 			return fmt.Errorf("failed to read chunk for page %s: %w", page.ID, err)
 		}
-		if chunkStr == "" {
-			// nothing more to emit
-			return nil
-		}
-
 		tmp := *page
 		tmp.Body.Storage = &struct {
 			Value string `json:"value"`

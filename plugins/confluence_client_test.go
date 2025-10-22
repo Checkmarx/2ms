@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"io"
 	"net/http"
@@ -58,6 +59,30 @@ func TestBuildAPIBase(t *testing.T) {
 			tokenType:    TokenScoped,
 			expectedBase: "https://api.atlassian.com/ex/confluence/abc-123/wiki/api/v2",
 			expectedErr:  nil,
+		},
+		{
+			name: "scoped (discoverCloudID error)",
+			setup: func() *httpConfluenceClient {
+				// TLS server that returns 500 for /_edge/tenant_info
+				ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path == "/_edge/tenant_info" {
+						http.Error(w, "boom", http.StatusInternalServerError)
+						return
+					}
+					w.WriteHeader(http.StatusNotFound)
+				}))
+				t.Cleanup(ts.Close)
+
+				base, _ := url.Parse(ts.URL)
+				base.Path = "/wiki"
+				return &httpConfluenceClient{
+					baseWikiURL: base.String(),
+					httpClient:  ts.Client(), // trust test server
+				}
+			},
+			tokenType:    TokenScoped,
+			expectedBase: "",
+			expectedErr:  ErrUnexpectedHTTPStatus,
 		},
 		{
 			name: "unsupported",
@@ -185,6 +210,20 @@ func TestDiscoverCloudID(t *testing.T) {
 			expectedID:  "",
 			expectedErr: ErrEmptyCloudID,
 		},
+		{
+			name: "build tenant_info request error",
+			setup: func(t *testing.T) (*httpConfluenceClient, func()) {
+				// Use an invalid port to make http.NewRequestWithContext fail
+				// after url.Parse has already succeeded.
+				c := &httpConfluenceClient{
+					baseWikiURL: "https://example.com:bad/wiki",
+					httpClient:  &http.Client{Timeout: 5 * time.Second},
+				}
+				return c, func() {}
+			},
+			expectedID:  "",
+			expectedErr: fmt.Errorf("build tenant_info request"),
+		},
 	}
 
 	for _, tc := range tests {
@@ -248,6 +287,11 @@ func TestNextURLFromLinkHeader(t *testing.T) {
 			name:         `has rel="next"`,
 			link:         `</wiki/api/v2/pages?cursor=foo>; rel="base", </wiki/api/v2/pages?cursor=bar>; rel="next"`,
 			expectedNext: "/wiki/api/v2/pages?cursor=bar",
+		},
+		{
+			name:         `has rel="next" but it is empty`,
+			link:         `</wiki/api/v2/pages?cursor=foo>; rel="base", ; rel="next"`,
+			expectedNext: "",
 		},
 		{
 			name:         "empty header",
@@ -426,94 +470,334 @@ func TestFirstNonEmptyString(t *testing.T) {
 }
 
 func TestWalkPaginated(t *testing.T) {
-	type payload struct {
-		Results []int             `json:"results"`
-		Links   map[string]string `json:"_links,omitempty"`
-	}
-	first := payload{Results: []int{1, 2}, Links: map[string]string{"next": "/api?cursor=two"}}
-	second := payload{Results: []int{3}}
-
-	var calls int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		switch calls {
-		case 1:
-			_ = json.NewEncoder(w).Encode(first)
-		default:
-			_ = json.NewEncoder(w).Encode(second)
-		}
-	}))
-	defer srv.Close()
-
-	get := func(ctx context.Context, u string) ([]byte, http.Header, error) {
-		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, http.NoBody)
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, nil, err
-		}
-		defer resp.Body.Close()
-		b, _ := io.ReadAll(resp.Body)
-		return b, resp.Header.Clone(), nil
-	}
-	parse := func(h http.Header, b []byte) ([]int, string, string, error) {
-		var p payload
-		if err := json.Unmarshal(b, &p); err != nil {
-			return nil, "", "", err
-		}
-		return p.Results, "", p.Links["next"], nil
+	type step struct {
+		getErr   error
+		parseErr error
+		items    []int
+		linkNext string
+		bodyNext string
 	}
 
-	var actual []int
-	startURL, _ := url.Parse(srv.URL + "/api")
-	actualErr := walkPaginated[int](context.Background(), startURL, get, parse, func(n int) error {
-		actual = append(actual, n)
-		return nil
-	})
-	assert.Equal(t, nil, actualErr)
-	assert.Equal(t, []int{1, 2, 3}, actual)
+	tests := []struct {
+		name          string
+		steps         []step
+		visitErrOnVal *int
+		expected      []int
+		expectedErr   error
+	}{
+		{
+			name: "uses bodyNext then ends",
+			steps: []step{
+				{items: []int{1, 2}, bodyNext: "/api?cursor=two"},
+				{items: []int{3}},
+			},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name: "get error on first call",
+			steps: []step{
+				{getErr: assert.AnError},
+			},
+			expectedErr: assert.AnError,
+		},
+		{
+			name: "parse error on first call",
+			steps: []step{
+				{parseErr: assert.AnError},
+			},
+			expectedErr: assert.AnError,
+		},
+		{
+			name: "visit error on first item",
+			steps: []step{
+				{items: []int{42}},
+			},
+			visitErrOnVal: func() *int { v := 42; return &v }(),
+			expectedErr:   assert.AnError,
+		},
+		{
+			name: "no next stops after first page",
+			steps: []step{
+				{items: []int{1, 2}},
+			},
+			expected: []int{1, 2},
+		},
+		{
+			name: "next present but without cursor then stops",
+			steps: []step{
+				{items: []int{1}, linkNext: "/api?foo=bar"},
+			},
+			expected: []int{1},
+		},
+		{
+			name: "prefers linkNext over bodyNext",
+			steps: []step{
+				{items: []int{1}, linkNext: "/api?cursor=two", bodyNext: "/api?cursor=ignored"},
+				{items: []int{2}},
+			},
+			expected: []int{1, 2},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			i := 0
+
+			get := func(ctx context.Context, _ string) ([]byte, http.Header, error) {
+				st := tc.steps[i]
+				if st.getErr != nil {
+					return nil, nil, st.getErr
+				}
+				return nil, http.Header{}, nil
+			}
+
+			parse := func(_ http.Header, _ []byte) ([]int, string, string, error) {
+				st := tc.steps[i]
+				i++
+				if st.parseErr != nil {
+					return nil, "", "", st.parseErr
+				}
+				return st.items, st.linkNext, st.bodyNext, nil
+			}
+
+			var actualVersions []int
+			visit := func(n int) error {
+				if tc.visitErrOnVal != nil && n == *tc.visitErrOnVal {
+					return assert.AnError
+				}
+				actualVersions = append(actualVersions, n)
+				return nil
+			}
+
+			start, _ := url.Parse("https://example.test/api")
+			err := walkPaginated[int](context.Background(), start, get, parse, visit)
+
+			assert.ErrorIs(t, err, tc.expectedErr)
+			assert.Equal(t, tc.expected, actualVersions)
+		})
+	}
 }
 
 func TestStreamPagesFromBody(t *testing.T) {
-	body := `{
-	  "results": [
-	    {"id":"1","title":"A","body":{"storage":{"value":"x"}},"_links":{"self":"/s1"}},
-	    {"id":"2","title":"B","body":{"storage":{"value":"y"}},"_links":{"self":"/s2"}}
-	  ],
-	  "_links": {"next": "/wiki/api/v2/pages?cursor=next"}
-	}`
-	var actualVisited []string
-	actualNext, actualErr := streamPagesFromBody(strings.NewReader(body), func(p *Page) error {
-		actualVisited = append(actualVisited, p.ID)
-		return nil
-	})
-	assert.Equal(t, nil, actualErr)
-	assert.Equal(t, []string{"1", "2"}, actualVisited)
-	assert.Equal(t, "/wiki/api/v2/pages?cursor=next", actualNext)
+	tests := []struct {
+		name              string
+		jsonInput         string
+		visit             func(*Page) error
+		expectedErr       error
+		expectedVisited   []string
+		expectedNext      string
+		useContainsForErr bool
+	}{
+		{
+			name: "results + _links.next",
+			jsonInput: `{
+				"results": [
+					{"id":"1","title":"A","body":{"storage":{"value":"x"}},"_links":{"self":"/s1"}},
+					{"id":"2","title":"B","body":{"storage":{"value":"y"}},"_links":{"self":"/s2"}}
+				],
+				"_links": {"next": "/wiki/api/v2/pages?cursor=next"}
+			}`,
+			visit:           func(*Page) error { return nil },
+			expectedErr:     nil,
+			expectedVisited: []string{"1", "2"},
+			expectedNext:    "/wiki/api/v2/pages?cursor=next",
+		},
+		{
+			name:        "top-level ReadToken() fails",
+			jsonInput:   ``,
+			visit:       func(*Page) error { return nil },
+			expectedErr: io.EOF,
+		},
+		{
+			name:              "top-level token not '{'",
+			jsonInput:         `[]`,
+			visit:             func(*Page) error { return nil },
+			expectedErr:       fmt.Errorf("decode: expected '{' at top-level"),
+			useContainsForErr: true,
+		},
+		{
+			name:              "unexpected token kind after '{'",
+			jsonInput:         `{ 1 }`,
+			visit:             func(*Page) error { return nil },
+			expectedErr:       fmt.Errorf("decode: unexpected token kind \"number\""),
+			useContainsForErr: true,
+		},
+		{
+			name:        "key token ReadToken() fails",
+			jsonInput:   `{"`,
+			visit:       func(*Page) error { return nil },
+			expectedErr: io.ErrUnexpectedEOF,
+		},
+		{
+			name: "results decode error (not an array)",
+			jsonInput: `{
+				"results": {},
+				"_links": {"next": "/wiki/api/v2/pages?cursor=n"}
+			}`,
+			visit:             func(*Page) error { return nil },
+			expectedErr:       fmt.Errorf("decode: expected '[' for results"),
+			useContainsForErr: true,
+		},
+		{
+			name: "_links decode error (invalid type)",
+			jsonInput: `{
+				"results": [],
+				"_links": 123
+			}`,
+			visit:             func(*Page) error { return nil },
+			expectedErr:       fmt.Errorf("cannot unmarshal JSON number"),
+			useContainsForErr: true,
+		},
+		{
+			name: "visitor returns error (propagated)",
+			jsonInput: `{
+				"results": [{"id":"42","title":"Only"}]
+			}`,
+			visit: func(*Page) error {
+				return assert.AnError
+			},
+			expectedErr:     assert.AnError,
+			expectedVisited: nil,
+		},
+		{
+			name: "unknown key is skipped",
+			jsonInput: `{
+				"ignore_me": {"nested":{"deep": [1,2,3]}},
+				"results": [{"id":"99","title":"X"}]
+			}`,
+			visit:           func(*Page) error { return nil },
+			expectedErr:     nil,
+			expectedVisited: []string{"99"},
+			expectedNext:    "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var actualVisited []string
+
+			next, err := streamPagesFromBody(strings.NewReader(tc.jsonInput), func(p *Page) error {
+				if tc.visit != nil {
+					if e := tc.visit(p); e != nil {
+						return e
+					}
+				}
+				actualVisited = append(actualVisited, p.ID)
+				return nil
+			})
+
+			if tc.useContainsForErr {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
+			assert.Equal(t, tc.expectedVisited, actualVisited)
+			assert.Equal(t, tc.expectedNext, next)
+		})
+	}
 }
 
 func TestParseSpacesResponse(t *testing.T) {
-	body := []byte(`{"results":[{"id":"S1","key":"KEY1","name":"Space One","_links":{"self":"/s"}}],"_links":{"next":"/wiki/api/v2/spaces?cursor=2"}}`)
-	headers := http.Header{}
-	headers.Set("Link", `</wiki/api/v2/spaces?cursor=1>; rel="next"`)
-	spaces, linkNext, bodyNext, actualErr := parseSpacesResponse(headers, body)
-	assert.Equal(t, nil, actualErr)
-	assert.Len(t, spaces, 1)
-	assert.Equal(t, "S1", spaces[0].ID)
-	assert.Equal(t, "/wiki/api/v2/spaces?cursor=1", linkNext)
-	assert.Equal(t, "/wiki/api/v2/spaces?cursor=2", bodyNext)
+	tests := []struct {
+		name             string
+		headers          http.Header
+		body             string
+		expectedIDs      []string
+		expectedLinkNext string
+		expectedBodyNext string
+		expectedError    error
+	}{
+		{
+			name: "link header and body _links.next",
+			headers: func() http.Header {
+				h := http.Header{}
+				h.Set("Link", `</wiki/api/v2/spaces?cursor=1>; rel="next"`)
+				return h
+			}(),
+			body:             `{"results":[{"id":"S1","key":"K1"}],"_links":{"next":"/wiki/api/v2/spaces?cursor=2"}}`,
+			expectedIDs:      []string{"S1"},
+			expectedLinkNext: "/wiki/api/v2/spaces?cursor=1",
+			expectedBodyNext: "/wiki/api/v2/spaces?cursor=2",
+		},
+		{
+			name:        "no link header or _links in body",
+			headers:     http.Header{},
+			body:        `{"results":[{"id":"S9","key":"K9"}]}`,
+			expectedIDs: []string{"S9"},
+		},
+		{
+			name:          "decode spaces error",
+			headers:       http.Header{},
+			body:          `{`,
+			expectedError: io.ErrUnexpectedEOF,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			spaces, linkNext, bodyNext, err := parseSpacesResponse(tc.headers, []byte(tc.body))
+
+			assert.ErrorIs(t, err, tc.expectedError)
+
+			var actualIDs []string
+			for _, s := range spaces {
+				actualIDs = append(actualIDs, s.ID)
+			}
+			assert.Equal(t, tc.expectedIDs, actualIDs)
+			assert.Equal(t, tc.expectedLinkNext, linkNext)
+			assert.Equal(t, tc.expectedBodyNext, bodyNext)
+		})
+	}
 }
 
 func TestParseVersionsResponse(t *testing.T) {
-	body := []byte(`{"results":[{"number":3},{"number":2},{"number":1}],"_links":{"next":"/wiki/api/v2/pages/123/versions?cursor=2"}}`)
-	headers := http.Header{}
-	headers.Set("Link", `</wiki/api/v2/pages/123/versions?cursor=1>; rel="next"`)
-	versions, linkNext, bodyNext, actualErr := parseVersionsResponse(headers, body)
-	assert.Equal(t, nil, actualErr)
-	assert.Equal(t, []int{3, 2, 1}, versions)
-	assert.Equal(t, "/wiki/api/v2/pages/123/versions?cursor=1", linkNext)
-	assert.Equal(t, "/wiki/api/v2/pages/123/versions?cursor=2", bodyNext)
-}
+	tests := []struct {
+		name             string
+		headers          http.Header
+		body             string
+		expectedVersions []int
+		expectedLinkNext string
+		expectedBodyNext string
+		expectedErr      error
+	}{
+		{
+			name: "link header and body _links.next",
+			headers: func() http.Header {
+				h := http.Header{}
+				h.Set("Link", `</wiki/api/v2/pages/123/versions?cursor=1>; rel="next"`)
+				return h
+			}(),
+			body:             `{"results":[{"number":3},{"number":2},{"number":1}],"_links":{"next":"/wiki/api/v2/pages/123/versions?cursor=2"}}`,
+			expectedVersions: []int{3, 2, 1},
+			expectedLinkNext: "/wiki/api/v2/pages/123/versions?cursor=1",
+			expectedBodyNext: "/wiki/api/v2/pages/123/versions?cursor=2",
+		},
+		{
+			name:             "no link header or _links in body",
+			headers:          http.Header{},
+			body:             `{"results":[{"number":7},{"number":6}]}`,
+			expectedVersions: []int{7, 6},
+		},
+		{
+			name:        "decode versions error ",
+			headers:     http.Header{},
+			body:        `{`,
+			expectedErr: io.ErrUnexpectedEOF,
+		},
+	}
 
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			versions, linkNext, bodyNext, err := parseVersionsResponse(tc.headers, []byte(tc.body))
+
+			assert.ErrorIs(t, err, tc.expectedErr)
+
+			assert.Equal(t, tc.expectedVersions, versions)
+			assert.Equal(t, tc.expectedLinkNext, linkNext)
+			assert.Equal(t, tc.expectedBodyNext, bodyNext)
+		})
+	}
+}
 func TestGetJSON(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -819,32 +1103,67 @@ func TestWalkPageVersions(t *testing.T) {
 
 func TestFetchPageAtVersion(t *testing.T) {
 	expectPath := "/wiki/api/v2/pages/123"
-	page := Page{
-		ID:      "123",
-		Title:   "Hello",
-		Version: PageVersion{Number: 7},
-		Body: PageBody{Storage: &struct {
-			Value string `json:"value"`
-		}{Value: "<p>x</p>"}},
-	}
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, expectPath, r.URL.Path)
-		assert.Equal(t, "7", r.URL.Query().Get("version"))
-		assert.Equal(t, "storage", r.URL.Query().Get("body-format"))
-		_ = json.NewEncoder(w).Encode(page)
-	}))
-	defer testServer.Close()
 
-	client := &httpConfluenceClient{
-		baseWikiURL: testServer.URL + "/wiki",
-		apiBase:     testServer.URL + "/wiki/api/v2",
-		httpClient:  &http.Client{Timeout: 5 * time.Second},
+	expected := mkPage("123", 7)
+
+	tests := []struct {
+		name         string
+		handler      http.HandlerFunc
+		expectedErr  error
+		expectedPage *Page
+	}{
+		{
+			name: "success",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, expectPath, r.URL.Path)
+				assert.Equal(t, "7", r.URL.Query().Get("version"))
+				assert.Equal(t, "storage", r.URL.Query().Get("body-format"))
+				_ = json.NewEncoder(w).Encode(expected)
+			},
+			expectedErr:  nil,
+			expectedPage: expected,
+		},
+		{
+			name: "getJSON error (non-2xx)",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, expectPath, r.URL.Path)
+				assert.Equal(t, "7", r.URL.Query().Get("version"))
+				assert.Equal(t, "storage", r.URL.Query().Get("body-format"))
+				http.Error(w, "boom", http.StatusInternalServerError)
+			},
+			expectedErr:  ErrUnexpectedHTTPStatus,
+			expectedPage: nil,
+		},
+		{
+			name: "decode error (invalid JSON)",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, expectPath, r.URL.Path)
+				assert.Equal(t, "7", r.URL.Query().Get("version"))
+				assert.Equal(t, "storage", r.URL.Query().Get("body-format"))
+				_, _ = io.WriteString(w, "{")
+			},
+			expectedErr:  io.ErrUnexpectedEOF,
+			expectedPage: nil,
+		},
 	}
-	actual, actualErr := client.FetchPageAtVersion(context.Background(), "123", 7)
-	assert.Equal(t, nil, actualErr)
-	assert.Equal(t, "123", actual.ID)
-	assert.Equal(t, 7, actual.Version.Number)
-	assert.Equal(t, "<p>x</p>", actual.Body.Storage.Value)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := httptest.NewServer(tc.handler)
+			defer ts.Close()
+
+			client := &httpConfluenceClient{
+				baseWikiURL: ts.URL + "/wiki",
+				apiBase:     ts.URL + "/wiki/api/v2",
+				httpClient:  &http.Client{Timeout: 5 * time.Second},
+			}
+
+			actualPage, err := client.FetchPageAtVersion(context.Background(), "123", 7)
+
+			assert.ErrorIs(t, err, tc.expectedErr)
+			assert.Equal(t, tc.expectedPage, actualPage)
+		})
+	}
 }
 
 func TestWalkSpacesByKeys(t *testing.T) {
@@ -879,4 +1198,137 @@ func TestWalkSpacesByKeys(t *testing.T) {
 	assert.Equal(t, nil, actualErr)
 	expected := []string{"S1", "S2"}
 	assert.Equal(t, expected, actual)
+}
+
+func TestWikiBaseURL(t *testing.T) {
+	client := &httpConfluenceClient{
+		baseWikiURL: "wikiURL",
+	}
+
+	actual := client.WikiBaseURL()
+	assert.Equal(t, "wikiURL", actual)
+}
+
+func TestDecodeResultsArray(t *testing.T) {
+	makeDec := func(s string) *jsontext.Decoder {
+		return jsontext.NewDecoder(strings.NewReader(s))
+	}
+
+	tests := []struct {
+		name              string
+		jsonInput         string
+		visit             func(*Page) error
+		expectedErr       error
+		expectedVisited   []string
+		useContainsForErr bool
+	}{
+		{
+			name:        "readToken error at start",
+			jsonInput:   "",
+			visit:       func(*Page) error { return nil },
+			expectedErr: io.EOF,
+		},
+		{
+			name:        "readToken error inside results",
+			jsonInput:   "TODO",
+			visit:       func(*Page) error { return nil },
+			expectedErr: fmt.Errorf(""),
+		},
+		{
+			name:              "first token not '['",
+			jsonInput:         `{}`, // object instead of array
+			visit:             func(*Page) error { return nil },
+			expectedErr:       fmt.Errorf("decode: expected '[' for results"),
+			useContainsForErr: true,
+		},
+		{
+			name:              "element decode error",
+			jsonInput:         `["not-an-object"]`,
+			visit:             func(*Page) error { return nil },
+			expectedErr:       fmt.Errorf("cannot unmarshal JSON string"),
+			useContainsForErr: true,
+		},
+		{
+			name:      "visitor returns error",
+			jsonInput: `[{"id":"1","title":"A"}]`,
+			visit: func(*Page) error {
+				return assert.AnError
+			},
+			expectedErr: assert.AnError,
+		},
+		{
+			name:            "success empty array",
+			jsonInput:       `[]`,
+			visit:           func(*Page) error { return nil },
+			expectedVisited: nil,
+			expectedErr:     nil,
+		},
+		{
+			name:      "success with two pages",
+			jsonInput: `[{"id":"1","title":"A"},{"id":"2","title":"B"}]`,
+			visit: func(p *Page) error {
+				return nil
+			},
+			expectedVisited: []string{"1", "2"},
+			expectedErr:     nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var actualVisited []string
+			dec := makeDec(tt.jsonInput)
+
+			visit := func(p *Page) error {
+				if tt.visit != nil {
+					if err := tt.visit(p); err != nil {
+						return err
+					}
+				}
+				actualVisited = append(actualVisited, p.ID)
+				return nil
+			}
+
+			err := decodeResultsArray(dec, visit)
+
+			if tt.useContainsForErr {
+				assert.Contains(t, err.Error(), tt.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			}
+			assert.Equal(t, tt.expectedVisited, actualVisited)
+		})
+	}
+}
+
+func TestDecodeLinksNext(t *testing.T) {
+	tests := []struct {
+		name         string
+		jsonObj      string
+		expectedNext string
+		expectedErr  error
+	}{
+		{
+			name:         "decode next",
+			jsonObj:      `{"next":"/wiki/api/v2/pages?cursor=abc"}`,
+			expectedNext: "/wiki/api/v2/pages?cursor=abc",
+			expectedErr:  nil,
+		},
+		{
+			name:        "error decoding",
+			jsonObj:     `{`,
+			expectedErr: io.ErrUnexpectedEOF,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			dec := jsontext.NewDecoder(strings.NewReader(tc.jsonObj))
+
+			actualNext, err := decodeLinksNext(dec)
+
+			assert.ErrorIs(t, err, tc.expectedErr)
+			assert.Equal(t, tc.expectedNext, actualNext)
+		})
+	}
 }
