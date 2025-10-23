@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - AST-75295-custom-rules
   merge_group:
 
 jobs:
