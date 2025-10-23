@@ -631,7 +631,7 @@ func TestStreamPagesFromBody(t *testing.T) {
 				"_links": 123
 			}`,
 			visit:             func(*Page) error { return nil },
-			expectedErr:       fmt.Errorf("cannot unmarshal JSON number"),
+			expectedErr:       fmt.Errorf("unmarshal JSON number into"),
 			useContainsForErr: true,
 		},
 		{
@@ -1225,7 +1225,7 @@ func TestDecodeResultsArray(t *testing.T) {
 			name:              "element decode error",
 			jsonInput:         `["not-an-object"]`,
 			visit:             func(*Page) error { return nil },
-			expectedErr:       fmt.Errorf("cannot unmarshal JSON string"),
+			expectedErr:       fmt.Errorf("unmarshal JSON string into"),
 			useContainsForErr: true,
 		},
 		{
