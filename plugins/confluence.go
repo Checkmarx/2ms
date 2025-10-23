@@ -53,7 +53,7 @@ type TokenType string
 
 const (
 	ApiToken       TokenType = "api-token"
-	ScopedApiToken TokenType = "scoped-api-token"
+	ScopedApiToken TokenType = "scoped-api-token" //nolint:gosec // constant label, not a credential
 )
 
 type ConfluencePlugin struct {
