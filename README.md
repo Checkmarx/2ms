@@ -274,17 +274,18 @@ This command is used to scan a [Confluence](https://www.atlassian.com/software/c
 2ms confluence <URL> [flags]
 ```
 
-| Flag            | Type         | Default | Description |
-|-----------------|--------------|---------|-------------|
-| `--space-keys`  | string list  | (all)   | Comma-separated list of space **keys** to scan. |
-| `--space-ids`   | string list  | (all)   | Comma-separated list of space **IDs** to scan. |
-| `--page-ids`    | string list  | (all)   | Comma-separated list of **page IDs** to scan. |
-| `--history`     | bool         | `false` | Also scan **all versions** of each page (page history). |
-| `--username`    | string       |         | Confluence username/email for Basic Auth. |
-| `--token`       | string       |         | Confluence **API token** for Basic Auth. |
+| Flag            | Type        | Default | Description                                                          |
+| --------------- | ----------- | ------- | -------------------------------------------------------------------- |
+| `--space-keys`  | string list | (all)   | Comma-separated list of space **keys** to scan.                      |
+| `--space-ids`   | string list | (all)   | Comma-separated list of space **IDs** to scan.                       |
+| `--page-ids`    | string list | (all)   | Comma-separated list of **page IDs** to scan.                        |
+| `--history`     | bool        | `false` | Also scan **all versions** of each page (page history).              |
+| `--username`    | string      |         | Confluence username/email (used for HTTP Basic Auth).                |
+| `--token-type`  | string      |         | Token type for Confluence API. Accepted values: `classic`, `scoped`. |
+| `--token-value` | string      |         | The API token value. **Required** when `--token-type` is set.        |
 
 #### Authentication
-- To scan **private spaces**, provide `--username` and `--token` (API token).
+- To scan **private spaces**, provide `--username`, `--token-type` and `--token-value` (API token).
 - How to create a Confluence API token: https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
 
 #### Examples
@@ -294,9 +295,14 @@ This command is used to scan a [Confluence](https://www.atlassian.com/software/c
     2ms confluence https://<company id>.atlassian.net/wiki
     ```
 
-- Scan **private pages** (requires auth):
+- Scan **private pages with a classic token** (requires auth):
     ```bash
-    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token <API_TOKEN>
+    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token-type classic --token-value <API_TOKEN>
+    ```
+
+- Scan **private pages with a scoped token** (requires auth):
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token-type scoped --token-value <API_TOKEN>
     ```
 
 - Scan specific **spaces by key**:
