@@ -72,12 +72,12 @@ func NewConfluenceClient(baseWikiURL, username string, tokenType TokenType, toke
 func (c *httpConfluenceClient) WikiBaseURL() string { return c.baseWikiURL }
 
 // buildAPIBase returns the REST v2 base URL to use for this client.
-// For classic (or no) tokens it builds "<wikiBase>/api/v2".
+// For api-token (or no) tokens it builds "<wikiBase>/api/v2".
 // For scoped tokens it discovers the site's cloudId and builds
 // "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
 func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType TokenType) (string, error) {
 	switch tokenType {
-	case "", TokenClassic:
+	case "", ApiToken:
 		u, err := url.Parse(c.baseWikiURL)
 		if err != nil {
 			return "", fmt.Errorf("parse base wiki url: %w", err)
@@ -85,7 +85,7 @@ func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType Token
 		u.Path = path.Join(u.Path, "api", "v2")
 		return strings.TrimRight(u.String(), "/"), nil
 
-	case TokenScoped:
+	case ScopedApiToken:
 		cloudID, err := c.discoverCloudID(ctx)
 		if err != nil {
 			return "", err
@@ -101,7 +101,7 @@ func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType Token
 
 // discoverCloudID resolves the Atlassian cloudId for baseWikiURL by calling
 // "https://<site>/_edge/tenant_info" and decoding {"cloudId": "..."}.
-// Used when constructing the v2 API base for scoped tokens.
+// Used when constructing the v2 API base for scoped api tokens.
 func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, error) {
 	site, err := url.Parse(c.baseWikiURL)
 	if err != nil {

@@ -36,16 +36,16 @@ func TestBuildAPIBase(t *testing.T) {
 		expectedErr  error
 	}{
 		{
-			name: "classic",
+			name: "api-token",
 			setup: func() *httpConfluenceClient {
 				return &httpConfluenceClient{baseWikiURL: "https://tenant.atlassian.net/wiki"}
 			},
-			tokenType:    TokenClassic,
+			tokenType:    ApiToken,
 			expectedBase: "https://tenant.atlassian.net/wiki/api/v2",
 			expectedErr:  nil,
 		},
 		{
-			name: "scoped (discovers cloudId)",
+			name: "scoped-api-token (discovers cloudId)",
 			setup: func() *httpConfluenceClient {
 				ts := tlsTenant("abc-123")
 				t.Cleanup(ts.Close)
@@ -56,7 +56,7 @@ func TestBuildAPIBase(t *testing.T) {
 					httpClient:  ts.Client(), // trust the TLS test server
 				}
 			},
-			tokenType:    TokenScoped,
+			tokenType:    ScopedApiToken,
 			expectedBase: "https://api.atlassian.com/ex/confluence/abc-123/wiki/api/v2",
 			expectedErr:  nil,
 		},
@@ -80,7 +80,7 @@ func TestBuildAPIBase(t *testing.T) {
 					httpClient:  ts.Client(), // trust test server
 				}
 			},
-			tokenType:    TokenScoped,
+			tokenType:    ScopedApiToken,
 			expectedBase: "",
 			expectedErr:  ErrUnexpectedHTTPStatus,
 		},

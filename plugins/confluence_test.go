@@ -72,13 +72,13 @@ func TestIsValidTokenType(t *testing.T) {
 			expectedValid: true,
 		},
 		{
-			name:          "classic",
-			tokenType:     TokenClassic,
+			name:          "api-token",
+			tokenType:     ApiToken,
 			expectedValid: true,
 		},
 		{
-			name:          "scoped",
-			tokenType:     TokenScoped,
+			name:          "scoped-api-token",
+			tokenType:     ScopedApiToken,
 			expectedValid: true,
 		},
 		{
@@ -112,9 +112,9 @@ func TestInitialize(t *testing.T) {
 		expectedClient ConfluenceClient
 	}{
 		{
-			name:        "valid initialization (classic)",
+			name:        "valid initialization (api-token)",
 			base:        baseURL,
-			tokenType:   TokenClassic,
+			tokenType:   ApiToken,
 			username:    username,
 			tokenValue:  tokenValue,
 			expectedErr: nil,
@@ -1212,12 +1212,12 @@ func TestDefineCommand(t *testing.T) {
 					_ = cmd.Flags().Set("token-type", "bad")
 				},
 				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: fmt.Errorf("invalid --token-type \"bad\"; valid values are \"classic\" or \"scoped\""),
+				expectedErr: fmt.Errorf("invalid --token-type \"bad\"; valid values are \"api-token\" or \"scoped-api-token\""),
 			},
 			{
-				name: "token type classic but without token value",
+				name: "token type api-token but without token value",
 				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("token-type", string(TokenClassic))
+					_ = cmd.Flags().Set("token-type", string(ApiToken))
 					// no token-value
 				},
 				args:        []string{"https://tenant.atlassian.net/wiki"},
@@ -1232,10 +1232,10 @@ func TestDefineCommand(t *testing.T) {
 				expectedErr: nil,
 			},
 			{
-				name: "token type classic and token value provided",
+				name: "token type api-token and token value provided",
 				setFlags: func(cmd *cobra.Command) {
 					_ = cmd.Flags().Set("username", "user@example.com")
-					_ = cmd.Flags().Set("token-type", string(TokenClassic))
+					_ = cmd.Flags().Set("token-type", string(ApiToken))
 					_ = cmd.Flags().Set("token-value", "tok")
 				},
 				args:        []string{"https://tenant.atlassian.net/wiki"},

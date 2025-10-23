@@ -25,7 +25,7 @@ const (
 	flagSpaceKeys  = "space-keys"
 	flagPageIDs    = "page-ids"
 	flagUsername   = "username"
-	flagTokenType  = "token-type"  // "classic" or "scoped"
+	flagTokenType  = "token-type"  // "api-token" or "scoped-api-token"
 	flagTokenValue = "token-value" // required when token-type is set
 	flagHistory    = "history"
 )
@@ -52,8 +52,8 @@ const (
 type TokenType string
 
 const (
-	TokenClassic TokenType = "classic"
-	TokenScoped  TokenType = "scoped"
+	ApiToken       TokenType = "api-token"
+	ScopedApiToken TokenType = "scoped-api-token"
 )
 
 type ConfluencePlugin struct {
@@ -100,7 +100,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 			}
 			if !isValidTokenType(tokenType) {
 				return fmt.Errorf("invalid --%s %q; valid values are %q or %q",
-					flagTokenType, tokenType, TokenClassic, TokenScoped)
+					flagTokenType, tokenType, ApiToken, ScopedApiToken)
 			}
 			if tokenType != "" && tokenValue == "" {
 				return fmt.Errorf("--%s requires --%s", flagTokenType, flagTokenValue)
@@ -128,7 +128,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	flags.StringSliceVar(&p.SpaceKeys, flagSpaceKeys, []string{}, "Comma-separated list of Confluence space keys to scan.")
 	flags.StringSliceVar(&p.PageIDs, flagPageIDs, []string{}, "Comma-separated list of Confluence page IDs to scan.")
 	flags.StringVar(&username, flagUsername, "", "Confluence user name or email for authentication.")
-	flags.StringVar((*string)(&tokenType), flagTokenType, "", `Token type: "classic" or "scoped".`)
+	flags.StringVar((*string)(&tokenType), flagTokenType, "", `Token type: "api-token" or "scoped-api-token".`)
 	flags.StringVar(&tokenValue, flagTokenValue, "", "Token value.")
 	flags.BoolVar(&p.History, flagHistory, false, "Also scan all page revisions (all versions).")
 
@@ -149,10 +149,10 @@ func isValidURL(_ *cobra.Command, args []string) error {
 }
 
 // isValidTokenType reports whether the provided tokenType is supported.
-// Valid values are the empty string (no auth), "classic", and "scoped".
+// Valid values are the empty string (no auth), "api-token", and "scoped-api-token".
 func isValidTokenType(tokenType TokenType) bool {
 	switch tokenType {
-	case "", TokenClassic, TokenScoped:
+	case "", ApiToken, ScopedApiToken:
 		return true
 	default:
 		return false
