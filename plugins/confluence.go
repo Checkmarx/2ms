@@ -114,12 +114,12 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			defer close(items)
 			log.Info().Msg("Confluence plugin started")
 			if err := p.walkAndEmitPages(context.Background()); err != nil {
 				p.errorsChan <- err
 				return
 			}
+			close(items)
 		},
 	}
 
