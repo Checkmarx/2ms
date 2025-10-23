@@ -10,7 +10,7 @@ RESET := $(shell printf "\033[0m")
 
 COVERAGE_REQUIRED := 55
 MOCKGEN_VERSION := 0.5.2
-LINTER_VERSION := 2.1.6
+LINTER_VERSION := 2.5.0
 
 .PHONY: lint
 lint: check-linter-version
@@ -26,7 +26,7 @@ modtidy:
 
 .PHONY: test
 test:
-	go test -race -vet all -coverprofile=cover.out.tmp ./...
+	GOEXPERIMENT=jsonv2 go test -race -vet all -coverprofile=cover.out.tmp ./...
 	grep -v -e "_mock\.go:" -e "/mocks/" -e "/docs/" cover.out.tmp > cover.out
 	go tool cover -func=cover.out
 	rm cover.out.tmp
