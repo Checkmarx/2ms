@@ -247,11 +247,11 @@ func TestScore(t *testing.T) {
 		var allSecrets []*secrets.Secret
 		for _, rule := range allRules {
 			var secretValid, secretInvalid, secretUnknown secrets.Secret
-			secretValid.RuleID = rule.RuleName
+			secretValid.RuleID = rule.RuleID
 			secretValid.ValidationStatus = secrets.ValidResult
-			secretInvalid.RuleID = rule.RuleName
+			secretInvalid.RuleID = rule.RuleID
 			secretInvalid.ValidationStatus = secrets.InvalidResult
-			secretUnknown.RuleID = rule.RuleName
+			secretUnknown.RuleID = rule.RuleID
 			secretUnknown.ValidationStatus = secrets.UnknownResult
 			allSecrets = append(allSecrets, &secretValid, &secretInvalid, &secretUnknown)
 		}
@@ -270,11 +270,11 @@ func TestScore(t *testing.T) {
 		var allSecrets []*secrets.Secret
 		for _, rule := range allRules {
 			var secretValid, secretInvalid, secretUnknown secrets.Secret
-			secretValid.RuleID = rule.RuleName
+			secretValid.RuleID = rule.RuleID
 			secretValid.ValidationStatus = secrets.ValidResult
-			secretInvalid.RuleID = rule.RuleName
+			secretInvalid.RuleID = rule.RuleID
 			secretInvalid.ValidationStatus = secrets.InvalidResult
-			secretUnknown.RuleID = rule.RuleName
+			secretUnknown.RuleID = rule.RuleID
 			secretUnknown.ValidationStatus = secrets.UnknownResult
 			allSecrets = append(allSecrets, &secretValid, &secretInvalid, &secretUnknown)
 		}

@@ -21,6 +21,7 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 	ruleIDMap := make(map[string]bool)
 	baseRuleIDMap := make(map[string]bool)
 	allRules := GetDefaultRules()
+	allRules = append(allRules, getSpecialRules()...)
 
 	for i, rule := range allRules {
 		// Verify existence of all required fields

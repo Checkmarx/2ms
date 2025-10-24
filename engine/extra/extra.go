@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 )
 
 type addExtraFunc = func(*secrets.Secret) interface{}
 
 var RuleIDToFunction = map[string]addExtraFunc{
-	"jwt": addExtraJWT,
+	ruledefine.JWT().RuleID: addExtraJWT,
 }
 
 var Mtxs = &NamedMutex{}
