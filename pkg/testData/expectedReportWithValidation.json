@@ -15,10 +15,10 @@
         "startColumn": 12,
         "endColumn": 51,
         "value": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",
-        "validationStatus": "Unknown",
+        "validationStatus": "Invalid",
         "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
-        "severity": "High",
-        "cvssScore": 8.2
+        "severity": "Medium",
+        "cvssScore": 5.2
       }
     ],
     "9346cf95d4513bb2861d1ecfc3e82421bd14cbd8": [
@@ -36,6 +36,12 @@
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
         "validationStatus": "Unknown",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName1",
+            "sub": "mockSub1"
+          }
+        },
         "severity": "High",
         "cvssScore": 8.2
       }
@@ -53,10 +59,10 @@
         "startColumn": 63,
         "endColumn": 102,
         "value": "ghp_9876543210zyxwvutsrqponmlkjihgfedcba",
-        "validationStatus": "Unknown",
+        "validationStatus": "Invalid",
         "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
-        "severity": "High",
-        "cvssScore": 8.2
+        "severity": "Medium",
+        "cvssScore": 5.2
       }
     ],
     "c31705d99e835e4ac7bc3f688bd9558309e056ed": [
@@ -72,10 +78,10 @@
         "startColumn": 63,
         "endColumn": 102,
         "value": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
-        "validationStatus": "Unknown",
+        "validationStatus": "Invalid",
         "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
-        "severity": "High",
-        "cvssScore": 8.2
+        "severity": "Medium",
+        "cvssScore": 5.2
       }
     ],
     "efc9a9ee89f1d732c7321067eb701b9656e91f15": [
@@ -93,6 +99,12 @@
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
         "validationStatus": "Unknown",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName2",
+            "sub": "mockSub2"
+          }
+        },
         "severity": "High",
         "cvssScore": 8.2
       },
@@ -110,6 +122,12 @@
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
         "validationStatus": "Unknown",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName2",
+            "sub": "mockSub2"
+          }
+        },
         "severity": "High",
         "cvssScore": 8.2
       }

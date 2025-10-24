@@ -16,6 +16,12 @@
         "endColumn": 116,
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName1",
+            "sub": "mockSub1"
+          }
+        },
         "severity": "High",
         "cvssScore": 8.2
       }
@@ -34,6 +40,12 @@
         "endColumn": 232,
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName2",
+            "sub": "mockSub2"
+          }
+        },
         "severity": "High",
         "cvssScore": 8.2
       },
@@ -50,6 +62,12 @@
         "endColumn": 166,
         "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
         "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName2",
+            "sub": "mockSub2"
+          }
+        },
         "severity": "High",
         "cvssScore": 8.2
       }
