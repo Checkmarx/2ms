@@ -374,9 +374,11 @@ func createCustomRegexRules(patterns []string) (map[string]*ruledefine.Rule, err
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
 		}
+		ruleID := fmt.Sprintf(customRegexRuleIdFormat, idx+1)
 		rule := ruledefine.Rule{
 			Description: "Custom Regex Rule From User",
-			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
+			RuleID:      ruleID,
+			RuleName:    ruleID,
 			Regex:       regex.String(),
 			Keywords:    []string{},
 		}
@@ -397,7 +399,7 @@ func filterIgnoredRules(allRules []*ruledefine.Rule, ignoreList []string) []*rul
 
 		// Check if this rule should be ignored (by ID or tag)
 		for _, ignoreItem := range ignoreList {
-			if strings.EqualFold(rule.RuleID, ignoreItem) {
+			if strings.EqualFold(rule.RuleName, ignoreItem) {
 				shouldIgnore = true
 				break
 			}
@@ -461,10 +463,10 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",
-					rule.RuleID,
+					rule.RuleName,
 					rule.Description,
 					strings.Join(rule.Tags, ","),
-					canValidateDisplay[validation.IsCanValidateRule(rule.RuleID)],
+					canValidateDisplay[validation.IsCanValidateRule(rule.RuleName)],
 				)
 			}
 			if err := tab.Flush(); err != nil {
@@ -704,7 +706,7 @@ func (e *Engine) processSecretsEvaluation() {
 func (e *Engine) addExtrasToSecret(secret *secrets.Secret) {
 	// add general extra data
 	extra.Mtxs.Lock(secret.ID)
-	secret.BaseRuleID = e.rules[secret.RuleID].BaseRuleID
+	secret.RuleName = e.rules[secret.RuleID].RuleName
 	secret.RuleCategory = string(e.rules[secret.RuleID].ScoreParameters.Category)
 	extra.Mtxs.Unlock(secret.ID)
 

@@ -5,9 +5,9 @@ var lobPubAPIKeyRegex = generateSemiGenericRegex(
 
 func LobPubAPIToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "46257ed4-c91d-4dcf-9d2a-81ecee35f96d",
+		RuleID:      "46257ed4-c91d-4dcf-9d2a-81ecee35f96d",
 		Description: "Detected a Lob Publishable API Key, posing a risk of exposing mail and print service integrations.",
-		RuleID:      "lob-pub-api-key",
+		RuleName:    "lob-pub-api-key",
 		Regex:       lobPubAPIKeyRegex,
 		Keywords: []string{
 			"test_pub",

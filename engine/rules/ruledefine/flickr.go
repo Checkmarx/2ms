@@ -5,9 +5,9 @@ var flickrAccessTokenRegex = generateSemiGenericRegex(
 
 func FlickrAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "6ee4f7a1-196f-47ad-b0e9-015dfeb0258f",
+		RuleID:      "6ee4f7a1-196f-47ad-b0e9-015dfeb0258f",
 		Description: "Discovered a Flickr Access Token, posing a risk of unauthorized photo management and potential data leakage.",
-		RuleID:      "flickr-access-token",
+		RuleName:    "flickr-access-token",
 		Regex:       flickrAccessTokenRegex,
 		Keywords: []string{
 			"flickr",

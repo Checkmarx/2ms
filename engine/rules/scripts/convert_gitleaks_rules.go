@@ -94,7 +94,7 @@ func main() { //nolint:gocyclo,funlen
 				}
 
 				// We found a config.Rule{...}
-				var ruleID, regexExpr, descLine, keywordsLine, entropyLine, pathLine string
+				var RuleName, regexExpr, descLine, keywordsLine, entropyLine, pathLine string
 
 				for _, elt := range node.Elts {
 					kv, ok := elt.(*ast.KeyValueExpr)
@@ -108,7 +108,7 @@ func main() { //nolint:gocyclo,funlen
 
 					switch keyIdent.Name {
 					case "RuleID":
-						ruleID = literalOrSource(fset, kv.Value)
+						RuleName = literalOrSource(fset, kv.Value)
 					case "Regex":
 						regexExpr = nodeSource(fset, kv.Value)
 					case "Description":
@@ -122,8 +122,8 @@ func main() { //nolint:gocyclo,funlen
 					}
 				}
 
-				if ruleID == "" {
-					fmt.Printf("⚠️  No RuleID found in %s\n", path)
+				if RuleName == "" {
+					fmt.Printf("⚠️  No RuleName found in %s\n", path)
 					return true
 				}
 
@@ -154,16 +154,16 @@ var %sRegex = %s
 
 func %s() *NewRule {
 	return &NewRule{
-		BaseRuleID: "%s",
+		RuleID: "%s",
 		%s
-		RuleID: %s,
+		RuleName: %s,
 		Regex: %sRegex,%s
 		%s%s
 		Severity: "High",
 	}
 }
 `, currentFuncName, regexExpr, currentFuncName, baseRuleID, descLine,
-					ruleID, currentFuncName, conditionalLine(entropyLine), keywordsLine, conditionalLine(pathLine))
+					RuleName, currentFuncName, conditionalLine(entropyLine), keywordsLine, conditionalLine(pathLine))
 
 				err = ioutil.WriteFile(outputPath, []byte(newContent), 0600)
 				if err != nil {

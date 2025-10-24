@@ -4,9 +4,9 @@ var twitterAPIKeyRegex = generateSemiGenericRegex([]string{"twitter"}, AlphaNume
 
 func TwitterAPIKey() *Rule {
 	return &Rule{
-		BaseRuleID:      "92c1a521-9332-488c-b323-b70a280c499f",
+		RuleID:          "92c1a521-9332-488c-b323-b70a280c499f",
 		Description:     "Identified a Twitter API Key, which may compromise Twitter application integrations and user data security.",
-		RuleID:          "twitter-api-key",
+		RuleName:        "twitter-api-key",
 		Regex:           twitterAPIKeyRegex,
 		Keywords:        []string{"twitter"},
 		Severity:        "High",

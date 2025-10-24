@@ -8,9 +8,9 @@ var sidekiqSensitiveUrlRegex = regexp.MustCompile(`(?i)\bhttps?://([a-f0-9]{8}:[
 
 func SidekiqSensitiveUrl() *Rule {
 	return &Rule{
-		BaseRuleID:      "547a55d8-782f-427b-bceb-4e9e6a0d9b93",
+		RuleID:          "547a55d8-782f-427b-bceb-4e9e6a0d9b93",
 		Description:     "Uncovered a Sidekiq Sensitive URL, potentially exposing internal job queues and sensitive operation details.",
-		RuleID:          "sidekiq-sensitive-url",
+		RuleName:        "sidekiq-sensitive-url",
 		Regex:           sidekiqSensitiveUrlRegex,
 		Keywords:        []string{"gems.contribsys.com", "enterprise.contribsys.com"},
 		Severity:        "High",

@@ -5,9 +5,9 @@ var launchdarklyAccessTokenRegex = generateSemiGenericRegex(
 
 func LaunchDarklyAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "f39021e6-f765-4d39-8fc5-2d6113b89a09",
+		RuleID:      "f39021e6-f765-4d39-8fc5-2d6113b89a09",
 		Description: "Uncovered a Launchdarkly Access Token, potentially compromising feature flag management and application functionality.",
-		RuleID:      "launchdarkly-access-token",
+		RuleName:    "launchdarkly-access-token",
 		Regex:       launchdarklyAccessTokenRegex,
 		Keywords: []string{
 			"launchdarkly",

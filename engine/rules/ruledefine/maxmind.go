@@ -4,9 +4,9 @@ var maxmindLicenseKeyRegex = generateUniqueTokenRegex(`[A-Za-z0-9]{6}_[A-Za-z0-9
 
 func MaxMindLicenseKey() *Rule {
 	return &Rule{
-		BaseRuleID:      "f39f3417-fa72-4f3b-a570-29523dc2a72b",
+		RuleID:          "f39f3417-fa72-4f3b-a570-29523dc2a72b",
 		Description:     "Discovered a potential MaxMind license key.",
-		RuleID:          "maxmind-license-key",
+		RuleName:        "maxmind-license-key",
 		Regex:           maxmindLicenseKeyRegex,
 		Entropy:         4,
 		Keywords:        []string{"_mmk"},

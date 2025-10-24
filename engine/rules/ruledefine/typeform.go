@@ -5,9 +5,9 @@ var typeformRegex = generateSemiGenericRegex([]string{"typeform"},
 
 func Typeform() *Rule {
 	return &Rule{
-		BaseRuleID:  "fa7376dc-2332-4ac7-9b12-762db17de2c5",
+		RuleID:      "fa7376dc-2332-4ac7-9b12-762db17de2c5",
 		Description: "Uncovered a Typeform API token, which could lead to unauthorized survey management and data collection.",
-		RuleID:      "typeform-api-token",
+		RuleName:    "typeform-api-token",
 		Regex:       typeformRegex,
 		Keywords: []string{
 			"tfp_",

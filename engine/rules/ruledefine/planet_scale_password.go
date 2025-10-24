@@ -4,9 +4,9 @@ var planetScalePasswordRegex = generateUniqueTokenRegex(`pscale_pw_(?i)[\w=\.-]{
 
 func PlanetScalePassword() *Rule {
 	return &Rule{
-		BaseRuleID:  "a8421e75-0e5d-45f6-93d8-67f09acc498c",
+		RuleID:      "a8421e75-0e5d-45f6-93d8-67f09acc498c",
 		Description: "Discovered a PlanetScale password, which could lead to unauthorized database operations and data breaches.",
-		RuleID:      "planetscale-password",
+		RuleName:    "planetscale-password",
 		Regex:       planetScalePasswordRegex,
 		Entropy:     3,
 		Keywords: []string{

@@ -5,10 +5,10 @@ var airtableRegex = generateSemiGenericRegex([]string{"airtable"}, AlphaNumeric(
 func Airtable() *Rule {
 	// define rule
 	return &Rule{
-		BaseRuleID: "6869a35b-dfad-439d-b285-3b26a4469224",
+		RuleID: "6869a35b-dfad-439d-b285-3b26a4469224",
 		Description: "Uncovered a possible Airtable API Key," +
 			" potentially compromising database access and leading to data leakage or alteration.",
-		RuleID:          "airtable-api-key",
+		RuleName:        "airtable-api-key",
 		Regex:           airtableRegex,
 		Keywords:        []string{"airtable"},
 		Severity:        "High",

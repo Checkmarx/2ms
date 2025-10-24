@@ -52,13 +52,13 @@ func getRules(report *Report) []*SarifRule {
 		for _, secret := range reportSecrets {
 			if _, exists := uniqueRulesMap[secret.RuleID]; !exists {
 				uniqueRulesMap[secret.RuleID] = &SarifRule{
-					ID: secret.RuleID,
+					ID:   secret.RuleID,
+					Name: secret.RuleName,
 					FullDescription: &Message{
 						Text: secret.RuleDescription,
 					},
 					Properties: Properties{
-						"baseRuleID": secret.BaseRuleID,
-						"category":   secret.RuleCategory,
+						"category": secret.RuleCategory,
 					},
 				}
 				reportRules = append(reportRules, uniqueRulesMap[secret.RuleID])
@@ -158,6 +158,7 @@ type Tool struct {
 
 type SarifRule struct {
 	ID              string     `json:"id"`
+	Name            string     `json:"name,omitempty"`
 	FullDescription *Message   `json:"fullDescription,omitempty"`
 	Properties      Properties `json:"properties,omitempty"`
 }

@@ -4,9 +4,9 @@ var twitchAPITokenRegex = generateSemiGenericRegex([]string{"twitch"}, AlphaNume
 
 func TwitchAPIToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "2361985f-3d77-4151-ad00-6d7a2ecbb700",
+		RuleID:      "2361985f-3d77-4151-ad00-6d7a2ecbb700",
 		Description: "Discovered a Twitch API token, which could compromise streaming services and account integrations.",
-		RuleID:      "twitch-api-token",
+		RuleName:    "twitch-api-token",
 		Regex:       twitchAPITokenRegex,
 		Keywords: []string{
 			"twitch",

@@ -5,8 +5,8 @@ var sumoLogicAccessTokenRegex = generateSemiGenericRegex(
 
 func SumoLogicAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "85b0efa8-7e80-41d9-b855-86720a35a39f",
-		RuleID:      "sumologic-access-token",
+		RuleID:      "85b0efa8-7e80-41d9-b855-86720a35a39f",
+		RuleName:    "sumologic-access-token",
 		Description: "Uncovered a SumoLogic Access Token, which could lead to unauthorized access to log data and analytics insights.",
 		Regex:       sumoLogicAccessTokenRegex,
 		Entropy:     3,

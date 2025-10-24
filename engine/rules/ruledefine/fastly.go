@@ -5,10 +5,10 @@ var fastlyAPITokenRegex = generateSemiGenericRegex(
 
 func FastlyAPIToken() *Rule {
 	return &Rule{
-		BaseRuleID: "698e8f80-f409-4a03-99d1-cf4891ce7479",
+		RuleID: "698e8f80-f409-4a03-99d1-cf4891ce7479",
 		Description: "Uncovered a Fastly API key," +
 			" which may compromise CDN and edge cloud services, leading to content delivery and security issues.",
-		RuleID:          "fastly-api-token",
+		RuleName:        "fastly-api-token",
 		Regex:           fastlyAPITokenRegex,
 		Keywords:        []string{"fastly"},
 		Severity:        "High",

@@ -4,9 +4,9 @@ var settlemintPersonalAccessTokenRegex = generateUniqueTokenRegex(`sm_pat_[a-zA-
 
 func SettlemintPersonalAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "7391f3bc-e15b-4f9b-af1d-e355c4cd65c3",
+		RuleID:      "7391f3bc-e15b-4f9b-af1d-e355c4cd65c3",
 		Description: "Found a Settlemint Personal Access Token.",
-		RuleID:      "settlemint-personal-access-token",
+		RuleName:    "settlemint-personal-access-token",
 		Regex:       settlemintPersonalAccessTokenRegex,
 		Entropy:     3,
 		Keywords: []string{

@@ -5,10 +5,10 @@ var facebookAccessTokenRegex = generateUniqueTokenRegex(
 
 func FacebookAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID: "1aebe1a9-8fab-4d00-a42d-0a1014769b73",
+		RuleID: "1aebe1a9-8fab-4d00-a42d-0a1014769b73",
 		Description: "Discovered a Facebook Access Token," +
 			" posing a risk of unauthorized access to Facebook accounts and personal data exposure.",
-		RuleID:          "facebook-access-token",
+		RuleName:        "facebook-access-token",
 		Regex:           facebookAccessTokenRegex,
 		Entropy:         3,
 		Keywords:        []string{"facebook"},

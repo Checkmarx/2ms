@@ -4,9 +4,9 @@ var privateAITokenRegex = generateSemiGenericRegex([]string{"private[_-]?ai"}, `
 
 func PrivateAIToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "43bf9a5d-7994-4fc5-a9d7-4277340314a4",
+		RuleID:      "43bf9a5d-7994-4fc5-a9d7-4277340314a4",
 		Description: "Identified a PrivateAI Token, posing a risk of unauthorized access to AI services and data manipulation.",
-		RuleID:      "privateai-api-token",
+		RuleName:    "privateai-api-token",
 		Regex:       privateAITokenRegex,
 		Entropy:     3,
 		Keywords: []string{

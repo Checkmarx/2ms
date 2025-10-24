@@ -5,9 +5,9 @@ var twitterBearerTokenRegex = generateSemiGenericRegex(
 
 func TwitterBearerToken() *Rule {
 	return &Rule{
-		BaseRuleID:      "5b479cdf-e759-4bd9-92c6-79f25c835fb0",
+		RuleID:          "5b479cdf-e759-4bd9-92c6-79f25c835fb0",
 		Description:     "Discovered a Twitter Bearer Token, potentially compromising API access and data retrieval from Twitter.",
-		RuleID:          "twitter-bearer-token",
+		RuleName:        "twitter-bearer-token",
 		Regex:           twitterBearerTokenRegex,
 		Keywords:        []string{"twitter"},
 		Severity:        "High",

@@ -59,8 +59,8 @@ func Test_Init(t *testing.T) {
 		{
 			name: "selected and ignore flags used together for the same rule",
 			engineConfig: EngineConfig{
-				SelectedList: []string{allRules[0].RuleID},
-				IgnoreList:   []string{allRules[0].RuleID},
+				SelectedList: []string{allRules[0].RuleName},
+				IgnoreList:   []string{allRules[0].RuleName},
 				SpecialList:  []string{},
 			},
 			expectedErr: ErrNoRulesSelected,
@@ -79,7 +79,7 @@ func Test_Init(t *testing.T) {
 			engineConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},
-				SpecialList:  []string{specialRule.RuleID},
+				SpecialList:  []string{specialRule.RuleName},
 			},
 			expectedErr: nil,
 		},
@@ -923,25 +923,25 @@ func TestProcessSecretsExtras(t *testing.T) {
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: ruledefine.JWT().RuleID,
+					RuleID: ruledefine.JWT().RuleName,
 					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
 				},
 				{
 					ID:     "mockId2",
-					RuleID: ruledefine.JWT().RuleID,
+					RuleID: ruledefine.JWT().RuleName,
 					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
 				},
 				{
 					ID:     "mockId3",
-					RuleID: ruledefine.HubSpot().RuleID,
+					RuleID: ruledefine.HubSpot().RuleName,
 					Value:  "mockValue",
 				},
 			},
 			expectedSecrets: []*secrets.Secret{
 				{
 					ID:           "mockId",
-					RuleID:       ruledefine.JWT().RuleID,
-					BaseRuleID:   ruledefine.JWT().BaseRuleID,
+					RuleID:       ruledefine.JWT().RuleName,
+					BaseRuleID:   ruledefine.JWT().RuleID,
 					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
 					ExtraDetails: map[string]interface{}{
@@ -953,8 +953,8 @@ func TestProcessSecretsExtras(t *testing.T) {
 				},
 				{
 					ID:           "mockId2",
-					RuleID:       ruledefine.JWT().RuleID,
-					BaseRuleID:   ruledefine.JWT().BaseRuleID,
+					RuleID:       ruledefine.JWT().RuleName,
+					BaseRuleID:   ruledefine.JWT().RuleID,
 					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
 					ExtraDetails: map[string]interface{}{
@@ -966,8 +966,8 @@ func TestProcessSecretsExtras(t *testing.T) {
 				},
 				{
 					ID:           "mockId3",
-					RuleID:       ruledefine.HubSpot().RuleID,
-					BaseRuleID:   ruledefine.HubSpot().BaseRuleID,
+					RuleID:       ruledefine.HubSpot().RuleName,
+					BaseRuleID:   ruledefine.HubSpot().RuleID,
 					RuleCategory: string(ruledefine.HubSpot().ScoreParameters.Category),
 					Value:        "mockValue",
 				},
@@ -1010,7 +1010,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 				},
 				{
 					ID:     "mockId2",
-					RuleID: ruledefine.HubSpot().RuleID,
+					RuleID: ruledefine.HubSpot().RuleName,
 					Value:  "mock value",
 				},
 			},
@@ -1025,7 +1025,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 				},
 				{
 					ID:               "mockId2",
-					RuleID:           ruledefine.HubSpot().RuleID,
+					RuleID:           ruledefine.HubSpot().RuleName,
 					Value:            "mock value",
 					ValidationStatus: "Unknown",
 					Severity:         "High",
@@ -1070,7 +1070,7 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 				},
 				{
 					ID:     "mockId2",
-					RuleID: ruledefine.HubSpot().RuleID,
+					RuleID: ruledefine.HubSpot().RuleName,
 					Value:  "mock value",
 				},
 			},
@@ -1085,7 +1085,7 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 				},
 				{
 					ID:               "mockId2",
-					RuleID:           ruledefine.HubSpot().RuleID,
+					RuleID:           ruledefine.HubSpot().RuleName,
 					Value:            "mock value",
 					ValidationStatus: "",
 					Severity:         "High",

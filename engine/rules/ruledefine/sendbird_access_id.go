@@ -4,9 +4,9 @@ var sendbirdAccessIDRegex = generateSemiGenericRegex([]string{"sendbird"}, Hex8_
 
 func SendbirdAccessID() *Rule {
 	return &Rule{
-		BaseRuleID:  "74bd716d-2bb3-4e13-bda3-e56c9a058726",
+		RuleID:      "74bd716d-2bb3-4e13-bda3-e56c9a058726",
 		Description: "Discovered a Sendbird Access ID, which could compromise chat and messaging platform integrations.",
-		RuleID:      "sendbird-access-id",
+		RuleName:    "sendbird-access-id",
 		Regex:       sendbirdAccessIDRegex,
 		Keywords: []string{
 			"sendbird",

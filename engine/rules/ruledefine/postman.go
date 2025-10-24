@@ -4,9 +4,9 @@ var postManAPIRegex = generateUniqueTokenRegex(`PMAK-(?i)[a-f0-9]{24}\-[a-f0-9]{
 
 func PostManAPI() *Rule {
 	return &Rule{
-		BaseRuleID:  "bae405c3-705b-420b-bdc4-ed3613add3da",
+		RuleID:      "bae405c3-705b-420b-bdc4-ed3613add3da",
 		Description: "Uncovered a Postman API token, potentially compromising API testing and development workflows.",
-		RuleID:      "postman-api-token",
+		RuleName:    "postman-api-token",
 		Regex:       postManAPIRegex,
 		Entropy:     3,
 		Keywords: []string{

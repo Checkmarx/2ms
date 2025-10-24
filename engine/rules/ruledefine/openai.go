@@ -4,9 +4,9 @@ var openaiAPIKeyRegex = generateUniqueTokenRegex(`sk-(?:proj|svcacct|admin)-(?:[
 
 func OpenAI() *Rule {
 	return &Rule{
-		BaseRuleID:  "9128fa83-3dfe-4e32-bf58-89d98d17a6a9",
+		RuleID:      "9128fa83-3dfe-4e32-bf58-89d98d17a6a9",
 		Description: "Found an OpenAI API Key, posing a risk of unauthorized access to AI services and data manipulation.",
-		RuleID:      "openai-api-key",
+		RuleName:    "openai-api-key",
 		Regex:       openaiAPIKeyRegex,
 		Entropy:     3,
 		Keywords: []string{

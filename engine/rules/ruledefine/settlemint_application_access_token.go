@@ -5,9 +5,9 @@ var settlemintApplicationAccessTokenRegex = generateUniqueTokenRegex(
 
 func SettlemintApplicationAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "ee89d8a5-42bd-47f1-ab61-79dd59196d1d",
+		RuleID:      "ee89d8a5-42bd-47f1-ab61-79dd59196d1d",
 		Description: "Found a Settlemint Application Access Token.",
-		RuleID:      "settlemint-application-access-token",
+		RuleName:    "settlemint-application-access-token",
 		Regex:       settlemintApplicationAccessTokenRegex,
 		Entropy:     3,
 		Keywords: []string{

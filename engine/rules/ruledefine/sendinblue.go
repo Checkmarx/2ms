@@ -5,9 +5,9 @@ var sendInBlueAPITokenRegex = generateUniqueTokenRegex(
 
 func SendInBlueAPIToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "8d403365-7f0f-45be-a198-2ce7c8a1becb",
+		RuleID:      "8d403365-7f0f-45be-a198-2ce7c8a1becb",
 		Description: "Identified a Sendinblue API token, which may compromise email marketing services and subscriber data privacy.",
-		RuleID:      "sendinblue-api-token",
+		RuleName:    "sendinblue-api-token",
 		Regex:       sendInBlueAPITokenRegex,
 		Entropy:     2,
 		Keywords: []string{

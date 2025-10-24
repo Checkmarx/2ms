@@ -10,10 +10,10 @@ var ageSecretKeyRegex = regexp.MustCompile(`AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3J
 func AgeSecretKey() *Rule {
 	// define rule
 	return &Rule{
-		BaseRuleID: "5137d287-beb3-4ac4-844a-952618a69c47",
+		RuleID: "5137d287-beb3-4ac4-844a-952618a69c47",
 		Description: "Discovered a potential Age encryption tool secret key," +
 			" risking data decryption and unauthorized access to sensitive information.",
-		RuleID:          "age-secret-key",
+		RuleName:        "age-secret-key",
 		Regex:           ageSecretKeyRegex,
 		Keywords:        []string{"AGE-SECRET-KEY-1"},
 		Severity:        "High",

@@ -8,8 +8,8 @@ var azureActiveDirectoryClientSecretRegex = regexp.MustCompile(`(?:^|[\\'"\x60\s
 
 func AzureActiveDirectoryClientSecret() *Rule {
 	return &Rule{
-		BaseRuleID:  "459f11f0-f5b3-497e-bd6b-ad36a0db5f2d",
-		RuleID:      "azure-ad-client-secret",
+		RuleID:      "459f11f0-f5b3-497e-bd6b-ad36a0db5f2d",
+		RuleName:    "azure-ad-client-secret",
 		Description: "Azure AD Client Secret",
 		// After inspecting dozens of secrets, I'm fairly confident that they start with `xxx\dQ~`.
 		// However, this may not be (entirely) true, and this rule might need to be further refined in the future.

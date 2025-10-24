@@ -484,7 +484,7 @@ func TestScanDynamic(t *testing.T) {
 		defaultRules := rules.GetDefaultRules()
 		var idOfRules []string
 		for _, rule := range defaultRules {
-			idOfRules = append(idOfRules, rule.RuleID)
+			idOfRules = append(idOfRules, rule.RuleName)
 		}
 
 		testScanner := NewScanner()

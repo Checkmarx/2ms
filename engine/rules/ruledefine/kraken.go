@@ -5,9 +5,9 @@ var krakenAccessTokenRegex = generateSemiGenericRegex([]string{"kraken"},
 
 func KrakenAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "50472a28-1957-4e00-8e6f-ea0d987cf3ef",
+		RuleID:      "50472a28-1957-4e00-8e6f-ea0d987cf3ef",
 		Description: "Identified a Kraken Access Token, potentially compromising cryptocurrency trading accounts and financial security.",
-		RuleID:      "kraken-access-token",
+		RuleName:    "kraken-access-token",
 		Regex:       krakenAccessTokenRegex,
 		Keywords: []string{
 			"kraken",

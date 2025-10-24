@@ -6,10 +6,10 @@ var authressServiceClientAccessKeyRegex = generateUniqueTokenRegex(
 
 func Authress() *Rule {
 	return &Rule{
-		BaseRuleID: "f69c8e7b-e73c-45a6-8707-2fa1a807da27",
+		RuleID: "f69c8e7b-e73c-45a6-8707-2fa1a807da27",
 		Description: "Uncovered a possible Authress Service Client Access Key," +
 			" which may compromise access control services and sensitive data.",
-		RuleID:          "authress-service-client-access-key",
+		RuleName:        "authress-service-client-access-key",
 		Regex:           authressServiceClientAccessKeyRegex,
 		Entropy:         2,
 		Keywords:        []string{"sc_", "ext_", "scauth_", "authress_"},

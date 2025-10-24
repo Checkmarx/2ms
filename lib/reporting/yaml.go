@@ -26,7 +26,7 @@ func writeYaml(report *Report) (string, error) {
 				fmt.Fprintf(&builder, "    - id: %s\n", s.ID)
 				fmt.Fprintf(&builder, "      source: %s\n", s.Source)
 				fmt.Fprintf(&builder, "      ruleid: %s\n", s.RuleID)
-				fmt.Fprintf(&builder, "      baseruleid: %s\n", s.BaseRuleID)
+				fmt.Fprintf(&builder, "      rulename: %s\n", s.RuleName)
 				fmt.Fprintf(&builder, "      rulecategory: %s\n", s.RuleCategory)
 				fmt.Fprintf(&builder, "      startline: %d\n", s.StartLine)
 				fmt.Fprintf(&builder, "      endline: %d\n", s.EndLine)

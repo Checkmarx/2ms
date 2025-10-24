@@ -5,9 +5,9 @@ var mailgunPrivateAPITokenRegex = generateSemiGenericRegex(
 
 func MailGunPrivateAPIToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "edb6d469-f6ab-427f-9d91-93ed56c17784",
+		RuleID:      "edb6d469-f6ab-427f-9d91-93ed56c17784",
 		Description: "Found a Mailgun private API token, risking unauthorized email service operations and data breaches.",
-		RuleID:      "mailgun-private-api-token",
+		RuleName:    "mailgun-private-api-token",
 		Regex:       mailgunPrivateAPITokenRegex,
 		Keywords: []string{
 			"mailgun",

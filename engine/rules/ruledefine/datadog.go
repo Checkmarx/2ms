@@ -5,9 +5,9 @@ var catadogAccessTokenRegex = generateSemiGenericRegex([]string{"datadog"},
 
 func DatadogtokenAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "f0967e3a-826e-4abd-9271-bc7db50d168d",
+		RuleID:      "f0967e3a-826e-4abd-9271-bc7db50d168d",
 		Description: "Detected a Datadog Access Token, potentially risking monitoring and analytics data exposure and manipulation.",
-		RuleID:      "datadog-access-token",
+		RuleName:    "datadog-access-token",
 		Regex:       catadogAccessTokenRegex,
 
 		Keywords: []string{

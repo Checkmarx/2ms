@@ -82,8 +82,8 @@ type ScoreParameters struct {
 }
 
 type Rule struct {
-	BaseRuleID      string // uuid4, should be consistent across changes in rule
-	RuleID          string
+	RuleID          string // uuid4, should be consistent across changes in rule
+	RuleName        string
 	Description     string
 	Regex           string // regex pattern as string
 	Keywords        []string

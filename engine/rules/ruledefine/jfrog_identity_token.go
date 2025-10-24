@@ -5,9 +5,9 @@ var jfrogIdentityTokenRegex = generateSemiGenericRegex(
 
 func JFrogIdentityToken() *Rule {
 	return &Rule{
-		BaseRuleID:      "05985187-9847-4301-81a3-bce901c14dc4",
+		RuleID:          "05985187-9847-4301-81a3-bce901c14dc4",
 		Description:     "Discovered a JFrog Identity Token, potentially compromising access to JFrog services and sensitive software artifacts.",
-		RuleID:          "jfrog-identity-token",
+		RuleName:        "jfrog-identity-token",
 		Regex:           jfrogIdentityTokenRegex,
 		Keywords:        []string{"jfrog", "artifactory", "bintray", "xray"},
 		Severity:        "High",

@@ -8,8 +8,8 @@ var gitlabFeedTokenRegex = regexp.MustCompile(`glft-[0-9a-zA-Z_\-]{20}`).String(
 
 func GitlabFeedToken() *Rule {
 	return &Rule{
-		BaseRuleID:      "adf3e374-d8ab-40e1-ac2a-91c75cbc7f7b",
-		RuleID:          "gitlab-feed-token",
+		RuleID:          "adf3e374-d8ab-40e1-ac2a-91c75cbc7f7b",
+		RuleName:        "gitlab-feed-token",
 		Description:     "Identified a GitLab feed token, risking exposure of user data.",
 		Regex:           gitlabFeedTokenRegex,
 		Entropy:         3,
