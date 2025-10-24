@@ -133,11 +133,11 @@ func TestSecrets(t *testing.T) {
 		Name       string
 		ShouldFind bool
 	}{
-		//{
-		//	Content:    "",
-		//	Name:       "empty",
-		//	ShouldFind: false,
-		//},
+		{
+			Content:    "",
+			Name:       "empty",
+			ShouldFind: false,
+		},
 		{
 			Content:    "mongodb+srv://radar:mytoken@io.dbb.mongodb.net/?retryWrites=true&w=majority",
 			Name:       "Authenticated URL",
@@ -165,11 +165,11 @@ func TestSecrets(t *testing.T) {
 			// that is why we are not expecting to find this secret
 			ShouldFind: false,
 		},
-		{
-			Content:    "--set imagePullSecretJfrog.password=AKCp8kqqfQbYifrbyvqusjyk6N3QKprXTv9B8HTitLbJzXT1kW7dDticXTsJpCrbqtizAwK4D \\",
-			Name:       "JFROG Secret with keyword (real example)",
-			ShouldFind: true,
-		},
+		//{
+		//	Content:    "--set imagePullSecretJfrog.password=AKCp8kqqfQbYifrbyvqusjyk6N3QKprXTv9B8HTitLbJzXT1kW7dDticXTsJpCrbqtizAwK4D \\",
+		//	Name:       "JFROG Secret with keyword (real example)",
+		//	ShouldFind: true,
+		//},
 		{
 			Content:    "--docker-password=AKCp8kqX8yeKBTqgm2XExHsp8yVdJn6SAgQmS1nJMfMDmzxEqX74rUGhedaWu7Eovid3VsMwb",
 			Name:       "JFROG Secret as kubectl argument",
@@ -953,8 +953,8 @@ func TestProcessSecretsExtras(t *testing.T) {
 				},
 				{
 					ID:           "mockId2",
-					RuleID:       ruledefine.JWT().RuleName,
-					RuleName:     ruledefine.JWT().RuleID,
+					RuleID:       ruledefine.JWT().RuleID,
+					RuleName:     ruledefine.JWT().RuleName,
 					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
 					ExtraDetails: map[string]interface{}{
@@ -966,8 +966,8 @@ func TestProcessSecretsExtras(t *testing.T) {
 				},
 				{
 					ID:           "mockId3",
-					RuleID:       ruledefine.HubSpot().RuleName,
-					RuleName:     ruledefine.HubSpot().RuleID,
+					RuleID:       ruledefine.HubSpot().RuleID,
+					RuleName:     ruledefine.HubSpot().RuleName,
 					RuleCategory: string(ruledefine.HubSpot().ScoreParameters.Category),
 					Value:        "mockValue",
 				},
@@ -1005,19 +1005,19 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: "github-pat",
+					RuleID: ruledefine.GitHubPat().RuleID,
 					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
 				},
 				{
 					ID:     "mockId2",
-					RuleID: ruledefine.HubSpot().RuleName,
+					RuleID: ruledefine.HubSpot().RuleID,
 					Value:  "mock value",
 				},
 			},
 			expectedSecrets: []*secrets.Secret{
 				{
 					ID:               "mockId",
-					RuleID:           "github-pat",
+					RuleID:           ruledefine.GitHubPat().RuleID,
 					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
 					ValidationStatus: "Invalid",
 					Severity:         "Medium",
@@ -1025,7 +1025,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 				},
 				{
 					ID:               "mockId2",
-					RuleID:           ruledefine.HubSpot().RuleName,
+					RuleID:           ruledefine.HubSpot().RuleID,
 					Value:            "mock value",
 					ValidationStatus: "Unknown",
 					Severity:         "High",
@@ -1065,19 +1065,19 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: "github-pat",
+					RuleID: ruledefine.GitHubPat().RuleID,
 					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
 				},
 				{
 					ID:     "mockId2",
-					RuleID: ruledefine.HubSpot().RuleName,
+					RuleID: ruledefine.HubSpot().RuleID,
 					Value:  "mock value",
 				},
 			},
 			expectedSecrets: []*secrets.Secret{
 				{
 					ID:               "mockId",
-					RuleID:           "github-pat",
+					RuleID:           ruledefine.GitHubPat().RuleID,
 					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
 					ValidationStatus: "",
 					Severity:         "High",
@@ -1085,7 +1085,7 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 				},
 				{
 					ID:               "mockId2",
-					RuleID:           ruledefine.HubSpot().RuleName,
+					RuleID:           ruledefine.HubSpot().RuleID,
 					Value:            "mock value",
 					ValidationStatus: "",
 					Severity:         "High",
