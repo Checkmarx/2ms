@@ -73,12 +73,8 @@ func TestIntegration(t *testing.T) {
 		t.Skip("skipping e2e test")
 	}
 
-	executable := &cli{
-		executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
-		resultsPath: path.Join(t.TempDir(), "results.json"),
-	}
-	//executable, err := createCLI(t.TempDir())
-	//require.NoError(t, err)
+	executable, err := createCLI(t.TempDir())
+	require.NoError(t, err)
 
 	t.Run("filesystem: one secret found", func(t *testing.T) {
 		projectDir := t.TempDir()
@@ -177,12 +173,8 @@ func TestSecretsScans(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			executable := &cli{
-				executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
-				resultsPath: path.Join(t.TempDir(), "results.json"),
-			}
-			//executable, err := createCLI(t.TempDir())
-			//require.NoError(t, err)
+			executable, err := createCLI(t.TempDir())
+			require.NoError(t, err)
 
 			args := []string{tc.ScanTarget}
 			if tc.ScanTarget == "filesystem" {
@@ -230,12 +222,8 @@ func TestFlagsIntegration(t *testing.T) {
 		t.Skip("skipping flags integration test")
 	}
 
-	executable := &cli{
-		executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
-		resultsPath: path.Join(t.TempDir(), "results.json"),
-	}
-	//executable, err := createCLI(t.TempDir())
-	//require.NoError(t, err)
+	executable, err := createCLI(t.TempDir())
+	require.NoError(t, err)
 
 	t.Run("--regex flag: custom regex pattern detection", func(t *testing.T) {
 		projectDir := t.TempDir()
@@ -377,12 +365,8 @@ func TestMissingFlagsIntegration(t *testing.T) {
 		t.Skip("skipping missing flags integration test")
 	}
 
-	executable := &cli{
-		executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
-		resultsPath: path.Join(t.TempDir(), "results.json"),
-	}
-	//executable, err := createCLI(t.TempDir())
-	//require.NoError(t, err)
+	executable, err := createCLI(t.TempDir())
+	require.NoError(t, err)
 
 	t.Run("--validate flag: enable secret validation", func(t *testing.T) {
 		projectDir := t.TempDir()
