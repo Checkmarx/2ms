@@ -466,7 +466,7 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 					rule.RuleName,
 					rule.Description,
 					strings.Join(rule.Tags, ","),
-					canValidateDisplay[validation.IsCanValidateRule(rule.RuleName)],
+					canValidateDisplay[validation.IsCanValidateRule(rule.RuleID)],
 				)
 			}
 			if err := tab.Flush(); err != nil {

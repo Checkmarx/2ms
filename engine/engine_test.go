@@ -165,11 +165,11 @@ func TestSecrets(t *testing.T) {
 			// that is why we are not expecting to find this secret
 			ShouldFind: false,
 		},
-		//{
-		//	Content:    "--set imagePullSecretJfrog.password=AKCp8kqqfQbYifrbyvqusjyk6N3QKprXTv9B8HTitLbJzXT1kW7dDticXTsJpCrbqtizAwK4D \\",
-		//	Name:       "JFROG Secret with keyword (real example)",
-		//	ShouldFind: true,
-		//},
+		{
+			Content:    "--set imagePullSecretJfrog.password=AKCp8kqqfQbYifrbyvqusjyk6N3QKprXTv9B8HTitLbJzXT1kW7dDticXTsJpCrbqtizAwK4D \\",
+			Name:       "JFROG Secret with keyword (real example)",
+			ShouldFind: true,
+		},
 		{
 			Content:    "--docker-password=AKCp8kqX8yeKBTqgm2XExHsp8yVdJn6SAgQmS1nJMfMDmzxEqX74rUGhedaWu7Eovid3VsMwb",
 			Name:       "JFROG Secret as kubectl argument",
