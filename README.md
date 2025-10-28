@@ -68,35 +68,13 @@ sudo ln -s /opt/2ms/2ms /usr/local/bin/2ms
 
 ## Compile from source
 
-> Requires Go 1.25+ and `GOEXPERIMENT=jsonv2` set in your build environment.
-
 You can compile the project from its source using the following commands:
 
 ```bash
-# Linux/macOS (bash/zsh)
 git clone https://github.com/checkmarx/2ms.git
 cd 2ms
-export GOEXPERIMENT=jsonv2
 go build -o dist/2ms main.go
 ./dist/2ms
-```
-
-```powershell
-# Windows (PowerShell)
-git clone https://github.com/checkmarx/2ms.git
-cd 2ms
-$env:GOEXPERIMENT = "jsonv2"
-go build -o dist\2ms.exe main.go
-.\dist\2ms.exe
-```
-
-```cmd
-:: Windows (CMD)
-git clone https://github.com/checkmarx/2ms.git
-cd 2ms
-set GOEXPERIMENT=jsonv2
-go build -o dist\2ms.exe main.go
-.\dist\2ms.exe
 ```
 
 ## Run From Docker Container
