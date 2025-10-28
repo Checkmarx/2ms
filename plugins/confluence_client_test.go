@@ -604,14 +604,14 @@ func TestStreamPagesFromBody(t *testing.T) {
 			name:              "unexpected token kind after '{'",
 			jsonInput:         `{ 1 }`,
 			visit:             func(*Page) error { return nil },
-			expectedErr:       fmt.Errorf("object member name must be a string"),
+			expectedErr:       fmt.Errorf("decode: key token"),
 			useContainsForErr: true,
 		},
 		{
 			name:              "key token ReadToken() fails",
 			jsonInput:         `{"`,
 			visit:             func(*Page) error { return nil },
-			expectedErr:       fmt.Errorf("unexpected end of JSON input"),
+			expectedErr:       fmt.Errorf("decode: key token"),
 			useContainsForErr: true,
 		},
 		{
@@ -631,7 +631,7 @@ func TestStreamPagesFromBody(t *testing.T) {
 				"_links": 123
 			}`,
 			visit:             func(*Page) error { return nil },
-			expectedErr:       fmt.Errorf("unmarshal JSON number into"),
+			expectedErr:       fmt.Errorf("decode: _links"),
 			useContainsForErr: true,
 		},
 		{
@@ -1243,7 +1243,7 @@ func TestDecodeResultsArray(t *testing.T) {
 			name:              "element decode error",
 			jsonInput:         `["not-an-object"]`,
 			visit:             func(*Page) error { return nil },
-			expectedErr:       fmt.Errorf("unmarshal JSON string into"),
+			expectedErr:       fmt.Errorf("decode: page"),
 			useContainsForErr: true,
 		},
 		{
