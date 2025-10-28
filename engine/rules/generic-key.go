@@ -65,6 +65,8 @@ func GenericCredential() *config.Rule {
 						`|Authentication-Results` + // email header
 						// Credentials
 						`|(?:credentials?[_.-]?id|withCredentials)` + // Jenkins plugins
+						// IPv4
+						`|(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}` +
 						// Key
 						`|(?:bucket|foreign|hot|idx|natural|primary|pub(?:lic)?|schema|sequence)[_.-]?key` +
 						`|(?:turkey)` +
