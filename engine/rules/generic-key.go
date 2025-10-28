@@ -79,13 +79,10 @@ func GenericCredential() *config.Rule {
 						// Secret
 						`|(?:secret)[_.-]?(?:length|name|size)` + // name of e.g. env variable
 						`|UserSecretsId` + // https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-8.0&tabs=linux
-
 						// Token
 						`|(?:csrf)[_.-]?token` +
-
 						// Maven library coordinates. (e.g., https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt)
 						`|(?:io\.jsonwebtoken[ \t]?:[ \t]?[\w-]+)` +
-
 						// General
 						`|(?:api|credentials|token)[_.-]?(?:endpoint|ur[il])` +
 						`|public[_.-]?token` +
@@ -107,7 +104,10 @@ func GenericCredential() *config.Rule {
 					//  https://github.com/gitleaks/gitleaks/issues/1800
 					regexp.MustCompile(`import[ \t]+{[ \t\w,]+}[ \t]+from[ \t]+['"][^'"]+['"]`),
 					// Azure role identifiers stored alongside KeyVault role names.
-					regexp.MustCompile(`(?i)\bKeyVault(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?`),
+					regexp.MustCompile(
+						`(?i)\bKeyVault` +
+							`(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))` +
+							`\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?`),
 				},
 			},
 			{
