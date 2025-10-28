@@ -174,6 +174,16 @@ func TestSecrets(t *testing.T) {
 			Name:       "JFROG Secret as kubectl argument",
 			ShouldFind: true,
 		},
+		{
+			Content:    "\"a_b_key\": \"x-someval-127.0.0.1\",",
+			Name:       "Generic Api Key",
+			ShouldFind: false,
+		},
+		{
+			Content:    "KeyVaultSecretsUser: '62168719-64c5-453d-b4ef-b51d8b1ad44d'",
+			Name:       "Generic Api Key",
+			ShouldFind: false,
+		},
 	}
 
 	detector, err := initEngine(&EngineConfig{
