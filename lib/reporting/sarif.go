@@ -105,6 +105,7 @@ func getResults(report *Report) []Results {
 					"validationStatus": secret.ValidationStatus,
 					"severity":         secret.Severity,
 					"cvssScore":        secret.CvssScore,
+					"ruleName":         secret.RuleName,
 				},
 			}
 			results = append(results, r)

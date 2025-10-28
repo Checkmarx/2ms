@@ -134,6 +134,7 @@ var (
 			"validationStatus": string(result1.ValidationStatus),
 			"severity":         result1.Severity,
 			"cvssScore":        result1.CvssScore,
+			"ruleName":         RuleName1,
 		},
 	}
 	result2Sarif = Results{
@@ -166,6 +167,7 @@ var (
 			"validationStatus": string(result2.ValidationStatus),
 			"severity":         result2.Severity,
 			"cvssScore":        result2.CvssScore,
+			"ruleName":         RuleName2,
 		},
 	}
 	result3Sarif = Results{
@@ -198,6 +200,7 @@ var (
 			"validationStatus": string(result3.ValidationStatus),
 			"severity":         result3.Severity,
 			"cvssScore":        result3.CvssScore,
+			"ruleName":         RuleName1,
 		},
 	}
 )

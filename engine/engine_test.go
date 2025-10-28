@@ -191,7 +191,7 @@ func TestSecrets(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
-			secretsChan := make(chan *secrets.Secret, 1)
+			secretsChan := make(chan *secrets.Secret, 1) // channel with size 1, if more than one secret found per sample, test fails with panic
 			fsPlugin := &plugins.FileSystemPlugin{}
 			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, fsPlugin.GetName())
 			if err != nil {
