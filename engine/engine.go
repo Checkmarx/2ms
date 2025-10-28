@@ -779,7 +779,7 @@ func filterGenericDuplicateFindings(findings []report.Finding) []report.Finding 
 		if strings.Contains(strings.ToLower(f.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") { // generic rule ID
 			for j := range findings {
 				fPrime := &findings[j]
-				if f.StartLine == fPrime.StartLine && //nolint:gocritic // inverting this condition reduces readability
+				if f.StartLine == fPrime.StartLine &&
 					f.Commit == fPrime.Commit &&
 					f.RuleID != fPrime.RuleID &&
 					strings.Contains(fPrime.Secret, f.Secret) &&
