@@ -5,9 +5,6 @@
 # Builder image
 FROM checkmarx/go:1.25.2-r0-1362f4e5a16bb5@sha256:1362f4e5a16bb5dd639020ca7890c99245ab4111f8b3bf360eac87df79e2f4cf AS builder
 
-ARG GOEXPERIMENT=jsonv2
-ENV GOEXPERIMENT=$GOEXPERIMENT
-
 WORKDIR /app
 
 #Copy go mod and sum files

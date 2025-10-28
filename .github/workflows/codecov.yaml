@@ -32,7 +32,7 @@ jobs:
 
     - name: Run tests and generate coverage 
       run: |
-        GOEXPERIMENT=jsonv2 go test ./... -coverpkg=./... -v -coverprofile cover.out
+        go test ./... -coverpkg=./... -v -coverprofile cover.out
                   
          
     - name: Upload coverage to Codecov

@@ -1,10 +1,8 @@
-//go:build goexperiment.jsonv2
-
 package plugins
 
 import (
 	"context"
-	"encoding/json/v2"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,8 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"encoding/json/jsontext"
 )
 
 const (
@@ -129,7 +125,7 @@ func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, err
 	var tmp struct {
 		CloudID string `json:"cloudId"`
 	}
-	if err := json.UnmarshalRead(resp.Body, &tmp); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&tmp); err != nil {
 		return "", fmt.Errorf("decode tenant_info: %w", err)
 	}
 	if tmp.CloudID == "" {
@@ -507,52 +503,50 @@ func nextURLFromLinkHeader(h http.Header) string {
 // streamPagesFromBody streams the Confluence /pages response,
 // calling visit(*Page) for each element in results, and returns body _links.next if present.
 func streamPagesFromBody(r io.Reader, visit func(*Page) error) (string, error) {
-	dec := jsontext.NewDecoder(
-		r,
-		// jsontext.WithByteLimit(10MiB), // TODO(go.dev/issue/56733): enable when available
-	)
+	dec := json.NewDecoder(r)
 
-	tok, err := dec.ReadToken()
+	tok, err := dec.Token()
 	if err != nil {
 		return "", fmt.Errorf("decode: top-level token: %w", err)
 	}
-	if tok.Kind() != '{' {
+	delim, ok := tok.(json.Delim)
+	if !ok || delim != '{' {
 		return "", fmt.Errorf("decode: expected '{' at top-level")
 	}
 
 	var bodyLinksNext string
 
 	for {
-		switch dec.PeekKind() {
-		case '}':
-			if _, err := dec.ReadToken(); err != nil {
-				return "", fmt.Errorf("decode: top-level '}': %w", err)
-			}
-			return bodyLinksNext, nil
+		t, err := dec.Token()
+		if err != nil {
+			return "", fmt.Errorf("decode: key token: %w", err)
+		}
 
-		case '"':
-			keyTok, err := dec.ReadToken()
+		if d, ok := t.(json.Delim); ok && d == '}' {
+			return bodyLinksNext, nil
+		}
+
+		key, ok := t.(string)
+		if !ok {
+			return "", fmt.Errorf("decode: expected object key")
+		}
+
+		switch key {
+		case "results":
+			if err := decodeResultsArray(dec, visit); err != nil {
+				return "", err
+			}
+		case "_links":
+			next, err := decodeLinksNext(dec)
 			if err != nil {
-				return "", fmt.Errorf("decode: key token: %w", err)
+				return "", err
 			}
-			switch keyTok.String() {
-			case "results":
-				if err := decodeResultsArray(dec, visit); err != nil {
-					return "", err
-				}
-			case "_links":
-				next, err := decodeLinksNext(dec)
-				if err != nil {
-					return "", err
-				}
-				bodyLinksNext = next
-			default:
-				if err := dec.SkipValue(); err != nil {
-					return "", fmt.Errorf("decode: skip: %w", err)
-				}
-			}
+			bodyLinksNext = next
 		default:
-			return "", fmt.Errorf("decode: unexpected token kind %q", dec.PeekKind())
+			var skip any
+			if err := dec.Decode(&skip); err != nil {
+				return "", fmt.Errorf("decode: skip: %w", err)
+			}
 		}
 	}
 }
@@ -560,39 +554,42 @@ func streamPagesFromBody(r io.Reader, visit func(*Page) error) (string, error) {
 // decodeResultsArray consumes the next token, which must be '[' for a "results"
 // array, then stream-decodes each element into a Page and calls visit for it.
 // It stops at the closing ']' and returns any decoding or visitor error.
-func decodeResultsArray(dec *jsontext.Decoder, visit func(*Page) error) error {
-	tok, err := dec.ReadToken()
+func decodeResultsArray(dec *json.Decoder, visit func(*Page) error) error {
+	tok, err := dec.Token()
 	if err != nil {
 		return fmt.Errorf("decode: results '[': %w", err)
 	}
-	if tok.Kind() != '[' {
+	delim, ok := tok.(json.Delim)
+	if !ok || delim != '[' {
 		return fmt.Errorf("decode: expected '[' for results")
 	}
-	for {
-		switch dec.PeekKind() {
-		case ']':
-			if _, err := dec.ReadToken(); err != nil {
-				return fmt.Errorf("decode: results ']': %w", err)
-			}
-			return nil
-		default:
-			var p Page
-			if err := json.UnmarshalDecode(dec, &p); err != nil {
-				return fmt.Errorf("decode: page: %w", err)
-			}
-			if err := visit(&p); err != nil {
-				return err
-			}
+
+	for dec.More() {
+		var p Page
+		if err := dec.Decode(&p); err != nil {
+			return fmt.Errorf("decode: page: %w", err)
+		}
+		if err := visit(&p); err != nil {
+			return err
 		}
 	}
+
+	// read closing ']'
+	if tok, err = dec.Token(); err != nil {
+		return fmt.Errorf("decode: results ']': %w", err)
+	}
+	if d, ok := tok.(json.Delim); !ok || d != ']' {
+		return fmt.Errorf("decode: expected closing ']' for results")
+	}
+	return nil
 }
 
 // decodeLinksNext decodes the JSON object that follows the "_links" key and
 // returns its "next" value (empty string if absent). It consumes the entire
 // object and wraps any decoding error with context.
-func decodeLinksNext(dec *jsontext.Decoder) (string, error) {
+func decodeLinksNext(dec *json.Decoder) (string, error) {
 	var ln map[string]string
-	if err := json.UnmarshalDecode(dec, &ln); err != nil {
+	if err := dec.Decode(&ln); err != nil {
 		return "", fmt.Errorf("decode: _links: %w", err)
 	}
 	return ln["next"], nil
