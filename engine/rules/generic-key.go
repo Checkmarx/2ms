@@ -106,6 +106,8 @@ func GenericCredential() *config.Rule {
 					regexp.MustCompile(`--mount=type=secret,`),
 					//  https://github.com/gitleaks/gitleaks/issues/1800
 					regexp.MustCompile(`import[ \t]+{[ \t\w,]+}[ \t]+from[ \t]+['"][^'"]+['"]`),
+					// Azure role identifiers stored alongside KeyVault role names.
+					regexp.MustCompile(`(?i)\bKeyVault(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?`),
 				},
 			},
 			{
