@@ -72,6 +72,7 @@ func GenericCredential() *config.Rule {
 						`|(?:turkey)` +
 						`|key[_.-]?(?:alias|board|code|frame|id|length|mesh|name|pair|press(?:ed)?|ring|selector|signature|size|stone|storetype|word|up|down|left|right)` + //nolint:lll
 						// Azure KeyVault
+						`|KeyVault(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?` + //nolint:lll
 						`|key[_.-]?vault[_.-]?(?:id|name)|keyVaultToStoreSecrets` +
 						`|key(?:store|tab)[_.-]?(?:file|path)` +
 						`|issuerkeyhash` + // part of ssl cert
@@ -103,11 +104,6 @@ func GenericCredential() *config.Rule {
 					regexp.MustCompile(`--mount=type=secret,`),
 					//  https://github.com/gitleaks/gitleaks/issues/1800
 					regexp.MustCompile(`import[ \t]+{[ \t\w,]+}[ \t]+from[ \t]+['"][^'"]+['"]`),
-					// Azure role identifiers stored alongside KeyVault role names.
-					regexp.MustCompile(
-						`(?i)\bKeyVault` +
-							`(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))` +
-							`\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?`),
 				},
 			},
 			{
