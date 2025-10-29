@@ -20,7 +20,7 @@ func HardcodedPassword() *Rule {
 	return &Rule{
 		RuleID:      "df08858b-14b7-4aa6-a08f-2a7da30d4bc6",
 		Description: "Hardcoded password",
-		RuleName:    "hardcoded-password",
+		RuleName:    "Hardcoded-Password",
 		Regex:       hardcodedPasswordRegex,
 		Keywords: []string{
 			"key",

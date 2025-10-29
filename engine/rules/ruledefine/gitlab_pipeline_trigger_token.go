@@ -9,7 +9,7 @@ var gitlabPipelineTriggerTokenRegex = regexp.MustCompile(`glptt-[0-9a-f]{40}`).S
 func GitlabPipelineTriggerToken() *Rule {
 	return &Rule{
 		RuleID:          "3dbfeba1-1c7e-4f0c-a0fe-62ae08b4b34c",
-		RuleName:        "gitlab-ptt",
+		RuleName:        "Gitlab-Ptt",
 		Description:     "Found a GitLab Pipeline Trigger Token, potentially compromising continuous integration workflows and project security.",
 		Regex:           gitlabPipelineTriggerTokenRegex,
 		Entropy:         3,

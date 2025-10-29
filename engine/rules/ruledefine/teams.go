@@ -11,7 +11,7 @@ func TeamsWebhook() *Rule {
 	return &Rule{
 		RuleID:      "3dd9b1e8-00cf-4049-a5f8-f29fce0d742c",
 		Description: "Uncovered a Microsoft Teams Webhook, which could lead to unauthorized access to team collaboration tools and data leaks.",
-		RuleName:    "microsoft-teams-webhook",
+		RuleName:    "Microsoft-Teams-Webhook",
 		Regex:       teamsWebhookRegex,
 		Keywords: []string{
 			"webhook.office.com",

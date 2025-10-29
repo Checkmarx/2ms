@@ -10,7 +10,7 @@ func GitHubOauth() *Rule {
 	return &Rule{
 		RuleID:          "0421c50a-7c92-472a-b074-f4df98d27e02",
 		Description:     "Discovered a GitHub OAuth Access Token, posing a risk of compromised GitHub account integrations and data leaks.",
-		RuleName:        "github-oauth",
+		RuleName:        "Github-Oauth",
 		Regex:           githubOauthRegex,
 		Entropy:         3,
 		Keywords:        []string{"gho_"},

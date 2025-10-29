@@ -6,7 +6,7 @@ func MaxMindLicenseKey() *Rule {
 	return &Rule{
 		RuleID:          "f39f3417-fa72-4f3b-a570-29523dc2a72b",
 		Description:     "Discovered a potential MaxMind license key.",
-		RuleName:        "maxmind-license-key",
+		RuleName:        "Maxmind-License-Key",
 		Regex:           maxmindLicenseKeyRegex,
 		Entropy:         4,
 		Keywords:        []string{"_mmk"},

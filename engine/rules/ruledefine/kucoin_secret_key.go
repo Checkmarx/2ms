@@ -6,7 +6,7 @@ func KucoinSecretKey() *Rule {
 	return &Rule{
 		RuleID:      "9c810a46-3a16-435d-b0f9-cd1b6eb30b33",
 		Description: "Discovered a Kucoin Secret Key, which could lead to compromised cryptocurrency operations and financial data breaches.",
-		RuleName:    "kucoin-secret-key",
+		RuleName:    "Kucoin-Secret-Key",
 		Regex:       kucoinSecretKeyRegex,
 		Keywords: []string{
 			"kucoin",

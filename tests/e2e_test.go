@@ -284,7 +284,7 @@ func TestFlagsIntegration(t *testing.T) {
 			found := false
 			for _, secretList := range results {
 				for _, secret := range secretList {
-					if secret.RuleName == "github-pat" {
+					if secret.RuleName == "Github-Pat" {
 						found = true
 					}
 				}

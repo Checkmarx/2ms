@@ -6,7 +6,7 @@ func StripeAccessToken() *Rule {
 	return &Rule{
 		RuleID:      "b44c7f22-1458-482c-8e1a-e8b3a854d7d6",
 		Description: "Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data.",
-		RuleName:    "stripe-access-token",
+		RuleName:    "Stripe-Access-Token",
 		Regex:       stripeAccessTokenRegex,
 		Entropy:     2,
 		Keywords: []string{

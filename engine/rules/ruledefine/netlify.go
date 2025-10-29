@@ -7,7 +7,7 @@ func NetlifyAccessToken() *Rule {
 	return &Rule{
 		RuleID:      "c23decf4-9f16-4ec6-8481-b3423f12ed4c",
 		Description: "Detected a Netlify Access Token, potentially compromising web hosting services and site management.",
-		RuleName:    "netlify-access-token",
+		RuleName:    "Netlify-Access-Token",
 		Regex:       netlifyAccessTokenRegex,
 		Keywords: []string{
 			"netlify",

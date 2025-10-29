@@ -8,7 +8,7 @@ func GoCardless() *Rule {
 		RuleID: "abdf0043-764e-4903-b1a8-e03b7bd59e46",
 		Description: "Detected a GoCardless API token," +
 			" potentially risking unauthorized direct debit payment operations and financial data exposure.",
-		RuleName: "gocardless-api-token",
+		RuleName: "Gocardless-Api-Token",
 		Regex:    gocardlessAPITokenRegex,
 		Keywords: []string{
 			"live_",

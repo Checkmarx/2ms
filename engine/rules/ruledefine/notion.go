@@ -7,7 +7,7 @@ func Notion() *Rule {
 	return &Rule{
 		RuleID:          "c8e8d78f-1273-4cd3-a6b5-99735a73ad0f",
 		Description:     "Notion API token",
-		RuleName:        "notion-api-token",
+		RuleName:        "Notion-Api-Token",
 		Regex:           notionAPITokenRegex,
 		Entropy:         4,
 		Keywords:        []string{"ntn_"},

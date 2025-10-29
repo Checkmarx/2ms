@@ -7,7 +7,7 @@ func RapidAPIAccessToken() *Rule {
 	return &Rule{
 		RuleID:      "f4f4feea-e8d0-4c8d-ab8f-833e673a9ff8",
 		Description: "Uncovered a RapidAPI Access Token, which could lead to unauthorized access to various APIs and data services.",
-		RuleName:    "rapidapi-access-token",
+		RuleName:    "Rapidapi-Access-Token",
 		Regex:       rapidAPIAccessTokenRegex,
 		Keywords: []string{
 			"rapidapi",

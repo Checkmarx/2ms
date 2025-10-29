@@ -8,7 +8,7 @@ func Meraki() *Rule {
 		RuleID: "bf05ece5-600c-4012-b115-70a9c5bead23",
 		Description: "Cisco Meraki is a cloud-managed IT solution that provides networking," +
 			" security, and device management through an easy-to-use interface.",
-		RuleName:        "cisco-meraki-api-key",
+		RuleName:        "Cisco-Meraki-Api-Key",
 		Regex:           ciscoMerakiAPIKeyRegex,
 		Entropy:         3,
 		Keywords:        []string{"meraki"},

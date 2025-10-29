@@ -7,7 +7,7 @@ func DropBoxLongLivedAPIToken() *Rule {
 	return &Rule{
 		RuleID:          "5e7e971a-d16a-4e9a-8a44-2d0076f54344",
 		Description:     "Found a Dropbox long-lived API token, risking prolonged unauthorized access to cloud storage and sensitive data.",
-		RuleName:        "dropbox-long-lived-api-token",
+		RuleName:        "Dropbox-Long-Lived-Api-Token",
 		Regex:           dropboxLongLivedAPITokenRegex,
 		Keywords:        []string{"dropbox"},
 		Severity:        "High",

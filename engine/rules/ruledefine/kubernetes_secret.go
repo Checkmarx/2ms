@@ -19,7 +19,7 @@ var kubernetesSecretRegex = regexp.MustCompile(fmt.Sprintf(
 func KubernetesSecret() *Rule {
 	return &Rule{
 		RuleID:      "7e7caacc-05fb-4e6e-b636-dbd027897a10",
-		RuleName:    "kubernetes-secret-yaml",
+		RuleName:    "Kubernetes-Secret-Yaml",
 		Description: "Possible Kubernetes Secret detected, posing a risk of leaking credentials/tokens from your deployments",
 		Regex:       kubernetesSecretRegex,
 		Keywords: []string{

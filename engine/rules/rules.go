@@ -236,7 +236,7 @@ func getSpecialRules() []*ruledefine.Rule {
 
 func isRuleMatch(rule ruledefine.Rule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
 	for _, tag := range tags {
-		if strings.EqualFold(rule.RuleName, tag) {
+		if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(tag)) {
 			return true
 		}
 		for _, ruleTag := range rule.Tags {

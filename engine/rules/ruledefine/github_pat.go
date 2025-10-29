@@ -11,7 +11,7 @@ func GitHubPat() *Rule {
 		RuleID: "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
 		Description: "Uncovered a GitHub Personal Access Token," +
 			" potentially leading to unauthorized repository access and sensitive content exposure.",
-		RuleName: "github-pat",
+		RuleName: "Github-Pat",
 		Regex:    githubPATRegex,
 		Entropy:  3,
 		Keywords: []string{"ghp_"},

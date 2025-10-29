@@ -6,7 +6,7 @@ func RubyGemsAPIToken() *Rule {
 	return &Rule{
 		RuleID:      "33139118-434f-4e93-99fd-630243e94d93",
 		Description: "Identified a Rubygem API token, potentially compromising Ruby library distribution and package management.",
-		RuleName:    "rubygems-api-token",
+		RuleName:    "Rubygems-Api-Token",
 		Regex:       rubyGemsAPITokenRegex,
 		Entropy:     2,
 		Keywords: []string{

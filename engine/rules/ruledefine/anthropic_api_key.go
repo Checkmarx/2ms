@@ -7,7 +7,7 @@ func AnthropicApiKey() *Rule {
 		RuleID: "ccb64199-5c77-4ab2-8beb-a88034fec55c",
 		Description: "Identified an Anthropic API Key," +
 			" which may compromise AI assistant integrations and expose sensitive data to unauthorized access.",
-		RuleName:        "anthropic-api-key",
+		RuleName:        "Anthropic-Api-Key",
 		Regex:           anthropicApiKeyRegex,
 		Keywords:        []string{"sk-ant-api03"},
 		Severity:        "High",

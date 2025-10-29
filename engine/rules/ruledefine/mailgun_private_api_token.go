@@ -7,7 +7,7 @@ func MailGunPrivateAPIToken() *Rule {
 	return &Rule{
 		RuleID:      "edb6d469-f6ab-427f-9d91-93ed56c17784",
 		Description: "Found a Mailgun private API token, risking unauthorized email service operations and data breaches.",
-		RuleName:    "mailgun-private-api-token",
+		RuleName:    "Mailgun-Private-Api-Token",
 		Regex:       mailgunPrivateAPITokenRegex,
 		Keywords: []string{
 			"mailgun",

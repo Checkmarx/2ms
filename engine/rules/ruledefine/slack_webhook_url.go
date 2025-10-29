@@ -10,7 +10,7 @@ var slackWebHookUrlRegex = regexp.MustCompile(
 func SlackWebHookUrl() *Rule {
 	return &Rule{
 		RuleID:      "2c13ac3b-6279-4535-bd88-c23f938f2408",
-		RuleName:    "slack-webhook-url",
+		RuleName:    "Slack-Webhook-Url",
 		Description: "Discovered a Slack Webhook, which could lead to unauthorized message posting and data leakage in Slack channels.",
 		// If this generates too many false-positives we should define an allowlist (e.g., "xxxx", "00000").
 		Regex: slackWebHookUrlRegex,

@@ -6,7 +6,7 @@ func Intra42ClientSecret() *Rule {
 	return &Rule{
 		RuleID:      "989afd3d-53ae-4d75-82e3-f537a4719d7c",
 		Description: "Found a Intra42 client secret, which could lead to unauthorized access to the 42School API and sensitive data.",
-		RuleName:    "intra42-client-secret",
+		RuleName:    "Intra42-Client-Secret",
 		Regex:       intra42ClientSecretRegex,
 		Entropy:     3,
 		Keywords: []string{

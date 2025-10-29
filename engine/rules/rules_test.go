@@ -1,12 +1,16 @@
 package rules
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/config"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func TestLoadAllRules(t *testing.T) {
@@ -327,5 +331,17 @@ func TestIgnoreRules(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestConvertRuleNames(t *testing.T) {
+	defaultRules := GetDefaultRules()
+	for _, rule := range defaultRules {
+		ruleName := rule.RuleName
+		caser := cases.Title(language.English)
+		if strings.Contains(ruleName, "-") {
+			ruleName = caser.String(ruleName)
+		}
+		fmt.Println(ruleName)
 	}
 }

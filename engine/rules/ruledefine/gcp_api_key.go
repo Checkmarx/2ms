@@ -10,7 +10,7 @@ func GCPAPIKey() *Rule {
 	return &Rule{
 		RuleID:      "ddb93a62-fcbd-466b-9e4b-695f5ee0d509",
 		Description: "Uncovered a GCP API key, which could lead to unauthorized access to Google Cloud services and data breaches.",
-		RuleName:    "gcp-api-key",
+		RuleName:    "Gcp-Api-Key",
 		Regex:       gcpAPIKeyRegex,
 		Entropy:     4,
 		Keywords:    []string{"AIza"},

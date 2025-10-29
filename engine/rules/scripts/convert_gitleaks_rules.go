@@ -16,6 +16,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iancoleman/strcase"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // This script converts gitleaks v8 rules to the new format used in 2ms.
@@ -126,6 +128,9 @@ func main() { //nolint:gocyclo,funlen
 					fmt.Printf("⚠️  No RuleName found in %s\n", path)
 					return true
 				}
+
+				caser := cases.Title(language.English)
+				RuleName = caser.String(RuleName)
 
 				fileName := ""
 				if fi.Name() == previousFileName {

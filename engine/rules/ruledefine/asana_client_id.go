@@ -6,7 +6,7 @@ func AsanaClientID() *Rule {
 	return &Rule{
 		RuleID:          "f26c0989-82cb-41d1-a30e-80202e933565",
 		Description:     "Discovered a potential Asana Client ID, risking unauthorized access to Asana projects and sensitive task information.",
-		RuleName:        "asana-client-id",
+		RuleName:        "Asana-Client-Id",
 		Regex:           asanaClientIdRegex,
 		Keywords:        []string{"asana"},
 		Severity:        "High",

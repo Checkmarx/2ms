@@ -10,7 +10,7 @@ func FlutterwavePublicKey() *Rule {
 	return &Rule{
 		RuleID:          "bb80218e-b84e-40cd-9481-cac01516e331",
 		Description:     "Detected a Finicity Public Key, potentially exposing public cryptographic operations and integrations.",
-		RuleName:        "flutterwave-public-key",
+		RuleName:        "Flutterwave-Public-Key",
 		Regex:           flutterwavePublicKeyRegex,
 		Entropy:         2,
 		Keywords:        []string{"FLWPUBK_TEST"},

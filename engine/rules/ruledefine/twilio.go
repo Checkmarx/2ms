@@ -10,7 +10,7 @@ func Twilio() *Rule {
 	return &Rule{
 		RuleID:          "125b8e88-785b-4a52-ac05-790552e1907c",
 		Description:     "Found a Twilio API Key, posing a risk to communication services and sensitive customer interaction data.",
-		RuleName:        "twilio-api-key",
+		RuleName:        "Twilio-Api-Key",
 		Regex:           twilioRegex,
 		Entropy:         3,
 		Keywords:        []string{"SK"},

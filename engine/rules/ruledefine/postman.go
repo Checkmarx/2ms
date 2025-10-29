@@ -6,7 +6,7 @@ func PostManAPI() *Rule {
 	return &Rule{
 		RuleID:      "bae405c3-705b-420b-bdc4-ed3613add3da",
 		Description: "Uncovered a Postman API token, potentially compromising API testing and development workflows.",
-		RuleName:    "postman-api-token",
+		RuleName:    "Postman-Api-Token",
 		Regex:       postManAPIRegex,
 		Entropy:     3,
 		Keywords: []string{

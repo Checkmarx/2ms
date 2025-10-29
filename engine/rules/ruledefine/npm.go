@@ -6,7 +6,7 @@ func NPM() *Rule {
 	return &Rule{
 		RuleID:      "c95ab734-0263-4b08-9366-1407667f32e2",
 		Description: "Uncovered an npm access token, potentially compromising package management and code repository access.",
-		RuleName:    "npm-access-token",
+		RuleName:    "Npm-Access-Token",
 		Regex:       npmAccessTokenRegex,
 		Entropy:     2,
 		Keywords: []string{

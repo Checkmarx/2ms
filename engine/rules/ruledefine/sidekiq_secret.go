@@ -7,7 +7,7 @@ func SidekiqSecret() *Rule {
 	return &Rule{
 		RuleID:          "568ac40e-7140-4e1d-b7ab-fa28148ede2e",
 		Description:     "Discovered a Sidekiq Secret, which could lead to compromised background job processing and application data breaches.",
-		RuleName:        "sidekiq-secret",
+		RuleName:        "Sidekiq-Secret",
 		Regex:           sidekiqSecretRegex,
 		Keywords:        []string{"BUNDLE_ENTERPRISE__CONTRIBSYS__COM", "BUNDLE_GEMS__CONTRIBSYS__COM"},
 		Severity:        "High",

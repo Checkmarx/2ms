@@ -6,7 +6,7 @@ func TwitchAPIToken() *Rule {
 	return &Rule{
 		RuleID:      "2361985f-3d77-4151-ad00-6d7a2ecbb700",
 		Description: "Discovered a Twitch API token, which could compromise streaming services and account integrations.",
-		RuleName:    "twitch-api-token",
+		RuleName:    "Twitch-Api-Token",
 		Regex:       twitchAPITokenRegex,
 		Keywords: []string{
 			"twitch",

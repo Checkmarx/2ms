@@ -10,7 +10,7 @@ func GitHubApp() *Rule {
 	return &Rule{
 		RuleID:          "388ebb1b-c894-430c-81fb-86d5037f44d3",
 		Description:     "Identified a GitHub App Token, which may compromise GitHub application integrations and source code security.",
-		RuleName:        "github-app-token",
+		RuleName:        "Github-App-Token",
 		Regex:           githubAppTokenRegex,
 		Entropy:         3,
 		Keywords:        []string{"ghu_", "ghs_"},

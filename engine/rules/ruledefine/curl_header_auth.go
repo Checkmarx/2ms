@@ -14,7 +14,7 @@ var curlHeaderAuthRegex = regexp.MustCompile(
 func CurlHeaderAuth() *Rule {
 	return &Rule{
 		RuleID:          "9dcbb621-11db-4eac-a1ee-a945edba3438",
-		RuleName:        "curl-auth-header",
+		RuleName:        "Curl-Auth-Header",
 		Description:     "Discovered a potential authorization token provided in a curl command header, which could compromise the curl accessed resource.", //nolint:lll
 		Regex:           curlHeaderAuthRegex,
 		Entropy:         2.75,

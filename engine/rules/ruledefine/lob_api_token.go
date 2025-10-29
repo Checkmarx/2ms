@@ -7,7 +7,7 @@ func LobAPIToken() *Rule {
 	return &Rule{
 		RuleID:      "31d3de85-1e14-459a-af28-3cf541972e3b",
 		Description: "Uncovered a Lob API Key, which could lead to unauthorized access to mailing and address verification services.",
-		RuleName:    "lob-api-key",
+		RuleName:    "Lob-Api-Key",
 		Regex:       lobAPIKeyRegex,
 		Keywords: []string{
 			"test_",

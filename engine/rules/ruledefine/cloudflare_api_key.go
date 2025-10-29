@@ -8,7 +8,7 @@ func CloudflareAPIKey() *Rule {
 	return &Rule{
 		RuleID:          "c0c2396e-e2c2-409b-befb-e7bdff313f56",
 		Description:     "Detected a Cloudflare API Key, potentially compromising cloud application deployments and operational security.",
-		RuleName:        "cloudflare-api-key",
+		RuleName:        "Cloudflare-Api-Key",
 		Regex:           cloudflareApiKeyRegex.String(),
 		Entropy:         2,
 		Keywords:        cloudfareIdentifiers,

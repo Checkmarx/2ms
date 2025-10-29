@@ -6,7 +6,7 @@ func InfracostAPIToken() *Rule {
 	return &Rule{
 		RuleID:          "0774bdec-232f-4c68-8ba0-458f5e1e40c8",
 		Description:     "Detected an Infracost API Token, risking unauthorized access to cloud cost estimation tools and financial data.",
-		RuleName:        "infracost-api-token",
+		RuleName:        "Infracost-Api-Token",
 		Regex:           infracostAPITokenRegex,
 		Entropy:         3,
 		Keywords:        []string{"ico-"},

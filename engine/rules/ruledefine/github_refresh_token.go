@@ -10,7 +10,7 @@ func GitHubRefresh() *Rule {
 	return &Rule{
 		RuleID:          "711832c0-6aa8-46d1-ad44-2112e2771412",
 		Description:     "Detected a GitHub Refresh Token, which could allow prolonged unauthorized access to GitHub services.",
-		RuleName:        "github-refresh-token",
+		RuleName:        "Github-Refresh-Token",
 		Regex:           githubRefreshTokenRegex,
 		Entropy:         3,
 		Keywords:        []string{"ghr_"},

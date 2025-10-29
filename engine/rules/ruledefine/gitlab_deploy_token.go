@@ -10,7 +10,7 @@ func GitlabDeployToken() *Rule {
 	return &Rule{
 		RuleID:          "8d1908c7-feb0-4b63-b2a6-1b0dd51badd4",
 		Description:     "Identified a GitLab Deploy Token, risking access to repositories, packages and containers with write access.",
-		RuleName:        "gitlab-deploy-token",
+		RuleName:        "Gitlab-Deploy-Token",
 		Regex:           gitlabDeployTokenRegex,
 		Entropy:         3,
 		Keywords:        []string{"gldt-"},

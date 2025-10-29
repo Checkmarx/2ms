@@ -7,7 +7,7 @@ var flyIOAccessTokenRegex = generateUniqueTokenRegex(
 func FlyIOAccessToken() *Rule {
 	return &Rule{
 		RuleID:          "d2410346-1a57-45a0-94a3-67e185a7ac3a",
-		RuleName:        "flyio-access-token",
+		RuleName:        "Flyio-Access-Token",
 		Description:     "Uncovered a Fly.io API key",
 		Regex:           flyIOAccessTokenRegex,
 		Entropy:         4,

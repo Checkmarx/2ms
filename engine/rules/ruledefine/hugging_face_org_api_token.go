@@ -6,7 +6,7 @@ var huggingFaceOrganizationApiTokenRegex = generateUniqueTokenRegex(
 func HuggingFaceOrganizationApiToken() *Rule {
 	return &Rule{
 		RuleID:      "b2e67a8e-ec58-41b6-baf0-2a6b9b3de237",
-		RuleName:    "huggingface-organization-api-token",
+		RuleName:    "Huggingface-Organization-Api-Token",
 		Description: "Uncovered a Hugging Face Organization API token, potentially compromising AI organization accounts and associated data.",
 		Regex:       huggingFaceOrganizationApiTokenRegex,
 

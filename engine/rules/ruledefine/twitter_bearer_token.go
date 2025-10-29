@@ -7,7 +7,7 @@ func TwitterBearerToken() *Rule {
 	return &Rule{
 		RuleID:          "5b479cdf-e759-4bd9-92c6-79f25c835fb0",
 		Description:     "Discovered a Twitter Bearer Token, potentially compromising API access and data retrieval from Twitter.",
-		RuleName:        "twitter-bearer-token",
+		RuleName:        "Twitter-Bearer-Token",
 		Regex:           twitterBearerTokenRegex,
 		Keywords:        []string{"twitter"},
 		Severity:        "High",

@@ -6,7 +6,7 @@ func PlanetScaleOAuthToken() *Rule {
 	return &Rule{
 		RuleID:      "ddba7a67-d2c6-437c-8281-0d4a2cf52abc",
 		Description: "Found a PlanetScale OAuth token, posing a risk to database access control and sensitive data integrity.",
-		RuleName:    "planetscale-oauth-token",
+		RuleName:    "Planetscale-Oauth-Token",
 		Regex:       planetScaleOAuthTokenRegex,
 		Entropy:     3,
 		Keywords: []string{

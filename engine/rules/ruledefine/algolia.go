@@ -8,7 +8,7 @@ func AlgoliaApiKey() *Rule {
 		RuleID: "3e3052a1-5be8-4ed8-90a3-f50b94c96fe5",
 		Description: "Identified an Algolia API Key," +
 			" which could result in unauthorized search operations and data exposure on Algolia-managed platforms.",
-		RuleName:        "algolia-api-key",
+		RuleName:        "Algolia-Api-Key",
 		Regex:           algoliaRegex,
 		Keywords:        []string{"algolia"},
 		Severity:        "High",

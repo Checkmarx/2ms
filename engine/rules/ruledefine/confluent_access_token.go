@@ -6,7 +6,7 @@ func ConfluentAccessToken() *Rule {
 	return &Rule{
 		RuleID:      "0f1e7b5c-5411-4bc7-98b2-743ef790186a",
 		Description: "Identified a Confluent Access Token, which could compromise access to streaming data platforms and sensitive data flow.",
-		RuleName:    "confluent-access-token",
+		RuleName:    "Confluent-Access-Token",
 		Regex:       confluentAccessTokenRegex.String(),
 
 		Keywords: []string{

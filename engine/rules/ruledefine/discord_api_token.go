@@ -6,7 +6,7 @@ func DiscordAPIToken() *Rule {
 	return &Rule{
 		RuleID:          "f12c782e-bfea-4e23-ba78-0cf033558387",
 		Description:     "Detected a Discord API key, potentially compromising communication channels and user data privacy on Discord.",
-		RuleName:        "discord-api-token",
+		RuleName:        "Discord-Api-Token",
 		Regex:           discordApiTokenRegex,
 		Keywords:        []string{"discord"},
 		Severity:        "High",

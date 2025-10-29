@@ -7,7 +7,7 @@ func DefinedNetworkingAPIToken() *Rule {
 	return &Rule{
 		RuleID:      "6175e184-12b3-44e8-acb7-9eb9733f61e1",
 		Description: "Identified a Defined Networking API token, which could lead to unauthorized network operations and data breaches.",
-		RuleName:    "defined-networking-api-token",
+		RuleName:    "Defined-Networking-Api-Token",
 		Regex:       definedNetworkingApiTokenRegex,
 
 		Keywords:        []string{"dnkey"},

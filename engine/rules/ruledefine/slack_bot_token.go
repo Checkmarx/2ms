@@ -9,7 +9,7 @@ var slackBotTokenRegex = regexp.MustCompile(`xoxb-[0-9]{10,13}-[0-9]{10,13}[a-zA
 func SlackBotToken() *Rule {
 	return &Rule{
 		RuleID:      "5d9126ea-e73c-4a6e-bfc7-08fb675f1937",
-		RuleName:    "slack-bot-token",
+		RuleName:    "Slack-Bot-Token",
 		Description: "Identified a Slack Bot token, which may compromise bot integrations and communication channel security.",
 		Regex:       slackBotTokenRegex,
 		Entropy:     3,

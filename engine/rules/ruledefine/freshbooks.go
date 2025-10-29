@@ -7,7 +7,7 @@ func FreshbooksAccessToken() *Rule {
 	return &Rule{
 		RuleID:      "59125af0-344b-4978-9f8f-99cc95a250c9",
 		Description: "Discovered a Freshbooks Access Token, posing a risk to accounting software access and sensitive financial data exposure.",
-		RuleName:    "freshbooks-access-token",
+		RuleName:    "Freshbooks-Access-Token",
 		Regex:       freshbooksAccessTokenRegex,
 		Keywords: []string{
 			"freshbooks",

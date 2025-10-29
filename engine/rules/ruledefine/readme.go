@@ -6,7 +6,7 @@ func ReadMe() *Rule {
 	return &Rule{
 		RuleID:      "20784aca-b7f1-4657-8314-789b08f591bc",
 		Description: "Detected a Readme API token, risking unauthorized documentation management and content exposure.",
-		RuleName:    "readme-api-token",
+		RuleName:    "Readme-Api-Token",
 		Regex:       readMeRegex,
 		Entropy:     2,
 		Keywords: []string{

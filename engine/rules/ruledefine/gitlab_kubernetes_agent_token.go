@@ -9,7 +9,7 @@ var gitlabKubernetesAgentTokenRegex = regexp.MustCompile(`glagent-[0-9a-zA-Z_\-]
 func GitlabKubernetesAgentToken() *Rule {
 	return &Rule{
 		RuleID:          "00955180-6ce6-4603-a1d3-f34d71a75414",
-		RuleName:        "gitlab-kubernetes-agent-token",
+		RuleName:        "Gitlab-Kubernetes-Agent-Token",
 		Description:     "Identified a GitLab Kubernetes Agent token, risking access to repos and registry of projects connected via agent.",
 		Regex:           gitlabKubernetesAgentTokenRegex,
 		Entropy:         3,

@@ -20,7 +20,7 @@ func SentryOrgToken() *Rule {
 	// cmVnaW9uX3VybCI6 = `region_url":`
 	return &Rule{
 		RuleID:   "12818a31-52a8-44c7-b03b-19974d8fad04",
-		RuleName: "sentry-org-token",
+		RuleName: "Sentry-Org-Token",
 		Description: "Found a Sentry.io Organization Token," +
 			" risking unauthorized access to error tracking services and sensitive application data.",
 		Regex:           sentryOrgTokenRegex,

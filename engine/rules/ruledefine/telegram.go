@@ -7,7 +7,7 @@ func TelegramBotToken() *Rule {
 	return &Rule{
 		RuleID:      "dc4163ac-6f7a-4260-9067-70764c3bdbc0",
 		Description: "Detected a Telegram Bot API Token, risking unauthorized bot operations and message interception on Telegram.",
-		RuleName:    "telegram-bot-api-token",
+		RuleName:    "Telegram-Bot-Api-Token",
 
 		Regex: telegramBotTokenRegex,
 		Keywords: []string{

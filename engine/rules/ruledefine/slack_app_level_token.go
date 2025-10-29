@@ -9,7 +9,7 @@ var slackAppLevelTokenRegex = regexp.MustCompile(`(?i)xapp-\d-[A-Z0-9]+-\d+-[a-z
 func SlackAppLevelToken() *Rule {
 	return &Rule{
 		RuleID:      "dba4da5d-3e56-43d9-a130-ac4af070a7c8",
-		RuleName:    "slack-app-token",
+		RuleName:    "Slack-App-Token",
 		Description: "Detected a Slack App-level token, risking unauthorized access to Slack applications and workspace data.",
 		// This regex is based on a limited number of examples and may not be 100% accurate.
 		Regex:           slackAppLevelTokenRegex,

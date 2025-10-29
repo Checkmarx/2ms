@@ -15,7 +15,7 @@ func HashicorpField() *Rule {
 		RuleID: "8477ac09-107c-48a9-a51b-62052600a3f0",
 		Description: "Identified a HashiCorp Terraform password field," +
 			" risking unauthorized infrastructure configuration and security breaches.",
-		RuleName:        "hashicorp-tf-password",
+		RuleName:        "Hashicorp-Tf-Password",
 		Regex:           hashicorpTfPasswordRegex,
 		Entropy:         2,
 		Keywords:        hashicorpKeywords,

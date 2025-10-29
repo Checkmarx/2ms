@@ -10,7 +10,7 @@ func EasyPostTestAPI() *Rule {
 	return &Rule{
 		RuleID:          "e0df7fdd-0109-477f-875d-b3dc89c1f71f",
 		Description:     "Detected an EasyPost test API token, risking exposure of test environments and potentially sensitive shipment data.",
-		RuleName:        "easypost-test-api-token",
+		RuleName:        "Easypost-Test-Api-Token",
 		Regex:           easypostTestAPITokenRegex,
 		Entropy:         2,
 		Keywords:        []string{"EZTK"},

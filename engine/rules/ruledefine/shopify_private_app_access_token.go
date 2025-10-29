@@ -10,7 +10,7 @@ func ShopifyPrivateAppAccessToken() *Rule {
 	return &Rule{
 		RuleID:          "f869ed25-7389-48d6-bb6f-736a2faef111",
 		Description:     "Identified a Shopify private app access token, risking unauthorized access to private app data and store operations.",
-		RuleName:        "shopify-private-app-access-token",
+		RuleName:        "Shopify-Private-App-Access-Token",
 		Regex:           shopifyPrivateAppAccessTokenRegex,
 		Entropy:         2,
 		Keywords:        []string{"shppa_"},

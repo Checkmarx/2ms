@@ -10,7 +10,7 @@ func AuthenticatedURL() *Rule {
 	return &Rule{
 		RuleID:      "98e88a4f-4b7d-4c56-a6fa-9835dfb7c8d7",
 		Description: "Identify username:password inside URLS",
-		RuleName:    "authenticated-url",
+		RuleName:    "Authenticated-Url",
 		Regex:       authenticatedURLRegex,
 		Keywords:    []string{"://"},
 		SecretGroup: 1,

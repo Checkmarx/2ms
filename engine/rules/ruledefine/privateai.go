@@ -6,7 +6,7 @@ func PrivateAIToken() *Rule {
 	return &Rule{
 		RuleID:      "43bf9a5d-7994-4fc5-a9d7-4277340314a4",
 		Description: "Identified a PrivateAI Token, posing a risk of unauthorized access to AI services and data manipulation.",
-		RuleName:    "privateai-api-token",
+		RuleName:    "Privateai-Api-Token",
 		Regex:       privateAITokenRegex,
 		Entropy:     3,
 		Keywords: []string{

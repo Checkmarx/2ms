@@ -10,7 +10,7 @@ var curlBasicAuthRegex = regexp.MustCompile(
 func CurlBasicAuth() *Rule {
 	return &Rule{
 		RuleID:      "a80aed71-d4ac-499a-a154-befb592e461b",
-		RuleName:    "curl-auth-user",
+		RuleName:    "Curl-Auth-User",
 		Description: "Discovered a potential basic authorization token provided in a curl command, which could compromise the curl accessed resource.", //nolint:lll
 		Regex:       curlBasicAuthRegex.String(),
 		Keywords:    []string{"curl"},

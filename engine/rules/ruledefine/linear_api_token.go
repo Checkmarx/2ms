@@ -10,7 +10,7 @@ func LinearAPIToken() *Rule {
 	return &Rule{
 		RuleID:          "e366eacb-5244-4f4b-8a09-bb3c3da9c621",
 		Description:     "Detected a Linear API Token, posing a risk to project management tools and sensitive task data.",
-		RuleName:        "linear-api-key",
+		RuleName:        "Linear-Api-Key",
 		Regex:           linearAPIKeyRegex,
 		Entropy:         2,
 		Keywords:        []string{"lin_api_"},

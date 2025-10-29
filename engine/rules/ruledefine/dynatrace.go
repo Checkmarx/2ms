@@ -10,7 +10,7 @@ func Dynatrace() *Rule {
 	return &Rule{
 		RuleID:          "469da8fd-e2cc-4ccc-bc23-1702064b9b66",
 		Description:     "Detected a Dynatrace API token, potentially risking application performance monitoring and data exposure.",
-		RuleName:        "dynatrace-api-token",
+		RuleName:        "Dynatrace-Api-Token",
 		Regex:           dynatraceAPITokenRegex,
 		Entropy:         4,
 		Keywords:        []string{"dt0c01."},

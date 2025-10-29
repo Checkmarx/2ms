@@ -11,7 +11,7 @@ func NugetConfigPassword() *Rule {
 	return &Rule{
 		RuleID:      "9b6aa003-3d49-4b54-8f20-cee3eb9d0411",
 		Description: "Identified a password within a Nuget config file, potentially compromising package management access.",
-		RuleName:    "nuget-config-password",
+		RuleName:    "Nuget-Config-Password",
 		Regex:       nugetConfigPasswordRegex,
 		Entropy:     1,
 		Keywords:    []string{"<add key="},

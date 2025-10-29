@@ -9,7 +9,7 @@ var slackConfigurationRefreshTokenRegex = regexp.MustCompile(`(?i)xoxe-\d-[A-Z0-
 func SlackConfigurationRefreshToken() *Rule {
 	return &Rule{
 		RuleID:   "ca3e4937-076c-42bb-847b-bf558a3f36b3",
-		RuleName: "slack-config-refresh-token",
+		RuleName: "Slack-Config-Refresh-Token",
 		Description: "Discovered a Slack Configuration refresh token," +
 			" potentially allowing prolonged unauthorized access to configuration settings.",
 		Regex:           slackConfigurationRefreshTokenRegex,

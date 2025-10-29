@@ -6,7 +6,7 @@ func SquareSpaceAccessToken() *Rule {
 	return &Rule{
 		RuleID:      "775c744f-1469-4ac2-bdbf-8480ae246451",
 		Description: "Identified a Squarespace Access Token, which may compromise website management and content control on Squarespace.",
-		RuleName:    "squarespace-access-token",
+		RuleName:    "Squarespace-Access-Token",
 		Regex:       squareSpaceAccessTokenRegex,
 		Keywords: []string{
 			"squarespace",

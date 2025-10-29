@@ -6,7 +6,7 @@ func BitBucketClientID() *Rule {
 	return &Rule{
 		RuleID:          "adc652bc-4f17-48b6-8f23-fd3aca2a31e3",
 		Description:     "Discovered a potential Bitbucket Client ID, risking unauthorized repository access and potential codebase exposure.",
-		RuleName:        "bitbucket-client-id",
+		RuleName:        "Bitbucket-Client-Id",
 		Regex:           bitbucketClientIdRegex.String(),
 		Keywords:        []string{"bitbucket"},
 		Severity:        "High",

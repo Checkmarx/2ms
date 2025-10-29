@@ -6,7 +6,7 @@ func PulumiAPIToken() *Rule {
 	return &Rule{
 		RuleID:      "a106c89b-68ed-47a6-ac7f-ef2fa78cfef2",
 		Description: "Found a Pulumi API token, posing a risk to infrastructure as code services and cloud resource management.",
-		RuleName:    "pulumi-api-token",
+		RuleName:    "Pulumi-Api-Token",
 		Regex:       pulumiAPITokenRegex,
 		Entropy:     2,
 		Keywords: []string{

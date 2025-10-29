@@ -7,7 +7,7 @@ func LobPubAPIToken() *Rule {
 	return &Rule{
 		RuleID:      "46257ed4-c91d-4dcf-9d2a-81ecee35f96d",
 		Description: "Detected a Lob Publishable API Key, posing a risk of exposing mail and print service integrations.",
-		RuleName:    "lob-pub-api-key",
+		RuleName:    "Lob-Pub-Api-Key",
 		Regex:       lobPubAPIKeyRegex,
 		Keywords: []string{
 			"test_pub",

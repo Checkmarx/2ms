@@ -10,7 +10,7 @@ func ShopifyCustomAccessToken() *Rule {
 	return &Rule{
 		RuleID:          "f98c5ec1-dd8d-42d4-b07d-9737ae65eec1",
 		Description:     "Detected a Shopify custom access token, potentially compromising custom app integrations and e-commerce data security.",
-		RuleName:        "shopify-custom-access-token",
+		RuleName:        "Shopify-Custom-Access-Token",
 		Regex:           shopifyCustomAccessTokenRegex,
 		Entropy:         2,
 		Keywords:        []string{"shpca_"},

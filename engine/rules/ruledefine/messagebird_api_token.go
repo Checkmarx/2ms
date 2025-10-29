@@ -7,7 +7,7 @@ func MessageBirdAPIToken() *Rule {
 	return &Rule{
 		RuleID:      "9eda5e69-4034-4cc3-b4ab-966ff7ac67bd",
 		Description: "Found a MessageBird API token, risking unauthorized access to communication platforms and message data.",
-		RuleName:    "messagebird-api-token",
+		RuleName:    "Messagebird-Api-Token",
 		Regex:       messagebirdAPITokenRegex,
 		Keywords: []string{
 			"messagebird",

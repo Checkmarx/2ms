@@ -7,7 +7,7 @@ func MessageBirdClientID() *Rule {
 	return &Rule{
 		RuleID:      "bb630684-0bfe-457e-bf74-55d655c2011a",
 		Description: "Discovered a MessageBird client ID, potentially compromising API integrations and sensitive communication data.",
-		RuleName:    "messagebird-client-id",
+		RuleName:    "Messagebird-Client-Id",
 		Regex:       messagebirdClientIDRegex,
 		Keywords: []string{
 			"messagebird",

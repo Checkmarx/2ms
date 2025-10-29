@@ -7,7 +7,7 @@ func Typeform() *Rule {
 	return &Rule{
 		RuleID:      "fa7376dc-2332-4ac7-9b12-762db17de2c5",
 		Description: "Uncovered a Typeform API token, which could lead to unauthorized survey management and data collection.",
-		RuleName:    "typeform-api-token",
+		RuleName:    "Typeform-Api-Token",
 		Regex:       typeformRegex,
 		Keywords: []string{
 			"tfp_",

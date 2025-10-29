@@ -8,7 +8,7 @@ func Airtable() *Rule {
 		RuleID: "6869a35b-dfad-439d-b285-3b26a4469224",
 		Description: "Uncovered a possible Airtable API Key," +
 			" potentially compromising database access and leading to data leakage or alteration.",
-		RuleName:        "airtable-api-key",
+		RuleName:        "Airtable-Api-Key",
 		Regex:           airtableRegex,
 		Keywords:        []string{"airtable"},
 		Severity:        "High",

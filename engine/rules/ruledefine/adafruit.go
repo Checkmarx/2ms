@@ -10,7 +10,7 @@ func AdafruitAPIKey() *Rule {
 		RuleID: "c29ea920-52c4-4366-9e75-1574e286d1d7",
 		Description: "Identified a potential Adafruit API Key," +
 			" which could lead to unauthorized access to Adafruit services and sensitive data exposure.",
-		RuleName:        "adafruit-api-key",
+		RuleName:        "Adafruit-Api-Key",
 		Regex:           adafruitAPIKeyRegex,
 		Keywords:        []string{"adafruit"},
 		Severity:        "High",

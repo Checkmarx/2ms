@@ -10,7 +10,7 @@ func NewRelicInsertKey() *Rule {
 	return &Rule{
 		RuleID:      "3ba5a85e-a516-4b94-8cb6-714cecc08a18",
 		Description: "Discovered a New Relic insight insert key, compromising data injection into the platform.",
-		RuleName:    "new-relic-insert-key",
+		RuleName:    "New-Relic-Insert-Key",
 		Regex:       newRelicInsertKeyRegex,
 		Keywords: []string{
 			"NRII-",

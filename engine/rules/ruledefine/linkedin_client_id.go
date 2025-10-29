@@ -7,7 +7,7 @@ func LinkedinClientID() *Rule {
 	return &Rule{
 		RuleID:      "3c7dba47-155c-4a27-a7a8-46cc64b61ff2",
 		Description: "Found a LinkedIn Client ID, risking unauthorized access to LinkedIn integrations and professional data exposure.",
-		RuleName:    "linkedin-client-id",
+		RuleName:    "Linkedin-Client-Id",
 		Regex:       linkedinClientIDRegex,
 		Entropy:     2,
 		Keywords: []string{

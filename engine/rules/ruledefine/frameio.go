@@ -10,7 +10,7 @@ func FrameIO() *Rule {
 	return &Rule{
 		RuleID:          "96b38d4d-883b-4060-8b7e-6484f2c1cec4",
 		Description:     "Found a Frame.io API token, potentially compromising video collaboration and project management.",
-		RuleName:        "frameio-api-token",
+		RuleName:        "Frameio-Api-Token",
 		Regex:           frameioAPITokenRegex,
 		Keywords:        []string{"fio-u-"},
 		Severity:        "High",

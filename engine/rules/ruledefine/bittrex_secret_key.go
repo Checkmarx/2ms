@@ -6,7 +6,7 @@ func BittrexSecretKey() *Rule {
 	return &Rule{
 		RuleID:          "c2329ef8-b8ac-4758-a808-c4d2058acc57",
 		Description:     "Detected a Bittrex Secret Key, potentially compromising cryptocurrency transactions and financial security.",
-		RuleName:        "bittrex-secret-key",
+		RuleName:        "Bittrex-Secret-Key",
 		Regex:           bittrexSecretKeyRegex.String(),
 		Keywords:        []string{"bittrex"},
 		Severity:        "High",

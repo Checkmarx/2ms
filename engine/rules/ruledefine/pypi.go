@@ -10,7 +10,7 @@ func PyPiUploadToken() *Rule {
 	return &Rule{
 		RuleID:      "9a242991-bc9a-4c82-91cf-26e416b79fb1",
 		Description: "Discovered a PyPI upload token, potentially compromising Python package distribution and repository integrity.",
-		RuleName:    "pypi-upload-token",
+		RuleName:    "Pypi-Upload-Token",
 		Regex:       pyPiUploadTokenRegex,
 		Entropy:     3,
 		Keywords: []string{
