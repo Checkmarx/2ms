@@ -16,7 +16,8 @@ import (
 var Version = "0.0.0"
 
 const (
-	outputFormatRegexpPattern = `^(ya?ml|json|sarif)$`
+	stdoutFormatRegexpPattern = `^(ya?ml|json|sarif|human)$`
+	reportFormatRegexpPattern = `^(ya?ml|json|sarif)$`
 	configFileFlag            = "config"
 
 	logLevelFlagName           = "log-level"

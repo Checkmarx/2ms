@@ -1,14 +1,15 @@
 package reporting
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/checkmarx/2ms/v4/lib/config"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 	longYamlFormat  = "yaml"
 	shortYamlFormat = "yml"
 	sarifFormat     = "sarif"
+	humanFormat     = "human"
 )
 
 type IReport interface {
@@ -28,12 +30,15 @@ type IReport interface {
 	GetTotalSecretsFound() int
 	IncTotalItemsScanned(n int)
 	IncTotalSecretsFound(n int)
+	SetScanDuration(duration time.Duration)
+	GetScanDuration() time.Duration
 }
 
 type Report struct {
 	TotalItemsScanned int                          `json:"totalItemsScanned"`
 	TotalSecretsFound int                          `json:"totalSecretsFound"`
 	Results           map[string][]*secrets.Secret `json:"results"`
+	ScanDuration      time.Duration                `json:"-"`
 
 	mu sync.RWMutex
 }
@@ -50,7 +55,7 @@ func (r *Report) ShowReport(format string, cfg *config.Config) error {
 		return err
 	}
 
-	log.Info().Msg("\n" + output)
+	fmt.Println(output)
 	return nil
 }
 
@@ -91,6 +96,8 @@ func (r *Report) GetOutput(format string, cfg *config.Config) (string, error) {
 		output, err = writeYaml(r)
 	case sarifFormat:
 		output, err = writeSarif(r, cfg)
+	case humanFormat:
+		output, err = writeHuman(r)
 	}
 	return output, err
 }
@@ -117,6 +124,18 @@ func (r *Report) IncTotalSecretsFound(n int) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.TotalSecretsFound += n
+}
+
+func (r *Report) SetScanDuration(duration time.Duration) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.ScanDuration = duration
+}
+
+func (r *Report) GetScanDuration() time.Duration {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.ScanDuration
 }
 
 func (r *Report) GetResults() map[string][]*secrets.Secret {

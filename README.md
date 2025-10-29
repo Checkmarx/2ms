@@ -205,7 +205,7 @@ Flags:
       --regex stringArray             custom regexes to apply to the scan, must be valid Go regex
       --report-path strings           path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)
       --rule strings                  select rules by name or tag to apply to this scan
-      --stdout-format string          stdout output format, available formats are: json, yaml, sarif (default "yaml")
+      --stdout-format string          stdout output format, available formats are: json, yaml, sarif, human (default "human")
       --validate                      trigger additional validation to check if discovered secrets are valid or invalid
   -v, --version                       version for 2ms
 
@@ -401,9 +401,11 @@ The following table describes the global flags that can be used together with an
 |--regex | stringArray |  | Custom regexes to apply to the scan. Must be valid Go regex. |
 |--report-path | strings |  | Path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif) |
 |--rule | strings |  | Select rules by name or tag to apply to this scan. |
-|--stdout-format | string | yaml | Stdout output format, available formats are: json, yaml, sarif |
+|--stdout-format | string | human | Stdout output format, available formats are: json, yaml, sarif, human |
 |--validate |  |  | Trigger additional validation to check if discovered secrets are valid or invalid. SEE BELOW |
 |-v, --version |  |  | Version of 2ms that is running. |
+
+> The default `human` format prints a curated console summary. Use `--stdout-format yaml` (or json/sarif) when you need the previous structured output.
 
 ### Validity Check
 
