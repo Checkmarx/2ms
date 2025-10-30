@@ -97,7 +97,11 @@ func (r *Report) GetOutput(format string, cfg *config.Config) (string, error) {
 	case sarifFormat:
 		output, err = writeSarif(r, cfg)
 	case humanFormat:
-		output, err = writeHuman(r)
+		version := ""
+		if cfg != nil {
+			version = cfg.Version
+		}
+		output, err = writeHuman(r, version)
 	}
 	return output, err
 }

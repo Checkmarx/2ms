@@ -457,13 +457,14 @@ func TestGetOutputHuman(t *testing.T) {
 
 		report.SetScanDuration(1500 * time.Millisecond)
 
-		output, err := report.GetOutput("human", &config.Config{Name: "report", Version: "1"})
+		output, err := report.GetOutput("human", &config.Config{Name: "report", Version: "1.0.0"})
 		assert.NoError(t, err)
 
 		clean := stripANSI(output)
 
-		assert.Contains(t, clean, "2ms scanning...")
-		assert.Contains(t, clean, "No secrets were detected during this scan.")
+		assert.Contains(t, clean, "2ms by Checkmarx scanning...")
+		assert.Contains(t, clean, "(version 1.0.0)")
+		assert.Contains(t, clean, "Findings: none")
 		assert.Contains(t, clean, "Items scanned: 3")
 		assert.Contains(t, clean, "Secrets found: 0")
 		assert.Contains(t, clean, "Totals")
@@ -507,6 +508,7 @@ func TestGetOutputHuman(t *testing.T) {
 
 		clean := stripANSI(output)
 
+		assert.Contains(t, clean, "Findings: 1 secret in 1 file")
 		assert.Contains(t, clean, "File: path/to/file.txt")
 		assert.Contains(t, clean, "Rule: rule-123")
 		assert.Contains(t, clean, "Secret ID: secret-1")
@@ -521,6 +523,7 @@ func TestGetOutputHuman(t *testing.T) {
 		assert.Contains(t, clean, "Triggered rules: 1")
 		assert.NotContains(t, clean, "Metadata:")
 		assert.Contains(t, clean, "Scan duration: 1.23s")
+		assert.Contains(t, clean, "Done in 1.23s.")
 	})
 }
 

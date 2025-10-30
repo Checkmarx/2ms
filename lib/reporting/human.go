@@ -10,24 +10,101 @@ import (
 )
 
 const (
-	colorPrimary    = "\033[36m"
-	colorSecondary  = "\033[35m"
-	colorHighlight  = "\033[33m"
-	colorFileLabel  = "\033[32m"
-	colorReset      = "\033[0m"
-	statusCompleted = "2ms scanning..."
+	scanTriggered  = "2ms by Checkmarx scanning..."
+	iconTask       = "▸"
+	iconSuccess    = "✔"
+	iconContext    = "→"
+	iconTotals     = "→"
+	defaultVersion = "0.0.0"
 )
 
-func writeHuman(report *Report) (string, error) {
+func writeHuman(report *Report, version string) (string, error) {
 	var builder strings.Builder
 
-	builder.WriteString(colorPrimary)
-	builder.WriteString(statusCompleted)
-	builder.WriteString(colorReset + "\n\n")
-
+	scanDuration := report.GetScanDuration()
+	secretsBySource, uniqueRules := groupSecrets(report.GetResults())
 	totalSecrets := report.TotalSecretsFound
-	results := report.GetResults()
 
+	writeHeader(&builder, version)
+	writeFindings(&builder, totalSecrets, secretsBySource)
+	writeTotals(&builder, report.TotalItemsScanned, totalSecrets, len(secretsBySource), uniqueRules, scanDuration)
+	writeFooter(&builder, scanDuration)
+
+	return strings.TrimRight(builder.String(), "\n"), nil
+}
+
+func writeHeader(builder *strings.Builder, version string) {
+	versionInfo := strings.TrimSpace(version)
+
+	builder.WriteString(iconTask)
+	builder.WriteString(" Executing scan\n")
+	builder.WriteString(iconSuccess)
+	builder.WriteString(" Status: ")
+	builder.WriteString(scanTriggered)
+	if versionInfo != "" && versionInfo != defaultVersion {
+		builder.WriteString(" (version ")
+		builder.WriteString(versionInfo)
+		builder.WriteString(")")
+	}
+	builder.WriteString("\n")
+}
+
+func writeFindings(builder *strings.Builder, totalSecrets int, secretsBySource map[string][]*secrets.Secret) {
+	builder.WriteString(iconContext)
+	if totalSecrets == 0 {
+		builder.WriteString(" Findings: none\n")
+		return
+	}
+
+	fileCount := len(secretsBySource)
+	builder.WriteString(fmt.Sprintf(
+		" Findings: %d %s in %d %s\n",
+		totalSecrets,
+		pluralize(totalSecrets, "secret", "secrets"),
+		fileCount,
+		pluralize(fileCount, "file", "files"),
+	))
+
+	sources := sortedSources(secretsBySource)
+	for _, source := range sources {
+		displaySource := source
+		if displaySource == "" {
+			displaySource = "(source not provided)"
+		}
+
+		fmt.Fprintf(builder, "  - File: %s\n", displaySource)
+
+		secrets := secretsBySource[source]
+		sortSecrets(secrets)
+
+		for idx, secret := range secrets {
+			appendSecretDetails(builder, secret)
+			if idx < len(secrets)-1 {
+				builder.WriteString("\n")
+			}
+		}
+		builder.WriteString("\n")
+	}
+}
+
+func writeTotals(builder *strings.Builder, itemsScanned, totalSecrets, fileCount, ruleCount int, duration time.Duration) {
+	builder.WriteString(iconTotals)
+	builder.WriteString(" Totals:\n")
+	fmt.Fprintf(builder, "  - Items scanned: %d\n", itemsScanned)
+	fmt.Fprintf(builder, "  - Secrets found: %d\n", totalSecrets)
+	if totalSecrets > 0 {
+		fmt.Fprintf(builder, "  - Files with secrets: %d\n", fileCount)
+		fmt.Fprintf(builder, "  - Triggered rules: %d\n", ruleCount)
+	}
+	fmt.Fprintf(builder, "  - Scan duration: %s\n", formatDuration(duration))
+}
+
+func writeFooter(builder *strings.Builder, duration time.Duration) {
+	builder.WriteString("\n")
+	fmt.Fprintf(builder, "Done in %s.", formatDuration(duration))
+}
+
+func groupSecrets(results map[string][]*secrets.Secret) (map[string][]*secrets.Secret, int) {
 	secretsBySource := make(map[string][]*secrets.Secret)
 	uniqueRules := make(map[string]struct{})
 
@@ -36,85 +113,56 @@ func writeHuman(report *Report) (string, error) {
 			if secret == nil {
 				continue
 			}
-			source := secret.Source
-			secretsBySource[source] = append(secretsBySource[source], secret)
+			secretsBySource[secret.Source] = append(secretsBySource[secret.Source], secret)
 			if secret.RuleID != "" {
 				uniqueRules[secret.RuleID] = struct{}{}
 			}
 		}
 	}
 
-	if totalSecrets == 0 {
-		builder.WriteString("No secrets were detected during this scan.\n\n")
-	} else {
-		sources := make([]string, 0, len(secretsBySource))
-		for source := range secretsBySource {
-			sources = append(sources, source)
-		}
-		sort.Strings(sources)
+	return secretsBySource, len(uniqueRules)
+}
 
-		for _, source := range sources {
-			displaySource := source
-			if displaySource == "" {
-				displaySource = "(source not provided)"
-			}
-
-			fmt.Fprintf(&builder, "%sFile:%s %s%s%s\n", colorFileLabel, colorReset, colorHighlight, displaySource, colorReset)
-
-			secretsSlice := secretsBySource[source]
-			sort.Slice(secretsSlice, func(i, j int) bool {
-				if secretsSlice[i].StartLine != secretsSlice[j].StartLine {
-					return secretsSlice[i].StartLine < secretsSlice[j].StartLine
-				}
-				if secretsSlice[i].StartColumn != secretsSlice[j].StartColumn {
-					return secretsSlice[i].StartColumn < secretsSlice[j].StartColumn
-				}
-				return secretsSlice[i].RuleID < secretsSlice[j].RuleID
-			})
-
-			for idx, secret := range secretsSlice {
-				appendSecretDetails(&builder, secret)
-				if idx < len(secretsSlice)-1 {
-					builder.WriteString("\n")
-				}
-			}
-
-			builder.WriteString("\n")
-		}
+func sortedSources(secretsBySource map[string][]*secrets.Secret) []string {
+	sources := make([]string, 0, len(secretsBySource))
+	for source := range secretsBySource {
+		sources = append(sources, source)
 	}
+	sort.Strings(sources)
+	return sources
+}
 
-	builder.WriteString(colorSecondary + "Totals" + colorReset + "\n")
-	builder.WriteString(colorSecondary + "------" + colorReset + "\n")
-	fmt.Fprintf(&builder, "%sItems scanned:%s %d\n", colorSecondary, colorReset, report.TotalItemsScanned)
-	fmt.Fprintf(&builder, "%sSecrets found:%s %d\n", colorSecondary, colorReset, totalSecrets)
-	if totalSecrets > 0 {
-		fmt.Fprintf(&builder, "%sFiles with secrets:%s %d\n", colorSecondary, colorReset, len(secretsBySource))
-		fmt.Fprintf(&builder, "%sTriggered rules:%s %d\n", colorSecondary, colorReset, len(uniqueRules))
-	}
-	fmt.Fprintf(&builder, "%sScan duration:%s %s\n", colorSecondary, colorReset, formatDuration(report.GetScanDuration()))
-
-	return strings.TrimRight(builder.String(), "\n"), nil
+func sortSecrets(secrets []*secrets.Secret) {
+	sort.Slice(secrets, func(i, j int) bool {
+		if secrets[i].StartLine != secrets[j].StartLine {
+			return secrets[i].StartLine < secrets[j].StartLine
+		}
+		if secrets[i].StartColumn != secrets[j].StartColumn {
+			return secrets[i].StartColumn < secrets[j].StartColumn
+		}
+		return secrets[i].RuleID < secrets[j].RuleID
+	})
 }
 
 func appendSecretDetails(builder *strings.Builder, secret *secrets.Secret) {
-	fmt.Fprintf(builder, "  - %sRule:%s %s\n", colorSecondary, colorReset, fallback(secret.RuleID, "unknown"))
-	fmt.Fprintf(builder, "    %sSecret ID:%s %s\n", colorSecondary, colorReset, fallback(secret.ID, "n/a"))
-	fmt.Fprintf(builder, "    %sLocation:%s %s\n", colorSecondary, colorReset, formatLocation(secret))
+	fmt.Fprintf(builder, "    - Rule: %s\n", fallback(secret.RuleID, "unknown"))
+	fmt.Fprintf(builder, "      Secret ID: %s\n", fallback(secret.ID, "n/a"))
+	fmt.Fprintf(builder, "      Location: %s\n", formatLocation(secret))
 
 	if status := strings.TrimSpace(string(secret.ValidationStatus)); status != "" {
-		fmt.Fprintf(builder, "    %sValidation:%s %s\n", colorSecondary, colorReset, status)
+		fmt.Fprintf(builder, "      Validation: %s\n", status)
 	}
 
 	if secret.CvssScore > 0 {
-		fmt.Fprintf(builder, "    %sCVSS score:%s %.1f\n", colorSecondary, colorReset, secret.CvssScore)
+		fmt.Fprintf(builder, "      CVSS score: %.1f\n", secret.CvssScore)
 	}
 
 	if snippet := trimmedSnippet(secret.LineContent); snippet != "" {
-		fmt.Fprintf(builder, "    %sSnippet:%s %s\n", colorSecondary, colorReset, snippet)
+		fmt.Fprintf(builder, "      Snippet: %s\n", snippet)
 	}
 
 	if remediation := strings.TrimSpace(secret.RuleDescription); remediation != "" {
-		fmt.Fprintf(builder, "    %sRemediation:%s %s\n", colorSecondary, colorReset, remediation)
+		fmt.Fprintf(builder, "      Remediation: %s\n", remediation)
 	}
 }
 
@@ -123,6 +171,13 @@ func fallback(value, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
 }
 
 func formatLocation(secret *secrets.Secret) string {
