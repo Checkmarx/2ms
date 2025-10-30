@@ -42,7 +42,7 @@ func writeHeader(builder *strings.Builder, version string) {
 		builder.WriteString(versionInfo)
 		builder.WriteString(")")
 	}
-	builder.WriteString("\n")
+	builder.WriteString("\n\n")
 }
 
 func writeFindings(builder *strings.Builder, totalSecrets int, secretsBySource map[string][]*secrets.Secret) {
