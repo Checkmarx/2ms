@@ -10,11 +10,10 @@ import (
 )
 
 const (
-	scanTriggered  = "2ms by Checkmarx scanning..."
+	scanTriggered  = " 2ms by Checkmarx scanning..."
 	iconTask       = "▸"
 	iconSuccess    = "✔"
 	iconContext    = "→"
-	iconTotals     = "→"
 	defaultVersion = "0.0.0"
 )
 
@@ -27,7 +26,7 @@ func writeHuman(report *Report, version string) (string, error) {
 
 	writeHeader(&builder, version)
 	writeFindings(&builder, totalSecrets, secretsBySource)
-	writeTotals(&builder, report.TotalItemsScanned, totalSecrets, len(secretsBySource), uniqueRules, scanDuration)
+	writeTotals(&builder, report.TotalItemsScanned, totalSecrets, len(secretsBySource), uniqueRules)
 	writeFooter(&builder, scanDuration)
 
 	return strings.TrimRight(builder.String(), "\n"), nil
@@ -37,9 +36,6 @@ func writeHeader(builder *strings.Builder, version string) {
 	versionInfo := strings.TrimSpace(version)
 
 	builder.WriteString(iconTask)
-	builder.WriteString(" Executing scan\n")
-	builder.WriteString(iconSuccess)
-	builder.WriteString(" Status: ")
 	builder.WriteString(scanTriggered)
 	if versionInfo != "" && versionInfo != defaultVersion {
 		builder.WriteString(" (version ")
@@ -87,8 +83,8 @@ func writeFindings(builder *strings.Builder, totalSecrets int, secretsBySource m
 	}
 }
 
-func writeTotals(builder *strings.Builder, itemsScanned, totalSecrets, fileCount, ruleCount int, duration time.Duration) {
-	builder.WriteString(iconTotals)
+func writeTotals(builder *strings.Builder, itemsScanned, totalSecrets, fileCount, ruleCount int) {
+	builder.WriteString(iconContext)
 	builder.WriteString(" Totals:\n")
 	fmt.Fprintf(builder, "  - Items scanned: %d\n", itemsScanned)
 	fmt.Fprintf(builder, "  - Secrets found: %d\n", totalSecrets)
@@ -96,12 +92,12 @@ func writeTotals(builder *strings.Builder, itemsScanned, totalSecrets, fileCount
 		fmt.Fprintf(builder, "  - Files with secrets: %d\n", fileCount)
 		fmt.Fprintf(builder, "  - Triggered rules: %d\n", ruleCount)
 	}
-	fmt.Fprintf(builder, "  - Scan duration: %s\n", formatDuration(duration))
 }
 
 func writeFooter(builder *strings.Builder, duration time.Duration) {
 	builder.WriteString("\n")
-	fmt.Fprintf(builder, "Done in %s.", formatDuration(duration))
+	builder.WriteString(iconSuccess)
+	fmt.Fprintf(builder, " Done in %s.", formatDuration(duration))
 }
 
 func groupSecrets(results map[string][]*secrets.Secret) (map[string][]*secrets.Secret, int) {
@@ -150,7 +146,7 @@ func appendSecretDetails(builder *strings.Builder, secret *secrets.Secret) {
 	fmt.Fprintf(builder, "      Location: %s\n", formatLocation(secret))
 
 	if status := strings.TrimSpace(string(secret.ValidationStatus)); status != "" {
-		fmt.Fprintf(builder, "      Validation: %s\n", status)
+		fmt.Fprintf(builder, "      Validity: %s\n", status)
 	}
 
 	if secret.CvssScore > 0 {
@@ -161,8 +157,8 @@ func appendSecretDetails(builder *strings.Builder, secret *secrets.Secret) {
 		fmt.Fprintf(builder, "      Snippet: %s\n", snippet)
 	}
 
-	if remediation := strings.TrimSpace(secret.RuleDescription); remediation != "" {
-		fmt.Fprintf(builder, "      Remediation: %s\n", remediation)
+	if ruleDescription := strings.TrimSpace(secret.RuleDescription); ruleDescription != "" {
+		fmt.Fprintf(builder, "      Description: %s\n", ruleDescription)
 	}
 }
 

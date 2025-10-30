@@ -468,7 +468,6 @@ func TestGetOutputHuman(t *testing.T) {
 		assert.Contains(t, clean, "Items scanned: 3")
 		assert.Contains(t, clean, "Secrets found: 0")
 		assert.Contains(t, clean, "Totals")
-		assert.Contains(t, clean, "Scan duration: 1.5s")
 	})
 
 	t.Run("secret details", func(t *testing.T) {
@@ -513,16 +512,15 @@ func TestGetOutputHuman(t *testing.T) {
 		assert.Contains(t, clean, "Rule: rule-123")
 		assert.Contains(t, clean, "Secret ID: secret-1")
 		assert.Contains(t, clean, "Location: line 42, columns 3-10")
-		assert.Contains(t, clean, "Validation: Valid")
+		assert.Contains(t, clean, "Validity: Valid")
 		assert.Contains(t, clean, "CVSS score: 7.5")
 		assert.Contains(t, clean, `Snippet: api_key = "value"`)
-		assert.Contains(t, clean, "Remediation: Rotate the key and scrub it from history.")
+		assert.Contains(t, clean, "Description: Rotate the key and scrub it from history.")
 		assert.Contains(t, clean, "Items scanned: 2")
 		assert.Contains(t, clean, "Secrets found: 1")
 		assert.Contains(t, clean, "Files with secrets: 1")
 		assert.Contains(t, clean, "Triggered rules: 1")
 		assert.NotContains(t, clean, "Metadata:")
-		assert.Contains(t, clean, "Scan duration: 1.23s")
 		assert.Contains(t, clean, "Done in 1.23s.")
 	})
 }
