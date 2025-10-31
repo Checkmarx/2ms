@@ -10,7 +10,7 @@ RESET := $(shell printf "\033[0m")
 
 COVERAGE_REQUIRED := 55
 MOCKGEN_VERSION := 0.5.2
-LINTER_VERSION := 2.1.6
+LINTER_VERSION := 2.5.0
 
 .PHONY: lint
 lint: check-linter-version
