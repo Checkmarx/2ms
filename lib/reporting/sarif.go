@@ -97,7 +97,7 @@ func getResults(report *Report) []Results {
 		for _, secret := range secrets {
 			r := Results{
 				Message: Message{
-					Text: createMessageText(secret.RuleID, secret.Source),
+					Text: createMessageText(secret.RuleName, secret.Source),
 				},
 				RuleId:    secret.RuleID,
 				Locations: getLocation(secret),
