@@ -46,12 +46,12 @@ func main() {
 			remediation = fmt.Sprintf("%s {secret}", ruleName)
 		}
 
-		sb.WriteString(fmt.Sprintf("\t\"%s\": \"%s\", // %s\n", ruleID, remediation, ruleName))
+		sb.WriteString(fmt.Sprintf("\t%q: %q, // %s\n", ruleID, remediation, ruleName))
 	}
 
 	sb.WriteString("}\n")
 
-	if err := os.WriteFile("rule_remediations.go", []byte(sb.String()), 0644); err != nil {
+	if err := os.WriteFile("rule_remediations.go", []byte(sb.String()), 0600); err != nil {
 		panic(err)
 	}
 
