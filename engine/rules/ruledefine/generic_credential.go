@@ -63,11 +63,14 @@ func GenericCredential() *Rule {
 						`|Authentication-Results` + // email header
 						// Credentials
 						`|(?:credentials?[_.-]?id|withCredentials)` + // Jenkins plugins
+						// IPv4
+						`|(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}` +
 						// Key
 						`|(?:bucket|foreign|hot|idx|natural|primary|pub(?:lic)?|schema|sequence)[_.-]?key` +
 						`|(?:turkey)` +
 						`|key[_.-]?(?:alias|board|code|frame|id|length|mesh|name|pair|press(?:ed)?|ring|selector|signature|size|stone|storetype|word|up|down|left|right)` + //nolint:lll
 						// Azure KeyVault
+						`|KeyVault(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?` + //nolint:lll
 						`|key[_.-]?vault[_.-]?(?:id|name)|keyVaultToStoreSecrets` +
 						`|key(?:store|tab)[_.-]?(?:file|path)` +
 						`|issuerkeyhash` + // part of ssl cert

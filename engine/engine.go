@@ -807,7 +807,7 @@ func filterGenericDuplicateFindings(findings []report.Finding) []report.Finding 
 // real user content. This lets us ignore false-positives that cannot be suppressed via the
 // generic-api-key rule allow-list.
 func isSecretFromConfluenceResourceIdentifier(secretRuleID, secretLine, secretMatch string) bool {
-	if secretRuleID != rules.GenericApiKeyID || secretLine == "" || secretMatch == "" {
+	if secretRuleID != ruledefine.GenericCredential().RuleID || secretLine == "" || secretMatch == "" {
 		return false
 	}
 

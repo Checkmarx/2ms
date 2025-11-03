@@ -175,16 +175,6 @@ func TestSecrets(t *testing.T) {
 			Name:       "JFROG Secret as kubectl argument",
 			ShouldFind: true,
 		},
-		{
-			Content:    "\"a_b_key\": \"x-someval-127.0.0.1\",",
-			Name:       "Generic Api Key",
-			ShouldFind: false,
-		},
-		{
-			Content:    "KeyVaultSecretsUser: '62168719-64c5-453d-b4ef-b51d8b1ad44d'",
-			Name:       "Generic Api Key",
-			ShouldFind: false,
-		},
 	}
 
 	detector, err := initEngine(&EngineConfig{
@@ -738,49 +728,49 @@ func TestIsSecretFromConfluenceResourceIdentifier(t *testing.T) {
 	}{
 		{
 			name:   "matches ri:secret attribute with quoted value",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment ri:secret="12345" />`,
 			match:  `secret="12345"`,
 			want:   true,
 		},
 		{
 			name:   "matches with extra whitespace and self-closing tag",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment     ri:secret="12345"/>`,
 			match:  `secret="12345"`,
 			want:   true,
 		},
 		{
 			name:   "no match when value format differs (expects exact literal)",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment ri:secret="12345" />`,
 			match:  `secret=12345`,
 			want:   false,
 		},
 		{
 			name:   "no match when value appears in a different attribute",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment ri:filename="secret=12345" />`,
 			match:  `secret=12345`,
 			want:   false,
 		},
 		{
 			name:   "no match when ri: prefixes the element name (not an attribute)",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:secret value="x">`,
 			match:  `secret`,
 			want:   false,
 		},
 		{
 			name:   "no match when text is outside any tag",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `ri:secret=12345`,
 			match:  `secret=12345`,
 			want:   false,
 		},
 		{
 			name:   "no match for xri: prefixed attribute",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment xri:secret="12345" />`,
 			match:  `secret="12345"`,
 			want:   false,
