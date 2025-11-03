@@ -172,7 +172,7 @@ var (
 	}
 	result3Sarif = Results{
 		Message: Message{
-			Text: createMessageText(result3.RuleID, result3.Source),
+			Text: createMessageText(result3.RuleName, result3.Source),
 		},
 		RuleId: ruleID1,
 		Locations: []Locations{
