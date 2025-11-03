@@ -7,6 +7,8 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
+const GenericApiKeyID = "generic-api-key"
+
 func GenericCredential() *config.Rule {
 	regex := generateSemiGenericRegexIncludingXml([]string{
 		"access",
@@ -21,7 +23,7 @@ func GenericCredential() *config.Rule {
 	}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true)
 
 	return &config.Rule{
-		RuleID:      "generic-api-key",
+		RuleID:      GenericApiKeyID,
 		Description: "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
 		Regex:       regex,
 		Keywords: []string{

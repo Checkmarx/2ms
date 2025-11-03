@@ -176,7 +176,7 @@ Usage:
   2ms [command]
 
 Scan Commands
-  confluence  Scan Confluence server
+  confluence  Scan Confluence Cloud
   discord     Scan Discord server
   filesystem  Scan local folder
   git         Scan local Git repository
@@ -274,30 +274,56 @@ This command is used to scan a [Confluence](https://www.atlassian.com/software/c
 2ms confluence <URL> [flags]
 ```
 
-| Flag         | Type  | Default                        | Description                                                                      |
-| ------------ | ----- | ------------------------------ | -------------------------------------------------------------------------------- |
-| `<url>`      | string | -                              | Confluence instance URL in the following format: `https://<company id>.atlassian.net/wiki` |
-| `--history`  | -      | Doesn't scan history revisions | Scans pages history revisions                                                    |
-| `--spaces`   | string | all spaces                     | The names or IDs of the Confluence spaces to scan                                |
-| `--token`    | string | -                              | The Confluence API token for authentication                                      |
-| `--username` | string | -                              | Confluence user name or email for authentication                                 |
+| Flag            | Type        | Default | Description                                                                      |
+| --------------- | ----------- | ------- |----------------------------------------------------------------------------------|
+| `--space-keys`  | string list | (all)   | Comma-separated list of space **keys** to scan.                                  |
+| `--space-ids`   | string list | (all)   | Comma-separated list of space **IDs** to scan.                                   |
+| `--page-ids`    | string list | (all)   | Comma-separated list of **page IDs** to scan.                                    |
+| `--history`     | bool        | `false` | Also scan **all versions** of each page (page history).                          |
+| `--username`    | string      |         | Confluence username/email (used for HTTP Basic Auth).                            |
+| `--token-type`  | string      |         | Token type for Confluence API. Accepted values: `api-token`, `scoped-api-token`. |
+| `--token-value` | string      |         | The API token value. **Required** when `--token-type` is set.                    |
 
-For example:
+#### Authentication
+- To scan **private spaces**, provide `--username`, `--token-type` and `--token-value` (API token).
+- How to create a Confluence API token: https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
 
-- To scan public spaces:
+#### Examples
 
+- Scan **all public pages** (no auth):
     ```bash
-    2ms confluence https://checkmarx.atlassian.net/wiki --spaces secrets
+    2ms confluence https://<company id>.atlassian.net/wiki
     ```
-    💡 [The `secrets` Confluence site](https://checkmarx.atlassian.net/wiki/spaces/secrets) purposely created with plain example secrets as a test subject for this demo
 
-- To scan private spaces, authentication is required
+- Scan **private pages with an api token** (requires auth):
     ```bash
-    2ms confluence <URL> --username <USERNAME> --token <API_TOKEN> --spaces <SPACES>
+    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token-type api-token --token-value <API_TOKEN>
     ```
-    [How to get a Confluence API token](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/).
 
-[![asciicast](https://asciinema.org/a/607179.svg)](https://asciinema.org/a/607179)
+- Scan **private pages with a scoped api token** (requires auth):
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token-type scoped-api-token --token-value <API_TOKEN>
+    ```
+
+- Scan specific **spaces by key**:
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --space-keys Key1,Key2
+    ```
+
+- Scan specific **spaces by ID**:
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --space-ids 1234567890,9876543210
+    ```
+
+- Scan specific **pages by ID**:
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --page-ids 11223344556,99887766554
+    ```
+
+- Include **page history** (all revisions):
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --history
+    ```
 
 ### Paligo
 
