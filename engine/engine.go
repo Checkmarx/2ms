@@ -404,7 +404,7 @@ func filterIgnoredRules(allRules []*ruledefine.Rule, ignoreList []string) []*rul
 
 		// Check if this rule should be ignored (by ID or tag)
 		for _, ignoreItem := range ignoreList {
-			if strings.EqualFold(rule.RuleName, ignoreItem) {
+			if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(ignoreItem)) {
 				shouldIgnore = true
 				break
 			}
