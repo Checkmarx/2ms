@@ -10,7 +10,7 @@ RESET := $(shell printf "\033[0m")
 
 COVERAGE_REQUIRED := 55
 MOCKGEN_VERSION := 0.5.2
-LINTER_VERSION := 2.5.0
+LINTER_VERSION ?= latest
 
 .PHONY: lint
 lint: check-linter-version
@@ -18,7 +18,8 @@ lint: check-linter-version
 	golangci-lint run -c ./.golangci.yml
 
 get-linter:
-	command -v golangci-lint ||curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v$(LINTER_VERSION)
+	command -v golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+    		| sh -s -- -b $(shell go env GOPATH)/bin $(LINTER_VERSION)
 
 modtidy:
 	go mod tidy
@@ -85,8 +86,16 @@ check-mockgen-version:
 
 check-linter-version:
 	@echo "Checking golangci-lint version..."
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		INSTALLED_VERSION=$$(golangci-lint --version | grep -oE 'version [0-9]+\.[0-9]+\.[0-9]+' | cut -d' ' -f2); \
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "$(RED)[ERROR]$(RESET) golangci-lint is not installed"; \
+		echo "Please install it using:"; \
+		echo "  make get-linter"; \
+		exit 1; \
+	fi; \
+	INSTALLED_VERSION=$$(golangci-lint --version | grep -oE 'version [0-9]+\.[0-9]+\.[0-9]+' | cut -d' ' -f2); \
+	if [ "$(LINTER_VERSION)" = "latest" ]; then \
+		echo "$(GREEN)[OK]$(RESET) golangci-lint $$INSTALLED_VERSION is installed (latest accepted)"; \
+	else \
 		if [ "$$INSTALLED_VERSION" = "$(LINTER_VERSION)" ]; then \
 			echo "$(GREEN)[OK]$(RESET) golangci-lint version $(LINTER_VERSION) is installed"; \
 		else \
@@ -95,9 +104,4 @@ check-linter-version:
 			echo "  make get-linter"; \
 			exit 1; \
 		fi; \
-	else \
-		echo "$(RED)[ERROR]$(RESET) golangci-lint is not installed"; \
-		echo "Please install it using:"; \
-		echo "  make get-linter"; \
-		exit 1; \
 	fi
