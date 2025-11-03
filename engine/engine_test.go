@@ -175,6 +175,16 @@ func TestSecrets(t *testing.T) {
 			Name:       "JFROG Secret as kubectl argument",
 			ShouldFind: true,
 		},
+		{
+			Content:    "\"a_b_key\": \"x-someval-127.0.0.1\",",
+			Name:       "Generic Api Key",
+			ShouldFind: false,
+		},
+		{
+			Content:    "KeyVaultSecretsUser: '62168719-64c5-453d-b4ef-b51d8b1ad44d'",
+			Name:       "Generic Api Key",
+			ShouldFind: false,
+		},
 	}
 
 	detector, err := initEngine(&EngineConfig{
@@ -716,6 +726,120 @@ func TestGetFindingId(t *testing.T) {
 
 		assert.Len(t, seenIDs, len(combinations), "All combinations should produce unique IDs")
 	})
+}
+
+func TestIsSecretFromConfluenceResourceIdentifier(t *testing.T) {
+	tests := []struct {
+		name   string
+		ruleID string
+		line   string
+		match  string
+		want   bool
+	}{
+		{
+			name:   "matches ri:secret attribute with quoted value",
+			ruleID: rules.GenericApiKeyID,
+			line:   `<ri:attachment ri:secret="12345" />`,
+			match:  `secret="12345"`,
+			want:   true,
+		},
+		{
+			name:   "matches with extra whitespace and self-closing tag",
+			ruleID: rules.GenericApiKeyID,
+			line:   `<ri:attachment     ri:secret="12345"/>`,
+			match:  `secret="12345"`,
+			want:   true,
+		},
+		{
+			name:   "no match when value format differs (expects exact literal)",
+			ruleID: rules.GenericApiKeyID,
+			line:   `<ri:attachment ri:secret="12345" />`,
+			match:  `secret=12345`,
+			want:   false,
+		},
+		{
+			name:   "no match when value appears in a different attribute",
+			ruleID: rules.GenericApiKeyID,
+			line:   `<ri:attachment ri:filename="secret=12345" />`,
+			match:  `secret=12345`,
+			want:   false,
+		},
+		{
+			name:   "no match when ri: prefixes the element name (not an attribute)",
+			ruleID: rules.GenericApiKeyID,
+			line:   `<ri:secret value="x">`,
+			match:  `secret`,
+			want:   false,
+		},
+		{
+			name:   "no match when text is outside any tag",
+			ruleID: rules.GenericApiKeyID,
+			line:   `ri:secret=12345`,
+			match:  `secret=12345`,
+			want:   false,
+		},
+		{
+			name:   "no match for xri: prefixed attribute",
+			ruleID: rules.GenericApiKeyID,
+			line:   `<ri:attachment xri:secret="12345" />`,
+			match:  `secret="12345"`,
+			want:   false,
+		},
+		{
+			name:   "no match when rule ID is not generic-api-key does not apply",
+			ruleID: "some-other-rule",
+			line:   `<ri:attachment ri:secret="12345" />`,
+			match:  `secret="12345"`,
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isSecretFromConfluenceResourceIdentifier(tt.ruleID, tt.line, tt.match)
+			assert.Equal(t, tt.want, got, "ruleID=%q, line=%q, match=%q", tt.ruleID, tt.line, tt.match)
+		})
+	}
+}
+
+// if any of these tests fails, we should review isSecretFromConfluenceResourceIdentifier and/or generic-api-key rule
+func TestDetectWithConfluenceMetadata(t *testing.T) {
+	secretsCases := []struct {
+		Content    string
+		Name       string
+		ShouldFind bool
+	}{
+		{
+			Content:    "<ri:user ri:userkey=\"8a7f808362ce64321162ceb20e64321a\" >",
+			Name:       "should not detect from confluence userkey metadata",
+			ShouldFind: false,
+		},
+	}
+
+	detector, err := Init(&EngineConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, secret := range secretsCases {
+		t.Run(secret.Name, func(t *testing.T) {
+			secretsChan := make(chan *secrets.Secret, 1)
+			c := plugins.ConfluencePlugin{}
+			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, c.GetName())
+			if err != nil {
+				return
+			}
+			close(secretsChan)
+
+			s := <-secretsChan
+
+			if secret.ShouldFind {
+				assert.Equal(t, s.LineContent, secret.Content)
+			} else {
+				assert.Nil(t, s)
+			}
+		})
+	}
 }
 
 type item struct {
