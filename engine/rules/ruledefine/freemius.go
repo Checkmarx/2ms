@@ -9,9 +9,9 @@ var freemiusSecretKeyRegex = regexp.MustCompile(
 
 func Freemius() *Rule {
 	return &Rule{
-		BaseRuleID:      "e2a0aff7-a9db-4fcd-87a0-59f843e8f9f5",
+		RuleID:          "e2a0aff7-a9db-4fcd-87a0-59f843e8f9f5",
 		Description:     "Detected a Freemius secret key, potentially exposing sensitive information.",
-		RuleID:          "freemius-secret-key",
+		RuleName:        "Freemius-Secret-Key",
 		Regex:           freemiusSecretKeyRegex,
 		Keywords:        []string{"secret_key"},
 		Path:            regexp.MustCompile(`(?i)\.php$`).String(),

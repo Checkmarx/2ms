@@ -47,7 +47,7 @@ var generalKeyToValidation = map[string]pairsValidationFunc{
 }
 
 var generalKeyToRules = map[string][]string{
-	"alibaba": {"alibaba-access-key-id", "alibaba-secret-key"},
+	"alibaba": {"a093db05-dd07-4cb5-a387-05749c098546", "29adbc13-0261-418a-b04d-02506551295d"},
 }
 
 func generateRuleToGeneralKey() map[string]string {

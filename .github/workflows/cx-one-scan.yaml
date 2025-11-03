@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - master
+      - AST-75295-custom-rules
   schedule:
     - cron: '00 7 * * *'
 

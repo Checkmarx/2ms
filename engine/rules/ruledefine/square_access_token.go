@@ -4,9 +4,9 @@ var squareAccessTokenRegex = generateUniqueTokenRegex(`(?:EAAA|sq0atp-)[\w-]{22,
 
 func SquareAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:      "736ab85d-4250-4162-b3ff-7375fdf697a4",
+		RuleID:          "736ab85d-4250-4162-b3ff-7375fdf697a4",
 		Description:     "Detected a Square Access Token, risking unauthorized payment processing and financial transaction exposure.",
-		RuleID:          "square-access-token",
+		RuleName:        "Square-Access-Token",
 		Regex:           squareAccessTokenRegex,
 		Entropy:         2,
 		Keywords:        []string{"sq0atp-", "EAAA"},

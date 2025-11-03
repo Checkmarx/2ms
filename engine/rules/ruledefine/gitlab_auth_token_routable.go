@@ -9,8 +9,8 @@ var gitlabRunnerAuthenticationTokenRoutableRegex = regexp.MustCompile(
 
 func GitlabRunnerAuthenticationTokenRoutable() *Rule {
 	return &Rule{
-		BaseRuleID:      "a473b392-cd0e-4f15-adcf-ce1080919b10",
-		RuleID:          "gitlab-runner-authentication-token-routable",
+		RuleID:          "a473b392-cd0e-4f15-adcf-ce1080919b10",
+		RuleName:        "Gitlab-Runner-Authentication-Token-Routable",
 		Description:     "Discovered a GitLab Runner Authentication Token (Routable), posing a risk to CI/CD pipeline integrity and unauthorized access.", //nolint:lll
 		Regex:           gitlabRunnerAuthenticationTokenRoutableRegex,
 		Entropy:         4,

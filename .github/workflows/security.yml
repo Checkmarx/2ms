@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - master
+      - AST-75295-custom-rules
   pull_request:
     branches:
       - master
+      - AST-75295-custom-rules
   merge_group:
   schedule:
     - cron: "0 0 * * *"

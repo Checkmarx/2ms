@@ -59,8 +59,8 @@ func Test_Init(t *testing.T) {
 		{
 			name: "selected and ignore flags used together for the same rule",
 			engineConfig: EngineConfig{
-				SelectedList: []string{allRules[0].RuleID},
-				IgnoreList:   []string{allRules[0].RuleID},
+				SelectedList: []string{allRules[0].RuleName},
+				IgnoreList:   []string{allRules[0].RuleName},
 				SpecialList:  []string{},
 			},
 			expectedErr: ErrNoRulesSelected,
@@ -79,7 +79,7 @@ func Test_Init(t *testing.T) {
 			engineConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},
-				SpecialList:  []string{specialRule.RuleID},
+				SpecialList:  []string{specialRule.RuleName},
 			},
 			expectedErr: nil,
 		},
@@ -191,7 +191,7 @@ func TestSecrets(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			fmt.Printf("Start test %s", name)
-			secretsChan := make(chan *secrets.Secret, 1)
+			secretsChan := make(chan *secrets.Secret, 1) // channel with size 1, if more than one secret found per sample, test fails with panic
 			fsPlugin := &plugins.FileSystemPlugin{}
 			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, fsPlugin.GetName())
 			if err != nil {
@@ -718,6 +718,120 @@ func TestGetFindingId(t *testing.T) {
 	})
 }
 
+func TestIsSecretFromConfluenceResourceIdentifier(t *testing.T) {
+	tests := []struct {
+		name   string
+		ruleID string
+		line   string
+		match  string
+		want   bool
+	}{
+		{
+			name:   "matches ri:secret attribute with quoted value",
+			ruleID: ruledefine.GenericCredential().RuleID,
+			line:   `<ri:attachment ri:secret="12345" />`,
+			match:  `secret="12345"`,
+			want:   true,
+		},
+		{
+			name:   "matches with extra whitespace and self-closing tag",
+			ruleID: ruledefine.GenericCredential().RuleID,
+			line:   `<ri:attachment     ri:secret="12345"/>`,
+			match:  `secret="12345"`,
+			want:   true,
+		},
+		{
+			name:   "no match when value format differs (expects exact literal)",
+			ruleID: ruledefine.GenericCredential().RuleID,
+			line:   `<ri:attachment ri:secret="12345" />`,
+			match:  `secret=12345`,
+			want:   false,
+		},
+		{
+			name:   "no match when value appears in a different attribute",
+			ruleID: ruledefine.GenericCredential().RuleID,
+			line:   `<ri:attachment ri:filename="secret=12345" />`,
+			match:  `secret=12345`,
+			want:   false,
+		},
+		{
+			name:   "no match when ri: prefixes the element name (not an attribute)",
+			ruleID: ruledefine.GenericCredential().RuleID,
+			line:   `<ri:secret value="x">`,
+			match:  `secret`,
+			want:   false,
+		},
+		{
+			name:   "no match when text is outside any tag",
+			ruleID: ruledefine.GenericCredential().RuleID,
+			line:   `ri:secret=12345`,
+			match:  `secret=12345`,
+			want:   false,
+		},
+		{
+			name:   "no match for xri: prefixed attribute",
+			ruleID: ruledefine.GenericCredential().RuleID,
+			line:   `<ri:attachment xri:secret="12345" />`,
+			match:  `secret="12345"`,
+			want:   false,
+		},
+		{
+			name:   "no match when rule ID is not generic-api-key does not apply",
+			ruleID: "some-other-rule",
+			line:   `<ri:attachment ri:secret="12345" />`,
+			match:  `secret="12345"`,
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isSecretFromConfluenceResourceIdentifier(tt.ruleID, tt.line, tt.match)
+			assert.Equal(t, tt.want, got, "ruleID=%q, line=%q, match=%q", tt.ruleID, tt.line, tt.match)
+		})
+	}
+}
+
+// if any of these tests fails, we should review isSecretFromConfluenceResourceIdentifier and/or generic-api-key rule
+func TestDetectWithConfluenceMetadata(t *testing.T) {
+	secretsCases := []struct {
+		Content    string
+		Name       string
+		ShouldFind bool
+	}{
+		{
+			Content:    "<ri:user ri:userkey=\"8a7f808362ce64321162ceb20e64321a\" >",
+			Name:       "should not detect from confluence userkey metadata",
+			ShouldFind: false,
+		},
+	}
+
+	detector, err := Init(&EngineConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, secret := range secretsCases {
+		t.Run(secret.Name, func(t *testing.T) {
+			secretsChan := make(chan *secrets.Secret, 1)
+			c := plugins.ConfluencePlugin{}
+			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, c.GetName())
+			if err != nil {
+				return
+			}
+			close(secretsChan)
+
+			s := <-secretsChan
+
+			if secret.ShouldFind {
+				assert.Equal(t, s.LineContent, secret.Content)
+			} else {
+				assert.Nil(t, s)
+			}
+		})
+	}
+}
+
 type item struct {
 	content *string
 	id      string
@@ -941,7 +1055,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 				{
 					ID:           "mockId",
 					RuleID:       ruledefine.JWT().RuleID,
-					BaseRuleID:   ruledefine.JWT().BaseRuleID,
+					RuleName:     ruledefine.JWT().RuleName,
 					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
 					ExtraDetails: map[string]interface{}{
@@ -954,7 +1068,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 				{
 					ID:           "mockId2",
 					RuleID:       ruledefine.JWT().RuleID,
-					BaseRuleID:   ruledefine.JWT().BaseRuleID,
+					RuleName:     ruledefine.JWT().RuleName,
 					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
 					ExtraDetails: map[string]interface{}{
@@ -967,7 +1081,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 				{
 					ID:           "mockId3",
 					RuleID:       ruledefine.HubSpot().RuleID,
-					BaseRuleID:   ruledefine.HubSpot().BaseRuleID,
+					RuleName:     ruledefine.HubSpot().RuleName,
 					RuleCategory: string(ruledefine.HubSpot().ScoreParameters.Category),
 					Value:        "mockValue",
 				},
@@ -1005,7 +1119,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: "github-pat",
+					RuleID: ruledefine.GitHubPat().RuleID,
 					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
 				},
 				{
@@ -1017,7 +1131,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 			expectedSecrets: []*secrets.Secret{
 				{
 					ID:               "mockId",
-					RuleID:           "github-pat",
+					RuleID:           ruledefine.GitHubPat().RuleID,
 					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
 					ValidationStatus: "Invalid",
 					Severity:         "Medium",
@@ -1065,7 +1179,7 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: "github-pat",
+					RuleID: ruledefine.GitHubPat().RuleID,
 					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
 				},
 				{
@@ -1077,7 +1191,7 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 			expectedSecrets: []*secrets.Secret{
 				{
 					ID:               "mockId",
-					RuleID:           "github-pat",
+					RuleID:           ruledefine.GitHubPat().RuleID,
 					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
 					ValidationStatus: "",
 					Severity:         "High",

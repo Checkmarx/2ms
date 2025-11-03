@@ -4,10 +4,10 @@ var bittrexAccessKeyRegex = generateSemiGenericRegex([]string{"bittrex"}, AlphaN
 
 func BittrexAccessKey() *Rule {
 	return &Rule{
-		BaseRuleID: "aa773e5a-097f-4bc5-8de1-916651d4a046",
+		RuleID: "aa773e5a-097f-4bc5-8de1-916651d4a046",
 		Description: "Identified a Bittrex Access Key," +
 			" which could lead to unauthorized access to cryptocurrency trading accounts and financial loss.",
-		RuleID:          "bittrex-access-key",
+		RuleName:        "Bittrex-Access-Key",
 		Regex:           bittrexAccessKeyRegex.String(),
 		Keywords:        []string{"bittrex"},
 		Severity:        "High",

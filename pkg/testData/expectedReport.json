@@ -2,12 +2,30 @@
   "totalItemsScanned": 3,
   "totalSecretsFound": 6,
   "results": {
-    "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c": [
+    "63139b45c38f502bbbe15115a7995003d76b2a81": [
       {
-        "id": "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c",
+        "id": "63139b45c38f502bbbe15115a7995003d76b2a81",
+        "source": "testData/secrets/github-pat.txt",
+        "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+        "ruleName": "Github-Pat",
+        "ruleCategory": "Development Platform",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "TextExampleghp_1234567890abcdefghijklmnopqrstuvwxyzTextExampleghp_abcdefghijklmnopqrstuvwxyz1234567890TextExample",
+        "startColumn": 12,
+        "endColumn": 51,
+        "value": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+        "severity": "High",
+        "cvssScore": 8.2
+      }
+    ],
+    "9346cf95d4513bb2861d1ecfc3e82421bd14cbd8": [
+      {
+        "id": "9346cf95d4513bb2861d1ecfc3e82421bd14cbd8",
         "source": "testData/secrets/jwt.txt",
-        "ruleId": "jwt",
-        "baseRuleId" : "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleId": "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleName": "jwt",
         "ruleCategory": "General",
         "startLine": 0,
         "endLine": 0,
@@ -26,30 +44,12 @@
         "cvssScore": 8.2
       }
     ],
-    "6d1959886d3a01308b495ccc9d6a30444016aaad": [
+    "993b789425c810d4956c5ed8c84f02f90b0531ee": [
       {
-        "id": "6d1959886d3a01308b495ccc9d6a30444016aaad",
+        "id": "993b789425c810d4956c5ed8c84f02f90b0531ee",
         "source": "testData/secrets/github-pat.txt",
-        "ruleId": "github-pat",
-        "baseRuleId" : "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-        "ruleCategory": "Development Platform",
-        "startLine": 0,
-        "endLine": 0,
-        "lineContent": "TextExampleghp_1234567890abcdefghijklmnopqrstuvwxyzTextExampleghp_abcdefghijklmnopqrstuvwxyz1234567890TextExample",
-        "startColumn": 12,
-        "endColumn": 51,
-        "value": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",
-        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
-        "severity": "High",
-        "cvssScore": 8.2
-      }
-    ],
-    "7eb9787a837e56bf0ee0be36497fdb671b2b9041": [
-      {
-        "id": "7eb9787a837e56bf0ee0be36497fdb671b2b9041",
-        "source": "testData/secrets/github-pat.txt",
-        "ruleId": "github-pat",
-        "baseRuleId" : "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+        "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+        "ruleName": "Github-Pat",
         "ruleCategory": "Development Platform",
         "startLine": 1,
         "endLine": 1,
@@ -62,12 +62,30 @@
         "cvssScore": 8.2
       }
     ],
-    "dac14c6111d3a02a23c4fc31ee4759387a7395cd": [
+    "c31705d99e835e4ac7bc3f688bd9558309e056ed": [
       {
-        "id": "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
+        "id": "c31705d99e835e4ac7bc3f688bd9558309e056ed",
+        "source": "testData/secrets/github-pat.txt",
+        "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+        "ruleName": "Github-Pat",
+        "ruleCategory": "Development Platform",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "TextExampleghp_1234567890abcdefghijklmnopqrstuvwxyzTextExampleghp_abcdefghijklmnopqrstuvwxyz1234567890TextExample",
+        "startColumn": 63,
+        "endColumn": 102,
+        "value": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+        "severity": "High",
+        "cvssScore": 8.2
+      }
+    ],
+    "efc9a9ee89f1d732c7321067eb701b9656e91f15": [
+      {
+        "id": "efc9a9ee89f1d732c7321067eb701b9656e91f15",
         "source": "testData/secrets/jwt.txt",
-        "ruleId": "jwt",
-        "baseRuleId" : "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleId": "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleName": "jwt",
         "ruleCategory": "General",
         "startLine": 0,
         "endLine": 0,
@@ -86,10 +104,10 @@
         "cvssScore": 8.2
       },
       {
-        "id": "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
+        "id": "efc9a9ee89f1d732c7321067eb701b9656e91f15",
         "source": "testData/secrets/jwt.txt",
-        "ruleId": "jwt",
-        "baseRuleId" : "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleId": "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleName": "jwt",
         "ruleCategory": "General",
         "startLine": 1,
         "endLine": 1,
@@ -104,24 +122,6 @@
             "sub": "mockSub2"
           }
         },
-        "severity": "High",
-        "cvssScore": 8.2
-      }
-    ],
-    "dfe5ea720d7c38631079841b754a34df29c25d93": [
-      {
-        "id": "dfe5ea720d7c38631079841b754a34df29c25d93",
-        "source": "testData/secrets/github-pat.txt",
-        "ruleId": "github-pat",
-        "baseRuleId" : "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-        "ruleCategory": "Development Platform",
-        "startLine": 0,
-        "endLine": 0,
-        "lineContent": "TextExampleghp_1234567890abcdefghijklmnopqrstuvwxyzTextExampleghp_abcdefghijklmnopqrstuvwxyz1234567890TextExample",
-        "startColumn": 63,
-        "endColumn": 102,
-        "value": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
-        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
         "severity": "High",
         "cvssScore": 8.2
       }

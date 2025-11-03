@@ -4,9 +4,9 @@ var prefectRegex = generateUniqueTokenRegex(`pnu_[a-zA-Z0-9]{36}`, false).String
 
 func Prefect() *Rule {
 	return &Rule{
-		BaseRuleID:  "8c26d49d-e93b-4cd9-a564-1662f9a4be44",
+		RuleID:      "8c26d49d-e93b-4cd9-a564-1662f9a4be44",
 		Description: "Detected a Prefect API token, risking unauthorized access to workflow management and automation services.",
-		RuleID:      "prefect-api-token",
+		RuleName:    "Prefect-Api-Token",
 		Regex:       prefectRegex,
 		Entropy:     2,
 		Keywords: []string{

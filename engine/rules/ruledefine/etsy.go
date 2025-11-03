@@ -5,9 +5,9 @@ var etsyAccessTokenRegex = generateSemiGenericRegex(
 
 func EtsyAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "f7c07912-06d6-4fd5-ac9b-4547fcc0385a",
+		RuleID:      "f7c07912-06d6-4fd5-ac9b-4547fcc0385a",
 		Description: "Found an Etsy Access Token, potentially compromising Etsy shop management and customer data.",
-		RuleID:      "etsy-access-token",
+		RuleName:    "Etsy-Access-Token",
 		Regex:       etsyAccessTokenRegex,
 		Entropy:     3,
 		Keywords: []string{

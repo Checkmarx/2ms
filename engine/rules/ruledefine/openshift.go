@@ -8,9 +8,9 @@ var openshiftUserTokenRegex = regexp.MustCompile(`\b(sha256~[\w-]{43})(?:[^\w-]|
 
 func OpenshiftUserToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "70583a50-6618-4935-b1d7-026abf806c45",
+		RuleID:      "70583a50-6618-4935-b1d7-026abf806c45",
 		Description: "Found an OpenShift user token, potentially compromising an OpenShift/Kubernetes cluster.",
-		RuleID:      "openshift-user-token",
+		RuleName:    "Openshift-User-Token",
 		Regex:       openshiftUserTokenRegex,
 		Entropy:     3.5,
 		Keywords: []string{

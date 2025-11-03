@@ -34,6 +34,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
+	"github.com/zricethezav/gitleaks/v8/logging"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -348,12 +349,16 @@ func (e *Engine) detectSecrets(
 	fragment.Raw += CxFileEndMarker + "\n"
 
 	values := e.detector.Detect(*fragment)
-	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
+
+	// Filter generic secrets if a better finding exists
+	filteredValues := filterGenericDuplicateFindings(values)
+
+	for _, value := range filteredValues { //nolint:gocritic // rangeValCopy: value is used immediately
 		secret, buildErr := buildSecret(ctx, item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
-		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues) {
+		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
 			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -379,9 +384,11 @@ func createCustomRegexRules(patterns []string) (map[string]*ruledefine.Rule, err
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
 		}
+		ruleID := fmt.Sprintf(customRegexRuleIdFormat, idx+1)
 		rule := ruledefine.Rule{
 			Description: "Custom Regex Rule From User",
-			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
+			RuleID:      ruleID,
+			RuleName:    ruleID,
 			Regex:       regex.String(),
 			Keywords:    []string{},
 		}
@@ -402,7 +409,7 @@ func filterIgnoredRules(allRules []*ruledefine.Rule, ignoreList []string) []*rul
 
 		// Check if this rule should be ignored (by ID or tag)
 		for _, ignoreItem := range ignoreList {
-			if strings.EqualFold(rule.RuleID, ignoreItem) {
+			if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(ignoreItem)) {
 				shouldIgnore = true
 				break
 			}
@@ -468,7 +475,7 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",
-					rule.RuleID,
+					rule.RuleName,
 					rule.Description,
 					strings.Join(rule.Tags, ","),
 					canValidateDisplay[validation.IsCanValidateRule(rule.RuleID)],
@@ -588,13 +595,15 @@ func getStartAndEndLines(
 	return startLine, endLine, nil
 }
 
-func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string) bool {
+func isSecretIgnored(secret *secrets.Secret, ignoredIds, allowedValues *[]string, secretLine, secretMatch, pluginName string) bool {
 	for _, allowedValue := range *allowedValues {
 		if secret.Value == allowedValue {
 			return true
 		}
 	}
-
+	if pluginName == "confluence" && isSecretFromConfluenceResourceIdentifier(secret.RuleID, secretLine, secretMatch) {
+		return true
+	}
 	return slices.Contains(*ignoredIds, secret.ID)
 }
 
@@ -711,7 +720,7 @@ func (e *Engine) processSecretsEvaluation() {
 func (e *Engine) addExtrasToSecret(secret *secrets.Secret) {
 	// add general extra data
 	extra.Mtxs.Lock(secret.ID)
-	secret.BaseRuleID = e.rules[secret.RuleID].BaseRuleID
+	secret.RuleName = e.rules[secret.RuleID].RuleName
 	secret.RuleCategory = string(e.rules[secret.RuleID].ScoreParameters.Category)
 	extra.Mtxs.Unlock(secret.ID)
 
@@ -769,4 +778,49 @@ func (e *Engine) Scan(pluginName string) {
 
 func (e *Engine) Wait() {
 	e.wg.Wait()
+}
+
+func filterGenericDuplicateFindings(findings []report.Finding) []report.Finding {
+	var retFindings []report.Finding
+	for i := range findings {
+		f := &findings[i]
+		include := true
+		if strings.Contains(strings.ToLower(f.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") { // generic rule ID
+			for j := range findings {
+				fPrime := &findings[j]
+				if f.StartLine == fPrime.StartLine &&
+					f.Commit == fPrime.Commit &&
+					f.RuleID != fPrime.RuleID &&
+					strings.Contains(fPrime.Secret, f.Secret) &&
+					!strings.Contains(strings.ToLower(fPrime.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") {
+					genericMatch := strings.ReplaceAll(f.Match, f.Secret, "REDACTED")
+					betterMatch := strings.ReplaceAll(fPrime.Match, fPrime.Secret, "REDACTED")
+					logging.Trace().Msgf("skipping %s finding (%s), %s rule takes precedence (%s)", f.RuleID, genericMatch, fPrime.RuleID, betterMatch)
+					include = false
+					break
+				}
+			}
+		}
+
+		if include {
+			retFindings = append(retFindings, *f)
+		}
+	}
+	return retFindings
+}
+
+// isSecretFromConfluenceResourceIdentifier reports whether a regex match found in a line
+// actually belongs to Confluence Storage Format metadata (the `ri:` namespace) rather than
+// real user content. This lets us ignore false-positives that cannot be suppressed via the
+// generic-api-key rule allow-list.
+func isSecretFromConfluenceResourceIdentifier(secretRuleID, secretLine, secretMatch string) bool {
+	if secretRuleID != ruledefine.GenericCredential().RuleID || secretLine == "" || secretMatch == "" {
+		return false
+	}
+
+	q := regexp.QuoteMeta(secretMatch)
+
+	pat := `<[^>]*\sri:` + q + `[^>]*>`
+	re := regexp.MustCompile(pat)
+	return re.MatchString(secretLine)
 }

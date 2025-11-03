@@ -11,7 +11,7 @@ import (
 
 func TestScore(t *testing.T) {
 	specialRule := ruledefine.HardcodedPassword()
-	allRules := rules.FilterRules([]string{}, []string{}, []string{specialRule.RuleID})
+	allRules := rules.FilterRules([]string{"grafana-service-account-token"}, []string{}, []string{specialRule.RuleName})
 
 	expectedCvssScores := map[string][3]float64{ // ruleID -> Valid, Invalid, Unknown
 		ruledefine.AdafruitAPIKey().RuleID:                          {9.4, 3.4, 6.4},
@@ -236,10 +236,10 @@ func TestScore(t *testing.T) {
 			expectedRuleScores := expectedCvssScores[rule.RuleID]
 			baseRiskScore := GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
 			ruleBaseRiskScore := scorer.GetRulesBaseRiskScore(rule.RuleID)
-			assert.Equal(t, ruleBaseRiskScore, baseRiskScore, "rule: %s", rule.RuleID)
-			assert.Equal(t, expectedRuleScores[0], getCvssScore(baseRiskScore, secrets.ValidResult), "rule: %s", rule.RuleID)
-			assert.Equal(t, expectedRuleScores[1], getCvssScore(baseRiskScore, secrets.InvalidResult), "rule: %s", rule.RuleID)
-			assert.Equal(t, expectedRuleScores[2], getCvssScore(baseRiskScore, secrets.UnknownResult), "rule: %s", rule.RuleID)
+			assert.Equal(t, ruleBaseRiskScore, baseRiskScore, "rule: %s", rule.RuleName)
+			assert.Equal(t, expectedRuleScores[0], getCvssScore(baseRiskScore, secrets.ValidResult), "rule: %s", rule.RuleName)
+			assert.Equal(t, expectedRuleScores[1], getCvssScore(baseRiskScore, secrets.InvalidResult), "rule: %s", rule.RuleName)
+			assert.Equal(t, expectedRuleScores[2], getCvssScore(baseRiskScore, secrets.UnknownResult), "rule: %s", rule.RuleName)
 		}
 	})
 

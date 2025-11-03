@@ -4,9 +4,9 @@ var bittrexSecretKeyRegex = generateSemiGenericRegex([]string{"bittrex"}, AlphaN
 
 func BittrexSecretKey() *Rule {
 	return &Rule{
-		BaseRuleID:      "c2329ef8-b8ac-4758-a808-c4d2058acc57",
+		RuleID:          "c2329ef8-b8ac-4758-a808-c4d2058acc57",
 		Description:     "Detected a Bittrex Secret Key, potentially compromising cryptocurrency transactions and financial security.",
-		RuleID:          "bittrex-secret-key",
+		RuleName:        "Bittrex-Secret-Key",
 		Regex:           bittrexSecretKeyRegex.String(),
 		Keywords:        []string{"bittrex"},
 		Severity:        "High",

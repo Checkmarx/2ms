@@ -4,9 +4,9 @@ var shippoAPITokenRegex = generateUniqueTokenRegex(`shippo_(?:live|test)_[a-fA-F
 
 func ShippoAPIToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "f4de94a5-3aec-4b1d-8235-f165b9d8d54c",
+		RuleID:      "f4de94a5-3aec-4b1d-8235-f165b9d8d54c",
 		Description: "Discovered a Shippo API token, potentially compromising shipping services and customer order data.",
-		RuleID:      "shippo-api-token",
+		RuleName:    "Shippo-Api-Token",
 		Regex:       shippoAPITokenRegex,
 		Entropy:     2,
 		Keywords: []string{

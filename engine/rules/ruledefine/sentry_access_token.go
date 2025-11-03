@@ -4,8 +4,8 @@ var sentryAccessTokenRegex = generateSemiGenericRegex([]string{"sentry"}, Hex("6
 
 func SentryAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID: "ba2a5820-8dfd-4af5-9406-88d6b4c7144e",
-		RuleID:     "sentry-access-token",
+		RuleID:   "ba2a5820-8dfd-4af5-9406-88d6b4c7144e",
+		RuleName: "Sentry-Access-Token",
 		Description: "Found a Sentry.io Access Token (old format)," +
 			" risking unauthorized access to error tracking services and sensitive application data.",
 		Regex:   sentryAccessTokenRegex,

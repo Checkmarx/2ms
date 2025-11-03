@@ -4,10 +4,10 @@ var bitbucketClientSecretRegex = generateSemiGenericRegex([]string{"bitbucket"},
 
 func BitBucketClientSecret() *Rule {
 	return &Rule{
-		BaseRuleID: "2772c249-2dd8-4cc4-8d52-ef264eb71802",
+		RuleID: "2772c249-2dd8-4cc4-8d52-ef264eb71802",
 		Description: "Discovered a potential Bitbucket Client Secret," +
 			" posing a risk of compromised code repositories and unauthorized access.",
-		RuleID:          "bitbucket-client-secret",
+		RuleName:        "Bitbucket-Client-Secret",
 		Regex:           bitbucketClientSecretRegex.String(),
 		Keywords:        []string{"bitbucket"},
 		Severity:        "High",

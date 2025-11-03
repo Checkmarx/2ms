@@ -8,9 +8,9 @@ var authenticatedURLRegex = regexp.MustCompile(`://(\w+:\w\S+)@\S+\.\S+`).String
 
 func AuthenticatedURL() *Rule {
 	return &Rule{
-		BaseRuleID:  "98e88a4f-4b7d-4c56-a6fa-9835dfb7c8d7",
+		RuleID:      "98e88a4f-4b7d-4c56-a6fa-9835dfb7c8d7",
 		Description: "Identify username:password inside URLS",
-		RuleID:      "authenticated-url",
+		RuleName:    "Authenticated-Url",
 		Regex:       authenticatedURLRegex,
 		Keywords:    []string{"://"},
 		SecretGroup: 1,

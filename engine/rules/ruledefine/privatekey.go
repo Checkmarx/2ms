@@ -8,8 +8,8 @@ var privateKeyRegex = regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVAT
 
 func PrivateKey() *Rule {
 	return &Rule{
-		BaseRuleID:      "3fa46cbe-eeab-447a-90cf-790c27af3c0d",
-		RuleID:          "private-key",
+		RuleID:          "3fa46cbe-eeab-447a-90cf-790c27af3c0d",
+		RuleName:        "Private-Key",
 		Description:     "Identified a Private Key, which may compromise cryptographic security and sensitive data encryption.",
 		Regex:           privateKeyRegex,
 		Keywords:        []string{"-----BEGIN"},

@@ -5,9 +5,9 @@ var yandexAccessTokenRegex = generateSemiGenericRegex([]string{"yandex"},
 
 func YandexAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "b1bba54f-7da9-49a4-b057-e05dac03835a",
+		RuleID:      "b1bba54f-7da9-49a4-b057-e05dac03835a",
 		Description: "Found a Yandex Access Token, posing a risk to Yandex service integrations and user data privacy.",
-		RuleID:      "yandex-access-token",
+		RuleName:    "Yandex-Access-Token",
 		Regex:       yandexAccessTokenRegex,
 		Keywords: []string{
 			"yandex",

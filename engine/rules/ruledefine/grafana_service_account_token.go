@@ -4,9 +4,9 @@ var grafanaServiceAccountTokenRegex = generateUniqueTokenRegex(`glsa_[A-Za-z0-9]
 
 func GrafanaServiceAccountToken() *Rule {
 	return &Rule{
-		BaseRuleID:      "60b6a2aa-2eaf-4a3d-bd3c-6d5f6274b4fc",
+		RuleID:          "60b6a2aa-2eaf-4a3d-bd3c-6d5f6274b4fc",
 		Description:     "Discovered a Grafana service account token, posing a risk of compromised monitoring services and data integrity.",
-		RuleID:          "grafana-service-account-token",
+		RuleName:        "Grafana-Service-Account-Token",
 		Regex:           grafanaServiceAccountTokenRegex,
 		Entropy:         3,
 		Keywords:        []string{"glsa_"},

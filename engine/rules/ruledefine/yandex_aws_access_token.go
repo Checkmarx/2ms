@@ -5,9 +5,9 @@ var yandexAWSAccessTokenRegex = generateSemiGenericRegex([]string{"yandex"},
 
 func YandexAWSAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "be6d21db-8a6d-4cfa-abfb-3047ed5b6ea8",
+		RuleID:      "be6d21db-8a6d-4cfa-abfb-3047ed5b6ea8",
 		Description: "Uncovered a Yandex AWS Access Token, potentially compromising cloud resource access and data security on Yandex Cloud.",
-		RuleID:      "yandex-aws-access-token",
+		RuleName:    "Yandex-Aws-Access-Token",
 		Regex:       yandexAWSAccessTokenRegex,
 		Keywords: []string{
 			"yandex",

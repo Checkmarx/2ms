@@ -20,8 +20,8 @@ import (
 var (
 	ruleID1       = "ruleID1"
 	ruleID2       = "ruleID2"
-	baseRuleID1   = "baseRuleID1"
-	baseRuleID2   = "baseRuleID2"
+	RuleName1     = "ruleName1"
+	RuleName2     = "ruleName2"
 	ruleCategory1 = "category1"
 	ruleCategory2 = "category2"
 
@@ -29,7 +29,7 @@ var (
 		ID:               "ID1",
 		Source:           "file1",
 		RuleID:           ruleID1,
-		BaseRuleID:       baseRuleID1,
+		RuleName:         RuleName1,
 		RuleCategory:     ruleCategory1,
 		StartLine:        150,
 		EndLine:          150,
@@ -47,7 +47,7 @@ var (
 		ID:               "ID2",
 		Source:           "file2",
 		RuleID:           ruleID2,
-		BaseRuleID:       baseRuleID2,
+		RuleName:         RuleName2,
 		RuleCategory:     ruleCategory2,
 		StartLine:        10,
 		EndLine:          10,
@@ -65,7 +65,7 @@ var (
 		ID:               "ID3",
 		Source:           "file3",
 		RuleID:           ruleID1,
-		BaseRuleID:       baseRuleID1,
+		RuleName:         RuleName1,
 		RuleCategory:     ruleCategory1,
 		StartLine:        16,
 		EndLine:          16,
@@ -84,29 +84,29 @@ var (
 var (
 	// sarif rules
 	rule1Sarif = &SarifRule{
-		ID: ruleID1,
+		ID:   ruleID1,
+		Name: RuleName1,
 		FullDescription: &Message{
 			Text: result1.RuleDescription,
 		},
 		Properties: Properties{
-			"baseRuleID": baseRuleID1,
-			"category":   ruleCategory1,
+			"category": ruleCategory1,
 		},
 	}
 	rule2Sarif = &SarifRule{
-		ID: ruleID2,
+		ID:   ruleID2,
+		Name: RuleName2,
 		FullDescription: &Message{
 			Text: result2.RuleDescription,
 		},
 		Properties: Properties{
-			"baseRuleID": baseRuleID2,
-			"category":   ruleCategory2,
+			"category": ruleCategory2,
 		},
 	}
 	// sarif results
 	result1Sarif = Results{
 		Message: Message{
-			Text: createMessageText(result1.RuleID, result1.Source),
+			Text: createMessageText(result1.RuleName, result1.Source),
 		},
 		RuleId: ruleID1,
 		Locations: []Locations{
@@ -134,11 +134,12 @@ var (
 			"validationStatus": string(result1.ValidationStatus),
 			"severity":         result1.Severity,
 			"cvssScore":        result1.CvssScore,
+			"ruleName":         RuleName1,
 		},
 	}
 	result2Sarif = Results{
 		Message: Message{
-			Text: createMessageText(result2.RuleID, result2.Source),
+			Text: createMessageText(result2.RuleName, result2.Source),
 		},
 		RuleId: ruleID2,
 		Locations: []Locations{
@@ -166,11 +167,12 @@ var (
 			"validationStatus": string(result2.ValidationStatus),
 			"severity":         result2.Severity,
 			"cvssScore":        result2.CvssScore,
+			"ruleName":         RuleName2,
 		},
 	}
 	result3Sarif = Results{
 		Message: Message{
-			Text: createMessageText(result3.RuleID, result3.Source),
+			Text: createMessageText(result3.RuleName, result3.Source),
 		},
 		RuleId: ruleID1,
 		Locations: []Locations{
@@ -198,6 +200,7 @@ var (
 			"validationStatus": string(result3.ValidationStatus),
 			"severity":         result3.Severity,
 			"cvssScore":        result3.CvssScore,
+			"ruleName":         RuleName1,
 		},
 	}
 )
@@ -386,8 +389,8 @@ func TestGetOutputYAML(t *testing.T) {
 						{
 							ID:               "c6490d749fd4670fde969011d99ea5c4c4b1c0d7",
 							Source:           "..\\2ms\\engine\\rules\\hardcodedPassword.go",
-							RuleID:           "generic-api-key",
-							BaseRuleID:       "f0872990-61ab-4e55-b92a-d627dc1bc066",
+							RuleName:         "generic-api-key",
+							RuleID:           "f0872990-61ab-4e55-b92a-d627dc1bc066",
 							RuleCategory:     "API Access",
 							StartLine:        45,
 							EndLine:          45,
@@ -414,8 +417,8 @@ func TestGetOutputYAML(t *testing.T) {
 						{
 							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
 							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
-							RuleID:           "jwt",
-							BaseRuleID:       "0fc98133-a57b-4e08-9990-60952d4a82df",
+							RuleName:         "jwt",
+							RuleID:           "0fc98133-a57b-4e08-9990-60952d4a82df",
 							RuleCategory:     "General",
 							StartLine:        1,
 							EndLine:          1,
@@ -437,8 +440,8 @@ func TestGetOutputYAML(t *testing.T) {
 						{
 							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
 							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
-							RuleID:           "jwt",
-							BaseRuleID:       "0fc98133-a57b-4e08-9990-60952d4a82df",
+							RuleName:         "jwt",
+							RuleID:           "0fc98133-a57b-4e08-9990-60952d4a82df",
 							RuleCategory:     "General",
 							StartLine:        2,
 							EndLine:          2,

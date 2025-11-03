@@ -5,9 +5,9 @@ var caIdentifiers = append(cloudfareIdentifiers, "v1.0-")
 
 func CloudflareOriginCAKey() *Rule {
 	return &Rule{
-		BaseRuleID:      "0fac5c07-026b-45c8-9add-bc1357833d6e",
+		RuleID:          "0fac5c07-026b-45c8-9add-bc1357833d6e",
 		Description:     "Detected a Cloudflare Origin CA Key, potentially compromising cloud application deployments and operational security.",
-		RuleID:          "cloudflare-origin-ca-key",
+		RuleName:        "Cloudflare-Origin-Ca-Key",
 		Regex:           cloudflareOriginCaKeyRegex.String(),
 		Entropy:         2,
 		Keywords:        caIdentifiers,

@@ -4,9 +4,9 @@ var kucoinAccessTokenRegex = generateSemiGenericRegex([]string{"kucoin"}, Hex("2
 
 func KucoinAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "64f3a17f-4d12-4527-b176-9b01fdffb496",
+		RuleID:      "64f3a17f-4d12-4527-b176-9b01fdffb496",
 		Description: "Found a Kucoin Access Token, risking unauthorized access to cryptocurrency exchange services and transactions.",
-		RuleID:      "kucoin-access-token",
+		RuleName:    "Kucoin-Access-Token",
 		Regex:       kucoinAccessTokenRegex,
 		Keywords: []string{
 			"kucoin",

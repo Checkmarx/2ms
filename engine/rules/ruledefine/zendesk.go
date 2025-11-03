@@ -4,9 +4,9 @@ var zendeskSecretKeyRegex = generateSemiGenericRegex([]string{"zendesk"}, AlphaN
 
 func ZendeskSecretKey() *Rule {
 	return &Rule{
-		BaseRuleID:  "ef6ad1b6-cb89-44a9-9e70-783095456d62",
+		RuleID:      "ef6ad1b6-cb89-44a9-9e70-783095456d62",
 		Description: "Detected a Zendesk Secret Key, risking unauthorized access to customer support services and sensitive ticketing data.",
-		RuleID:      "zendesk-secret-key",
+		RuleName:    "Zendesk-Secret-Key",
 		Regex:       zendeskSecretKeyRegex,
 		Keywords: []string{
 			"zendesk",

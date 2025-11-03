@@ -6,9 +6,9 @@ var nytimesAccessTokenRegex = generateSemiGenericRegex([]string{
 
 func NytimesAccessToken() *Rule {
 	return &Rule{
-		BaseRuleID:  "0ee134ac-689a-490a-bcd7-f773e535dfda",
+		RuleID:      "0ee134ac-689a-490a-bcd7-f773e535dfda",
 		Description: "Detected a Nytimes Access Token, risking unauthorized access to New York Times APIs and content services.",
-		RuleID:      "nytimes-access-token",
+		RuleName:    "Nytimes-Access-Token",
 		Regex:       nytimesAccessTokenRegex,
 		Keywords: []string{
 			"nytimes",

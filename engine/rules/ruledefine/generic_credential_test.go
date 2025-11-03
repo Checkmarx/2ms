@@ -94,6 +94,8 @@ func TestGenericCredential(t *testing.T) {
 				"<key>CLIENT_ID</key>\n<string>407966239993-b1h97alknrmf0g846um5pr3a25s9qmeu.apps.googleusercontent.com</string>",
 				"<key>REVERSED_CLIENT_ID</key>\n<string>com.googleusercontent.apps.407966239993-b1h97alknrmf0g846um5pr3a25s9qmeu</string>",
 				"<key>GOOGLE_APP_ID</key>\n<string>1:407966239993:ios:0d7534f14f8cfe19</string>",
+				"\"a_b_key\": \"x-someval-127.0.0.1\",",
+				"KeyVaultSecretsUser: '62168719-64c5-453d-b4ef-b51d8b1ad44d'",
 			},
 		},
 	}

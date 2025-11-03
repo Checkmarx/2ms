@@ -246,7 +246,7 @@ func getSpecialRules() []*ruledefine.Rule {
 
 func isRuleMatch(rule ruledefine.Rule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
 	for _, tag := range tags {
-		if strings.EqualFold(rule.RuleID, tag) {
+		if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(tag)) {
 			return true
 		}
 		if strings.EqualFold(rule.BaseRuleID, tag) {
@@ -314,7 +314,7 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 		specialRules := getSpecialRules()
 		for _, rule := range specialRules {
 			for _, id := range specialList {
-				if strings.EqualFold(rule.RuleID, id) {
+				if strings.EqualFold(rule.RuleName, id) {
 					selectedRules = append(selectedRules, rule)
 				}
 			}

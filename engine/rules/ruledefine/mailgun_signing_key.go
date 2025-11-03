@@ -5,9 +5,9 @@ var mailgunSigningKeyRegex = generateSemiGenericRegex(
 
 func MailGunSigningKey() *Rule {
 	return &Rule{
-		BaseRuleID:  "b06b485a-b4aa-4f18-9ff9-6a9ff59fc961",
+		RuleID:      "b06b485a-b4aa-4f18-9ff9-6a9ff59fc961",
 		Description: "Uncovered a Mailgun webhook signing key, potentially compromising email automation and data integrity.",
-		RuleID:      "mailgun-signing-key",
+		RuleName:    "Mailgun-Signing-Key",
 		Regex:       mailgunSigningKeyRegex,
 		Keywords: []string{
 			"mailgun",

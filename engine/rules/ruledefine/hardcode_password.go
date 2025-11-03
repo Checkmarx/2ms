@@ -18,9 +18,9 @@ var hardcodedPasswordRegex = regexp.MustCompile(
 
 func HardcodedPassword() *Rule {
 	return &Rule{
-		BaseRuleID:  "60b6a2aa-2eaf-4a3d-bd3c-6d5f6274b4fc",
+		RuleID:      "df08858b-14b7-4aa6-a08f-2a7da30d4bc6",
 		Description: "Hardcoded password",
-		RuleID:      "hardcoded-password",
+		RuleName:    "Hardcoded-Password",
 		Regex:       hardcodedPasswordRegex,
 		Keywords: []string{
 			"key",

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,7 +46,7 @@ func TestAddExtraToSecret(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			secret := &secrets.Secret{
 				ID:           "test-secret",
-				RuleID:       "jwt",
+				RuleID:       ruledefine.JWT().RuleID,
 				Value:        tt.secretValue,
 				ExtraDetails: make(map[string]interface{}),
 			}

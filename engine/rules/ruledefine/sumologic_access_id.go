@@ -4,8 +4,8 @@ var sumoLogicAccessIDRegex = generateSemiGenericRegex([]string{"(?-i:[Ss]umo|SUM
 
 func SumoLogicAccessID() *Rule {
 	return &Rule{
-		BaseRuleID:  "52046e20-135d-4ac9-9198-384c0f20cfa5",
-		RuleID:      "sumologic-access-id",
+		RuleID:      "52046e20-135d-4ac9-9198-384c0f20cfa5",
+		RuleName:    "Sumologic-Access-Id",
 		Description: "Discovered a SumoLogic Access ID, potentially compromising log management services and data analytics integrity.",
 		Regex:       sumoLogicAccessIDRegex,
 		Entropy:     3,

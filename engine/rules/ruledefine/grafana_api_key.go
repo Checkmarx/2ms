@@ -4,9 +4,9 @@ var grafanaAPIKeyRegex = generateUniqueTokenRegex(`eyJrIjoi[A-Za-z0-9]{70,400}={
 
 func GrafanaApiKey() *Rule {
 	return &Rule{
-		BaseRuleID:      "61b7855c-6d6a-4067-b477-d0d26c3e1448",
+		RuleID:          "61b7855c-6d6a-4067-b477-d0d26c3e1448",
 		Description:     "Identified a Grafana API key, which could compromise monitoring dashboards and sensitive data analytics.",
-		RuleID:          "grafana-api-key",
+		RuleName:        "Grafana-Api-Key",
 		Regex:           grafanaAPIKeyRegex,
 		Entropy:         3,
 		Keywords:        []string{"eyJrIjoi"},

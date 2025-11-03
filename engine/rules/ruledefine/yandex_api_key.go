@@ -5,9 +5,9 @@ var yandexAPIKeyRegex = generateSemiGenericRegex([]string{"yandex"},
 
 func YandexAPIKey() *Rule {
 	return &Rule{
-		BaseRuleID:  "62cf5f43-caaa-464b-a7a1-2fc9d16fd4d1",
+		RuleID:      "62cf5f43-caaa-464b-a7a1-2fc9d16fd4d1",
 		Description: "Discovered a Yandex API Key, which could lead to unauthorized access to Yandex services and data manipulation.",
-		RuleID:      "yandex-api-key",
+		RuleName:    "Yandex-Api-Key",
 		Regex:       yandexAPIKeyRegex,
 		Keywords: []string{
 			"yandex",

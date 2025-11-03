@@ -8,9 +8,9 @@ var newRelicUserAPIIDRegex = generateSemiGenericRegex([]string{
 
 func NewRelicUserKey() *Rule {
 	return &Rule{
-		BaseRuleID:  "12d84d93-c459-4ce9-9b42-56c92753776f",
+		RuleID:      "12d84d93-c459-4ce9-9b42-56c92753776f",
 		Description: "Found a New Relic user API ID, posing a risk to application monitoring services and data integrity.",
-		RuleID:      "new-relic-user-api-id",
+		RuleName:    "New-Relic-User-Api-Id",
 		Regex:       newRelicUserAPIIDRegex,
 		Keywords: []string{
 			"new-relic",

@@ -88,22 +88,21 @@ type ScoreParameters struct {
 }
 
 type Rule struct {
-	BaseRuleID        string          `json:"baseRuleId"` // uuid4, should be consistent across changes in rule
-	RuleID            string          `json:"ruleId"`
-	Description       string          `json:"description"`
-	Regex             string          `json:"regex"` // regex pattern as string
-	Keywords          []string        `json:"keywords"`
-	Entropy           float64         `json:"entropy"`
-	Path              string          `json:"path"`        // present in some gitleaks secrets (regex)
-	SecretGroup       int             `json:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	Severity          Severity        `json:"severity"`
-	OldSeverity       string          `json:"oldSeverity"` // fallback for when critical is not enabled
-	AllowLists        []*AllowList    `json:"allowLists"`
-	Tags              []string        `json:"tags"`
-	ScoreParameters   ScoreParameters `json:"scoreParameters"`   // used for ASPM
+	RuleID          string  `json:"ruleId"`// uuid4, should be consistent across changes in rule
+	RuleName        string  `json:"ruleName"`
+	Description     string	`json:"description"`
+	Regex           string  `json:"regex"` // regex pattern as string
+	Keywords        []string `json:"keywords"`
+	Entropy         float64 `json:"entropy"`
+	Path            string `json:"path"` // present in some gitleaks secrets (regex)
+	SecretGroup     int   `json:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Severity        Severity `json:"severity"`
+	OldSeverity     string `json:"oldSeverity"` // fallback for when critical is not enabled
+	AllowLists      []*AllowList `json:"allowLists"`
+	Tags            []string `json:"tags"`
+	ScoreParameters ScoreParameters `json:"scoreParameters"` // used for ASPM
 	DisableValidation bool            `json:"disableValidation"` // if true, validation checks will be skipped for this rule if any validation is possible
-	Deprecated        bool            `json:"deprecated"`        // deprecated rules will remain in 2ms, with deprecated as true
-	//Override bool 		// if true, this rule is allowed to override existing rules with the same RuleID/BaseRuleID
+	Deprecated        bool            `json:"deprecated"`
 }
 
 type AllowList struct { // For patterns that are allowed to be ignored

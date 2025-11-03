@@ -4,9 +4,9 @@ var octopusDeployAPIKeyRegex = generateUniqueTokenRegex(`API-[A-Z0-9]{26}`, fals
 
 func OctopusDeployApiKey() *Rule {
 	return &Rule{
-		BaseRuleID:      "5ba42e41-6652-42db-b316-0870042b4605",
+		RuleID:          "5ba42e41-6652-42db-b316-0870042b4605",
 		Description:     "Discovered a potential Octopus Deploy API key, risking application deployments and operational security.",
-		RuleID:          "octopus-deploy-api-key",
+		RuleName:        "Octopus-Deploy-Api-Key",
 		Regex:           octopusDeployAPIKeyRegex,
 		Entropy:         3,
 		Keywords:        []string{"api-"},
