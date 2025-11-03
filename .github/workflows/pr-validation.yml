@@ -29,8 +29,11 @@ jobs:
           go mod tidy
           git diff --exit-code
 
-      - name: Go Linter
-        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v2.5.0 golangci-lint run --timeout=5m
+      - name: install linter
+        run: make get-linter
+
+      - name: run linter
+        run: make lint
 
       - name: Go Test
         run: go test -v ./...
