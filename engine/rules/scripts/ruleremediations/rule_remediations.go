@@ -8,6 +8,7 @@ import (
 	"github.com/checkmarx/2ms/v4/engine/rules"
 )
 
+// This script was used to generate remediations for rules based on their names
 func main() {
 	defaultRules := rules.GetDefaultRules()
 	if len(defaultRules) == 0 {
