@@ -27,9 +27,7 @@ jobs:
 
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: "^1.22"
-      - name: Go Linter
-        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run --timeout=5m
+          go-version-file: go.mod
 
       - name: Unit Tests
         run: go test ./...
