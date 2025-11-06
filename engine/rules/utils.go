@@ -24,7 +24,7 @@ const (
 	// boundaries for the secret
 	// \x60 = `
 	secretPrefixUnique       = `\b(`
-	secretPrefix             = `[\x60'"\s=]{0,10}(`                                       //nolint:gosec // This is a regex pattern
+	secretPrefix             = `[\x60'"\s=]{0,20}(`                                       //nolint:gosec // This is a regex pattern
 	secretSuffix             = `)(?:[\x60'"\s;]|\\[nr]|$)`                                //nolint:gosec // This is a regex pattern
 	secretSuffixIncludingXml = `)(?:['|\"|\n|\r|\s|\x60|;]|\\n|\\r|$|\s{0,10}<\/string>)` //nolint:gosec // This is a regex pattern
 )
