@@ -249,7 +249,7 @@ func isRuleMatch(rule ruledefine.Rule, tags []string) bool { //nolint:gocritic /
 		if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(tag)) {
 			return true
 		}
-		if strings.EqualFold(rule.BaseRuleID, tag) {
+		if strings.EqualFold(rule.RuleID, tag) {
 			return true
 		}
 		for _, ruleTag := range rule.Tags {
@@ -294,7 +294,6 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 	var selectedRules []*ruledefine.Rule
 	if onlyCustomRules {
 		for _, customRule := range customRules {
-			customRule.AssignRuleIDIfEmpty()
 			selectedRules = append(selectedRules, customRule)
 		}
 		return selectedRules
@@ -333,8 +332,7 @@ func addCustomRules(selectedRules []*ruledefine.Rule, customRules []*ruledefine.
 		// Check if custom rule matches any existing default rule
 		ruleMatch := false
 		for i := range selectedRules {
-			if selectedRules[i].BaseRuleID == customRule.BaseRuleID {
-				customRule.RuleID = selectedRules[i].RuleID //TODO: evaluate necessity after we define a strategy
+			if selectedRules[i].RuleID == customRule.RuleID {
 				selectedRules[i] = customRule
 				ruleMatch = true
 				break
@@ -351,7 +349,7 @@ func GetDefaultRulesBaseIDsMap() map[string]*ruledefine.Rule {
 	rules := GetDefaultRules(false)
 	rulesMap := make(map[string]*ruledefine.Rule)
 	for _, rule := range rules {
-		rulesMap[rule.BaseRuleID] = rule
+		rulesMap[rule.RuleID] = rule
 	}
 	return rulesMap
 }

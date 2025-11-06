@@ -18,8 +18,8 @@ func TestLoadAllRules(t *testing.T) {
 }
 
 func TestLoadAllRulesCheckFields(t *testing.T) {
+	ruleNameMap := make(map[string]bool)
 	ruleIDMap := make(map[string]bool)
-	baseRuleIDMap := make(map[string]bool)
 	allRules := GetDefaultRules(false)
 	allRules = append(allRules, getSpecialRules()...)
 
@@ -43,12 +43,12 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 		}
 
 		// Verify duplicate rule ids
-		if _, ok := baseRuleIDMap[rule.RuleID]; ok {
+		if _, ok := ruleIDMap[rule.RuleID]; ok {
 			t.Errorf("duplicate rule base id found: %s", rule.RuleID)
 		}
 
-		ruleIDMap[rule.RuleName] = true
-		baseRuleIDMap[rule.RuleID] = true
+		ruleNameMap[rule.RuleName] = true
+		ruleIDMap[rule.RuleID] = true
 	}
 }
 

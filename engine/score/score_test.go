@@ -11,7 +11,7 @@ import (
 
 func TestScore(t *testing.T) {
 	specialRule := ruledefine.HardcodedPassword()
-	allRules := rules.FilterRules([]string{"grafana-service-account-token"}, []string{}, []string{specialRule.RuleName})
+	allRules := rules.FilterRules([]string{"grafana-service-account-token"}, []string{}, []string{specialRule.RuleName}, nil, false)
 
 	expectedCvssScores := map[string][3]float64{ // ruleID -> Valid, Invalid, Unknown
 		ruledefine.AdafruitAPIKey().RuleID:                          {9.4, 3.4, 6.4},
@@ -338,7 +338,7 @@ func TestSecrets(t *testing.T) {
 		},
 	}
 
-	allRules := rules.FilterRules([]string{}, []string{}, []string{})
+	allRules := rules.FilterRules([]string{}, []string{}, []string{}, nil, false)
 	scorer := NewScorer(allRules, true)
 
 	for _, tt := range secretsCases {

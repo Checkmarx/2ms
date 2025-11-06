@@ -88,19 +88,19 @@ type ScoreParameters struct {
 }
 
 type Rule struct {
-	RuleID          string  `json:"ruleId"`// uuid4, should be consistent across changes in rule
-	RuleName        string  `json:"ruleName"`
-	Description     string	`json:"description"`
-	Regex           string  `json:"regex"` // regex pattern as string
-	Keywords        []string `json:"keywords"`
-	Entropy         float64 `json:"entropy"`
-	Path            string `json:"path"` // present in some gitleaks secrets (regex)
-	SecretGroup     int   `json:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	Severity        Severity `json:"severity"`
-	OldSeverity     string `json:"oldSeverity"` // fallback for when critical is not enabled
-	AllowLists      []*AllowList `json:"allowLists"`
-	Tags            []string `json:"tags"`
-	ScoreParameters ScoreParameters `json:"scoreParameters"` // used for ASPM
+	RuleID            string          `json:"ruleId"` // uuid4, should be consistent across changes in rule
+	RuleName          string          `json:"ruleName"`
+	Description       string          `json:"description"`
+	Regex             string          `json:"regex"` // regex pattern as string
+	Keywords          []string        `json:"keywords"`
+	Entropy           float64         `json:"entropy"`
+	Path              string          `json:"path"`        // present in some gitleaks secrets (regex)
+	SecretGroup       int             `json:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Severity          Severity        `json:"severity"`
+	OldSeverity       string          `json:"oldSeverity"` // fallback for when critical is not enabled
+	AllowLists        []*AllowList    `json:"allowLists"`
+	Tags              []string        `json:"tags"`
+	ScoreParameters   ScoreParameters `json:"scoreParameters"`   // used for ASPM
 	DisableValidation bool            `json:"disableValidation"` // if true, validation checks will be skipped for this rule if any validation is possible
 	Deprecated        bool            `json:"deprecated"`
 }
@@ -118,8 +118,8 @@ type AllowList struct { // For patterns that are allowed to be ignored
 // This is meant for user defined rules, default rules have more strict checks in unit tests
 func (r Rule) CheckRequiredFields() []error {
 	var errs []error
-	if r.RuleID == "" || r.BaseRuleID == "" {
-		errs = append(errs, fmt.Errorf("missing RuleID and/or BaseRuleID. Both are required"))
+	if r.RuleID == "" || r.RuleName == "" {
+		errs = append(errs, fmt.Errorf("missing RuleID and/or RuleName. Both are required"))
 	}
 	//Check for match with default rules
 	//defaultRulesBaseIDs := getDefaultRulesBaseIDs()
@@ -136,10 +136,4 @@ func (r Rule) CheckRequiredFields() []error {
 	}
 
 	return nil
-}
-
-func (r Rule) AssignRuleIDIfEmpty() {
-	if r.RuleID != "" {
-		r.RuleID = r.BaseRuleID
-	}
 }

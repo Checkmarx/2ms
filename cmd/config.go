@@ -21,6 +21,11 @@ import (
 var (
 	errInvalidOutputFormat    = fmt.Errorf("invalid output format")
 	errInvalidReportExtension = fmt.Errorf("invalid report extension")
+	errMissingRuleID          = fmt.Errorf("missing ruleID")
+	errMissingRuleName        = fmt.Errorf("missing ruleName")
+	errMissingRegex           = fmt.Errorf("missing regex")
+	errInvalidRegex           = fmt.Errorf("invalid regex")
+	errInvalidSeverity        = fmt.Errorf("invalid severity")
 )
 
 func processFlags(rootCmd *cobra.Command) error {
@@ -186,35 +191,44 @@ func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
 func checkRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 	var err error
 	for i, rule := range rulesToCheck {
-		errorStart := fmt.Sprintf("Rule#%d;RuleID:%s;BaseRuleID:%s-", i, rule.RuleID, rule.BaseRuleID)
-		if rule.RuleID == "" || rule.BaseRuleID == "" {
-			err = errors.Join(err, fmt.Errorf(errorStart+"missing RuleID and/or BaseRuleID. Both are required"))
+		if rule.RuleID == "" {
+			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleID))
 		}
-		//Check for match with default rules
-		//defaultRulesBaseIDs := rules.GetDefaultRulesBaseIDsMap()
-		//defaultRuleIDs := rules.GetDefaultRulesIDsMap()
-		//defaultID, existsID := defaultRulesBaseIDs[rule.BaseRuleID]
-		//defaultBaseID, existsBaseID := defaultRuleIDs[rule.RuleID]
+		if rule.RuleName == "" {
+			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleName))
+		}
 
 		if rule.Regex == "" {
-			err = errors.Join(err, fmt.Errorf(errorStart+"missing regex"))
+			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRegex))
 		} else {
 			if _, errRegex := regexp.Compile(rule.Regex); errRegex != nil {
-				err = errors.Join(err, fmt.Errorf(errorStart+"invalid regex: %w", errRegex))
+				invalidRegexError := fmt.Errorf("%w: %v", errInvalidRegex, errRegex)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRegexError))
 			}
 		}
 
 		if rule.Severity != "" {
 			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
-				err = errors.Join(err, fmt.Errorf(errorStart+"Severity %s is not an acceptable severity (%s)", rule.Severity, ruledefine.SeverityOrder))
+				invalidSeverityError := fmt.Errorf("%w: %s not one of (%s)", errInvalidSeverity, rule.Severity, ruledefine.SeverityOrder)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidSeverityError))
 			}
 		}
 	}
 
-	// Add a newline at start of error if it's not nil, for better presentation
+	// Add a newline at start of error if it's not nil, for better presentation in output
 	if err != nil {
 		err = fmt.Errorf("\n%s", err.Error())
 	}
 
 	return err
+}
+
+func buildCustomRuleError(ruleIndex int, rule *ruledefine.Rule, issue error) error {
+	if rule.RuleID == "" {
+		if rule.RuleName == "" {
+			return fmt.Errorf("rule#%d: %w", ruleIndex, issue)
+		}
+		return fmt.Errorf("rule#%d;RuleName-%s: %w", ruleIndex, rule.RuleName, issue)
+	}
+	return fmt.Errorf("rule#%d;RuleID-%s: %w", ruleIndex, rule.RuleID, issue)
 }
