@@ -1,0 +1,18 @@
+package ruledefine
+
+var twitchAPITokenRegex = generateSemiGenericRegex([]string{"twitch"}, AlphaNumeric("30"), true).String()
+
+func TwitchAPIToken() *Rule {
+	return &Rule{
+		RuleID:      "2361985f-3d77-4151-ad00-6d7a2ecbb700",
+		Description: "Discovered a Twitch API token, which could compromise streaming services and account integrations.",
+		RuleName:    "Twitch-Api-Token",
+		Regex:       twitchAPITokenRegex,
+		Keywords: []string{
+			"twitch",
+		},
+		Severity:        "High",
+		Tags:            []string{TagApiToken},
+		ScoreParameters: ScoreParameters{Category: CategoryNewsAndMedia, RuleType: 4},
+	}
+}

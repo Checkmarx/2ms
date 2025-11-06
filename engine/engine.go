@@ -20,6 +20,7 @@ import (
 	"github.com/checkmarx/2ms/v4/engine/extra"
 	"github.com/checkmarx/2ms/v4/engine/linecontent"
 	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/checkmarx/2ms/v4/engine/semaphore"
 	"github.com/checkmarx/2ms/v4/engine/validation"
@@ -33,6 +34,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
+	"github.com/zricethezav/gitleaks/v8/logging"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -46,14 +48,14 @@ var (
 )
 
 type DetectorConfig struct {
-	SelectedRules         []*rules.Rule
+	SelectedRules         []*ruledefine.Rule
 	CustomRegexPatterns   []string
 	AdditionalIgnoreRules []string
 	MaxTargetMegabytes    int
 }
 
 type Engine struct {
-	rules map[string]*config.Rule
+	rules map[string]*ruledefine.Rule
 
 	detector       *detect.Detector
 	detectorConfig DetectorConfig
@@ -99,7 +101,7 @@ type IEngine interface {
 }
 
 type IScorer interface {
-	Score(secret *secrets.Secret)
+	AssignScoreAndSeverity(secret *secrets.Secret)
 	GetRulesBaseRiskScore(ruleId string) float64
 	GetKeywords() map[string]struct{}
 	GetRulesToBeApplied() map[string]config.Rule
@@ -164,6 +166,11 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}
 
+	engineRules := make(map[string]*ruledefine.Rule)
+	for _, rule := range finalRules {
+		engineRules[rule.RuleID] = rule
+	}
+
 	engine := &Engine{
 		detectorConfig: DetectorConfig{
 			SelectedRules:         finalRules,
@@ -191,7 +198,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		pluginChannels: plugins.NewChannels(),
 		Report:         reporting.New(),
 
-		rules: make(map[string]*config.Rule),
+		rules: engineRules,
 	}
 
 	for _, opt := range opts {
@@ -212,7 +219,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		}
 		for ruleID, customRule := range customRules {
 			log.Debug().Str("rule_id", ruleID).Msg("Adding custom regex rule")
-			cfg.Rules[ruleID] = *customRule
+			cfg.Rules[ruleID] = *ruledefine.TwomsToGitleaksRule(customRule)
 			engine.rules[ruleID] = customRule
 		}
 	}
@@ -337,7 +344,11 @@ func (e *Engine) detectSecrets(
 	fragment.Raw += CxFileEndMarker + "\n"
 
 	values := e.detector.Detect(*fragment)
-	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
+
+	// Filter generic secrets if a better finding exists
+	filteredValues := filterGenericDuplicateFindings(values)
+
+	for _, value := range filteredValues { //nolint:gocritic // rangeValCopy: value is used immediately
 		secret, buildErr := buildSecret(ctx, item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
@@ -361,17 +372,19 @@ func (e *Engine) isFileSizeExceedingLimit(fileSize int64) bool {
 }
 
 // createCustomRegexRules creates a map of custom regex rules from the provided patterns
-func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) {
-	customRules := make(map[string]*config.Rule)
+func createCustomRegexRules(patterns []string) (map[string]*ruledefine.Rule, error) {
+	customRules := make(map[string]*ruledefine.Rule)
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
 		}
-		rule := config.Rule{
+		ruleID := fmt.Sprintf(customRegexRuleIdFormat, idx+1)
+		rule := ruledefine.Rule{
 			Description: "Custom Regex Rule From User",
-			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
-			Regex:       regex,
+			RuleID:      ruleID,
+			RuleName:    ruleID,
+			Regex:       regex.String(),
 			Keywords:    []string{},
 		}
 		customRules[rule.RuleID] = &rule
@@ -380,18 +393,18 @@ func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) 
 }
 
 // filterIgnoredRules filters out rules that should be ignored
-func filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Rule {
+func filterIgnoredRules(allRules []*ruledefine.Rule, ignoreList []string) []*ruledefine.Rule {
 	if len(ignoreList) == 0 {
 		return allRules
 	}
 
-	filtered := make([]*rules.Rule, 0, len(allRules))
+	filtered := make([]*ruledefine.Rule, 0, len(allRules))
 	for _, rule := range allRules {
 		shouldIgnore := false
 
 		// Check if this rule should be ignored (by ID or tag)
 		for _, ignoreItem := range ignoreList {
-			if strings.EqualFold(rule.Rule.RuleID, ignoreItem) {
+			if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(ignoreItem)) {
 				shouldIgnore = true
 				break
 			}
@@ -455,10 +468,10 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",
-					rule.Rule.RuleID,
-					rule.Rule.Description,
+					rule.RuleName,
+					rule.Description,
 					strings.Join(rule.Tags, ","),
-					canValidateDisplay[validation.IsCanValidateRule(rule.Rule.RuleID)],
+					canValidateDisplay[validation.IsCanValidateRule(rule.RuleID)],
 				)
 			}
 			if err := tab.Flush(); err != nil {
@@ -670,29 +683,46 @@ func (e *Engine) processSecretsWithValidation() {
 
 func (e *Engine) processSecretsExtras() {
 	for secret := range e.secretsExtrasChan {
-		extra.AddExtraToSecret(secret)
+		e.addExtrasToSecret(secret)
 	}
 }
 
-func (e *Engine) processValidationAndScoreWithValidation() {
+func (e *Engine) processEvaluationWithValidation() {
 	for secret := range e.validationChan {
 		e.registerForValidation(secret)
-		e.scorer.Score(secret)
+		e.scorer.AssignScoreAndSeverity(secret)
 	}
 	e.validator.Validate()
 }
 
-func (e *Engine) processScoreWithoutValidation() {
+func (e *Engine) processEvaluationWithoutValidation() {
 	for secret := range e.cvssScoreWithoutValidationChan {
-		e.scorer.Score(secret)
+		e.scorer.AssignScoreAndSeverity(secret)
 	}
 }
 
-func (e *Engine) processScore() {
+// processSecretsEvaluation evaluates the secret's validationStatus, Severity and CVSS score
+func (e *Engine) processSecretsEvaluation() {
 	if e.ScanConfig.WithValidation {
-		e.processValidationAndScoreWithValidation()
+		e.processEvaluationWithValidation()
 	} else {
-		e.processScoreWithoutValidation()
+		e.processEvaluationWithoutValidation()
+	}
+}
+
+func (e *Engine) addExtrasToSecret(secret *secrets.Secret) {
+	// add general extra data
+	extra.Mtxs.Lock(secret.ID)
+	secret.RuleName = e.rules[secret.RuleID].RuleName
+	secret.RuleCategory = string(e.rules[secret.RuleID].ScoreParameters.Category)
+	extra.Mtxs.Unlock(secret.ID)
+
+	// add rule specific extra data
+	if addExtra, ok := extra.RuleIDToFunction[secret.RuleID]; ok {
+		extraData := addExtra(secret)
+		if extraData != nil && extraData != "" {
+			extra.UpdateExtraField(secret, "secretDetails", extraData)
+		}
 	}
 }
 
@@ -732,7 +762,7 @@ func (e *Engine) Scan(pluginName string) {
 		e.processSecrets()
 	})
 	e.wg.Go(func() {
-		e.processScore()
+		e.processSecretsEvaluation()
 	})
 	e.wg.Go(func() {
 		e.processSecretsExtras()
@@ -743,12 +773,41 @@ func (e *Engine) Wait() {
 	e.wg.Wait()
 }
 
+func filterGenericDuplicateFindings(findings []report.Finding) []report.Finding {
+	var retFindings []report.Finding
+	for i := range findings {
+		f := &findings[i]
+		include := true
+		if strings.Contains(strings.ToLower(f.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") { // generic rule ID
+			for j := range findings {
+				fPrime := &findings[j]
+				if f.StartLine == fPrime.StartLine &&
+					f.Commit == fPrime.Commit &&
+					f.RuleID != fPrime.RuleID &&
+					strings.Contains(fPrime.Secret, f.Secret) &&
+					!strings.Contains(strings.ToLower(fPrime.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") {
+					genericMatch := strings.ReplaceAll(f.Match, f.Secret, "REDACTED")
+					betterMatch := strings.ReplaceAll(fPrime.Match, fPrime.Secret, "REDACTED")
+					logging.Trace().Msgf("skipping %s finding (%s), %s rule takes precedence (%s)", f.RuleID, genericMatch, fPrime.RuleID, betterMatch)
+					include = false
+					break
+				}
+			}
+		}
+
+		if include {
+			retFindings = append(retFindings, *f)
+		}
+	}
+	return retFindings
+}
+
 // isSecretFromConfluenceResourceIdentifier reports whether a regex match found in a line
 // actually belongs to Confluence Storage Format metadata (the `ri:` namespace) rather than
 // real user content. This lets us ignore false-positives that cannot be suppressed via the
 // generic-api-key rule allow-list.
 func isSecretFromConfluenceResourceIdentifier(secretRuleID, secretLine, secretMatch string) bool {
-	if secretRuleID != rules.GenericApiKeyID || secretLine == "" || secretMatch == "" {
+	if secretRuleID != ruledefine.GenericCredential().RuleID || secretLine == "" || secretMatch == "" {
 		return false
 	}
 

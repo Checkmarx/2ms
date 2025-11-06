@@ -1,0 +1,25 @@
+package ruledefine
+
+import (
+	"regexp"
+)
+
+var slackLegacyWorkspaceTokenRegex = regexp.MustCompile(`xox[ar]-(?:\d-)?[0-9a-zA-Z]{8,48}`).String()
+
+func SlackLegacyWorkspaceToken() *Rule {
+	return &Rule{
+		RuleID:      "1a525661-ac3b-415b-b9d6-ec147b2dd49c",
+		RuleName:    "Slack-Legacy-Workspace-Token",
+		Description: "Identified a Slack Legacy Workspace token, potentially compromising access to workspace data and legacy features.",
+		// This is by far the least confident pattern.
+		Regex:   slackLegacyWorkspaceTokenRegex,
+		Entropy: 2,
+		Keywords: []string{
+			"xoxa",
+			"xoxr",
+		},
+		Severity:        "High",
+		Tags:            []string{TagAccessToken},
+		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+	}
+}

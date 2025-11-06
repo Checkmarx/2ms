@@ -1,62 +1,76 @@
 {
-  "totalItemsScanned" : 3,
-  "totalSecretsFound" : 3,
-  "results" : {
-    "dac14c6111d3a02a23c4fc31ee4759387a7395cd" : [ {
-      "id" : "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
-      "source" : "testData/secrets/jwt.txt",
-      "ruleId" : "jwt",
-      "startLine" : 0,
-      "endLine" : 0,
-      "lineContent" : "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample\r",
-      "startColumn" : 129,
-      "endColumn" : 232,
-      "value" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
-      "ruleDescription" : "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
-      "extraDetails" : {
-        "secretDetails" : {
-          "name" : "mockName2",
-          "sub" : "mockSub2"
-        }
+  "totalItemsScanned": 3,
+  "totalSecretsFound": 3,
+  "results": {
+    "9346cf95d4513bb2861d1ecfc3e82421bd14cbd8": [
+      {
+        "id": "9346cf95d4513bb2861d1ecfc3e82421bd14cbd8",
+        "source": "testData/secrets/jwt.txt",
+        "ruleId": "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleName": "jwt",
+        "ruleCategory": "General",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample",
+        "startColumn": 13,
+        "endColumn": 116,
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
+        "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName1",
+            "sub": "mockSub1"
+          }
+        },
+        "severity": "High",
+        "cvssScore": 8.2
+      }
+    ],
+    "efc9a9ee89f1d732c7321067eb701b9656e91f15": [
+      {
+        "id": "efc9a9ee89f1d732c7321067eb701b9656e91f15",
+        "source": "testData/secrets/jwt.txt",
+        "ruleId": "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleName": "jwt",
+        "ruleCategory": "General",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample",
+        "startColumn": 129,
+        "endColumn": 232,
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+        "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName2",
+            "sub": "mockSub2"
+          }
+        },
+        "severity": "High",
+        "cvssScore": 8.2
       },
-      "cvssScore" : 8.2
-    }, {
-      "id" : "dac14c6111d3a02a23c4fc31ee4759387a7395cd",
-      "source" : "testData/secrets/jwt.txt",
-      "ruleId" : "jwt",
-      "startLine" : 1,
-      "endLine" : 1,
-      "lineContent": "           Text_Example =                                     eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
-      "startColumn" : 63,
-      "endColumn" : 166,
-      "value" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
-      "ruleDescription" : "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
-      "extraDetails" : {
-        "secretDetails" : {
-          "name" : "mockName2",
-          "sub" : "mockSub2"
-        }
-      },
-      "cvssScore" : 8.2
-    } ],
-    "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c" : [ {
-      "id" : "4b0fb9bf4c96bd11404f2a3b187acbb621d8ca0c",
-      "source" : "testData/secrets/jwt.txt",
-      "ruleId" : "jwt",
-      "startLine" : 0,
-      "endLine" : 0,
-      "lineContent" : "TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1 TextExample eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2 TextExample\r",
-      "startColumn" : 13,
-      "endColumn" : 116,
-      "value" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
-      "ruleDescription" : "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
-      "extraDetails" : {
-        "secretDetails" : {
-          "name" : "mockName1",
-          "sub" : "mockSub1"
-        }
-      },
-      "cvssScore" : 8.2
-    } ]
+      {
+        "id": "efc9a9ee89f1d732c7321067eb701b9656e91f15",
+        "source": "testData/secrets/jwt.txt",
+        "ruleId": "37dfe666-1961-48f8-b618-fa6321c216d1",
+        "ruleName": "jwt",
+        "ruleCategory": "General",
+        "startLine": 1,
+        "endLine": 1,
+        "lineContent": "           Text_Example =                                     eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+        "startColumn": 63,
+        "endColumn": 166,
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+        "ruleDescription": "Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data.",
+        "extraDetails": {
+          "secretDetails": {
+            "name": "mockName2",
+            "sub": "mockSub2"
+          }
+        },
+        "severity": "High",
+        "cvssScore": 8.2
+      }
+    ]
   }
 }
