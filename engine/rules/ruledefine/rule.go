@@ -88,30 +88,30 @@ type ScoreParameters struct {
 }
 
 type Rule struct {
-	RuleID            string          `json:"ruleId"` // uuid4, should be consistent across changes in rule
-	RuleName          string          `json:"ruleName"`
-	Description       string          `json:"description"`
-	Regex             string          `json:"regex"` // regex pattern as string
-	Keywords          []string        `json:"keywords"`
-	Entropy           float64         `json:"entropy"`
-	Path              string          `json:"path"`        // present in some gitleaks secrets (regex)
-	SecretGroup       int             `json:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	Severity          Severity        `json:"severity"`
-	OldSeverity       string          `json:"oldSeverity"` // fallback for when critical is not enabled
-	AllowLists        []*AllowList    `json:"allowLists"`
-	Tags              []string        `json:"tags"`
-	ScoreParameters   ScoreParameters `json:"scoreParameters"`   // used for ASPM
-	DisableValidation bool            `json:"disableValidation"` // if true, validation checks will be skipped for this rule if any validation is possible
-	Deprecated        bool            `json:"deprecated"`
+	RuleID            string          `json:"ruleId" yaml:"ruleId"` // uuid4, should be consistent across changes in rule
+	RuleName          string          `json:"ruleName" yaml:"ruleName"`
+	Description       string          `json:"description" yaml:"description"`
+	Regex             string          `json:"regex" yaml:"regex"` // regex pattern as string
+	Keywords          []string        `json:"keywords" yaml:"keywords"`
+	Entropy           float64         `json:"entropy" yaml:"entropy"`
+	Path              string          `json:"path" yaml:"path"`               // present in some gitleaks secrets (regex)
+	SecretGroup       int             `json:"secretGroup" yaml:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Severity          Severity        `json:"severity" yaml:"severity"`
+	OldSeverity       string          `json:"oldSeverity" yaml:"oldSeverity"` // fallback for when critical is not enabled
+	AllowLists        []*AllowList    `json:"allowLists" yaml:"allowLists"`
+	Tags              []string        `json:"tags" yaml:"tags"`
+	ScoreParameters   ScoreParameters `json:"scoreParameters" yaml:"scoreParameters"`     // used for ASPM
+	DisableValidation bool            `json:"disableValidation" yaml:"disableValidation"` // if true, validation checks will be skipped for this rule if any validation is possible
+	Deprecated        bool            `json:"deprecated" yaml:"deprecated"`
 }
 
 type AllowList struct { // For patterns that are allowed to be ignored
-	Description    string   `json:"description"`
-	MatchCondition string   `json:"matchCondition"` // determines whether all criteria must match. OR or AND
-	Paths          []string `json:"paths"`          // regex
-	RegexTarget    string   `json:"regexTarget"`    // match or line. Default match
-	Regexes        []string `json:"regexes"`
-	StopWords      []string `json:"stopWords"` // stop words that are allowed to be ignored
+	Description    string   `json:"description" yaml:"description"`
+	MatchCondition string   `json:"matchCondition" yaml:"matchCondition"` // determines whether all criteria must match. OR or AND
+	Paths          []string `json:"paths" yaml:"paths"`                   // regex
+	RegexTarget    string   `json:"regexTarget" yaml:"regexTarget"`       // match or line. Default match
+	Regexes        []string `json:"regexes" yaml:"regexes"`
+	StopWords      []string `json:"stopWords" yaml:"stopWords"` // stop words that are allowed to be ignored
 }
 
 // CheckRequiredFields checks that required fields are present in the Rule.
@@ -121,10 +121,6 @@ func (r Rule) CheckRequiredFields() []error {
 	if r.RuleID == "" || r.RuleName == "" {
 		errs = append(errs, fmt.Errorf("missing RuleID and/or RuleName. Both are required"))
 	}
-	//Check for match with default rules
-	//defaultRulesBaseIDs := getDefaultRulesBaseIDs()
-	//defaultRuleIDs := getDefaultRulesIDs()
-	//if
 
 	switch {
 	case r.Regex == "":

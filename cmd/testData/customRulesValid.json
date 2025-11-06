@@ -1,0 +1,15 @@
+[
+  {
+    "ruleId": "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+    "ruleName": "mock-rule",
+    "description": "Match passwords",
+    "regex": "[A-Za-z0-9]{32}",
+    "severity": "High"
+  },
+  {
+    "ruleId": "b47a1995-6572-41bb-b01d-d215b43ab089",
+    "ruleName": "mock-rule2",
+    "description": "Match API keys",
+    "regex": "[A-Za-z0-9]{40}"
+  }
+]

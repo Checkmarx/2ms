@@ -19,13 +19,14 @@ import (
 )
 
 var (
-	errInvalidOutputFormat    = fmt.Errorf("invalid output format")
-	errInvalidReportExtension = fmt.Errorf("invalid report extension")
-	errMissingRuleID          = fmt.Errorf("missing ruleID")
-	errMissingRuleName        = fmt.Errorf("missing ruleName")
-	errMissingRegex           = fmt.Errorf("missing regex")
-	errInvalidRegex           = fmt.Errorf("invalid regex")
-	errInvalidSeverity        = fmt.Errorf("invalid severity")
+	errInvalidOutputFormat      = fmt.Errorf("invalid output format")
+	errInvalidReportExtension   = fmt.Errorf("invalid report extension")
+	errInvalidCustomRulesFormat = fmt.Errorf("unknown file format, expected JSON or YAML")
+	errMissingRuleID            = fmt.Errorf("missing ruleID")
+	errMissingRuleName          = fmt.Errorf("missing ruleName")
+	errMissingRegex             = fmt.Errorf("missing regex")
+	errInvalidRegex             = fmt.Errorf("invalid regex")
+	errInvalidSeverity          = fmt.Errorf("invalid severity")
 )
 
 func processFlags(rootCmd *cobra.Command) error {
@@ -172,7 +173,7 @@ func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
 		if yaml.Unmarshal(data, &rules) == nil {
 			return rules, nil
 		}
-		return nil, fmt.Errorf("unknown file format, expected JSON or YAML")
+		return nil, errInvalidCustomRulesFormat
 	}
 	if err != nil {
 		return nil, err
@@ -217,7 +218,7 @@ func checkRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 
 	// Add a newline at start of error if it's not nil, for better presentation in output
 	if err != nil {
-		err = fmt.Errorf("\n%s", err.Error())
+		err = fmt.Errorf("\n%w", err)
 	}
 
 	return err

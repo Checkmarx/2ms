@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -154,6 +156,23 @@ func TestProcessFlags(t *testing.T) {
 		assert.Equal(t, []string{"rule1", "rule2", "rule3"}, engineConfigVar.IgnoreList, "IgnoreList should be preserved during flag processing")
 	})
 
+	t.Run("CustomRulesVarMapping", func(t *testing.T) {
+		// Reset global variables
+		customRegexRuleVar = []string{}
+		engineConfigVar.CustomRegexPatterns = []string{}
+
+		// Set test values
+		onlyCustomRulesVar = true
+
+		// Process flags
+		rootCmd := &cobra.Command{Use: "test"}
+		rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "")
+		processFlags(rootCmd)
+
+		// Verify mapping
+		assert.Equal(t, onlyCustomRulesVar, engineConfigVar.OnlyCustomRules, "OnlyCustomRules should be mapped to engineConfigVar.onlyCustomRulesVar")
+	})
+
 	t.Run("AllFlagMappings", func(t *testing.T) {
 		// Reset all global variables
 		customRegexRuleVar = []string{"TEST_PATTERN"}
@@ -223,7 +242,7 @@ max-target-megabytes: 10`
 	})
 }
 
-func TestConfigGile(t *testing.T) {
+func TestConfigFile(t *testing.T) {
 	t.Run("ValidConfigFile", func(t *testing.T) {
 		tempDir := t.TempDir()
 		configFile := filepath.Join(tempDir, ".2ms.yml")
@@ -271,4 +290,105 @@ stdout-format: json`
 		err = v.ReadInConfig()
 		assert.Error(t, err)
 	})
+}
+
+func TestCustomRulesFlag(t *testing.T) {
+	tests := []struct {
+		name            string
+		customRulesFile string
+		expectedRules   []*ruledefine.Rule
+		expectErrors    []error
+	}{
+		{
+			name:            "Valid json custom rules file",
+			customRulesFile: "testdata/customRulesValid.json",
+			expectedRules: []*ruledefine.Rule{
+				{
+					RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+					RuleName:    "mock-rule",
+					Description: "Match passwords",
+					Regex:       "[A-Za-z0-9]{32}",
+					Severity:    "High",
+				},
+				{
+					RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+					RuleName:    "mock-rule2",
+					Description: "Match API keys",
+					Regex:       "[A-Za-z0-9]{40}",
+				},
+			},
+			expectErrors: nil,
+		},
+		{
+			name:            "Valid yaml custom rules file",
+			customRulesFile: "testdata/customRulesValid.yaml",
+			expectedRules: []*ruledefine.Rule{
+				{
+					RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+					RuleName:    "mock-rule",
+					Description: "Match passwords",
+					Regex:       "[A-Za-z0-9]{32}",
+				},
+				{
+					RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+					RuleName:    "mock-rule2",
+					Description: "Match API keys",
+					Regex:       "[A-Za-z0-9]{40}",
+				},
+			},
+			expectErrors: nil,
+		},
+		{
+			name:            "Invalid custom rules file",
+			customRulesFile: "testData/customRulesInvalidExtension.toml",
+			expectedRules:   nil,
+			expectErrors:    []error{errInvalidCustomRulesFormat},
+		},
+		{
+			name:            "Rule name, iD, regex missing",
+			customRulesFile: "testData/customRulesMissingFields.json",
+			expectedRules:   nil,
+			expectErrors: []error{
+				fmt.Errorf("rule#0: missing ruleID"),
+				fmt.Errorf("rule#0: missing ruleName"),
+				fmt.Errorf("rule#0: missing regex"),
+			},
+		},
+		{
+			name:            "Regex and severity invalid",
+			customRulesFile: "testData/customRulesRegexSeverityInvalid.json",
+			expectedRules:   nil,
+			expectErrors: []error{
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid regex"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid severity:" +
+					" mockSeverity not one of ([Critical High Medium Low Info])"),
+			},
+		},
+		{
+			name:            "Rule id missing",
+			customRulesFile: "testData/customRulesMissingRuleIDs.json",
+			expectedRules:   nil,
+			expectErrors: []error{
+				fmt.Errorf("rule#0;RuleName-mock-rule: missing ruleID"),
+				fmt.Errorf("rule#1;RuleName-mock-rule2: missing ruleID"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			rootCmd := &cobra.Command{Use: "test"}
+			rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "")
+			rootCmd.PersistentFlags().StringVar(&customRulesPathVar, customRulesFileFlagName, tt.customRulesFile, "")
+
+			err := processFlags(rootCmd)
+			for _, expectErr := range tt.expectErrors {
+				assert.ErrorContains(t, err, expectErr.Error())
+			}
+			assert.Equal(t, tt.expectedRules, engineConfigVar.CustomRules)
+			// Reset for next test
+			engineConfigVar.CustomRules = nil
+		})
+	}
 }
