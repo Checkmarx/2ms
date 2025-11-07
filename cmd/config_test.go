@@ -156,23 +156,6 @@ func TestProcessFlags(t *testing.T) {
 		assert.Equal(t, []string{"rule1", "rule2", "rule3"}, engineConfigVar.IgnoreList, "IgnoreList should be preserved during flag processing")
 	})
 
-	t.Run("CustomRulesVarMapping", func(t *testing.T) {
-		// Reset global variables
-		customRegexRuleVar = []string{}
-		engineConfigVar.CustomRegexPatterns = []string{}
-
-		// Set test values
-		onlyCustomRulesVar = true
-
-		// Process flags
-		rootCmd := &cobra.Command{Use: "test"}
-		rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "")
-		processFlags(rootCmd)
-
-		// Verify mapping
-		assert.Equal(t, onlyCustomRulesVar, engineConfigVar.OnlyCustomRules, "OnlyCustomRules should be mapped to engineConfigVar.onlyCustomRulesVar")
-	})
-
 	t.Run("AllFlagMappings", func(t *testing.T) {
 		// Reset all global variables
 		customRegexRuleVar = []string{"TEST_PATTERN"}

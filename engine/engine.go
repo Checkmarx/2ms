@@ -133,8 +133,6 @@ type EngineConfig struct {
 
 	CustomRules []*ruledefine.Rule
 
-	OnlyCustomRules bool
-
 	ScanConfig resources.ScanConfig
 }
 
@@ -152,7 +150,7 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 
 func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, error) {
 	selectedRules := rules.FilterRules(engineConfig.SelectedList,
-		engineConfig.IgnoreList, engineConfig.SpecialList, engineConfig.CustomRules, engineConfig.OnlyCustomRules)
+		engineConfig.IgnoreList, engineConfig.SpecialList, engineConfig.CustomRules)
 
 	// Apply additional ignore rules to get final rules
 	finalRules := selectedRules
@@ -464,14 +462,14 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 		Short: "List all rules",
 		Long:  `List all rules`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rules := rules.FilterRules(engineConfig.SelectedList,
-				engineConfig.IgnoreList, engineConfig.SpecialList, engineConfig.CustomRules, engineConfig.OnlyCustomRules)
+			filteredRules := rules.FilterRules(engineConfig.SelectedList,
+				engineConfig.IgnoreList, engineConfig.SpecialList, engineConfig.CustomRules)
 
 			tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
 			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
 			fmt.Fprintln(tab, "----\t----\t----\t----")
-			for _, rule := range rules {
+			for _, rule := range filteredRules {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",

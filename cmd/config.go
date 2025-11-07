@@ -56,7 +56,6 @@ func processFlags(rootCmd *cobra.Command) error {
 		}
 		engineConfigVar.CustomRules = rules
 	}
-	engineConfigVar.OnlyCustomRules = onlyCustomRulesVar
 
 	setupLogging()
 
@@ -145,10 +144,6 @@ func setupFlags(rootCmd *cobra.Command) {
 
 	rootCmd.PersistentFlags().
 		StringVar(&customRulesPathVar, customRulesFileFlagName, "", "Path to a custom rules file (JSON or YAML). Rules should be a list of ruledefine.rule objects. --rule, --ignore-rule still apply to custom rules")
-
-	rootCmd.PersistentFlags().
-		BoolVar(&onlyCustomRulesVar, onlyCustomRulesFlagName, false, "Only apply custom rules from the provided file path, --rule, --ignore-rule and --add-special-rule flags will be ignored")
-
 }
 
 func loadRulesFile(path string) ([]*ruledefine.Rule, error) {

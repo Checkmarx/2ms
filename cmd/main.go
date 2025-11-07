@@ -32,7 +32,6 @@ const (
 	maxTargetMegabytesFlagName = "max-target-megabytes"
 	validate                   = "validate"
 	customRulesFileFlagName    = "custom-rules-path"
-	onlyCustomRulesFlagName    = "only-custom-rules"
 )
 
 var (

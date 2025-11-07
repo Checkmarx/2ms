@@ -284,7 +284,7 @@ func ignoreRules(allRules []*ruledefine.Rule, tags []string) []*ruledefine.Rule 
 }
 
 func FilterRules(selectedList, ignoreList, specialList []string,
-	customRules []*ruledefine.Rule, onlyCustomRules bool) []*ruledefine.Rule {
+	customRules []*ruledefine.Rule) []*ruledefine.Rule {
 	if len(selectedList) > 0 && len(ignoreList) > 0 {
 		log.Warn().
 			Msgf("Both 'rule' and 'ignoreRule' flags were provided, " +
@@ -292,9 +292,6 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 	}
 
 	var selectedRules []*ruledefine.Rule
-	if onlyCustomRules {
-		return addOnlyCustomRules(customRules)
-	}
 
 	selectedRules = GetDefaultRules(false)
 
@@ -338,18 +335,6 @@ func addCustomRules(selectedRules []*ruledefine.Rule, customRules []*ruledefine.
 		if !ruleMatch {
 			selectedRules = append(selectedRules, customRule)
 		}
-	}
-	return selectedRules
-}
-
-func addOnlyCustomRules(customRules []*ruledefine.Rule) []*ruledefine.Rule {
-	selectedRules := []*ruledefine.Rule{}
-	for _, customRule := range customRules {
-		// Skip deprecated custom rules
-		if customRule.Deprecated {
-			continue
-		}
-		selectedRules = append(selectedRules, customRule)
 	}
 	return selectedRules
 }

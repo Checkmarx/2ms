@@ -145,7 +145,7 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			secrets := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList, []*ruledefine.Rule{}, false)
+			secrets := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList, []*ruledefine.Rule{})
 
 			if len(secrets) != tt.expectedLen {
 				t.Errorf("expected %d rules, but got %d", tt.expectedLen, len(secrets))
@@ -176,7 +176,7 @@ func Test_CustomRules(t *testing.T) {
 		Deprecated:  true,
 	}
 
-	newCustomRule := &ruledefine.Rule{
+	customRule := &ruledefine.Rule{
 		RuleID:      "c71a9be1-f8e2-4d6d-a5e8-c98229a61140",
 		RuleName:    "Custom rule",
 		Description: "Description",
@@ -197,14 +197,15 @@ func Test_CustomRules(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                string
-		selectedList        []string
-		ignoreList          []string
-		specialList         []string
-		customRules         []*ruledefine.Rule
-		onlyCustomRules     bool
-		expectedCustomRules []*ruledefine.Rule
-		expectedLen         int
+		name                 string
+		selectedList         []string
+		ignoreList           []string
+		specialList          []string
+		customRules          []*ruledefine.Rule
+		onlyCustomRules      bool
+		expectedPresentRules []*ruledefine.Rule
+		expectedMissingRules []*ruledefine.Rule
+		expectedLen          int
 	}{
 		{
 			name:         "add custom rules to default rules",
@@ -212,10 +213,14 @@ func Test_CustomRules(t *testing.T) {
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
 			expectedLen: rulesCount + 1,
 		},
 		{
@@ -224,9 +229,13 @@ func Test_CustomRules(t *testing.T) {
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
 				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
 			},
 			expectedLen: 1,
 		},
@@ -236,9 +245,13 @@ func Test_CustomRules(t *testing.T) {
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
 				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
 			},
 			expectedLen: 1,
 		},
@@ -248,21 +261,27 @@ func Test_CustomRules(t *testing.T) {
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
 				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
 			},
 			expectedLen: 1,
 		},
 		{
 			name:         "select only custom rules with custom tag",
-			selectedList: []string{"custom"},
+			selectedList: []string{genericCredentialOverride.Tags[0]},
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
 				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
 			},
 			expectedLen: 1,
 		},
@@ -270,15 +289,18 @@ func Test_CustomRules(t *testing.T) {
 			name: "select multiple custom rules with RuleID",
 			selectedList: []string{
 				genericCredentialOverride.RuleID,
-				newCustomRule.RuleID,
+				customRule.RuleID,
 			},
 			ignoreList: []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
 			},
 			expectedLen: 2,
 		},
@@ -286,15 +308,18 @@ func Test_CustomRules(t *testing.T) {
 			name: "select multiple custom rules with RuleID and tag",
 			selectedList: []string{
 				genericCredentialOverride.RuleID,
-				"custom2",
+				customRule.Tags[0],
 			},
 			ignoreList: []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
 			},
 			expectedLen: 2,
 		},
@@ -303,16 +328,19 @@ func Test_CustomRules(t *testing.T) {
 			selectedList: []string{
 				ruledefine.CurlBasicAuth().RuleName,
 				genericCredentialOverride.RuleID,
-				"custom2",
+				customRule.Tags[0],
 			},
 			ignoreList: []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
 				ruledefine.CurlBasicAuth(),
 				genericCredentialOverride,
-				newCustomRule,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
 			},
 			expectedLen: 3,
 		},
@@ -321,16 +349,19 @@ func Test_CustomRules(t *testing.T) {
 			selectedList: []string{
 				ruledefine.CurlBasicAuth().RuleName,
 				genericCredentialOverride.RuleID,
-				"custom2",
+				customRule.Tags[0],
 			},
 			ignoreList: []string{},
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
-				newCustomRule},
-			expectedCustomRules: []*ruledefine.Rule{
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
 				ruledefine.CurlBasicAuth(),
 				genericCredentialOverride,
-				newCustomRule,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
 			},
 			expectedLen: 3,
 		},
@@ -341,8 +372,134 @@ func Test_CustomRules(t *testing.T) {
 			customRules: []*ruledefine.Rule{
 				genericCredentialOverride,
 				deprecatedGenericCredentialOverride},
-			expectedCustomRules: []*ruledefine.Rule{
+			expectedPresentRules: []*ruledefine.Rule{
 				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "ignore custom rules with ruleID",
+			selectedList: []string{},
+			ignoreList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: rulesCount - 1,
+		},
+		{
+			name:         "ignore only generic rule (default and override) by ruleID",
+			selectedList: []string{},
+			ignoreList: []string{
+				genericCredentialOverride.RuleID,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+			},
+			expectedLen: rulesCount,
+		},
+		{
+			name: "ignore custom rules with ruleID while selecting same rules by ruleID",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			ignoreList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 0,
+		},
+		{
+			name: "ignore custom rules with ruleName while selecting same rules by ruleName",
+			selectedList: []string{
+				genericCredentialOverride.RuleName,
+				customRule.RuleName,
+			},
+			ignoreList: []string{
+				genericCredentialOverride.RuleName,
+				customRule.RuleName,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 0,
+		},
+		{
+			name: "ignore custom rules with lowercase ruleName while selecting same rules by ruleName",
+			selectedList: []string{
+				strings.ToLower(genericCredentialOverride.RuleName),
+				strings.ToLower(customRule.RuleName),
+			},
+			ignoreList: []string{
+				genericCredentialOverride.RuleName,
+				customRule.RuleName,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 0,
+		},
+		{
+			name: "ignore custom rules with tags while selecting same rules by ruleID, default generic rule should be present",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			ignoreList: []string{
+				genericCredentialOverride.Tags[0],
+				customRule.Tags[0],
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
 			},
 			expectedLen: 1,
 		},
@@ -350,11 +507,15 @@ func Test_CustomRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rules := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList, tt.customRules, false)
+			rules := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList, tt.customRules)
 
 			assert.Equal(t, tt.expectedLen, len(rules))
-			for _, expectedRule := range tt.expectedCustomRules {
-				assert.Contains(t, rules, expectedRule, "expected custom rule not found")
+			for _, expectedRule := range tt.expectedPresentRules {
+				assert.Contains(t, rules, expectedRule, "can't find expected rule")
+			}
+
+			for _, expectedMissingRule := range tt.expectedMissingRules {
+				assert.NotContains(t, rules, expectedMissingRule, "found unexpected rule")
 			}
 		})
 	}

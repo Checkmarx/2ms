@@ -48,7 +48,7 @@ func newMock(ctrl *gomock.Controller) *mock {
 }
 
 func Test_Init(t *testing.T) {
-	allRules := rules.FilterRules([]string{}, []string{}, []string{}, nil, false)
+	allRules := rules.FilterRules([]string{}, []string{}, []string{}, nil)
 	specialRule := ruledefine.HardcodedPassword()
 
 	tests := []struct {
