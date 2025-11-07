@@ -293,10 +293,7 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 
 	var selectedRules []*ruledefine.Rule
 	if onlyCustomRules {
-		for _, customRule := range customRules {
-			selectedRules = append(selectedRules, customRule)
-		}
-		return selectedRules
+		return addOnlyCustomRules(customRules)
 	}
 
 	selectedRules = GetDefaultRules(false)
@@ -329,7 +326,7 @@ func addCustomRules(selectedRules []*ruledefine.Rule, customRules []*ruledefine.
 		if customRule.Deprecated {
 			continue
 		}
-		// Check if custom rule matches any existing default rule
+		// Check if custom rule matches any existing rule
 		ruleMatch := false
 		for i := range selectedRules {
 			if selectedRules[i].RuleID == customRule.RuleID {
@@ -341,6 +338,18 @@ func addCustomRules(selectedRules []*ruledefine.Rule, customRules []*ruledefine.
 		if !ruleMatch {
 			selectedRules = append(selectedRules, customRule)
 		}
+	}
+	return selectedRules
+}
+
+func addOnlyCustomRules(customRules []*ruledefine.Rule) []*ruledefine.Rule {
+	selectedRules := []*ruledefine.Rule{}
+	for _, customRule := range customRules {
+		// Skip deprecated custom rules
+		if customRule.Deprecated {
+			continue
+		}
+		selectedRules = append(selectedRules, customRule)
 	}
 	return selectedRules
 }

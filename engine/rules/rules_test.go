@@ -1,12 +1,14 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 func TestLoadAllRules(t *testing.T) {
@@ -147,6 +149,212 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 
 			if len(secrets) != tt.expectedLen {
 				t.Errorf("expected %d rules, but got %d", tt.expectedLen, len(secrets))
+			}
+		})
+	}
+}
+
+func Test_CustomRules(t *testing.T) {
+	//specialRule := ruledefine.HardcodedPassword()
+	allRules := GetDefaultRules(false)
+	rulesCount := len(allRules)
+
+	genericCredentialOverride := &ruledefine.Rule{
+		RuleID:      ruledefine.GenericCredential().RuleID,
+		RuleName:    ruledefine.GenericCredential().RuleID,
+		Description: "Custom rule for Generic API Key",
+		Regex:       "[A-Za-z0-9]{32}",
+		Tags:        []string{"custom"},
+	}
+
+	deprecatedGenericCredentialOverride := &ruledefine.Rule{
+		RuleID:      ruledefine.GenericCredential().RuleID,
+		RuleName:    ruledefine.GenericCredential().RuleID,
+		Description: "Custom rule for Generic API Key",
+		Regex:       "[A-Za-z0-9]{40}", // this regex is different to be able to distinguish with non deprecated rule
+		Tags:        []string{"custom"},
+		Deprecated:  true,
+	}
+
+	newCustomRule := &ruledefine.Rule{
+		RuleID:      "c71a9be1-f8e2-4d6d-a5e8-c98229a61140",
+		RuleName:    "Custom rule",
+		Description: "Description",
+		Regex:       "[A-Za-z0-9]{32}",
+		Keywords:    []string{"custom"},
+		Severity:    "Low",
+		Entropy:     4.0,
+		Path:        "*.go",
+		AllowLists: []*ruledefine.AllowList{
+			{
+				Regexes: []string{
+					regexp.MustCompile(`^[a-zA-Z_.-]+$`).String(),
+				},
+			},
+		},
+		Tags:            []string{"custom2"},
+		ScoreParameters: ruledefine.ScoreParameters{Category: ruledefine.CategoryGeneralOrUnknown, RuleType: 4},
+	}
+
+	tests := []struct {
+		name                string
+		selectedList        []string
+		ignoreList          []string
+		specialList         []string
+		customRules         []*ruledefine.Rule
+		onlyCustomRules     bool
+		expectedCustomRules []*ruledefine.Rule
+		expectedLen         int
+	}{
+		{
+			name:         "add custom rules to default rules",
+			selectedList: []string{},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedLen: rulesCount + 1,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleID",
+			selectedList: []string{genericCredentialOverride.RuleID},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleName",
+			selectedList: []string{genericCredentialOverride.RuleName},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleName in lowercase",
+			selectedList: []string{strings.ToLower(genericCredentialOverride.RuleName)},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "select only custom rules with custom tag",
+			selectedList: []string{"custom"},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedLen: 1,
+		},
+		{
+			name: "select multiple custom rules with RuleID",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				newCustomRule.RuleID,
+			},
+			ignoreList: []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule,
+			},
+			expectedLen: 2,
+		},
+		{
+			name: "select multiple custom rules with RuleID and tag",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				"custom2",
+			},
+			ignoreList: []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule,
+			},
+			expectedLen: 2,
+		},
+		{
+			name: "select one default + multiple custom rules with RuleID and tag",
+			selectedList: []string{
+				ruledefine.CurlBasicAuth().RuleName,
+				genericCredentialOverride.RuleID,
+				"custom2",
+			},
+			ignoreList: []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				ruledefine.CurlBasicAuth(),
+				genericCredentialOverride,
+				newCustomRule,
+			},
+			expectedLen: 3,
+		},
+		{
+			name: "select one default + multiple custom rules with RuleID and tag",
+			selectedList: []string{
+				ruledefine.CurlBasicAuth().RuleName,
+				genericCredentialOverride.RuleID,
+				"custom2",
+			},
+			ignoreList: []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				newCustomRule},
+			expectedCustomRules: []*ruledefine.Rule{
+				ruledefine.CurlBasicAuth(),
+				genericCredentialOverride,
+				newCustomRule,
+			},
+			expectedLen: 3,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleID, deprecated override present and ignored",
+			selectedList: []string{genericCredentialOverride.RuleID},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				deprecatedGenericCredentialOverride},
+			expectedCustomRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rules := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList, tt.customRules, false)
+
+			assert.Equal(t, tt.expectedLen, len(rules))
+			for _, expectedRule := range tt.expectedCustomRules {
+				assert.Contains(t, rules, expectedRule, "expected custom rule not found")
 			}
 		})
 	}
