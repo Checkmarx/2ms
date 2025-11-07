@@ -185,7 +185,7 @@ func TestSecrets(t *testing.T) {
 			ShouldFind: false,
 		},
 		{
-			Content:    "    SecretKey:\n      'NzFEUDg0Y0Jtc25sbko4VU96Q3VxM184bGkxV2xEb0twajY3ZFVybEtrcj0=',",
+			Content:    "SecretKey: \n\t\t\t              'NzFEUDg0Y0Jtc25sbko4VU96Q3VxM184bGkxV2xEb0twajY3ZFVybEtrcj0=',",
 			Name:       "Generic Api Key",
 			ShouldFind: true,
 		},
