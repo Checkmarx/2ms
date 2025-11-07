@@ -9,6 +9,7 @@ env:
   PLATFORM: "LINUX_X64"
   ENGINE: "2ms"
   CES_ENVIROMENT: "prod"
+  LOG_FILE: ${{ github.workspace }}/log.log
 
 jobs:
   ci-projects:
@@ -34,6 +35,7 @@ jobs:
           go build -ldflags "-s -w" -a -installsuffix cgo -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
+
       - name: Checkout CLI repo
         uses: actions/checkout@v4
         with:
@@ -46,23 +48,6 @@ jobs:
         run: |
           cd cli
           go build -o excutor
-
-      - name: Download projects from s3
-        run: |
-          mkdir -p "$GITHUB_WORKSPACE/zips/"
-          cd cli
-          ./excutor sources -s $GITHUB_WORKSPACE/zips/ -e $ENGINE
-          cd "$GITHUB_WORKSPACE/zips/"
-          for zip in *.zip; do
-            [ -e "$zip" ] || continue
-            echo "::add-mask::$(pwd)/$zip"
-            zip_name=$(basename "$zip" .zip)
-            unzip -oq "$zip" -d "./$zip_name"
-          done
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
 
       - name: Create Metadata File
         run: |
@@ -80,11 +65,48 @@ jobs:
             "version": "'"${ENGINE_VERSION}"'"
           }' > "$METADATA_PATH"
 
-      - name: Run Engines Executor
+          echo "" >> "$LOG_FILE"
+          echo "Metadata contents:" >> "$LOG_FILE"
+          cat "$METADATA_PATH" >> "$LOG_FILE"
+          echo "" >> "$LOG_FILE"
+
+      - name: Select Projects
         run: |
-          mkdir -p $GITHUB_WORKSPACE/results
-          ./cli/excutor run -b $GITHUB_WORKSPACE/2ms/dist/2ms -s $GITHUB_WORKSPACE/zips/ -r $GITHUB_WORKSPACE/results -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -p 1 --env $CES_ENVIROMENT
+          set -o pipefail
+          mkdir -p "$GITHUB_WORKSPACE/zips/"
+          cd cli
+          ./excutor sources -s $GITHUB_WORKSPACE/zips/ -e $ENGINE >> "$LOG_FILE" 2>&1
+
+          cd "$GITHUB_WORKSPACE/zips/"
+          for zip in *.zip; do
+            [ -e "$zip" ] || continue
+            echo "::add-mask::$(pwd)/$zip"
+            zip_name=$(basename "$zip" .zip)
+            unzip -qqo "$zip" -d "./$zip_name" >> "$LOG_FILE" 2>&1
+          done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
+
+      - name: Run Engines Executor
+        run: |
+          set -o pipefail
+          mkdir -p $GITHUB_WORKSPACE/results
+          ./cli/excutor run -b $GITHUB_WORKSPACE/2ms/dist/2ms -s $GITHUB_WORKSPACE/zips/ -r $GITHUB_WORKSPACE/results -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -p 1 --env $CES_ENVIROMENT >> "$LOG_FILE" 2>&1
+
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
+
+      - name: Upload log if fail
+        if: failure()
+        run: |
+          ./cli/excutor save-log -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -l $LOG_FILE --env $CES_ENVIROMENT > /dev/null 2>&1
+
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
+
