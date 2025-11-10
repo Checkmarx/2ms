@@ -32,7 +32,7 @@
         "endLine": 3,
         "lineContent": "client_secret=6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",
         "startColumn": 1,
-        "endColumn": 79,
+        "endColumn": 78,
         "value": "6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",
         "validationStatus": "Unknown",
         "ruleDescription": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
