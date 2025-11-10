@@ -83,8 +83,8 @@ const (
 var SeverityOrder = []Severity{Critical, High, Medium, Low, Info}
 
 type ScoreParameters struct {
-	Category RuleCategory `json:"category"`
-	RuleType uint8        `json:"ruleType"`
+	Category RuleCategory `json:"category" yaml:"category"`
+	RuleType uint8        `json:"ruleType" yaml:"ruleType"`
 }
 
 type Rule struct {
