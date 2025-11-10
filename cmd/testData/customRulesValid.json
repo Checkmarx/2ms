@@ -4,12 +4,48 @@
     "ruleName": "mock-rule",
     "description": "Match passwords",
     "regex": "[A-Za-z0-9]{32}",
-    "severity": "High"
+    "keywords": ["password", "pwd"],
+    "entropy": 3.5,
+    "path": "secrets/passwords.txt",
+    "secretGroup": 1,
+    "severity": "High",
+    "oldSeverity": "Critical",
+    "allowLists": [
+      {
+        "description": "Ignore test files",
+        "matchCondition": "OR",
+        "paths": ["test/.*"],
+        "regexTarget": "match",
+        "regexes": ["test-password", "dummy-secret"],
+        "stopWords": ["example", "sample"]
+      }
+    ],
+    "tags": ["security", "credentials"],
+    "scoreParameters": {
+      "category": "Secrets",
+      "ruleType": 2
+    },
+    "disableValidation": true,
+    "deprecated": true
   },
   {
     "ruleId": "b47a1995-6572-41bb-b01d-d215b43ab089",
     "ruleName": "mock-rule2",
     "description": "Match API keys",
-    "regex": "[A-Za-z0-9]{40}"
+    "regex": "[A-Za-z0-9]{40}",
+    "keywords": ["api", "key"],
+    "entropy": 4.0,
+    "path": "config/api_keys.yaml",
+    "secretGroup": 0,
+    "severity": "Medium",
+    "oldSeverity": "High",
+    "allowLists": [],
+    "tags": ["api", "custom"],
+    "scoreParameters": {
+      "category": "API",
+      "ruleType": 1
+    },
+    "disableValidation": false,
+    "deprecated": false
   }
 ]

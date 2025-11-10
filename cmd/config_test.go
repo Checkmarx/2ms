@@ -276,6 +276,58 @@ stdout-format: json`
 }
 
 func TestCustomRulesFlag(t *testing.T) {
+	expectedRules := []*ruledefine.Rule{
+		{
+			RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+			RuleName:    "mock-rule",
+			Description: "Match passwords",
+			Regex:       "[A-Za-z0-9]{32}",
+			Keywords:    []string{"password", "pwd"},
+			Entropy:     3.5,
+			Path:        "secrets/passwords.txt",
+			SecretGroup: 1,
+			Severity:    "High",
+			OldSeverity: "Critical",
+			AllowLists: []*ruledefine.AllowList{
+				{
+					Description:    "Ignore test files",
+					MatchCondition: "OR",
+					Paths:          []string{"test/.*"},
+					RegexTarget:    "match",
+					Regexes:        []string{"test-password", "dummy-secret"},
+					StopWords:      []string{"example", "sample"},
+				},
+			},
+			Tags: []string{"security", "credentials"},
+			ScoreParameters: ruledefine.ScoreParameters{
+				Category: "Secrets",
+				RuleType: 2,
+			},
+			DisableValidation: true,
+			Deprecated:        true,
+		},
+		{
+			RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+			RuleName:    "mock-rule2",
+			Description: "Match API keys",
+			Regex:       "[A-Za-z0-9]{40}",
+			Keywords:    []string{"api", "key"},
+			Entropy:     4.0,
+			Path:        "config/api_keys.yaml",
+			SecretGroup: 0,
+			Severity:    "Medium",
+			OldSeverity: "High",
+			AllowLists:  []*ruledefine.AllowList{},
+			Tags:        []string{"api", "custom"},
+			ScoreParameters: ruledefine.ScoreParameters{
+				Category: "API",
+				RuleType: 1,
+			},
+			DisableValidation: false,
+			Deprecated:        false,
+		},
+	}
+
 	tests := []struct {
 		name            string
 		customRulesFile string
@@ -285,41 +337,14 @@ func TestCustomRulesFlag(t *testing.T) {
 		{
 			name:            "Valid json custom rules file",
 			customRulesFile: "testdata/customRulesValid.json",
-			expectedRules: []*ruledefine.Rule{
-				{
-					RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
-					RuleName:    "mock-rule",
-					Description: "Match passwords",
-					Regex:       "[A-Za-z0-9]{32}",
-					Severity:    "High",
-				},
-				{
-					RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
-					RuleName:    "mock-rule2",
-					Description: "Match API keys",
-					Regex:       "[A-Za-z0-9]{40}",
-				},
-			},
-			expectErrors: nil,
+			expectedRules:   expectedRules,
+			expectErrors:    nil,
 		},
 		{
 			name:            "Valid yaml custom rules file",
 			customRulesFile: "testdata/customRulesValid.yaml",
-			expectedRules: []*ruledefine.Rule{
-				{
-					RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
-					RuleName:    "mock-rule",
-					Description: "Match passwords",
-					Regex:       "[A-Za-z0-9]{32}",
-				},
-				{
-					RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
-					RuleName:    "mock-rule2",
-					Description: "Match API keys",
-					Regex:       "[A-Za-z0-9]{40}",
-				},
-			},
-			expectErrors: nil,
+			expectedRules:   expectedRules,
+			expectErrors:    nil,
 		},
 		{
 			name:            "Invalid custom rules file",
