@@ -10,7 +10,7 @@ import (
 
 // This script was used to generate remediations for rules based on their names
 func main() {
-	defaultRules := rules.GetDefaultRules()
+	defaultRules := rules.GetDefaultRules(false)
 	if len(defaultRules) == 0 {
 		fmt.Println("No rules loaded — check your import path.")
 		return
