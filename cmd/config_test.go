@@ -323,7 +323,7 @@ func TestCustomRulesFlag(t *testing.T) {
 		},
 		{
 			name:            "Invalid custom rules file",
-			customRulesFile: "testData/customRulesInvalidExtension.toml",
+			customRulesFile: "testData/customRulesInvalidFormat.toml",
 			expectedRules:   nil,
 			expectErrors:    []error{errInvalidCustomRulesFormat},
 		},
