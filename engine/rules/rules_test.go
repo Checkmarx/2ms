@@ -503,6 +503,33 @@ func Test_CustomRules(t *testing.T) {
 			},
 			expectedLen: 1,
 		},
+		{
+			name: "ignore custom rules with ruleID while selecting same rules by ruleID, include special rule",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			ignoreList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			specialList: []string{
+				ruledefine.HardcodedPassword().RuleName,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				ruledefine.HardcodedPassword(),
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 1,
+		},
 	}
 
 	for _, tt := range tests {

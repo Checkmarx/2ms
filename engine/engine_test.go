@@ -75,7 +75,7 @@ func Test_Init(t *testing.T) {
 			expectedErr: ErrNoRulesSelected,
 		},
 		{
-			name: "exiting special rule",
+			name: "existing special rule",
 			engineConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},

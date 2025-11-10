@@ -295,14 +295,17 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 
 	selectedRules = GetDefaultRules(false)
 
-	selectedRules = addCustomRules(selectedRules, customRules)
-
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
+		customRules = selectRules(customRules, selectedList)
 	}
 	if len(ignoreList) > 0 {
 		selectedRules = ignoreRules(selectedRules, ignoreList)
+		customRules = ignoreRules(customRules, ignoreList)
 	}
+
+	selectedRules = addCustomRules(selectedRules, customRules)
+
 	if len(specialList) > 0 {
 		specialRules := getSpecialRules()
 		for _, rule := range specialRules {

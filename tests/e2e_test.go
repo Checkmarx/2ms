@@ -148,24 +148,42 @@ func TestSecretsScans(t *testing.T) {
 	tests := []struct {
 		Name               string
 		ScanTarget         string
+		Args               []string
 		TargetPath         string
 		ExpectedReportPath string
 	}{
 		{
-			Name:               "secret at end without newline",
-			ScanTarget:         "filesystem",
-			TargetPath:         "testData/input/secret_at_end.txt",
+			Name:       "secret at end without newline",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/secret_at_end.txt",
+				"--ignore-on-exit",
+				"results",
+			},
 			ExpectedReportPath: "testData/expectedReport/secret_at_end_report.json",
 		},
 		{
-			Name:               "multi line secret ",
-			ScanTarget:         "filesystem",
+			Name:       "multi line secret ",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/multi_line_secret.txt",
+				"--ignore-on-exit",
+				"results",
+			},
 			TargetPath:         "testData/input/multi_line_secret.txt",
 			ExpectedReportPath: "testData/expectedReport/multi_line_secret_report.json",
 		},
 		{
-			Name:               "secret at end with newline ",
-			ScanTarget:         "filesystem",
+			Name:       "secret at end with newline ",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/secret_at_end_with_newline.txt",
+				"--ignore-on-exit",
+				"results",
+			},
 			TargetPath:         "testData/input/secret_at_end_with_newline.txt",
 			ExpectedReportPath: "testData/expectedReport/secret_at_end_with_newline_report.json",
 		},
@@ -173,19 +191,16 @@ func TestSecretsScans(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			executable, err := createCLI(t.TempDir())
-			require.NoError(t, err)
-
-			args := []string{tc.ScanTarget}
-			if tc.ScanTarget == "filesystem" {
-				args = append(args, "--path", tc.TargetPath)
-			} else {
-				args = append(args, tc.TargetPath)
+			executable := cli{
+				executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
+				resultsPath: path.Join(t.TempDir(), "results.json"),
 			}
-			args = append(args, "--ignore-on-exit", "results")
 
-			if err := executable.run(args[0], args[1:]...); err != nil {
-				t.Fatalf("error running scan with args: %v, got: %v", args, err)
+			//executable, err := createCLI(t.TempDir())
+			//require.NoError(t, err)
+
+			if err := executable.run(tc.ScanTarget, tc.Args...); err != nil {
+				t.Fatalf("error running scan with args: %v, got: %v", tc.Args, err)
 			}
 
 			actualReport, err := executable.getReport()
