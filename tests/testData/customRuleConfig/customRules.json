@@ -11,7 +11,7 @@
     "ruleId": "b47a1995-6572-41bb-b01d-d215b43ab089",
     "ruleName": "Generic-Api-Key-completely-new",
     "description": "Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run",
-    "regex": "[A-Za-z0-9]{40}",
+    "regex": "(?i)[\\w.-]{0,50}?(?:access|auth|(?-i:[Aa]pi|API)|credential|creds|key|passw(?:or)?d|secret|token)(?:[0-9a-z\\-_\\t .]{0,20})(?:<\\/key>\\s{0,10}<string)?(?:[\\s|']|[\\s|\"]){0,3}(?:=|>|:{1,3}=|\\|\\||:|=>|\\?=|,)[\\x60'\"\\s=]{0,5}([\\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3})(?:['|\\\"|\\n|\\r|\\s|\\x60|;]|\\\\n|\\\\r|$|\\s{0,10}<\\/string>)",
     "severity": "Low",
     "Tags": ["custom"]
   },
@@ -22,5 +22,14 @@
     "regex": "very_secret_value",
     "severity": "Low",
     "Tags": ["custom"]
+  },
+  {
+    "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+    "ruleName": "Github-Pat",
+    "description": "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
+    "regex": "ghp_[0-9a-zA-Z]{36}",
+    "severity": "High",
+    "Tags": ["custom", "override"],
+    "disableValidation": true
   }
 ]

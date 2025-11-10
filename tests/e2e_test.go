@@ -187,17 +187,32 @@ func TestSecretsScans(t *testing.T) {
 			TargetPath:         "testData/input/secret_at_end_with_newline.txt",
 			ExpectedReportPath: "testData/expectedReport/secret_at_end_with_newline_report.json",
 		},
+		{
+			Name:       "run all default + custom rules in json",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/secret_at_end_with_newline.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.json",
+				"--ignore-on-exit",
+				"results",
+			},
+			TargetPath:         "testData/input/custom_rules_secrets.txt",
+			ExpectedReportPath: "testData/expectedReport/secret_at_end_with_newline_report.json",
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			//executable := cli{
-			//	executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
-			//	resultsPath: path.Join(t.TempDir(), "results.json"),
-			//}
+			executable := cli{
+				executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
+				resultsPath: path.Join(t.TempDir(), "results.json"),
+			}
 
-			executable, err := createCLI(t.TempDir())
-			require.NoError(t, err)
+			//executable, err := createCLI(t.TempDir())
+			//require.NoError(t, err)
 
 			if err := executable.run(tc.ScanTarget, tc.Args...); err != nil {
 				t.Fatalf("error running scan with args: %v, got: %v", tc.Args, err)
