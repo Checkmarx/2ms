@@ -172,7 +172,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/multi_line_secret.txt",
 			ExpectedReportPath: "testData/expectedReport/multi_line_secret_report.json",
 		},
 		{
@@ -184,7 +183,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/secret_at_end_with_newline.txt",
 			ExpectedReportPath: "testData/expectedReport/secret_at_end_with_newline_report.json",
 		},
 		{
@@ -199,7 +197,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/custom_rules_secrets.txt",
 			ExpectedReportPath: "testData/expectedReport/customRules/default_plus_all_custom_rules.json",
 		},
 		{
@@ -214,7 +211,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/custom_rules_secrets.txt",
 			ExpectedReportPath: "testData/expectedReport/customRules/default_plus_all_custom_rules.json",
 		},
 		{
@@ -231,7 +227,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/custom_rules_secrets.txt",
 			ExpectedReportPath: "testData/expectedReport/customRules/only_custom_rules.json",
 		},
 		{
@@ -248,7 +243,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/custom_rules_secrets.txt",
 			ExpectedReportPath: "testData/expectedReport/customRules/only_override_rules.json",
 		},
 		{
@@ -265,7 +259,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/custom_rules_secrets.txt",
 			ExpectedReportPath: "testData/expectedReport/customRules/default_plus_non_override_rules.json",
 		},
 		{
@@ -284,7 +277,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/custom_rules_secrets.txt",
 			ExpectedReportPath: "testData/expectedReport/customRules/only_custom_no_override_rules.json",
 		},
 		{
@@ -301,7 +293,6 @@ func TestSecretsScans(t *testing.T) {
 				"--ignore-on-exit",
 				"results",
 			},
-			TargetPath:         "testData/input/custom_rules_secrets.txt",
 			ExpectedReportPath: "testData/expectedReport/customRules/only_default_ignore_custom_rules.json",
 		},
 	}
