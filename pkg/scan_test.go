@@ -9,6 +9,7 @@ import (
 
 	"github.com/checkmarx/2ms/v4/engine"
 	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/lib/reporting"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
@@ -20,6 +21,7 @@ import (
 const (
 	githubPatPath                           = "testData/secrets/github-pat.txt"
 	jwtPath                                 = "testData/secrets/jwt.txt"
+	genericKeysPath                         = "testData/secrets/generic-api-keys.txt"
 	expectedReportPath                      = "testData/expectedReport.json"
 	expectedReportWithValidationPath        = "testData/expectedReportWithValidation.json"
 	expectedReportResultsIgnoredResultsPath = "testData/expectedReportWithIgnoredResults.json"
@@ -28,6 +30,68 @@ const (
 
 // Flag to update expected output files instead of comparing against them
 var updateExpected = flag.Bool("update-test-data", false, "Update expected test output files instead of comparing against them")
+
+// Rules to be used to test custom rules. Rules will be selected and ignored depending on the test case
+var customRules = []*ruledefine.Rule{
+	{
+		RuleID:      "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
+		RuleName:    "Generic-Api-Key-Custom",
+		Description: "Custom Generic Api Key override, should override the default one (very specific regex just for testing purposes)",
+		Regex:       `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
+		Severity:    "Medium",
+		Tags:        []string{"custom", "override"},
+		ScoreParameters: ruledefine.ScoreParameters{
+			Category: "General",
+			RuleType: 4,
+		},
+	},
+	{
+		RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+		RuleName:    "Generic-Api-Key-Completely-New",
+		Description: "Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run",
+		Regex:       `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
+		Severity:    "Low",
+		Tags:        []string{"custom"},
+		ScoreParameters: ruledefine.ScoreParameters{
+			Category: "General",
+			RuleType: 4,
+		},
+	},
+	{
+		RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+		RuleName:    "Deprecated-Generic-Api-Key-Completely-New",
+		Description: "Deprecated Custom Generic Api key with different ruleId, should be ignored regardless of --rule and --ignore-rule flags",
+		Regex:       `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
+		Severity:    "Low",
+		Tags:        []string{"custom"},
+		Deprecated:  true,
+	},
+	{
+		RuleID:      "16be2682-51ee-44f5-82dc-695f4d1eda45",
+		RuleName:    "Mock-Custom-Rule",
+		Description: "Rule that checks for a very specific string",
+		Regex:       `very_secret_value`,
+		Severity:    "Low",
+		Tags:        []string{"custom"},
+		ScoreParameters: ruledefine.ScoreParameters{
+			Category: "General",
+			RuleType: 4,
+		},
+	},
+	{
+		RuleID:            "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+		RuleName:          "Github-Pat",
+		Description:       "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
+		Regex:             `ghp_[0-9a-zA-Z]{36}`,
+		Severity:          "Low",
+		Tags:              []string{"custom", "override"},
+		DisableValidation: true,
+		ScoreParameters: ruledefine.ScoreParameters{
+			Category: "Development Platform",
+			RuleType: 4,
+		},
+	},
+}
 
 func TestScan(t *testing.T) {
 	t.Run("Successful Scan with Multiple Items", func(t *testing.T) {
@@ -324,6 +388,85 @@ func TestScan(t *testing.T) {
 
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
+}
+
+func TestScanWithCustomRules(t *testing.T) {
+	githubPatBytes, err := os.ReadFile(githubPatPath)
+	assert.NoError(t, err, "failed to read github-pat file")
+	githubPatContent := string(githubPatBytes)
+
+	jwtBytes, err := os.ReadFile(jwtPath)
+	assert.NoError(t, err, "failed to read jwt file")
+	jwtContent := string(jwtBytes)
+
+	genericKeyBytes, err := os.ReadFile(genericKeysPath)
+	assert.NoError(t, err, "failed to read jwt file")
+	genericKeysContent := string(genericKeyBytes)
+
+	emptyContent := ""
+	emptyMockPath := "mockPath"
+
+	scanItems := []ScanItem{
+		{
+			Content: &githubPatContent,
+			ID:      fmt.Sprintf("mock-%s", githubPatPath),
+			Source:  githubPatPath,
+		},
+		{
+			Content: &emptyContent,
+			ID:      fmt.Sprintf("mock-%s", emptyMockPath),
+			Source:  emptyMockPath,
+		},
+		{
+			Content: &jwtContent,
+			ID:      fmt.Sprintf("mock-%s", jwtPath),
+			Source:  jwtPath,
+		},
+		{
+			Content: &genericKeysContent,
+			ID:      fmt.Sprintf("mock-%s", genericKeysPath),
+			Source:  genericKeysPath,
+		},
+	}
+
+	tests := []struct {
+		Name               string
+		ScanTarget         string
+		ScanConfig         resources.ScanConfig
+		ScanItems          []ScanItem
+		ExpectedReportPath string
+	}{
+		{},
+	}
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			testScanner := NewScanner()
+			actualReport, err := testScanner.Scan(tc.ScanItems, tc.ScanConfig)
+
+			assert.NoError(t, err, "scanner encountered an error")
+
+			expectedReportBytes, err := os.ReadFile(tc.ExpectedReportPath)
+			assert.NoError(t, err, "failed to read expected report file")
+
+			var expectedReport, actualReportMap map[string]interface{}
+
+			err = json.Unmarshal(expectedReportBytes, &expectedReport)
+			assert.NoError(t, err, "failed to unmarshal expected report JSON")
+
+			actualReportBytes, err := json.Marshal(actualReport)
+			assert.NoError(t, err, "failed to marshal actual report to JSON")
+			err = json.Unmarshal(actualReportBytes, &actualReportMap)
+			assert.NoError(t, err, "failed to unmarshal actual report JSON")
+
+			normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
+			assert.NoError(t, err, "Failed to normalize actual report")
+
+			normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
+			assert.NoError(t, err, "Failed to normalize actual report")
+
+			assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+		})
+	}
 }
 
 func TestScanDynamic(t *testing.T) {
