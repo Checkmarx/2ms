@@ -19,8 +19,16 @@ const (
 )
 
 var (
-	ErrUnsupportedTokenType = errors.New("unsupported token type")
-	ErrEmptyCloudID         = errors.New("empty cloudID")
+	// ErrBaseURLInvalidOrUnreachable is returned when the base URL/host/service is invalid or unreachable.
+	ErrBaseURLInvalidOrUnreachable = errors.New("base url invalid or service unreachable")
+
+	// ErrBadCredentials indicates token is invalid/expired or username does not match the token.
+	ErrBadCredentials = errors.New("bad credentials")
+
+	// ErrMissingScopes indicates the token is valid but missing required scopes.
+	ErrMissingScopes = errors.New("token missing required scopes")
+
+	// ErrUnexpectedHTTPStatus is used for other non-2xx statuses not classified above.
 	ErrUnexpectedHTTPStatus = errors.New("unexpected http status")
 )
 
@@ -46,17 +54,23 @@ type httpConfluenceClient struct {
 	apiBase     string
 }
 
-// NewConfluenceClient constructs a ConfluenceClient for the given base wiki URL
-// (e.g., https://<company id>.atlassian.net/wiki). If username and token are
-// non-empty, requests use HTTP Basic Auth.
-func NewConfluenceClient(baseWikiURL, username string, tokenType TokenType, tokenValue string) (ConfluenceClient, error) {
+// NewConfluenceClient constructs a ConfluenceClient for the given base input URL.
+// Behavior:
+//   - Normalizes base wiki URL to "https://{host}/wiki".
+//   - Discovers cloudId and always uses platform v2:
+//     "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
+func NewConfluenceClient(inputBaseURL, username, token string) (ConfluenceClient, error) {
+	baseWikiURL, err := normalizeWikiBase(inputBaseURL)
+	if err != nil {
+		return nil, err
+	}
 	c := &httpConfluenceClient{
-		baseWikiURL: strings.TrimRight(baseWikiURL, "/"),
+		baseWikiURL: baseWikiURL,
 		httpClient:  &http.Client{Timeout: httpTimeout},
 		username:    username,
-		token:       tokenValue,
+		token:       token,
 	}
-	apiBase, err := c.buildAPIBase(context.Background(), tokenType)
+	apiBase, err := c.buildAPIBase(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -65,45 +79,49 @@ func NewConfluenceClient(baseWikiURL, username string, tokenType TokenType, toke
 }
 
 // WikiBaseURL returns the base Confluence wiki URL configured for this client.
+// Example: "https://tenant.atlassian.net/wiki".
 func (c *httpConfluenceClient) WikiBaseURL() string { return c.baseWikiURL }
 
-// buildAPIBase returns the REST v2 base URL to use for this client.
-// For api-token (or no) tokens it builds "<wikiBase>/api/v2".
-// For scoped tokens it discovers the site's cloudId and builds
-// "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
-func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType TokenType) (string, error) {
-	switch tokenType {
-	case "", ApiToken:
-		u, err := url.Parse(c.baseWikiURL)
-		if err != nil {
-			return "", fmt.Errorf("parse base wiki url: %w", err)
-		}
-		u.Path = path.Join(u.Path, "api", "v2")
-		return strings.TrimRight(u.String(), "/"), nil
-
-	case ScopedApiToken:
-		cloudID, err := c.discoverCloudID(ctx)
-		if err != nil {
-			return "", err
-		}
-		u, _ := url.Parse("https://api.atlassian.com")
-		u.Path = path.Join("/ex/confluence", cloudID, "wiki", "api", "v2")
-		return strings.TrimRight(u.String(), "/"), nil
-
-	default:
-		return "", fmt.Errorf("%w %q", ErrUnsupportedTokenType, tokenType)
+// normalizeWikiBase takes any Confluence-related URL (site root, /wiki, a page URL, etc.)
+// and returns "https://{host}/wiki".
+func normalizeWikiBase(inputURL string) (string, error) {
+	parsedURL, err := url.Parse(strings.TrimSpace(inputURL))
+	if err != nil {
+		return "", fmt.Errorf("parse base url: %w", err)
 	}
+	if parsedURL.Host == "" {
+		return "", fmt.Errorf("invalid url: missing host")
+	}
+	// force https and canonical wiki root
+	parsedURL.Scheme = "https"
+	parsedURL.User = nil
+	parsedURL.RawQuery = ""
+	parsedURL.Fragment = ""
+	parsedURL.Path = "/wiki"
+	return strings.TrimRight(parsedURL.String(), "/"), nil
+}
+
+// buildAPIBase discovers the site's cloudId and builds the platform v2 base:
+// "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
+func (c *httpConfluenceClient) buildAPIBase(ctx context.Context) (string, error) {
+	cloudID, err := c.discoverCloudID(ctx)
+	if err != nil {
+		return "", err
+	}
+	u, _ := url.Parse("https://api.atlassian.com")
+	u.Path = path.Join("/ex/confluence", cloudID, "wiki", "api", "v2")
+	return strings.TrimRight(u.String(), "/"), nil
 }
 
 // discoverCloudID resolves the Atlassian cloudId for baseWikiURL by calling
-// "https://<site>/_edge/tenant_info" and decoding {"cloudId": "..."}.
-// Used when constructing the v2 API base for scoped api tokens.
+// "https://{host}/_edge/tenant_info" and decoding {"cloudId": "..."}.
+// If cloudId cannot be obtained, the base URL is considered invalid/unavailable.
 func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, error) {
 	site, err := url.Parse(c.baseWikiURL)
 	if err != nil {
 		return "", fmt.Errorf("parse base url: %w", err)
 	}
-	site.RawQuery, site.Fragment = "", ""
+	site.RawQuery, site.Fragment, site.User = "", "", nil
 	site.Scheme = "https"
 	site.Path = "/_edge/tenant_info"
 
@@ -113,23 +131,25 @@ func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, err
 	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("tenant_info request: %w", err)
+		return "", ErrBaseURLInvalidOrUnreachable
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return "", fmt.Errorf("tenant_info: %w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(b)))
+		// Any non-200 here indicates the host/service isn't a valid Confluence wiki endpoint
+		// or is unavailable to us.
+		_, _ = io.ReadAll(io.LimitReader(resp.Body, 2048)) // drain for completeness
+		return "", ErrBaseURLInvalidOrUnreachable
 	}
 
 	var tmp struct {
 		CloudID string `json:"cloudId"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&tmp); err != nil {
-		return "", fmt.Errorf("decode tenant_info: %w", err)
+		return "", ErrBaseURLInvalidOrUnreachable
 	}
 	if tmp.CloudID == "" {
-		return "", fmt.Errorf("tenant_info: %w", ErrEmptyCloudID)
+		return "", ErrBaseURLInvalidOrUnreachable
 	}
 	return tmp.CloudID, nil
 }
@@ -218,9 +238,9 @@ func (c *httpConfluenceClient) WalkSpacesByKeys(ctx context.Context, spaceKeys [
 	)
 }
 
-// Generic pager
-// Fetches items from initialURL, applies parse, calls visit for each item,
-// and advances using resolveNext until there is no next page.
+// walkPaginated is a generic pager.
+// It fetches items from initial URL, applies parse, calls visit for each item,
+// then advances using resolveNext until there is no next page.
 func walkPaginated[T any](
 	ctx context.Context,
 	apiURL *url.URL,
@@ -236,18 +256,15 @@ func walkPaginated[T any](
 		if err != nil {
 			return err
 		}
-
 		items, linkNext, bodyNext, err := parse(headers, body)
 		if err != nil {
 			return err
 		}
-
 		for _, it := range items {
 			if err := visit(it); err != nil {
 				return err
 			}
 		}
-
 		rawNext := linkNext
 		if rawNext == "" {
 			rawNext = bodyNext
@@ -255,7 +272,6 @@ func walkPaginated[T any](
 		if rawNext == "" {
 			return nil
 		}
-
 		cur := cursorFromURL(rawNext)
 		if cur == "" {
 			return nil
@@ -281,7 +297,6 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 		if err != nil {
 			return err
 		}
-
 		// Prefer Link header; body may also include _links.next.
 		linkNext := nextURLFromLinkHeader(headers)
 		bodyNext, decodeErr := streamPagesFromBody(rc, visit)
@@ -292,7 +307,6 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 		if closeErr != nil {
 			return closeErr
 		}
-
 		// Extract only the cursor and rebuild the next URL from our base.
 		cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
 		if cur == "" {
@@ -302,7 +316,7 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 	}
 }
 
-// apiURL joins the relative API path to the base wiki URL or the platform host,
+// apiURL joins the relative API path to the platform base,
 // producing a URL rooted at .../api/v2/<relative>.
 func (c *httpConfluenceClient) apiURL(relativePath string) *url.URL {
 	parsedURL, _ := url.Parse(c.apiBase)
@@ -312,8 +326,7 @@ func (c *httpConfluenceClient) apiURL(relativePath string) *url.URL {
 
 // getJSON performs a GET request and returns the response body and headers.
 // It sets Accept: application/json and uses Basic Auth when credentials were
-// provided. Non-2xx responses return an error with a short body snippet.
-// HTTP 429 includes a human-friendly message derived from Retry-After.
+// provided. Non-2xx responses are classified into sentinel errors when possible.
 func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]byte, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, http.NoBody)
 	if err != nil {
@@ -334,8 +347,16 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 		return nil, nil, fmt.Errorf("%s", rateLimitMessage(resp.Header))
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
-		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(snippet)))
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
+		if resp.StatusCode == http.StatusUnauthorized {
+			switch classifyAuth401(bodyBytes) {
+			case "missing-scopes":
+				return nil, nil, ErrMissingScopes
+			default:
+				return nil, nil, fmt.Errorf("%w: invalid username or token", ErrBadCredentials)
+			}
+		}
+		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(bodyBytes)))
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -347,7 +368,7 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 
 // getJSONStream performs a GET request and returns the response Body (caller must Close)
 // and headers, allowing streaming decode without buffering the entire payload.
-// HTTP errors are handled similarly to getJSON.
+// Non-2xx responses are classified into sentinel errors when possible.
 func (c *httpConfluenceClient) getJSONStream(ctx context.Context, reqURL string) (io.ReadCloser, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, http.NoBody)
 	if err != nil {
@@ -369,12 +390,34 @@ func (c *httpConfluenceClient) getJSONStream(ctx context.Context, reqURL string)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		defer resp.Body.Close()
-		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
-		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(snippet)))
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
+		if resp.StatusCode == http.StatusUnauthorized {
+			switch classifyAuth401(bodyBytes) {
+			case "missing-scopes":
+				return nil, nil, ErrMissingScopes
+			default:
+				return nil, nil, fmt.Errorf("%w: invalid username or token", ErrBadCredentials)
+			}
+		}
+		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(bodyBytes)))
 	}
 
 	// Caller must Close.
 	return resp.Body, resp.Header.Clone(), nil
+}
+
+// classifyAuth401 inspects a 401 JSON body to distinguish missing scopes vs generic unauthorized.
+func classifyAuth401(body []byte) string {
+	var payload struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	_ = json.Unmarshal(body, &payload)
+	msg := strings.ToLower(strings.TrimSpace(payload.Message))
+	if strings.Contains(msg, "scope does not match") {
+		return "missing-scopes"
+	}
+	return "bad-credentials"
 }
 
 // rateLimitMessage formats a user-friendly message for HTTP 429 responses,
@@ -405,7 +448,7 @@ type PageBody struct {
 	} `json:"storage,omitempty"`
 }
 
-// Page represents a Confluence page
+// Page represents a Confluence page.
 type Page struct {
 	ID      string            `json:"id"`
 	Status  string            `json:"status"`
@@ -417,7 +460,7 @@ type Page struct {
 	Version PageVersion       `json:"version"`
 }
 
-// Space represents a Confluence space
+// Space represents a Confluence space.
 type Space struct {
 	ID    string            `json:"id"`
 	Key   string            `json:"key"`
@@ -463,12 +506,10 @@ func parseVersionsResponse(headers http.Header, body []byte) ([]int, string, str
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return nil, "", "", fmt.Errorf("decode versions: %w", err)
 	}
-
 	versionNumbers := make([]int, 0, len(payload.Results))
 	for _, entry := range payload.Results {
 		versionNumbers = append(versionNumbers, entry.Number)
 	}
-
 	linkNext := nextURLFromLinkHeader(headers)
 	bodyNext := ""
 	if payload.Links != nil {

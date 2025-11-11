@@ -21,13 +21,12 @@ var (
 
 // CLI flags for Confluence.
 const (
-	flagSpaceIDs   = "space-ids"
-	flagSpaceKeys  = "space-keys"
-	flagPageIDs    = "page-ids"
-	flagUsername   = "username"
-	flagTokenType  = "token-type"  // "api-token" or "scoped-api-token"
-	flagTokenValue = "token-value" // required when token-type is set
-	flagHistory    = "history"
+	flagSpaceIDs  = "space-ids"
+	flagSpaceKeys = "space-keys"
+	flagPageIDs   = "page-ids"
+	flagUsername  = "username"
+	flagToken     = "token"
+	flagHistory   = "history"
 )
 
 // Confluence Cloud REST API v2 per-request limits (server caps by endpoint/param).
@@ -49,13 +48,6 @@ const (
 	maxPageSize = 250
 )
 
-type TokenType string
-
-const (
-	ApiToken       TokenType = "api-token"
-	ScopedApiToken TokenType = "scoped-api-token" //nolint:gosec // constant label, not a credential
-)
-
 type ConfluencePlugin struct {
 	Plugin
 
@@ -71,21 +63,23 @@ type ConfluencePlugin struct {
 	chunker chunk.IChunk
 }
 
+// NewConfluencePlugin constructs a new Confluence plugin with a default chunker.
 func NewConfluencePlugin() IPlugin {
 	return &ConfluencePlugin{
 		chunker: chunk.New(),
 	}
 }
 
+// GetName returns the CLI subcommand name for this plugin.
 func (p *ConfluencePlugin) GetName() string { return "confluence" }
 
+// DefineCommand wires the Cobra command, flags, and pre-run initialization.
 func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error) (*cobra.Command, error) {
 	p.itemsChan = items
 	p.errorsChan = errs
 
 	var username string
-	var tokenType TokenType
-	var tokenValue string
+	var token string
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s <URL>", p.GetName()),
@@ -94,26 +88,15 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 		Example: fmt.Sprintf("  2ms %s https://checkmarx.atlassian.net/wiki", p.GetName()),
 		Args:    cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			tokenType = TokenType(strings.ToLower(string(tokenType)))
-			if tokenValue != "" && tokenType == "" {
-				return fmt.Errorf("--%s must be set when --%s is provided", flagTokenType, flagTokenValue)
-			}
-			if !isValidTokenType(tokenType) {
-				return fmt.Errorf("invalid --%s %q; valid values are %q or %q",
-					flagTokenType, tokenType, ApiToken, ScopedApiToken)
-			}
-			if tokenType != "" && tokenValue == "" {
-				return fmt.Errorf("--%s requires --%s", flagTokenType, flagTokenValue)
-			}
-			if err := p.initialize(args[0], username, tokenType, tokenValue); err != nil {
+			if err := p.initialize(args[0], username, token); err != nil {
 				return err
 			}
-			if username == "" || tokenValue == "" {
+			if username == "" || token == "" {
 				log.Warn().Msg("Confluence credentials not provided. The scan will run anonymously (public pages only).")
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			log.Info().Msg("Confluence plugin started")
 			if err := p.walkAndEmitPages(context.Background()); err != nil {
 				p.errorsChan <- err
@@ -128,8 +111,7 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	flags.StringSliceVar(&p.SpaceKeys, flagSpaceKeys, []string{}, "Comma-separated list of Confluence space keys to scan.")
 	flags.StringSliceVar(&p.PageIDs, flagPageIDs, []string{}, "Comma-separated list of Confluence page IDs to scan.")
 	flags.StringVar(&username, flagUsername, "", "Confluence user name or email for authentication.")
-	flags.StringVar((*string)(&tokenType), flagTokenType, "", `Token type: "api-token" or "scoped-api-token".`)
-	flags.StringVar(&tokenValue, flagTokenValue, "", "Token value.")
+	flags.StringVar(&token, flagToken, "", "Confluence API/scoped token value.")
 	flags.BoolVar(&p.History, flagHistory, false, "Also scan all page revisions (all versions).")
 
 	return cmd, nil
@@ -145,30 +127,20 @@ func isValidURL(_ *cobra.Command, args []string) error {
 	if parsedURL.Scheme != "https" {
 		return fmt.Errorf("invalid URL: %w", ErrHTTPSRequired)
 	}
+	if parsedURL.Host == "" {
+		return fmt.Errorf("invalid URL: missing host")
+	}
 	return nil
 }
 
-// isValidTokenType reports whether the provided tokenType is supported.
-// Valid values are the empty string (no auth), "api-token", and "scoped-api-token".
-func isValidTokenType(tokenType TokenType) bool {
-	switch tokenType {
-	case "", ApiToken, ScopedApiToken:
-		return true
-	default:
-		return false
-	}
-}
-
-// initialize stores the base wiki URL and constructs the Confluence client.
-func (p *ConfluencePlugin) initialize(base, username string, tokenType TokenType, tokenValue string) error {
-	baseWikiURL := strings.TrimRight(base, "/")
-
-	client, err := NewConfluenceClient(baseWikiURL, username, tokenType, tokenValue)
+// initialize stores the normalized base wiki URL and constructs the Confluence client.
+// It validates the base by discovering the cloudId; if discovery fails, init fails.
+func (p *ConfluencePlugin) initialize(base, username, token string) error {
+	client, err := NewConfluenceClient(base, username, token)
 	if err != nil {
 		return err
 	}
 	p.client = client
-
 	return nil
 }
 
@@ -356,7 +328,7 @@ func chunkStrings(input []string, chunkSize int) [][]string {
 	return chunks
 }
 
-// convertPageToItem converts a Confluence Page into an ISourceItem
+// convertPageToItem converts a Confluence Page into an ISourceItem.
 func (p *ConfluencePlugin) convertPageToItem(page *Page) ISourceItem {
 	itemID := fmt.Sprintf("%s-%s-%s", p.GetName(), page.ID, strconv.Itoa(page.Version.Number))
 

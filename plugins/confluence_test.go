@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"strconv"
 	"strings"
 	"testing"
@@ -56,94 +55,6 @@ func TestIsValidURL(t *testing.T) {
 			} else {
 				assert.ErrorIs(t, err, tc.expectedErr)
 			}
-		})
-	}
-}
-
-func TestIsValidTokenType(t *testing.T) {
-	tests := []struct {
-		name          string
-		tokenType     TokenType
-		expectedValid bool
-	}{
-		{
-			name:          "empty",
-			tokenType:     "",
-			expectedValid: true,
-		},
-		{
-			name:          "api-token",
-			tokenType:     ApiToken,
-			expectedValid: true,
-		},
-		{
-			name:          "scoped-api-token",
-			tokenType:     ScopedApiToken,
-			expectedValid: true,
-		},
-		{
-			name:          "invalid",
-			tokenType:     TokenType("weird"),
-			expectedValid: false,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expectedValid, isValidTokenType(tc.tokenType))
-		})
-	}
-}
-
-func TestInitialize(t *testing.T) {
-	const (
-		baseURL         = "https://tenant.atlassian.net/wiki"
-		expectedAPIBase = "https://tenant.atlassian.net/wiki/api/v2"
-		username        = "user@example.com"
-		tokenValue      = "token123"
-	)
-
-	tests := []struct {
-		name           string
-		base           string
-		tokenType      TokenType
-		username       string
-		tokenValue     string
-		expectedErr    error
-		expectedClient ConfluenceClient
-	}{
-		{
-			name:        "valid initialization (api-token)",
-			base:        baseURL,
-			tokenType:   ApiToken,
-			username:    username,
-			tokenValue:  tokenValue,
-			expectedErr: nil,
-			expectedClient: &httpConfluenceClient{
-				baseWikiURL: baseURL,
-				httpClient:  &http.Client{Timeout: httpTimeout},
-				username:    username,
-				token:       tokenValue,
-				apiBase:     expectedAPIBase,
-			},
-		},
-		{
-			name:           "invalid initialization (unsupported token type)",
-			base:           baseURL,
-			tokenType:      TokenType("bad"),
-			username:       username,
-			tokenValue:     tokenValue,
-			expectedErr:    ErrUnsupportedTokenType,
-			expectedClient: nil,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			p := NewConfluencePlugin().(*ConfluencePlugin)
-			err := p.initialize(tc.base, tc.username, tc.tokenType, tc.tokenValue)
-
-			assert.ErrorIs(t, err, tc.expectedErr)
-			assert.Equal(t, tc.expectedClient, p.client)
 		})
 	}
 }
@@ -1134,138 +1045,59 @@ func TestWalkAndEmitPages(t *testing.T) {
 }
 
 func TestDefineCommand(t *testing.T) {
-	t.Run("RunE validation", func(t *testing.T) {
-		tests := []struct {
-			name        string
-			expectedErr error
-		}{
-			{
-				name:        "normal execution",
-				expectedErr: nil,
-			},
-			{
-				name:        "error during execution",
-				expectedErr: assert.AnError,
-			},
-		}
+	tests := []struct {
+		name        string
+		expectedErr error
+	}{
+		{
+			name:        "normal execution",
+			expectedErr: nil,
+		},
+		{
+			name:        "error during execution",
+			expectedErr: assert.AnError,
+		},
+	}
 
-		recvErr := func(ch <-chan error) error {
-			select {
-			case e := <-ch:
-				return e
-			default:
-				return nil
+	recvErr := func(ch <-chan error) error {
+		select {
+		case e := <-ch:
+			return e
+		default:
+			return nil
+		}
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			items := make(chan ISourceItem, 8)
+			errs := make(chan error, 1)
+
+			mockClient := NewMockConfluenceClient(ctrl)
+
+			p := &ConfluencePlugin{
+				itemsChan:  items,
+				errorsChan: errs,
+				client:     mockClient,
 			}
-		}
 
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				ctrl := gomock.NewController(t)
-				defer ctrl.Finish()
+			cmd, err := p.DefineCommand(items, errs)
+			assert.NoError(t, err)
 
-				items := make(chan ISourceItem, 8)
-				errs := make(chan error, 1)
+			mockClient.EXPECT().
+				WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
+				Return(tc.expectedErr).
+				Times(1)
 
-				mockClient := NewMockConfluenceClient(ctrl)
+			cmd.Run(cmd, []string{"https://tenant.atlassian.net/wiki"})
 
-				p := &ConfluencePlugin{
-					itemsChan:  items,
-					errorsChan: errs,
-					client:     mockClient,
-				}
-
-				cmd, err := p.DefineCommand(items, errs)
-				assert.NoError(t, err)
-
-				mockClient.EXPECT().
-					WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
-					Return(tc.expectedErr).
-					Times(1)
-
-				cmd.Run(cmd, []string{"https://tenant.atlassian.net/wiki"})
-
-				err = recvErr(errs)
-				assert.ErrorIs(t, err, tc.expectedErr)
-			})
-		}
-	})
-
-	t.Run("PreRunE validation", func(t *testing.T) {
-		tests := []struct {
-			name        string
-			setFlags    func(cmd *cobra.Command)
-			args        []string
-			expectedErr error
-		}{
-			{
-				name: "token value but no token type",
-				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("token-value", "value")
-					// token-type intentionally not set
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: fmt.Errorf("--token-type must be set when --token-value is provided"),
-			},
-			{
-				name: "invalid token type",
-				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("token-type", "bad")
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: fmt.Errorf("invalid --token-type \"bad\"; valid values are \"api-token\" or \"scoped-api-token\""),
-			},
-			{
-				name: "token type api-token but without token value",
-				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("token-type", string(ApiToken))
-					// no token-value
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: fmt.Errorf("--token-type requires --token-value"),
-			},
-			{
-				name: "without credentials",
-				setFlags: func(cmd *cobra.Command) {
-					// nothing set
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: nil,
-			},
-			{
-				name: "token type api-token and token value provided",
-				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("username", "user@example.com")
-					_ = cmd.Flags().Set("token-type", string(ApiToken))
-					_ = cmd.Flags().Set("token-value", "tok")
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: nil,
-			},
-			{
-				name:        "initialize fails with invalid base URL",
-				setFlags:    func(cmd *cobra.Command) {},
-				args:        []string{"%"},
-				expectedErr: fmt.Errorf("invalid URL escape"),
-			},
-		}
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				p := &ConfluencePlugin{}
-				cmd, err := p.DefineCommand(make(chan ISourceItem, 1), make(chan error, 1))
-				assert.NoError(t, err)
-
-				if tc.setFlags != nil {
-					tc.setFlags(cmd)
-				}
-				err = cmd.PreRunE(cmd, tc.args)
-				if tc.name == "initialize fails with invalid base URL" {
-					assert.Contains(t, err.Error(), tc.expectedErr.Error())
-				} else {
-					assert.Equal(t, tc.expectedErr, err)
-				}
-			})
-		}
-	})
+			err = recvErr(errs)
+			assert.ErrorIs(t, err, tc.expectedErr)
+		})
+	}
 }
 
 func TestEmitInChunks(t *testing.T) {
