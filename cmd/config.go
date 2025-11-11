@@ -49,9 +49,13 @@ func processFlags(rootCmd *cobra.Command) error {
 		engineConfigVar.CustomRegexPatterns = customRegexRuleVar
 	}
 
+	fmt.Printf("customRulesPathVar is '%s\n", customRulesPathVar)
+
 	if customRulesPathVar != "" {
 		rules, err := loadRulesFile(customRulesPathVar)
+		fmt.Printf("Loaded %d custom rules from %s\n", len(rules), customRulesPathVar)
 		if err != nil {
+			fmt.Printf("Failed to load rules: %v\n", err)
 			return fmt.Errorf("failed to load custom rules file: %w", err)
 		}
 		engineConfigVar.CustomRules = rules

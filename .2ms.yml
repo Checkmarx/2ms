@@ -2228,3 +2228,4 @@ ignore-result:
 - fd76f986453ce25e95b50d0131f381238f9a5ff8 # unit test from jwt_base64_test.go
 - fdf305f205d7a15c2b9d9bef2d22202cbe19f662 # unit test from gitter_test.go
 - ff492ac23e6caf6f817f9fa0e69c507aaf455b34 # unit test from duffel_test.go
+- b69b1ee65782ddc5902578b433d3527439eb4fee # unit test from authenticated_url_test.go
