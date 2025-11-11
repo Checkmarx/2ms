@@ -1,11 +1,5 @@
 package ruledefine
 
-import (
-	"fmt"
-
-	"regexp"
-)
-
 type RuleCategory string
 
 const (
@@ -101,7 +95,7 @@ type Rule struct {
 	AllowLists        []*AllowList    `json:"allowLists" yaml:"allowLists"`
 	Tags              []string        `json:"tags" yaml:"tags"`
 	ScoreParameters   ScoreParameters `json:"scoreParameters" yaml:"scoreParameters"`     // used for ASPM
-	DisableValidation bool            `json:"disableValidation" yaml:"disableValidation"` // if true, validation checks will be skipped for this rule if any validation is possible
+	DisableValidation bool            `json:"disableValidation" yaml:"disableValidation"` ////nolint:lll // if true, validation checks will be skipped for this rule if any validation is possible
 	Deprecated        bool            `json:"deprecated" yaml:"deprecated"`
 }
 
@@ -112,24 +106,4 @@ type AllowList struct { // For patterns that are allowed to be ignored
 	RegexTarget    string   `json:"regexTarget" yaml:"regexTarget"`       // match or line. Default match
 	Regexes        []string `json:"regexes" yaml:"regexes"`
 	StopWords      []string `json:"stopWords" yaml:"stopWords"` // stop words that are allowed to be ignored
-}
-
-// CheckRequiredFields checks that required fields are present in the Rule.
-// This is meant for user defined rules, default rules have more strict checks in unit tests
-func (r Rule) CheckRequiredFields() []error {
-	var errs []error
-	if r.RuleID == "" || r.RuleName == "" {
-		errs = append(errs, fmt.Errorf("missing RuleID and/or RuleName. Both are required"))
-	}
-
-	switch {
-	case r.Regex == "":
-		errs = append(errs, fmt.Errorf("missing regex"))
-	default:
-		if _, err := regexp.Compile(r.Regex); err != nil {
-			errs = append(errs, fmt.Errorf("invalid regex: %w", err))
-		}
-	}
-
-	return nil
 }

@@ -320,7 +320,7 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 	return selectedRules
 }
 
-func addCustomRules(selectedRules []*ruledefine.Rule, customRules []*ruledefine.Rule) []*ruledefine.Rule {
+func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine.Rule {
 	for _, customRule := range customRules {
 		// Skip deprecated custom rules
 		if customRule.Deprecated {

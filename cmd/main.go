@@ -43,7 +43,6 @@ var (
 	engineConfigVar    engine.EngineConfig
 	validateVar        bool
 	customRulesPathVar string
-	onlyCustomRulesVar bool
 )
 
 const envPrefix = "2MS"

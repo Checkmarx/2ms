@@ -143,7 +143,8 @@ func setupFlags(rootCmd *cobra.Command) {
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
 
 	rootCmd.PersistentFlags().
-		StringVar(&customRulesPathVar, customRulesFileFlagName, "", "Path to a custom rules file (JSON or YAML). Rules should be a list of ruledefine.rule objects. --rule, --ignore-rule still apply to custom rules")
+		StringVar(&customRulesPathVar, customRulesFileFlagName, "", "Path to a custom rules file (JSON or YAML)."+
+			" Rules should be a list of ruledefine.rule objects. --rule, --ignore-rule still apply to custom rules")
 }
 
 func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
