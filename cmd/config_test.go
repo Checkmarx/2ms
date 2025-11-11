@@ -385,6 +385,8 @@ func TestCustomRulesFlag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			customRegexRuleVar = []string{}
+			engineConfigVar.CustomRules = nil
 
 			rootCmd := &cobra.Command{Use: "test"}
 			rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "")
@@ -395,8 +397,6 @@ func TestCustomRulesFlag(t *testing.T) {
 				assert.ErrorContains(t, err, expectErr.Error())
 			}
 			assert.Equal(t, tt.expectedRules, engineConfigVar.CustomRules)
-			// Reset for next test
-			engineConfigVar.CustomRules = nil
 		})
 	}
 }
