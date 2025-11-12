@@ -244,16 +244,16 @@ func getSpecialRules() []*ruledefine.Rule {
 	return specialRules
 }
 
-func isRuleMatch(rule ruledefine.Rule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
-	for _, tag := range tags {
-		if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(tag)) {
+func isRuleMatch(rule ruledefine.Rule, matchStrings []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
+	for _, matchString := range matchStrings {
+		if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(matchString)) {
 			return true
 		}
-		if strings.EqualFold(rule.RuleID, tag) {
+		if strings.EqualFold(rule.RuleID, matchString) {
 			return true
 		}
 		for _, ruleTag := range rule.Tags {
-			if strings.EqualFold(ruleTag, tag) {
+			if strings.EqualFold(ruleTag, matchString) {
 				return true
 			}
 		}
@@ -261,22 +261,22 @@ func isRuleMatch(rule ruledefine.Rule, tags []string) bool { //nolint:gocritic /
 	return false
 }
 
-func selectRules(allRules []*ruledefine.Rule, tags []string) []*ruledefine.Rule {
+func selectRules(allRules []*ruledefine.Rule, matchStrings []string) []*ruledefine.Rule {
 	selectedRules := []*ruledefine.Rule{}
 
 	for _, rule := range allRules {
-		if isRuleMatch(*rule, tags) {
+		if isRuleMatch(*rule, matchStrings) {
 			selectedRules = append(selectedRules, rule)
 		}
 	}
 	return selectedRules
 }
 
-func ignoreRules(allRules []*ruledefine.Rule, tags []string) []*ruledefine.Rule {
+func ignoreRules(allRules []*ruledefine.Rule, matchStrings []string) []*ruledefine.Rule {
 	selectedRules := []*ruledefine.Rule{}
 
 	for _, rule := range allRules {
-		if !isRuleMatch(*rule, tags) {
+		if !isRuleMatch(*rule, matchStrings) {
 			selectedRules = append(selectedRules, rule)
 		}
 	}
@@ -340,22 +340,4 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 		}
 	}
 	return selectedRules
-}
-
-func GetDefaultRulesBaseIDsMap() map[string]*ruledefine.Rule {
-	rules := GetDefaultRules(false)
-	rulesMap := make(map[string]*ruledefine.Rule)
-	for _, rule := range rules {
-		rulesMap[rule.RuleID] = rule
-	}
-	return rulesMap
-}
-
-func GetDefaultRulesIDsMap() map[string]*ruledefine.Rule {
-	rules := GetDefaultRules(false)
-	rulesMap := make(map[string]*ruledefine.Rule)
-	for _, rule := range rules {
-		rulesMap[rule.RuleID] = rule
-	}
-	return rulesMap
 }

@@ -19,14 +19,14 @@ import (
 )
 
 var (
-	errInvalidOutputFormat      = fmt.Errorf("invalid output format")
-	errInvalidReportExtension   = fmt.Errorf("invalid report extension")
-	errInvalidCustomRulesFormat = fmt.Errorf("unknown file format, expected JSON or YAML")
-	errMissingRuleID            = fmt.Errorf("missing ruleID")
-	errMissingRuleName          = fmt.Errorf("missing ruleName")
-	errMissingRegex             = fmt.Errorf("missing regex")
-	errInvalidRegex             = fmt.Errorf("invalid regex")
-	errInvalidSeverity          = fmt.Errorf("invalid severity")
+	errInvalidOutputFormat         = fmt.Errorf("invalid output format")
+	errInvalidReportExtension      = fmt.Errorf("invalid report extension")
+	errInvalidCustomRulesExtension = fmt.Errorf("unknown file extension, expected JSON or YAML")
+	errMissingRuleID               = fmt.Errorf("missing ruleID")
+	errMissingRuleName             = fmt.Errorf("missing ruleName")
+	errMissingRegex                = fmt.Errorf("missing regex")
+	errInvalidRegex                = fmt.Errorf("invalid regex")
+	errInvalidSeverity             = fmt.Errorf("invalid severity")
 )
 
 func processFlags(rootCmd *cobra.Command) error {
@@ -49,13 +49,9 @@ func processFlags(rootCmd *cobra.Command) error {
 		engineConfigVar.CustomRegexPatterns = customRegexRuleVar
 	}
 
-	fmt.Printf("customRulesPathVar is '%s\n", customRulesPathVar)
-
 	if customRulesPathVar != "" {
 		rules, err := loadRulesFile(customRulesPathVar)
-		fmt.Printf("Loaded %d custom rules from %s\n", len(rules), customRulesPathVar)
 		if err != nil {
-			fmt.Printf("Failed to load rules: %v\n", err)
 			return fmt.Errorf("failed to load custom rules file: %w", err)
 		}
 		engineConfigVar.CustomRules = rules
@@ -166,14 +162,7 @@ func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
 	case ".yaml", ".yml":
 		err = yaml.Unmarshal(data, &rules)
 	default:
-		// try to detect  if extension is missing
-		if json.Unmarshal(data, &rules) == nil {
-			return rules, nil
-		}
-		if yaml.Unmarshal(data, &rules) == nil {
-			return rules, nil
-		}
-		return nil, errInvalidCustomRulesFormat
+		return nil, errInvalidCustomRulesExtension
 	}
 	if err != nil {
 		return nil, err
