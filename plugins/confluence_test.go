@@ -305,20 +305,23 @@ func TestWalkPagesByIDBatches(t *testing.T) {
 				client:    mockClient,
 			}
 
-			seen := map[string]struct{}{}
+			p.returnedPageIDs = map[string]struct{}{}
+			p.returnedSpaceIDs = map[string]struct{}{}
+
 			var seenBatches [][]string
 			walker := func(ctx context.Context, ids []string, lim int, v func(*Page) error) error {
 				seenBatches = append(seenBatches, append([]string(nil), ids...))
 				return tc.setupWalker()(ctx, ids, lim, v)
 			}
 
-			err := p.walkPagesByIDBatches(context.Background(), tc.allIDs, tc.perBatch, seen, walker)
+			err := p.walkPagesByIDBatches(context.Background(), tc.allIDs, tc.perBatch, walker)
 			assert.ErrorIs(t, err, tc.expectedErr)
 			assert.Equal(t, tc.expectedBatches, seenBatches)
 			assert.Len(t, collectEmittedItems(p.itemsChan), tc.expectedEmitCount)
 		})
 	}
 }
+
 func TestEmitUniquePage(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -407,7 +410,8 @@ func TestEmitUniquePage(t *testing.T) {
 				tc.setupMocks(mockClient, mockChunk, tc.page)
 			}
 
-			err := p.emitUniquePage(context.Background(), tc.page, tc.seenPages)
+			p.returnedPageIDs = tc.seenPages
+			err := p.emitUniquePage(context.Background(), tc.page)
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			emitted := collectEmittedItems(p.itemsChan)
@@ -572,8 +576,8 @@ func TestScanBySpaceIDs(t *testing.T) {
 				SpaceIDs:  tc.spaceIDs,
 			}
 
-			seenPages := map[string]struct{}{}
-			seenSpaces := map[string]struct{}{}
+			p.returnedPageIDs = map[string]struct{}{}
+			p.returnedSpaceIDs = map[string]struct{}{}
 
 			mockClient.
 				EXPECT().
@@ -589,7 +593,8 @@ func TestScanBySpaceIDs(t *testing.T) {
 					return nil
 				}).Times(1)
 
-			err := p.scanBySpaceIDs(context.Background(), seenPages, seenSpaces)
+			p.queuedSpaceIDs = map[string]struct{}{}
+			err := p.scanBySpaceIDs(context.Background())
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			items := collectEmittedItems(p.itemsChan)
@@ -652,8 +657,10 @@ func TestScanBySpaceKeys(t *testing.T) {
 				SpaceKeys: tc.spaceKeys,
 			}
 
-			seenPages := map[string]struct{}{}
-			seenSpaces := map[string]struct{}{}
+			p.queuedSpaceIDs = map[string]struct{}{}
+			p.resolvedSpaceKeys = map[string]string{}
+			p.returnedPageIDs = map[string]struct{}{}
+			p.returnedSpaceIDs = map[string]struct{}{}
 
 			// Resolve spaces by keys -> S1 for K1, S2 for K2 (dedup happens in code under test)
 			mockClient.
@@ -688,7 +695,7 @@ func TestScanBySpaceKeys(t *testing.T) {
 				}).
 				Times(1)
 
-			err := p.scanBySpaceKeys(context.Background(), seenPages, seenSpaces)
+			err := p.scanBySpaceKeys(context.Background())
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			items := collectEmittedItems(p.itemsChan)
@@ -751,7 +758,8 @@ func TestScanByPageIDs(t *testing.T) {
 				PageIDs:   tc.pageIDs,
 			}
 
-			seenPages := map[string]struct{}{}
+			p.returnedPageIDs = map[string]struct{}{}
+			p.returnedSpaceIDs = map[string]struct{}{}
 
 			mockClient.
 				EXPECT().
@@ -767,7 +775,7 @@ func TestScanByPageIDs(t *testing.T) {
 					return nil
 				}).Times(1)
 
-			err := p.scanByPageIDs(context.Background(), seenPages)
+			err := p.scanByPageIDs(context.Background())
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			items := collectEmittedItems(p.itemsChan)

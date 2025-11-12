@@ -61,6 +61,16 @@ type ConfluencePlugin struct {
 
 	client  ConfluenceClient
 	chunker chunk.IChunk
+
+	// Tracking (no extra HTTP requests):
+	// queuedSpaceIDs: space IDs we are planning to query (dedup inputs before API calls).
+	queuedSpaceIDs map[string]struct{}
+	// returnedSpaceIDs: space IDs actually observed in returned pages (to detect space-ids that yielded no pages).
+	returnedSpaceIDs map[string]struct{}
+	// returnedPageIDs: page IDs actually emitted (prevents duplicates; also used to detect missing page-ids).
+	returnedPageIDs map[string]struct{}
+	// resolvedSpaceKeys: map of space-key -> space-id for keys that resolved (to detect keys that didn't resolve).
+	resolvedSpaceKeys map[string]string
 }
 
 // NewConfluencePlugin constructs a new Confluence plugin with a default chunker.
@@ -146,49 +156,56 @@ func (p *ConfluencePlugin) initialize(base, username, token string) error {
 
 // walkAndEmitPages discovers pages by the provided selectors (space IDs, space keys, page IDs).
 // If no selector is provided, it walks all accessible pages. Pages are de-duplicated by ID.
+// Also tracks which selectors yielded results and logs warnings for invalid/inaccessible selectors,
+// without issuing additional API requests.
 func (p *ConfluencePlugin) walkAndEmitPages(ctx context.Context) error {
-	seenPageIDs := make(map[string]struct{}, len(p.PageIDs))
-	seenSpaceIDs := make(map[string]struct{}, len(p.SpaceIDs))
+	// (Re)initialize tracking for this run.
+	p.queuedSpaceIDs = make(map[string]struct{}, len(p.SpaceIDs))
+	p.returnedSpaceIDs = make(map[string]struct{}, 256)
+	p.returnedPageIDs = make(map[string]struct{}, len(p.PageIDs))
+	p.resolvedSpaceKeys = make(map[string]string, 256)
 
 	if len(p.SpaceIDs) > 0 {
-		if err := p.scanBySpaceIDs(ctx, seenPageIDs, seenSpaceIDs); err != nil {
+		if err := p.scanBySpaceIDs(ctx); err != nil {
 			return err
 		}
 	}
 
 	if len(p.SpaceKeys) > 0 {
-		if err := p.scanBySpaceKeys(ctx, seenPageIDs, seenSpaceIDs); err != nil {
+		if err := p.scanBySpaceKeys(ctx); err != nil {
 			return err
 		}
 	}
 
 	if len(p.PageIDs) > 0 {
-		if err := p.scanByPageIDs(ctx, seenPageIDs); err != nil {
+		if err := p.scanByPageIDs(ctx); err != nil {
 			return err
 		}
 	}
 
 	if len(p.SpaceIDs) == 0 && len(p.SpaceKeys) == 0 && len(p.PageIDs) == 0 {
 		if err := p.client.WalkAllPages(ctx, maxPageSize, func(page *Page) error {
-			return p.emitUniquePage(ctx, page, seenPageIDs)
+			return p.emitUniquePage(ctx, page)
 		}); err != nil {
 			return err
 		}
 	}
 
+	p.warnMissingSelectors()
+
 	return nil
 }
 
 // scanBySpaceIDs walks pages in the explicitly provided space IDs (p.SpaceIDs).
-// It deduplicates space IDs with seenSpaceIDs, batches requests (maxSpaceIDsPerRequest),
-// and emits pages via emitUniquePage while tracking seenPageIDs.
-func (p *ConfluencePlugin) scanBySpaceIDs(ctx context.Context, seenPageIDs, seenSpaceIDs map[string]struct{}) error {
+// It deduplicates input space IDs with p.queuedSpaceIDs, batches requests (maxSpaceIDsPerRequest),
+// and emits pages via emitUniquePage while tracking p.returnedPageIDs to avoid duplicates.
+func (p *ConfluencePlugin) scanBySpaceIDs(ctx context.Context) error {
 	var uniqueSpaceIDs []string
 	for _, spaceID := range p.SpaceIDs {
-		if _, alreadySeen := seenSpaceIDs[spaceID]; alreadySeen {
+		if _, alreadySeen := p.queuedSpaceIDs[spaceID]; alreadySeen {
 			continue
 		}
-		seenSpaceIDs[spaceID] = struct{}{}
+		p.queuedSpaceIDs[spaceID] = struct{}{}
 		uniqueSpaceIDs = append(uniqueSpaceIDs, spaceID)
 	}
 
@@ -196,22 +213,24 @@ func (p *ConfluencePlugin) scanBySpaceIDs(ctx context.Context, seenPageIDs, seen
 		ctx,
 		uniqueSpaceIDs,
 		maxSpaceIDsPerRequest,
-		seenPageIDs,
 		p.client.WalkPagesBySpaceIDs,
 	)
 }
 
 // scanBySpaceKeys resolves space keys (p.SpaceKeys) to space IDs, deduplicates with
-// seenSpaceIDs, then walks pages by those IDs in batches. Each page is emitted via
-// emitUniquePage, updating seenPageIDs.
-func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context, seenPageIDs, seenSpaceIDs map[string]struct{}) error {
+// p.queuedSpaceIDs, then walks pages by those IDs in batches. Each page is emitted via
+// emitUniquePage, updating p.returnedPageIDs.
+func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context) error {
 	for _, spaceKeyBatch := range chunkStrings(p.SpaceKeys, maxSpaceKeysPerRequest) {
 		var newlyResolvedSpaceIDs []string
 		if err := p.client.WalkSpacesByKeys(ctx, spaceKeyBatch, maxPageSize, func(space *Space) error {
-			if _, alreadySeen := seenSpaceIDs[space.ID]; alreadySeen {
+			if space != nil && space.Key != "" && space.ID != "" {
+				p.resolvedSpaceKeys[space.Key] = space.ID
+			}
+			if _, alreadySeen := p.queuedSpaceIDs[space.ID]; alreadySeen {
 				return nil
 			}
-			seenSpaceIDs[space.ID] = struct{}{}
+			p.queuedSpaceIDs[space.ID] = struct{}{}
 			newlyResolvedSpaceIDs = append(newlyResolvedSpaceIDs, space.ID)
 			return nil
 		}); err != nil {
@@ -222,7 +241,6 @@ func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context, seenPageIDs, see
 			ctx,
 			newlyResolvedSpaceIDs,
 			maxSpaceIDsPerRequest,
-			seenPageIDs,
 			p.client.WalkPagesBySpaceIDs,
 		); err != nil {
 			return err
@@ -232,13 +250,12 @@ func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context, seenPageIDs, see
 }
 
 // scanByPageIDs walks the specific page IDs in p.PageIDs, batching requests (maxPageIDsPerRequest),
-// and emits each page via emitUniquePage while tracking seenPageIDs to avoid duplicates.
-func (p *ConfluencePlugin) scanByPageIDs(ctx context.Context, seenPageIDs map[string]struct{}) error {
+// and emits each page via emitUniquePage while tracking p.returnedPageIDs to avoid duplicates.
+func (p *ConfluencePlugin) scanByPageIDs(ctx context.Context) error {
 	return p.walkPagesByIDBatches(
 		ctx,
 		p.PageIDs,
 		maxPageIDsPerRequest,
-		seenPageIDs,
 		p.client.WalkPagesByIDs,
 	)
 }
@@ -279,12 +296,16 @@ func (p *ConfluencePlugin) emitInChunks(page *Page) error {
 }
 
 // emitUniquePage emits the current version of a page (and, if enabled, its historical versions)
-// ensuring each page ID is emitted only once.
-func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page, seenPageIDs map[string]struct{}) error {
-	if _, alreadySeen := seenPageIDs[page.ID]; alreadySeen {
+// ensuring each page ID is emitted only once. Also records the page SpaceID for selector warnings.
+func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page) error {
+	if _, alreadySeen := p.returnedPageIDs[page.ID]; alreadySeen {
 		return nil
 	}
-	seenPageIDs[page.ID] = struct{}{}
+	p.returnedPageIDs[page.ID] = struct{}{}
+
+	if page.SpaceID != "" {
+		p.returnedSpaceIDs[page.SpaceID] = struct{}{}
+	}
 
 	// current version
 	if err := p.emitInChunks(page); err != nil {
@@ -387,15 +408,103 @@ func (p *ConfluencePlugin) walkPagesByIDBatches(
 	ctx context.Context,
 	ids []string,
 	perBatch int,
-	seenPageIDs map[string]struct{},
 	walker func(context.Context, []string, int, func(*Page) error) error,
 ) error {
 	for _, idBatch := range chunkStrings(ids, perBatch) {
 		if err := walker(ctx, idBatch, maxPageSize, func(page *Page) error {
-			return p.emitUniquePage(ctx, page, seenPageIDs)
+			return p.emitUniquePage(ctx, page)
 		}); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// differenceStrings returns the subset of wants not present in seen (map set).
+func differenceStrings(wants []string, seen map[string]struct{}) []string {
+	if len(wants) == 0 {
+		return nil
+	}
+	var missing []string
+	for _, w := range wants {
+		if _, ok := seen[w]; !ok {
+			missing = append(missing, w)
+		}
+	}
+	return missing
+}
+
+// missingKeysFromResolved returns keys that did not resolve to any space (invisible or invalid).
+func missingKeysFromResolved(requestedKeys []string, resolved map[string]string) []string {
+	if len(requestedKeys) == 0 {
+		return nil
+	}
+	var missing []string
+	for _, k := range requestedKeys {
+		if _, ok := resolved[k]; !ok {
+			missing = append(missing, k)
+		}
+	}
+	return missing
+}
+
+// dedupStringsStable returns a de-duplicated copy of input preserving order.
+func dedupStringsStable(input []string) []string {
+	if len(input) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(input))
+	out := make([]string, 0, len(input))
+	for _, v := range input {
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
+// warnList logs a single warning with the sample values and, when applicable,
+// appends "…and N more ..." to the same message.
+func (p *ConfluencePlugin) warnList(label string, values []string) {
+	const maxShow = 3
+	if len(values) == 0 {
+		return
+	}
+
+	// De-duplicate for cleaner logs.
+	values = dedupStringsStable(values)
+
+	show := values
+	omitted := 0
+	if len(values) > maxShow {
+		show = values[:maxShow]
+		omitted = len(values) - maxShow
+	}
+	msg := fmt.Sprintf("No results for some %s(s). They may be invalid, inaccessible, or empty.", label)
+
+	ev := log.Warn().
+		Str("selector", label).
+		Strs("values", show)
+	if omitted > 0 {
+		ev = ev.Int("omitted", omitted)
+	}
+	ev.Msg(msg)
+}
+
+// warnMissingSelectors compares user-provided selectors with observed results and logs concise warnings.
+func (p *ConfluencePlugin) warnMissingSelectors() {
+	if len(p.PageIDs) > 0 {
+		missingPages := differenceStrings(p.PageIDs, p.returnedPageIDs)
+		p.warnList("page-id", missingPages)
+	}
+	if len(p.SpaceKeys) > 0 {
+		missingKeys := missingKeysFromResolved(p.SpaceKeys, p.resolvedSpaceKeys)
+		p.warnList("space-key", missingKeys)
+	}
+	if len(p.SpaceIDs) > 0 {
+		missingSpaces := differenceStrings(p.SpaceIDs, p.returnedSpaceIDs)
+		p.warnList("space-id", missingSpaces)
+	}
 }
