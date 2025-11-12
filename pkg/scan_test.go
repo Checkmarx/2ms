@@ -19,13 +19,19 @@ import (
 )
 
 const (
-	githubPatPath                           = "testData/secrets/github-pat.txt"
-	jwtPath                                 = "testData/secrets/jwt.txt"
-	genericKeysPath                         = "testData/secrets/generic-api-keys.txt"
-	expectedReportPath                      = "testData/expectedReport.json"
-	expectedReportWithValidationPath        = "testData/expectedReportWithValidation.json"
-	expectedReportResultsIgnoredResultsPath = "testData/expectedReportWithIgnoredResults.json"
-	expectedReportResultsIgnoredRulePath    = "testData/expectedReportWithIgnoredRule.json"
+	githubPatPath                              = "testData/secrets/github-pat.txt"
+	jwtPath                                    = "testData/secrets/jwt.txt"
+	genericKeysPath                            = "testData/secrets/generic-api-keys.txt"
+	expectedReportPath                         = "testData/expectedReports/expectedReport.json"
+	expectedReportWithValidationPath           = "testData/expectedReports/expectedReportWithValidation.json"
+	expectedReportResultsIgnoredResultsPath    = "testData/expectedReports/expectedReportWithIgnoredResults.json"
+	expectedReportResultsIgnoredRulePath       = "testData/expectedReports/expectedReportWithIgnoredRule.json"
+	expectedReportDefaultPlusAllCustomRules    = "testData/expectedReports/customRules/defaultPlusAllCustomRules.json"
+	expectedReportOnlyCustomRules              = "testData/expectedReports/customRules/onlyCustomRules.json"
+	expectedReportOnlyOverrideRules            = "testData/expectedReports/customRules/onlyOverrideRules.json"
+	expectedReportDefaultPlusNonOverridesRules = "testData/expectedReports/customRules/defaultPlusNonOverrideRules.json"
+	expectedReportOnlyCustomNoOverrideRules    = "testData/expectedReports/customRules/onlyCustomNoOverrideRules.json"
+	expectedReportOnlyDefaultIgnoreCustomRules = "testData/expectedReports/customRules/onlyDefaultIgnoreCustomRules.json"
 )
 
 // Flag to update expected output files instead of comparing against them
@@ -431,12 +437,77 @@ func TestScanWithCustomRules(t *testing.T) {
 
 	tests := []struct {
 		Name               string
-		ScanTarget         string
 		ScanConfig         resources.ScanConfig
 		ScanItems          []ScanItem
 		ExpectedReportPath string
+		expectErrors       []error
 	}{
-		{},
+		{
+			Name: "run all default + custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportDefaultPlusAllCustomRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "run all default + custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "run only custom override rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "run default + non override rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				IgnoreRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportDefaultPlusNonOverridesRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "run only custom rules and ignore overrides",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "run only default rules by ignoring custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				IgnoreRules:    []string{"custom"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyDefaultIgnoreCustomRules,
+			expectErrors:       nil,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
