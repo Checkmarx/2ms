@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -13,12 +15,13 @@ import (
 
 func TestPreRun(t *testing.T) {
 	tests := []struct {
-		name              string
-		stdoutFormatVar   string
-		reportPath        []string
-		engineConfigVar   engine.EngineConfig
-		expectedInitErr   error
-		expectedPreRunErr error
+		name                     string
+		stdoutFormatVar          string
+		reportPath               []string
+		engineConfigVar          engine.EngineConfig
+		expectedInitErr          error   // alternatively, use expectedContainsInitErrs
+		expectedContainsInitErrs []error // alternatively, use expectedInitErr
+		expectedPreRunErr        error
 	}{
 		{
 			name:              "error in validateFormat",
@@ -54,6 +57,76 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar:   engine.EngineConfig{},
 			expectedPreRunErr: nil,
 		},
+		{
+			name: "errors on custom rules, rule name, id, regex missing",
+			engineConfigVar: engine.EngineConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						Description: "Match passwords",
+					},
+					{
+						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			expectedPreRunErr: nil,
+			expectedContainsInitErrs: []error{
+				fmt.Errorf("rule#0: missing ruleID"),
+				fmt.Errorf("rule#0: missing ruleName"),
+				fmt.Errorf("rule#0: missing regex"),
+			},
+		},
+		{
+			name: "errors on custom rules, regex and severity invalid",
+			engineConfigVar: engine.EngineConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+						RuleName:    "mock-rule",
+						Description: "Match passwords",
+						Regex:       "[A-Za-z0-9]{32})",
+						Severity:    "mockSeverity",
+					},
+					{
+						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			expectedPreRunErr: nil,
+			expectedContainsInitErrs: []error{
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid regex"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid severity:" +
+					" mockSeverity not one of ([Critical High Medium Low Info])"),
+			},
+		},
+		{
+			name: "errors on custom rules, rule id missing",
+			engineConfigVar: engine.EngineConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						RuleName:    "mock-rule",
+						Description: "Match passwords",
+						Regex:       "[A-Za-z0-9]{32})",
+					},
+					{
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			expectedPreRunErr: nil,
+			expectedContainsInitErrs: []error{
+				fmt.Errorf("rule#0;RuleName-mock-rule: missing ruleID"),
+				fmt.Errorf("rule#1;RuleName-mock-rule2: missing ruleID"),
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -67,6 +140,11 @@ func TestPreRun(t *testing.T) {
 				assert.ErrorIs(t, err, tt.expectedInitErr)
 				return
 			}
+			for _, expectErr := range tt.expectedContainsInitErrs {
+				assert.ErrorContains(t, err, expectErr.Error())
+				return
+			}
+
 			defer engineInstance.Shutdown()
 			rootCmd := &cobra.Command{
 				Use:     "2ms",

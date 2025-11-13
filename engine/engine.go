@@ -149,6 +149,12 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 }
 
 func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, error) {
+
+	err := rules.CheckRulesRequiredFields(engineConfig.CustomRules)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load custom rules: %w", err)
+	}
+
 	selectedRules := rules.FilterRules(engineConfig.SelectedList,
 		engineConfig.IgnoreList, engineConfig.SpecialList, engineConfig.CustomRules)
 

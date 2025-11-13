@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/checkmarx/2ms/v4/engine/rules"
 	"github.com/checkmarx/2ms/v4/internal/resources"
 	"github.com/checkmarx/2ms/v4/plugins"
 	"github.com/rs/zerolog/log"
@@ -57,12 +56,7 @@ func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOp
 
 func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
 	var wg conc.WaitGroup
-
-	err := rules.CheckRulesRequiredFields(scanConfig.CustomRules)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load custom rules file: %w", err)
-	}
-	err = s.Reset(scanConfig, opts...)
+	err := s.Reset(scanConfig, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error resetting engine: %w", err)
 	}
@@ -116,13 +110,7 @@ func (s *scanner) ScanDynamic(
 	opts ...engine.EngineOption,
 ) (reporting.IReport, error) {
 	var wg conc.WaitGroup
-
-	err := rules.CheckRulesRequiredFields(scanConfig.CustomRules)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load custom rules file: %w", err)
-	}
-
-	err = s.Reset(scanConfig, opts...)
+	err := s.Reset(scanConfig, opts...)
 	if err != nil {
 		return reporting.New().(*reporting.Report), fmt.Errorf("error resetting engine: %w", err)
 	}

@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/checkmarx/2ms/v4/engine/rules"
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog"
@@ -158,11 +157,6 @@ func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
 	default:
 		return nil, errInvalidCustomRulesExtension
 	}
-	if err != nil {
-		return nil, err
-	}
-
-	err = rules.CheckRulesRequiredFields(customRules)
 	if err != nil {
 		return nil, err
 	}
