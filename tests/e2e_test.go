@@ -72,6 +72,7 @@ func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping e2e test")
 	}
+
 	executable, err := createCLI(t.TempDir())
 	require.NoError(t, err)
 
