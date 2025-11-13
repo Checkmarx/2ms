@@ -34,7 +34,7 @@ func NewScanner() Scanner {
 	return &scanner{}
 }
 
-func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOption) error { //nolint:gocritic,lll // scanConfig resources.ScanConfig is 120 bytes, not big enough to justify pointer
+func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOption) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -55,7 +55,7 @@ func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOp
 	return nil
 }
 
-func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) { //nolint:gocritic,lll // scanItems []ScanItem is 120 bytes, not big enough to justify pointer
+func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
 	var wg conc.WaitGroup
 
 	err := rules.CheckRulesRequiredFields(scanConfig.CustomRules)
