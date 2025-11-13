@@ -2765,3 +2765,4 @@ ignore-result:
 - e0df5f6d616b8512f91928569dbbeb595cb1886f # test data from expectedReportWithIgnoredResults.json
 - e41df94f30916531be27748175d28f851f0bacad # test data from only_custom_no_override_rules.json
 - faf4f974fad32cc5fb928a6d94adfe141007e925 # test data from custom_rules_secrets.txt
+- 95a9ffd234126b9b410508f008e3ae9af4dedc1a # test data from onlyCustomNoOverrideRules.json
