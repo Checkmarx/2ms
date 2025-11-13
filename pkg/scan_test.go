@@ -170,8 +170,8 @@ func TestScan(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan(scanItems, resources.ScanConfig{
 			IgnoreResultIds: []string{
-				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
-				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
+				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
+				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -369,8 +369,8 @@ func TestScan(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.Scan(scanItems, resources.ScanConfig{
 			IgnoreResultIds: []string{
-				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
-				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
+				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
+				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -443,7 +443,7 @@ func TestScanWithCustomRules(t *testing.T) {
 		expectErrors       []error
 	}{
 		{
-			Name: "run all default + custom rules",
+			Name: "Run all default + custom rules",
 			ScanConfig: resources.ScanConfig{
 				CustomRules:    customRules,
 				WithValidation: true,
@@ -453,7 +453,7 @@ func TestScanWithCustomRules(t *testing.T) {
 			expectErrors:       nil,
 		},
 		{
-			Name: "run all default + custom rules",
+			Name: "Run all default + custom rules",
 			ScanConfig: resources.ScanConfig{
 				CustomRules:    customRules,
 				WithValidation: true,
@@ -464,7 +464,7 @@ func TestScanWithCustomRules(t *testing.T) {
 			expectErrors:       nil,
 		},
 		{
-			Name: "run only custom override rules",
+			Name: "Run only custom override rules",
 			ScanConfig: resources.ScanConfig{
 				CustomRules:    customRules,
 				WithValidation: true,
@@ -475,7 +475,7 @@ func TestScanWithCustomRules(t *testing.T) {
 			expectErrors:       nil,
 		},
 		{
-			Name: "run default + non override rules",
+			Name: "Run default + non override rules",
 			ScanConfig: resources.ScanConfig{
 				CustomRules:    customRules,
 				WithValidation: true,
@@ -486,7 +486,7 @@ func TestScanWithCustomRules(t *testing.T) {
 			expectErrors:       nil,
 		},
 		{
-			Name: "run only custom rules and ignore overrides",
+			Name: "Run only custom rules and ignore overrides",
 			ScanConfig: resources.ScanConfig{
 				CustomRules:    customRules,
 				WithValidation: true,
@@ -498,7 +498,7 @@ func TestScanWithCustomRules(t *testing.T) {
 			expectErrors:       nil,
 		},
 		{
-			Name: "run only default rules by ignoring custom rules",
+			Name: "Run only default rules by ignoring custom rules",
 			ScanConfig: resources.ScanConfig{
 				CustomRules:    customRules,
 				WithValidation: true,
@@ -508,34 +508,138 @@ func TestScanWithCustomRules(t *testing.T) {
 			ExpectedReportPath: expectedReportOnlyDefaultIgnoreCustomRules,
 			expectErrors:       nil,
 		},
+		{
+			Name: "Run only custom rules by ignoring custom rules by id",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules: []string{
+					"01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
+					"9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules by ignoring custom rules by name",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules: []string{
+					"Generic-Api-Key-Custom",
+					"Github-Pat",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules by ignoring override result Ids",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreResultIds: []string{
+					"c31705d99e835e4ac7bc3f688bd9558309e056ed",
+					"993b789425c810d4956c5ed8c84f02f90b0531ee",
+					"63139b45c38f502bbbe15115a7995003d76b2a81",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Rule name, id, regex missing",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						Description: "Match passwords",
+					},
+					{
+						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0: missing ruleID"),
+				fmt.Errorf("rule#0: missing ruleName"),
+				fmt.Errorf("rule#0: missing regex"),
+			},
+		},
+		{
+			Name: "Regex and severity invalid",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+						RuleName:    "mock-rule",
+						Description: "Match passwords",
+						Regex:       "[A-Za-z0-9]{32})",
+						Severity:    "mockSeverity",
+					},
+					{
+						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid regex"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid severity:" +
+					" mockSeverity not one of ([Critical High Medium Low Info])"),
+			},
+		},
+		{
+			Name: "Rule id missing",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						RuleName:    "mock-rule",
+						Description: "Match passwords",
+						Regex:       "[A-Za-z0-9]{32})",
+					},
+					{
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0;RuleName-mock-rule: missing ruleID"),
+				fmt.Errorf("rule#1;RuleName-mock-rule2: missing ruleID"),
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			testScanner := NewScanner()
 			actualReport, err := testScanner.Scan(tc.ScanItems, tc.ScanConfig)
 
-			assert.NoError(t, err, "scanner encountered an error")
+			for _, expectErr := range tc.expectErrors {
+				assert.ErrorContains(t, err, expectErr.Error())
+			}
 
-			expectedReportBytes, err := os.ReadFile(tc.ExpectedReportPath)
-			assert.NoError(t, err, "failed to read expected report file")
-
-			var expectedReport, actualReportMap map[string]interface{}
-
-			err = json.Unmarshal(expectedReportBytes, &expectedReport)
-			assert.NoError(t, err, "failed to unmarshal expected report JSON")
-
-			actualReportBytes, err := json.Marshal(actualReport)
-			assert.NoError(t, err, "failed to marshal actual report to JSON")
-			err = json.Unmarshal(actualReportBytes, &actualReportMap)
-			assert.NoError(t, err, "failed to unmarshal actual report JSON")
-
-			normalizedExpectedReport, err := utils.NormalizeReportData(expectedReport)
-			assert.NoError(t, err, "Failed to normalize actual report")
-
-			normalizedActualReport, err := utils.NormalizeReportData(actualReportMap)
-			assert.NoError(t, err, "Failed to normalize actual report")
-
-			assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+			if tc.ExpectedReportPath != "" {
+				compareOrUpdateTestData(t, actualReport, tc.ExpectedReportPath)
+			}
 		})
 	}
 }
@@ -628,8 +732,8 @@ func TestScanDynamic(t *testing.T) {
 
 		actualReport, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{
 			IgnoreResultIds: []string{
-				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
-				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
+				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
+				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -781,8 +885,8 @@ func TestScanDynamic(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.ScanDynamic(itemsIn2, resources.ScanConfig{
 			IgnoreResultIds: []string{
-				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
-				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
+				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
+				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -807,6 +911,265 @@ func TestScanDynamic(t *testing.T) {
 
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
+}
+
+func TestScanDynamicWithCustomRules(t *testing.T) {
+	githubPatBytes, err := os.ReadFile(githubPatPath)
+	assert.NoError(t, err, "failed to read github-pat file")
+	githubPatContent := string(githubPatBytes)
+
+	jwtBytes, err := os.ReadFile(jwtPath)
+	assert.NoError(t, err, "failed to read jwt file")
+	jwtContent := string(jwtBytes)
+
+	genericKeyBytes, err := os.ReadFile(genericKeysPath)
+	assert.NoError(t, err, "failed to read jwt file")
+	genericKeysContent := string(genericKeyBytes)
+
+	emptyContent := ""
+	emptyMockPath := "mockPath"
+
+	scanItems := []ScanItem{
+		{
+			Content: &githubPatContent,
+			ID:      fmt.Sprintf("mock-%s", githubPatPath),
+			Source:  githubPatPath,
+		},
+		{
+			Content: &emptyContent,
+			ID:      fmt.Sprintf("mock-%s", emptyMockPath),
+			Source:  emptyMockPath,
+		},
+		{
+			Content: &jwtContent,
+			ID:      fmt.Sprintf("mock-%s", jwtPath),
+			Source:  jwtPath,
+		},
+		{
+			Content: &genericKeysContent,
+			ID:      fmt.Sprintf("mock-%s", genericKeysPath),
+			Source:  genericKeysPath,
+		},
+	}
+
+	tests := []struct {
+		Name               string
+		ScanConfig         resources.ScanConfig
+		ScanItems          []ScanItem
+		ExpectedReportPath string
+		expectErrors       []error
+	}{
+		{
+			Name: "Run all default + custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportDefaultPlusAllCustomRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run all default + custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom override rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run default + non override rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				IgnoreRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportDefaultPlusNonOverridesRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules and ignore overrides",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only default rules by ignoring custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				IgnoreRules:    []string{"custom"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyDefaultIgnoreCustomRules,
+			expectErrors:       nil,
+		},
+
+		{
+			Name: "Run only custom rules by ignoring custom rules by id",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules: []string{
+					"01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
+					"9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules by ignoring custom rules by name",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules: []string{
+					"Generic-Api-Key-Custom",
+					"Github-Pat",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules by ignoring override result Ids",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    customRules,
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreResultIds: []string{
+					"c31705d99e835e4ac7bc3f688bd9558309e056ed",
+					"993b789425c810d4956c5ed8c84f02f90b0531ee",
+					"63139b45c38f502bbbe15115a7995003d76b2a81",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+
+		{
+			Name: "Rule name, id, regex missing",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						Description: "Match passwords",
+					},
+					{
+						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0: missing ruleID"),
+				fmt.Errorf("rule#0: missing ruleName"),
+				fmt.Errorf("rule#0: missing regex"),
+			},
+		},
+		{
+			Name: "Regex and severity invalid",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+						RuleName:    "mock-rule",
+						Description: "Match passwords",
+						Regex:       "[A-Za-z0-9]{32})",
+						Severity:    "mockSeverity",
+					},
+					{
+						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid regex"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid severity:" +
+					" mockSeverity not one of ([Critical High Medium Low Info])"),
+			},
+		},
+		{
+			Name: "Rule id missing",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						RuleName:    "mock-rule",
+						Description: "Match passwords",
+						Regex:       "[A-Za-z0-9]{32})",
+					},
+					{
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0;RuleName-mock-rule: missing ruleID"),
+				fmt.Errorf("rule#1;RuleName-mock-rule2: missing ruleID"),
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+
+			itemsIn := make(chan ScanItem, len(tc.ScanItems))
+			for _, item := range tc.ScanItems {
+				itemsIn <- item
+			}
+			close(itemsIn)
+
+			testScanner := NewScanner()
+			assert.NoError(t, err, "failed to create scanner")
+
+			actualReport, err := testScanner.ScanDynamic(itemsIn, tc.ScanConfig)
+
+			for _, expectErr := range tc.expectErrors {
+				assert.ErrorContains(t, err, expectErr.Error())
+			}
+
+			if tc.ExpectedReportPath != "" {
+				compareOrUpdateTestData(t, actualReport, tc.ExpectedReportPath)
+			}
+		})
+	}
 }
 
 func TestScanWithValidation(t *testing.T) {

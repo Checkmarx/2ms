@@ -73,8 +73,13 @@ func TestIntegration(t *testing.T) {
 		t.Skip("skipping e2e test")
 	}
 
-	executable, err := createCLI(t.TempDir())
-	require.NoError(t, err)
+	executable := cli{
+		executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
+		resultsPath: path.Join(t.TempDir(), "results.json"),
+	}
+
+	//executable, err := createCLI(t.TempDir())
+	//require.NoError(t, err)
 
 	t.Run("filesystem: one secret found", func(t *testing.T) {
 		projectDir := t.TempDir()
@@ -280,6 +285,60 @@ func TestSecretsScans(t *testing.T) {
 			ExpectedReportPath: "testData/expectedReport/customRules/only_custom_no_override_rules.json",
 		},
 		{
+			Name:       "run only custom rules in json and ignore overrides by rule id",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--rule",
+				"custom",
+				"--ignore-rule",
+				"01ab7659-d25a-4a1c-9f98-dee9d0cf2e70,9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/only_custom_no_override_rules.json",
+		},
+		{
+			Name:       "run only custom rules in json and ignore overrides by rule name",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--rule",
+				"custom",
+				"--ignore-rule",
+				"Generic-Api-Key-Custom,Github-Pat",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/only_custom_no_override_rules.json",
+		},
+		{
+			Name:       "run only custom rules in json and ignore overrides by result id",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--rule",
+				"custom",
+				"--ignore-result",
+				"4431f6f38c1a36156f0486df95b0436810272bfb",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/only_custom_no_override_rules.json",
+		},
+		{
 			Name:       "run only default rules by ignoring custom rules in json",
 			ScanTarget: "filesystem",
 			Args: []string{
@@ -299,8 +358,13 @@ func TestSecretsScans(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			executable, err := createCLI(t.TempDir())
-			require.NoError(t, err)
+			executable := cli{
+				executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
+				resultsPath: path.Join(t.TempDir(), "results.json"),
+			}
+
+			//executable, err := createCLI(t.TempDir())
+			//require.NoError(t, err)
 
 			if err := executable.run(tc.ScanTarget, tc.Args...); err != nil {
 				t.Fatalf("error running scan with args: %v, got: %v", tc.Args, err)

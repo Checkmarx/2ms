@@ -353,7 +353,7 @@ func TestCustomRulesFlag(t *testing.T) {
 			expectErrors:    []error{errInvalidCustomRulesExtension},
 		},
 		{
-			name:            "Rule name, iD, regex missing",
+			name:            "Rule name, id, regex missing",
 			customRulesFile: "testData/customRulesMissingFields.json",
 			expectedRules:   nil,
 			expectErrors: []error{
