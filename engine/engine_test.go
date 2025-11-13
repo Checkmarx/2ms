@@ -48,7 +48,7 @@ func newMock(ctrl *gomock.Controller) *mock {
 }
 
 func Test_Init(t *testing.T) {
-	allRules := rules.FilterRules([]string{}, []string{}, []string{})
+	allRules := rules.FilterRules([]string{}, []string{}, []string{}, nil)
 	specialRule := ruledefine.HardcodedPassword()
 
 	tests := []struct {
@@ -75,7 +75,7 @@ func Test_Init(t *testing.T) {
 			expectedErr: ErrNoRulesSelected,
 		},
 		{
-			name: "exiting special rule",
+			name: "existing special rule",
 			engineConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},
@@ -129,9 +129,10 @@ func TestDetector(t *testing.T) {
 
 func TestSecrets(t *testing.T) {
 	secretsCases := []struct {
-		Content    string
-		Name       string
-		ShouldFind bool
+		Content     string
+		Name        string
+		CustomRules []*ruledefine.Rule
+		ShouldFind  bool
 	}{
 		{
 			Content:    "",
@@ -175,25 +176,40 @@ func TestSecrets(t *testing.T) {
 			Name:       "JFROG Secret as kubectl argument",
 			ShouldFind: true,
 		},
+		{
+			Content: "mock_secret:=very_secret_value",
+			Name:    "Secret only found with custom rule",
+			CustomRules: []*ruledefine.Rule{
+				{
+					RuleID:   "b47a1995-6572-41bb-b01d-d215b43ab089",
+					RuleName: "Generic-Api-Key-Completely-New",
+					Regex:    "(?i)\\b\\w*secret\\w*\\b\\s*:?=\\s*[\"']?([A-Za-z0-9/_+=-]{8,150})[\"']?",
+				},
+			},
+			ShouldFind: true,
+		},
 	}
 
-	detector, err := initEngine(&EngineConfig{
-		DetectorWorkerPoolSize: 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, secretCase := range secretsCases {
+		t.Run(secretCase.Name, func(t *testing.T) {
 
-	for _, secret := range secretsCases {
-		name := secret.Name
-		if name == "" {
-			name = secret.Content
-		}
-		t.Run(name, func(t *testing.T) {
+			detector, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize: 1,
+				CustomRules:            secretCase.CustomRules,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			name := secretCase.Name
+			if name == "" {
+				name = secretCase.Content
+			}
+
 			fmt.Printf("Start test %s", name)
 			secretsChan := make(chan *secrets.Secret, 1) // channel with size 1, if more than one secret found per sample, test fails with panic
 			fsPlugin := &plugins.FileSystemPlugin{}
-			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, fsPlugin.GetName())
+			err = detector.DetectFragment(item{content: &secretCase.Content}, secretsChan, fsPlugin.GetName())
 			if err != nil {
 				return
 			}
@@ -201,8 +217,8 @@ func TestSecrets(t *testing.T) {
 
 			s := <-secretsChan
 
-			if secret.ShouldFind {
-				assert.Equal(t, s.LineContent, secret.Content)
+			if secretCase.ShouldFind {
+				assert.Equal(t, s.LineContent, secretCase.Content)
 			} else {
 				assert.Nil(t, s)
 			}
@@ -1112,6 +1128,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 	tests := []struct {
 		name            string
 		inputSecrets    []*secrets.Secret
+		customRules     []*ruledefine.Rule
 		expectedSecrets []*secrets.Secret
 	}{
 		{
@@ -1147,11 +1164,44 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Github-Pat with DisableValidation set to true should skip validation, severity and Cvss score should be set accordingly",
+			inputSecrets: []*secrets.Secret{
+				{
+					ID:     "mockId",
+					RuleID: ruledefine.GitHubPat().RuleID,
+					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
+				},
+			},
+			customRules: []*ruledefine.Rule{
+				{
+					RuleID:            ruledefine.GitHubPat().RuleID,
+					RuleName:          ruledefine.GitHubPat().RuleName,
+					Severity:          ruledefine.GitHubPat().Severity,
+					ScoreParameters:   ruledefine.GitlabPat().ScoreParameters,
+					DisableValidation: true,
+				},
+			},
+			expectedSecrets: []*secrets.Secret{
+				{
+					ID:               "mockId",
+					RuleID:           ruledefine.GitHubPat().RuleID,
+					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
+					ValidationStatus: "Unknown",
+					Severity:         "High",
+					CvssScore:        8.2,
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			instance, err := initEngine(&EngineConfig{ScanConfig: resources.ScanConfig{WithValidation: true}})
+			instance, err := initEngine(
+				&EngineConfig{
+					ScanConfig:  resources.ScanConfig{WithValidation: true},
+					CustomRules: tt.customRules},
+			)
 			assert.NoError(t, err)
 			validationChan := instance.GetValidationCh()
 			for _, secret := range tt.inputSecrets {

@@ -77,32 +77,33 @@ const (
 var SeverityOrder = []Severity{Critical, High, Medium, Low, Info}
 
 type ScoreParameters struct {
-	Category RuleCategory
-	RuleType uint8
+	Category RuleCategory `json:"category" yaml:"category"`
+	RuleType uint8        `json:"ruleType" yaml:"ruleType"`
 }
 
 type Rule struct {
-	RuleID          string // uuid4, should be consistent across changes in rule
-	RuleName        string
-	Description     string
-	Regex           string // regex pattern as string
-	Keywords        []string
-	Entropy         float64
-	Path            string // present in some gitleaks secrets (regex)
-	SecretGroup     int    //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	Severity        Severity
-	OldSeverity     string // fallback for when critical is not enabled
-	Deprecated      bool   // deprecated rules will remain in 2ms, with this as true
-	AllowLists      []*AllowList
-	Tags            []string
-	ScoreParameters ScoreParameters // used for ASPM
+	RuleID            string          `json:"ruleId" yaml:"ruleId"` // uuid4, should be consistent across changes in rule
+	RuleName          string          `json:"ruleName" yaml:"ruleName"`
+	Description       string          `json:"description" yaml:"description"`
+	Regex             string          `json:"regex" yaml:"regex"` // regex pattern as string
+	Keywords          []string        `json:"keywords" yaml:"keywords"`
+	Entropy           float64         `json:"entropy" yaml:"entropy"`
+	Path              string          `json:"path" yaml:"path"`               // present in some gitleaks secrets (regex)
+	SecretGroup       int             `json:"secretGroup" yaml:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Severity          Severity        `json:"severity" yaml:"severity"`
+	OldSeverity       string          `json:"oldSeverity" yaml:"oldSeverity"` // fallback for when critical is not enabled
+	AllowLists        []*AllowList    `json:"allowLists" yaml:"allowLists"`
+	Tags              []string        `json:"tags" yaml:"tags"`
+	ScoreParameters   ScoreParameters `json:"scoreParameters" yaml:"scoreParameters"`     // used for ASPM
+	DisableValidation bool            `json:"disableValidation" yaml:"disableValidation"` ////nolint:lll // if true, validation checks will be skipped for this rule if any validation is possible
+	Deprecated        bool            `json:"deprecated" yaml:"deprecated"`
 }
 
 type AllowList struct { // For patterns that are allowed to be ignored
-	Description    string
-	MatchCondition string   // determines whether all criteria must match. OR or AND
-	Paths          []string // regex
-	RegexTarget    string   // match or line. Default match
-	Regexes        []string
-	StopWords      []string // stop words that are allowed to be ignored
+	Description    string   `json:"description" yaml:"description"`
+	MatchCondition string   `json:"matchCondition" yaml:"matchCondition"` // determines whether all criteria must match. OR or AND
+	Paths          []string `json:"paths" yaml:"paths"`                   // regex
+	RegexTarget    string   `json:"regexTarget" yaml:"regexTarget"`       // match or line. Default match
+	Regexes        []string `json:"regexes" yaml:"regexes"`
+	StopWords      []string `json:"stopWords" yaml:"stopWords"` // stop words that are allowed to be ignored
 }

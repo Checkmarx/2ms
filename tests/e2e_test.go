@@ -148,26 +148,152 @@ func TestSecretsScans(t *testing.T) {
 	tests := []struct {
 		Name               string
 		ScanTarget         string
+		Args               []string
 		TargetPath         string
 		ExpectedReportPath string
 	}{
 		{
-			Name:               "secret at end without newline",
-			ScanTarget:         "filesystem",
-			TargetPath:         "testData/input/secret_at_end.txt",
+			Name:       "secret at end without newline",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/secret_at_end.txt",
+				"--ignore-on-exit",
+				"results",
+			},
 			ExpectedReportPath: "testData/expectedReport/secret_at_end_report.json",
 		},
 		{
-			Name:               "multi line secret ",
-			ScanTarget:         "filesystem",
-			TargetPath:         "testData/input/multi_line_secret.txt",
+			Name:       "multi line secret ",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/multi_line_secret.txt",
+				"--ignore-on-exit",
+				"results",
+			},
 			ExpectedReportPath: "testData/expectedReport/multi_line_secret_report.json",
 		},
 		{
-			Name:               "secret at end with newline ",
-			ScanTarget:         "filesystem",
-			TargetPath:         "testData/input/secret_at_end_with_newline.txt",
+			Name:       "secret at end with newline ",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/secret_at_end_with_newline.txt",
+				"--ignore-on-exit",
+				"results",
+			},
 			ExpectedReportPath: "testData/expectedReport/secret_at_end_with_newline_report.json",
+		},
+		{
+			Name:       "run all default + custom rules in json",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.json",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/default_plus_all_custom_rules.json",
+		},
+		{
+			Name:       "run all default + custom rules in yaml",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/default_plus_all_custom_rules.json",
+		},
+		{
+			Name:       "run only custom rules in json",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--rule",
+				"custom",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/only_custom_rules.json",
+		},
+		{
+			Name:       "run only custom override rules in json",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--rule",
+				"override",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/only_override_rules.json",
+		},
+		{
+			Name:       "run default + non override rules in json",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--ignore-rule",
+				"override",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/default_plus_non_override_rules.json",
+		},
+		{
+			Name:       "run only custom rules and ignore overrides in json",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--rule",
+				"custom",
+				"--ignore-rule",
+				"override",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/only_custom_no_override_rules.json",
+		},
+		{
+			Name:       "run only default rules by ignoring custom rules in json",
+			ScanTarget: "filesystem",
+			Args: []string{
+				"--path",
+				"testData/input/custom_rules_secrets.txt",
+				"--validate",
+				"--custom-rules-path",
+				"testData/customRuleConfig/customRules.yaml",
+				"--ignore-rule",
+				"custom",
+				"--ignore-on-exit",
+				"results",
+			},
+			ExpectedReportPath: "testData/expectedReport/customRules/only_default_ignore_custom_rules.json",
 		},
 	}
 
@@ -176,16 +302,8 @@ func TestSecretsScans(t *testing.T) {
 			executable, err := createCLI(t.TempDir())
 			require.NoError(t, err)
 
-			args := []string{tc.ScanTarget}
-			if tc.ScanTarget == "filesystem" {
-				args = append(args, "--path", tc.TargetPath)
-			} else {
-				args = append(args, tc.TargetPath)
-			}
-			args = append(args, "--ignore-on-exit", "results")
-
-			if err := executable.run(args[0], args[1:]...); err != nil {
-				t.Fatalf("error running scan with args: %v, got: %v", args, err)
+			if err := executable.run(tc.ScanTarget, tc.Args...); err != nil {
+				t.Fatalf("error running scan with args: %v, got: %v", tc.Args, err)
 			}
 
 			actualReport, err := executable.getReport()

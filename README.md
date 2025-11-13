@@ -193,6 +193,7 @@ Flags:
                                       This list is not affected by the --rule and --ignore-rule flags.
       --allowed-values strings        allowed secrets values to ignore
       --config string                 config file path
+      --custom-rules-path string      Path to a custom rules file (JSON or YAML). Rules should be a list of ruledefine.Rule objects. --rule, --ignore-rule still apply to custom rules
   -h, --help                          help for 2ms
       --ignore-on-exit ignoreOnExit   defines which kind of non-zero exits code should be ignored
                                       accepts: all, results, errors, none

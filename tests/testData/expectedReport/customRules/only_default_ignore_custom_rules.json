@@ -1,0 +1,63 @@
+{
+  "totalItemsScanned": 1,
+  "totalSecretsFound": 3,
+  "results": {
+    "4431f6f38c1a36156f0486df95b0436810272bfb": [
+      {
+        "id": "4431f6f38c1a36156f0486df95b0436810272bfb",
+        "source": "testData/input/custom_rules_secrets.txt",
+        "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+        "ruleName": "Github-Pat",
+        "ruleCategory": "Development Platform",
+        "startLine": 1,
+        "endLine": 1,
+        "lineContent": "ghp_1234567890abcdefghijklmnopqrstuvwxyz123",
+        "startColumn": 1,
+        "endColumn": 40,
+        "value": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+        "validationStatus": "Invalid",
+        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
+        "severity": "Medium",
+        "cvssScore": 5.2
+      }
+    ],
+    "58a104ec1b079f2e63d3794d374587048ef6548a": [
+      {
+        "id": "58a104ec1b079f2e63d3794d374587048ef6548a",
+        "source": "testData/input/custom_rules_secrets.txt",
+        "ruleId": "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
+        "ruleName": "Generic-Api-Key",
+        "ruleCategory": "General",
+        "startLine": 3,
+        "endLine": 3,
+        "lineContent": "client_secret=6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",
+        "startColumn": 1,
+        "endColumn": 78,
+        "value": "6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",
+        "validationStatus": "Unknown",
+        "ruleDescription": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+        "severity": "High",
+        "cvssScore": 8.2
+      }
+    ],
+    "ed59fe58ed94271451439486ea086ef037ffbd9c": [
+      {
+        "id": "ed59fe58ed94271451439486ea086ef037ffbd9c",
+        "source": "testData/input/custom_rules_secrets.txt",
+        "ruleId": "3551707c-5e9a-4f7a-b433-8d824900f3c4",
+        "ruleName": "Aws-Access-Token",
+        "ruleCategory": "Authentication and Authorization",
+        "startLine": 2,
+        "endLine": 2,
+        "lineContent": "export AWS_CONTEXT_CREDENTIAL=ACCAIOSFODNN7EXAMAAA",
+        "startColumn": 31,
+        "endColumn": 50,
+        "value": "ACCAIOSFODNN7EXAMAAA",
+        "validationStatus": "Unknown",
+        "ruleDescription": "Identified a pattern that may indicate AWS credentials, risking unauthorized cloud resource access and data breaches on AWS platforms.",
+        "severity": "High",
+        "cvssScore": 10
+      }
+    ]
+  }
+}

@@ -31,6 +31,7 @@ const (
 	ignoreOnExitFlagName       = "ignore-on-exit"
 	maxTargetMegabytesFlagName = "max-target-megabytes"
 	validate                   = "validate"
+	customRulesFileFlagName    = "custom-rules-path"
 )
 
 var (
@@ -41,6 +42,7 @@ var (
 	ignoreOnExitVar    = ignoreOnExitNone
 	engineConfigVar    engine.EngineConfig
 	validateVar        bool
+	customRulesPathVar string
 )
 
 const envPrefix = "2MS"

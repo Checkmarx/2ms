@@ -1,20 +1,32 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var (
-	errInvalidOutputFormat    = fmt.Errorf("invalid output format")
-	errInvalidReportExtension = fmt.Errorf("invalid report extension")
+	errInvalidOutputFormat         = fmt.Errorf("invalid output format")
+	errInvalidReportExtension      = fmt.Errorf("invalid report extension")
+	errInvalidCustomRulesExtension = fmt.Errorf("unknown file extension, expected JSON or YAML")
+	errMissingRuleID               = fmt.Errorf("missing ruleID")
+	errMissingRuleName             = fmt.Errorf("missing ruleName")
+	errMissingRegex                = fmt.Errorf("missing regex")
+	errInvalidRegex                = fmt.Errorf("invalid regex")
+	errInvalidSeverity             = fmt.Errorf("invalid severity")
 )
 
 func processFlags(rootCmd *cobra.Command) error {
@@ -35,6 +47,14 @@ func processFlags(rootCmd *cobra.Command) error {
 	engineConfigVar.ScanConfig.WithValidation = validateVar
 	if len(customRegexRuleVar) > 0 {
 		engineConfigVar.CustomRegexPatterns = customRegexRuleVar
+	}
+
+	if customRulesPathVar != "" {
+		rules, err := loadRulesFile(customRulesPathVar)
+		if err != nil {
+			return fmt.Errorf("failed to load custom rules file: %w", err)
+		}
+		engineConfigVar.CustomRules = rules
 	}
 
 	setupLogging()
@@ -121,4 +141,84 @@ func setupFlags(rootCmd *cobra.Command) {
 
 	rootCmd.PersistentFlags().
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
+
+	rootCmd.PersistentFlags().
+		StringVar(&customRulesPathVar, customRulesFileFlagName, "", "Path to a custom rules file (JSON or YAML)."+
+			" Rules should be a list of ruledefine.Rule objects. --rule, --ignore-rule still apply to custom rules")
+}
+
+func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	ext := filepath.Ext(path)
+	var rules []*ruledefine.Rule
+
+	switch ext {
+	case ".json":
+		err = json.Unmarshal(data, &rules)
+	case ".yaml", ".yml":
+		err = yaml.Unmarshal(data, &rules)
+	default:
+		return nil, errInvalidCustomRulesExtension
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	err = checkRulesRequiredFields(rules)
+	if err != nil {
+		return nil, err
+	}
+
+	return rules, nil
+}
+
+// checkRequiredFields checks that required fields are present in the Rule.
+// This is meant for user defined rules, default rules have more strict checks in unit tests
+func checkRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
+	var err error
+	for i, rule := range rulesToCheck {
+		if rule.RuleID == "" {
+			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleID))
+		}
+		if rule.RuleName == "" {
+			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleName))
+		}
+
+		if rule.Regex == "" {
+			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRegex))
+		} else {
+			if _, errRegex := regexp.Compile(rule.Regex); errRegex != nil {
+				invalidRegexError := fmt.Errorf("%w: %v", errInvalidRegex, errRegex)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRegexError))
+			}
+		}
+
+		if rule.Severity != "" {
+			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
+				invalidSeverityError := fmt.Errorf("%w: %s not one of (%s)", errInvalidSeverity, rule.Severity, ruledefine.SeverityOrder)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidSeverityError))
+			}
+		}
+	}
+
+	// Add a newline at start of error if it's not nil, for better presentation in output
+	if err != nil {
+		err = fmt.Errorf("\n%w", err)
+	}
+
+	return err
+}
+
+func buildCustomRuleError(ruleIndex int, rule *ruledefine.Rule, issue error) error {
+	if rule.RuleID == "" {
+		if rule.RuleName == "" {
+			return fmt.Errorf("rule#%d: %w", ruleIndex, issue)
+		}
+		return fmt.Errorf("rule#%d;RuleName-%s: %w", ruleIndex, rule.RuleName, issue)
+	}
+	return fmt.Errorf("rule#%d;RuleID-%s: %w", ruleIndex, rule.RuleID, issue)
 }

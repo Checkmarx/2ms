@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -9,12 +8,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 func TestLoadAllRules(t *testing.T) {
-	rules := GetDefaultRules()
+	rules := GetDefaultRules(false)
 
 	if len(rules) <= 1 {
 		t.Error("no rules were loaded")
@@ -22,9 +20,9 @@ func TestLoadAllRules(t *testing.T) {
 }
 
 func TestLoadAllRulesCheckFields(t *testing.T) {
+	ruleNameMap := make(map[string]bool)
 	ruleIDMap := make(map[string]bool)
-	baseRuleIDMap := make(map[string]bool)
-	allRules := GetDefaultRules()
+	allRules := GetDefaultRules(false)
 	allRules = append(allRules, getSpecialRules()...)
 
 	for i, rule := range allRules {
@@ -47,18 +45,18 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 		}
 
 		// Verify duplicate rule ids
-		if _, ok := baseRuleIDMap[rule.RuleID]; ok {
+		if _, ok := ruleIDMap[rule.RuleID]; ok {
 			t.Errorf("duplicate rule base id found: %s", rule.RuleID)
 		}
 
-		ruleIDMap[rule.RuleName] = true
-		baseRuleIDMap[rule.RuleID] = true
+		ruleNameMap[rule.RuleName] = true
+		ruleIDMap[rule.RuleID] = true
 	}
 }
 
 func Test_FilterRules_SelectRules(t *testing.T) {
 	specialRule := ruledefine.HardcodedPassword()
-	allRules := GetDefaultRules()
+	allRules := GetDefaultRules(false)
 	rulesCount := len(allRules)
 
 	tests := []struct {
@@ -147,10 +145,404 @@ func Test_FilterRules_SelectRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			secrets := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList)
+			secrets := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList, []*ruledefine.Rule{})
 
 			if len(secrets) != tt.expectedLen {
 				t.Errorf("expected %d rules, but got %d", tt.expectedLen, len(secrets))
+			}
+		})
+	}
+}
+
+func Test_CustomRules(t *testing.T) {
+	//specialRule := ruledefine.HardcodedPassword()
+	allRules := GetDefaultRules(false)
+	rulesCount := len(allRules)
+
+	genericCredentialOverride := &ruledefine.Rule{
+		RuleID:      ruledefine.GenericCredential().RuleID,
+		RuleName:    ruledefine.GenericCredential().RuleID,
+		Description: "Custom rule for Generic API Key",
+		Regex:       "[A-Za-z0-9]{32}",
+		Tags:        []string{"custom"},
+	}
+
+	deprecatedGenericCredentialOverride := &ruledefine.Rule{
+		RuleID:      ruledefine.GenericCredential().RuleID,
+		RuleName:    ruledefine.GenericCredential().RuleID,
+		Description: "Custom rule for Generic API Key",
+		Regex:       "[A-Za-z0-9]{40}", // this regex is different to be able to distinguish with non deprecated rule
+		Tags:        []string{"custom"},
+		Deprecated:  true,
+	}
+
+	customRule := &ruledefine.Rule{
+		RuleID:      "c71a9be1-f8e2-4d6d-a5e8-c98229a61140",
+		RuleName:    "Custom rule",
+		Description: "Description",
+		Regex:       "[A-Za-z0-9]{32}",
+		Keywords:    []string{"custom"},
+		Severity:    "Low",
+		Entropy:     4.0,
+		Path:        "*.go",
+		AllowLists: []*ruledefine.AllowList{
+			{
+				Regexes: []string{
+					regexp.MustCompile(`^[a-zA-Z_.-]+$`).String(),
+				},
+			},
+		},
+		Tags:            []string{"custom2"},
+		ScoreParameters: ruledefine.ScoreParameters{Category: ruledefine.CategoryGeneralOrUnknown, RuleType: 4},
+	}
+
+	tests := []struct {
+		name                 string
+		selectedList         []string
+		ignoreList           []string
+		specialList          []string
+		customRules          []*ruledefine.Rule
+		onlyCustomRules      bool
+		expectedPresentRules []*ruledefine.Rule
+		expectedMissingRules []*ruledefine.Rule
+		expectedLen          int
+	}{
+		{
+			name:         "add custom rules to default rules",
+			selectedList: []string{},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: rulesCount + 1,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleID",
+			selectedList: []string{genericCredentialOverride.RuleID},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleName",
+			selectedList: []string{genericCredentialOverride.RuleName},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleName in lowercase",
+			selectedList: []string{strings.ToLower(genericCredentialOverride.RuleName)},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "select only custom rules with custom tag",
+			selectedList: []string{genericCredentialOverride.Tags[0]},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 1,
+		},
+		{
+			name: "select multiple custom rules with RuleID",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			ignoreList: []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 2,
+		},
+		{
+			name: "select multiple custom rules with RuleID and tag",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.Tags[0],
+			},
+			ignoreList: []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 2,
+		},
+		{
+			name: "select one default + multiple custom rules with RuleID and tag",
+			selectedList: []string{
+				ruledefine.CurlBasicAuth().RuleName,
+				genericCredentialOverride.RuleID,
+				customRule.Tags[0],
+			},
+			ignoreList: []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
+				ruledefine.CurlBasicAuth(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 3,
+		},
+		{
+			name: "select one default + multiple custom rules with RuleID and tag",
+			selectedList: []string{
+				ruledefine.CurlBasicAuth().RuleName,
+				genericCredentialOverride.RuleID,
+				customRule.Tags[0],
+			},
+			ignoreList: []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule},
+			expectedPresentRules: []*ruledefine.Rule{
+				ruledefine.CurlBasicAuth(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 3,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleID, deprecated override present and ignored",
+			selectedList: []string{genericCredentialOverride.RuleID},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				deprecatedGenericCredentialOverride},
+			expectedPresentRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "ignore custom rules with ruleID",
+			selectedList: []string{},
+			ignoreList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: rulesCount - 1,
+		},
+		{
+			name:         "ignore only generic rule (default and override) by ruleID",
+			selectedList: []string{},
+			ignoreList: []string{
+				genericCredentialOverride.RuleID,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+			},
+			expectedLen: rulesCount,
+		},
+		{
+			name: "ignore custom rules with ruleID while selecting same rules by ruleID",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			ignoreList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 0,
+		},
+		{
+			name: "ignore custom rules with ruleName while selecting same rules by ruleName",
+			selectedList: []string{
+				genericCredentialOverride.RuleName,
+				customRule.RuleName,
+			},
+			ignoreList: []string{
+				genericCredentialOverride.RuleName,
+				customRule.RuleName,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 0,
+		},
+		{
+			name: "ignore custom rules with lowercase ruleName while selecting same rules by ruleName",
+			selectedList: []string{
+				strings.ToLower(genericCredentialOverride.RuleName),
+				strings.ToLower(customRule.RuleName),
+			},
+			ignoreList: []string{
+				genericCredentialOverride.RuleName,
+				customRule.RuleName,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 0,
+		},
+		{
+			name: "ignore custom rules with tags while selecting same rules by ruleID, default generic rule should be present",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			ignoreList: []string{
+				genericCredentialOverride.Tags[0],
+				customRule.Tags[0],
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 1,
+		},
+		{
+			name: "ignore custom rules with ruleID while selecting same rules by ruleID, include special rule",
+			selectedList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			ignoreList: []string{
+				genericCredentialOverride.RuleID,
+				customRule.RuleID,
+			},
+			customRules: []*ruledefine.Rule{
+				genericCredentialOverride,
+				customRule,
+			},
+			specialList: []string{
+				ruledefine.HardcodedPassword().RuleName,
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				ruledefine.HardcodedPassword(),
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+				genericCredentialOverride,
+				customRule,
+			},
+			expectedLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rules := FilterRules(tt.selectedList, tt.ignoreList, tt.specialList, tt.customRules)
+
+			assert.Equal(t, tt.expectedLen, len(rules))
+			for _, expectedRule := range tt.expectedPresentRules {
+				assert.Contains(t, rules, expectedRule, "can't find expected rule")
+			}
+
+			for _, expectedMissingRule := range tt.expectedMissingRules {
+				assert.NotContains(t, rules, expectedMissingRule, "found unexpected rule")
 			}
 		})
 	}
@@ -331,17 +723,5 @@ func TestIgnoreRules(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestConvertRuleNames(t *testing.T) {
-	defaultRules := GetDefaultRules()
-	for _, rule := range defaultRules {
-		ruleName := rule.RuleName
-		caser := cases.Title(language.English)
-		if strings.Contains(ruleName, "-") {
-			ruleName = caser.String(ruleName)
-		}
-		fmt.Println(ruleName)
 	}
 }

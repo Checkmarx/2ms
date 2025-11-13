@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func GetDefaultRules() []*ruledefine.Rule { //nolint:funlen // This function contains all rule definitions
+func GetDefaultRules(includeDeprecated bool) []*ruledefine.Rule { //nolint:funlen // This function contains all rule definitions
 	allRules := []*ruledefine.Rule{
 		ruledefine.AdafruitAPIKey(),
 		ruledefine.AdobeClientID(),
@@ -223,6 +223,16 @@ func GetDefaultRules() []*ruledefine.Rule { //nolint:funlen // This function con
 		ruledefine.ZendeskSecretKey(),
 	}
 
+	if !includeDeprecated {
+		allRulesWithoutDeprecated := []*ruledefine.Rule{}
+		for _, rule := range allRules {
+			if !rule.Deprecated {
+				allRulesWithoutDeprecated = append(allRulesWithoutDeprecated, rule)
+			}
+		}
+		return allRulesWithoutDeprecated
+	}
+
 	return allRules
 }
 
@@ -234,13 +244,16 @@ func getSpecialRules() []*ruledefine.Rule {
 	return specialRules
 }
 
-func isRuleMatch(rule ruledefine.Rule, tags []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
-	for _, tag := range tags {
-		if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(tag)) {
+func isRuleMatch(rule ruledefine.Rule, matchStrings []string) bool { //nolint:gocritic // hugeParam: rule is heavy but needed
+	for _, matchString := range matchStrings {
+		if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(matchString)) {
+			return true
+		}
+		if strings.EqualFold(rule.RuleID, matchString) {
 			return true
 		}
 		for _, ruleTag := range rule.Tags {
-			if strings.EqualFold(ruleTag, tag) {
+			if strings.EqualFold(ruleTag, matchString) {
 				return true
 			}
 		}
@@ -248,42 +261,51 @@ func isRuleMatch(rule ruledefine.Rule, tags []string) bool { //nolint:gocritic /
 	return false
 }
 
-func selectRules(allRules []*ruledefine.Rule, tags []string) []*ruledefine.Rule {
+func selectRules(allRules []*ruledefine.Rule, matchStrings []string) []*ruledefine.Rule {
 	selectedRules := []*ruledefine.Rule{}
 
 	for _, rule := range allRules {
-		if isRuleMatch(*rule, tags) {
+		if isRuleMatch(*rule, matchStrings) {
 			selectedRules = append(selectedRules, rule)
 		}
 	}
 	return selectedRules
 }
 
-func ignoreRules(allRules []*ruledefine.Rule, tags []string) []*ruledefine.Rule {
+func ignoreRules(allRules []*ruledefine.Rule, matchStrings []string) []*ruledefine.Rule {
 	selectedRules := []*ruledefine.Rule{}
 
 	for _, rule := range allRules {
-		if !isRuleMatch(*rule, tags) {
+		if !isRuleMatch(*rule, matchStrings) {
 			selectedRules = append(selectedRules, rule)
 		}
 	}
 	return selectedRules
 }
 
-func FilterRules(selectedList, ignoreList, specialList []string) []*ruledefine.Rule {
+func FilterRules(selectedList, ignoreList, specialList []string,
+	customRules []*ruledefine.Rule) []*ruledefine.Rule {
 	if len(selectedList) > 0 && len(ignoreList) > 0 {
 		log.Warn().
 			Msgf("Both 'rule' and 'ignoreRule' flags were provided, " +
 				"I will first take all in 'rule' and then remove all in 'ignoreRule' from the list.")
 	}
 
-	selectedRules := GetDefaultRules()
+	var selectedRules []*ruledefine.Rule
+
+	selectedRules = GetDefaultRules(false)
+
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
+		customRules = selectRules(customRules, selectedList)
 	}
 	if len(ignoreList) > 0 {
 		selectedRules = ignoreRules(selectedRules, ignoreList)
+		customRules = ignoreRules(customRules, ignoreList)
 	}
+
+	selectedRules = addCustomRules(selectedRules, customRules)
+
 	if len(specialList) > 0 {
 		specialRules := getSpecialRules()
 		for _, rule := range specialRules {
@@ -295,5 +317,27 @@ func FilterRules(selectedList, ignoreList, specialList []string) []*ruledefine.R
 		}
 	}
 
+	return selectedRules
+}
+
+func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine.Rule {
+	for _, customRule := range customRules {
+		// Skip deprecated custom rules
+		if customRule.Deprecated {
+			continue
+		}
+		// Check if custom rule matches any existing rule
+		ruleMatch := false
+		for i := range selectedRules {
+			if selectedRules[i].RuleID == customRule.RuleID {
+				selectedRules[i] = customRule
+				ruleMatch = true
+				break
+			}
+		}
+		if !ruleMatch {
+			selectedRules = append(selectedRules, customRule)
+		}
+	}
 	return selectedRules
 }
