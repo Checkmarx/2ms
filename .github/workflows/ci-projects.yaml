@@ -40,7 +40,7 @@ jobs:
       - name: Checkout CLI repo
         uses: actions/checkout@v4
         with:
-          repository: ${{ vars.CES_EXECUTOR_REPO }}
+          repository: ${{ secrets.CES_EXECUTOR_REPO }}
           token: ${{ secrets.TWOMS_BOT_PAT }}
           path: cli
           ref: master

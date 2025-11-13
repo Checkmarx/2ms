@@ -40,7 +40,7 @@ jobs:
       - name: Checkout CLI repo
         uses: actions/checkout@v4
         with:
-          repository: ${{ vars.CES_EXECUTOR_REPO }}
+          repository: ${{ secrets.CES_EXECUTOR_REPO }}
           token: ${{ secrets.TWOMS_BOT_PAT }}
           path: cli
           ref: master
@@ -57,7 +57,7 @@ jobs:
           METADATA_PATH="$GITHUB_WORKSPACE/pr-metadata.json"
           CURR_TIMESTAMP=$(date +%s)
           echo '{
-            "seq": "'"${COMMIT_TIMESTAMP}"'",
+            "seq": "'"${CURR_TIMESTAMP}"'",
             "tag": "'"${{ github.event.number }}"'",
             "comment": "'"${{ github.event.pull_request.title }}"'",
             "commit": "'"${{ github.event.pull_request.head.sha }}"'",
