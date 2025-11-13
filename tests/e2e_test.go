@@ -72,14 +72,8 @@ func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping e2e test")
 	}
-
-	executable := cli{
-		executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
-		resultsPath: path.Join(t.TempDir(), "results.json"),
-	}
-
-	//executable, err := createCLI(t.TempDir())
-	//require.NoError(t, err)
+	executable, err := createCLI(t.TempDir())
+	require.NoError(t, err)
 
 	t.Run("filesystem: one secret found", func(t *testing.T) {
 		projectDir := t.TempDir()
@@ -358,13 +352,8 @@ func TestSecretsScans(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			executable := cli{
-				executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
-				resultsPath: path.Join(t.TempDir(), "results.json"),
-			}
-
-			//executable, err := createCLI(t.TempDir())
-			//require.NoError(t, err)
+			executable, err := createCLI(t.TempDir())
+			require.NoError(t, err)
 
 			if err := executable.run(tc.ScanTarget, tc.Args...); err != nil {
 				t.Fatalf("error running scan with args: %v, got: %v", tc.Args, err)
