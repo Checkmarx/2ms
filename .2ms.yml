@@ -2814,3 +2814,4 @@ ignore-result:
 - e0df5f6d616b8512f91928569dbbeb595cb1886f # test data from default_plus_non_override_rules.json
 - e41df94f30916531be27748175d28f851f0bacad # test data from only_custom_rules.json
 - faf4f974fad32cc5fb928a6d94adfe141007e925 # test data from custom_rules_secrets.txt
+- 20734a351c9be94da9240871fa50cf0959cf94ba # test data from default_plus_non_override_rules.json
