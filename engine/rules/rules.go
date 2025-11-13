@@ -355,7 +355,7 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 	return selectedRules
 }
 
-// CheckRequiredFields checks that required fields are present in the Rule.
+// CheckRulesRequiredFields checks that required fields are present in the Rule.
 // This is meant for user defined rules, default rules have more strict checks in unit tests
 func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 	var err error
