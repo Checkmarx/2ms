@@ -114,6 +114,10 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 		Example: fmt.Sprintf("  2ms %s https://checkmarx.atlassian.net/wiki", p.GetName()),
 		Args:    cobra.MatchAll(cobra.ExactArgs(1), isValidURL),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			p.SpaceKeys = trimNonEmpty(p.SpaceKeys)
+			p.SpaceIDs = trimNonEmpty(p.SpaceIDs)
+			p.PageIDs = trimNonEmpty(p.PageIDs)
+
 			if err := p.initialize(args[0], username, token); err != nil {
 				return err
 			}
@@ -141,6 +145,25 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	flags.BoolVar(&p.History, flagHistory, false, "Also scan all page revisions (all versions).")
 
 	return cmd, nil
+}
+
+// trimNonEmpty trims whitespace from each element and returns only the non-empty results.
+// It normalizes CLI inputs for space keys / space IDs / page IDs.
+// Returns nil when the input is empty or when all elements are empty after trimming.
+func trimNonEmpty(inputs []string) []string {
+	if len(inputs) == 0 {
+		return nil
+	}
+	trimmed := make([]string, 0, len(inputs))
+	for _, raw := range inputs {
+		if v := strings.TrimSpace(raw); v != "" {
+			trimmed = append(trimmed, v)
+		}
+	}
+	if len(trimmed) == 0 {
+		return nil
+	}
+	return trimmed
 }
 
 // isValidURL validates the single CLI argument as an HTTPS URL.
@@ -443,13 +466,17 @@ func differenceStrings(wants []string, seen map[string]struct{}) []string {
 	return missing
 }
 
-// missingKeysFromResolved returns keys that did not resolve to any space.
+// missingKeysFromResolved returns the subset of requested space keys that did not
+// resolve to any space (e.g., invalid or inaccessible).
 func missingKeysFromResolved(requestedKeys []string, resolved map[string]string) []string {
 	if len(requestedKeys) == 0 {
 		return nil
 	}
 	var missing []string
 	for _, k := range requestedKeys {
+		if k == "" {
+			continue
+		}
 		if _, ok := resolved[k]; !ok {
 			missing = append(missing, k)
 		}
@@ -457,75 +484,87 @@ func missingKeysFromResolved(requestedKeys []string, resolved map[string]string)
 	return missing
 }
 
+// abbreviateMiddle shortens very long IDs/keys by keeping the first and last 10 runes.
+// If the input is shorter than 30 runes, it is returned unchanged.
+func abbreviateMiddle(s string) string {
+	rs := []rune(s)
+	if len(rs) < 30 {
+		return s
+	}
+	return string(rs[:10]) + "..." + string(rs[len(rs)-10:])
+}
+
+// appendUniqueAbbreviated de-duplicates by the original value and appends
+// display strings (abbreviated if long) into out.
+func appendUniqueAbbreviated(values []string, seenOriginals map[string]struct{}, out *[]string) {
+	for _, orig := range values {
+		if orig == "" {
+			continue
+		}
+		if _, dup := seenOriginals[orig]; dup {
+			continue
+		}
+		seenOriginals[orig] = struct{}{}
+		*out = append(*out, abbreviateMiddle(orig))
+	}
+}
+
+// appendUniqueMapKeysAbbreviated collects keys from m and delegates to appendUniqueAbbreviated.
+func appendUniqueMapKeysAbbreviated(m map[string]struct{}, seenOriginals map[string]struct{}, out *[]string) {
+	if len(m) == 0 {
+		return
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		if k == "" {
+			continue
+		}
+		keys = append(keys, k)
+	}
+	appendUniqueAbbreviated(keys, seenOriginals, out)
+}
+
 // missingSelectorsWarningMessage builds one consolidated warning message showing up to maxShow examples across
 // page IDs, space keys, and space IDs that couldn’t be processed (invalid, non-existent,
 // or no access). The rest are summarized as "+ N more".
 // It returns an empty string when there's nothing to report.
 func (p *ConfluencePlugin) missingSelectorsWarningMessage() string {
-	seen := make(map[string]struct{})
-	ordered := make([]string, 0, 16)
-
-	add := func(xs []string) {
-		for _, x := range xs {
-			x = strings.TrimSpace(x)
-			if x == "" {
-				continue
-			}
-			if _, ok := seen[x]; ok {
-				continue
-			}
-			seen[x] = struct{}{}
-			ordered = append(ordered, x)
-		}
-	}
-	addMapKeys := func(m map[string]struct{}) {
-		if len(m) == 0 {
-			return
-		}
-		tmp := make([]string, 0, len(m))
-		for k := range m {
-			k = strings.TrimSpace(k)
-			if k == "" {
-				continue
-			}
-			tmp = append(tmp, k)
-		}
-		add(tmp)
-	}
+	seenOriginals := make(map[string]struct{})
+	displaySamples := make([]string, 0, 16)
 
 	if len(p.PageIDs) > 0 {
-		add(differenceStrings(p.PageIDs, p.returnedPageIDs))
+		appendUniqueAbbreviated(differenceStrings(p.PageIDs, p.returnedPageIDs), seenOriginals, &displaySamples)
 	}
 	if len(p.SpaceKeys) > 0 {
-		add(missingKeysFromResolved(p.SpaceKeys, p.resolvedSpaceKeys))
+		appendUniqueAbbreviated(missingKeysFromResolved(p.SpaceKeys, p.resolvedSpaceKeys), seenOriginals, &displaySamples)
 	}
 	if len(p.SpaceIDs) > 0 {
-		add(differenceStrings(p.SpaceIDs, p.returnedSpaceIDs))
+		appendUniqueAbbreviated(differenceStrings(p.SpaceIDs, p.returnedSpaceIDs), seenOriginals, &displaySamples)
 	}
-	addMapKeys(p.invalidPageIDs)
-	addMapKeys(p.invalidSpaceIDs)
+	appendUniqueMapKeysAbbreviated(p.invalidPageIDs, seenOriginals, &displaySamples)
+	appendUniqueMapKeysAbbreviated(p.invalidSpaceIDs, seenOriginals, &displaySamples)
 
-	if len(ordered) == 0 {
+	if len(displaySamples) == 0 {
 		return ""
 	}
 
 	const maxShow = 4
-	show := ordered
-	omitted := 0
-	if len(ordered) > maxShow {
-		show = ordered[:maxShow]
-		omitted = len(ordered) - maxShow
+	samplesToShow := displaySamples
+	remainingCount := 0
+	if len(displaySamples) > maxShow {
+		samplesToShow = displaySamples[:maxShow]
+		remainingCount = len(displaySamples) - maxShow
 	}
 
-	suffix := ""
-	if omitted > 0 {
-		suffix = fmt.Sprintf(" + %d more", omitted)
+	moreSuffix := ""
+	if remainingCount > 0 {
+		moreSuffix = fmt.Sprintf(" + %d more", remainingCount)
 	}
 
 	return fmt.Sprintf(
 		"The following page IDs, space keys, or space IDs couldn’t be processed because they either don’t exist or you don’t have access permissions: %s%s. These items were excluded from the scan.", //nolint:lll // long, user-facing message
-		strings.Join(show, ", "),
-		suffix,
+		strings.Join(samplesToShow, ", "),
+		moreSuffix,
 	)
 }
 

@@ -1336,25 +1336,25 @@ func TestMissingKeysFromResolved(t *testing.T) {
 		expected      []string
 	}{
 		{
-			name:          "empty requested",
+			name:          "emptyRequested",
 			requestedKeys: nil,
 			resolved:      map[string]string{"K1": "1"},
 			expected:      nil,
 		},
 		{
-			name:          "all resolved",
+			name:          "allResolved",
 			requestedKeys: []string{"K1", "K2"},
 			resolved:      map[string]string{"K1": "1", "K2": "2"},
 			expected:      nil,
 		},
 		{
-			name:          "some unresolved",
+			name:          "someUnresolved",
 			requestedKeys: []string{"K1", "K2", "K3"},
 			resolved:      map[string]string{"K1": "1"},
 			expected:      []string{"K2", "K3"},
 		},
 		{
-			name:          "nil resolved",
+			name:          "nilResolved",
 			requestedKeys: []string{"R1", "R2"},
 			resolved:      nil,
 			expected:      []string{"R1", "R2"},
@@ -1362,10 +1362,290 @@ func TestMissingKeysFromResolved(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		actual := missingKeysFromResolved(tc.requestedKeys, tc.resolved)
+		assert.Equal(t, tc.expected, actual, tc.name)
+	}
+}
+
+func TestAbbreviateMiddle(t *testing.T) {
+	long30 := strings.Repeat("x", 30)
+	long31 := strings.Repeat("y", 31)
+	longRunes := strings.Repeat("界", 35) // 35 runes
+
+	tests := []struct {
+		name     string
+		in       string
+		expected string
+	}{
+		{
+			name:     "empty",
+			in:       "",
+			expected: "",
+		},
+		{
+			name:     "29 should be unchanged",
+			in:       strings.Repeat("a", 29),
+			expected: strings.Repeat("a", 29),
+		},
+		{
+			name:     "exactly 30 should be abbreviated",
+			in:       long30,
+			expected: long30[:10] + "..." + long30[len(long30)-10:],
+		},
+		{
+			name:     "longer than 30 should be abbreviated",
+			in:       long31,
+			expected: long31[:10] + "..." + long31[len(long31)-10:],
+		},
+		{
+			name:     "unicode runes should be abbreviated",
+			in:       longRunes,
+			expected: string([]rune(longRunes)[:10]) + "..." + string([]rune(longRunes)[len([]rune(longRunes))-10:]),
+		},
+	}
+
+	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := missingKeysFromResolved(tc.requestedKeys, tc.resolved)
+			assert.Equal(t, tc.expected, abbreviateMiddle(tc.in))
+		})
+	}
+}
+
+func TestAppendUniqueAbbreviated(t *testing.T) {
+	long := strings.Repeat("z", 31) // > 30, should abbreviate
+	abbr := long[:10] + "..." + long[len(long)-10:]
+
+	tests := []struct {
+		name         string
+		values       []string
+		seedSeen     map[string]struct{}
+		expectedOut  []string
+		expectedSeen map[string]bool
+	}{
+		{
+			name:        "abbreviates >30 chars and keeps unique",
+			values:      []string{long, long},
+			seedSeen:    map[string]struct{}{},
+			expectedOut: []string{abbr},
+			expectedSeen: map[string]bool{
+				long: true,
+			},
+		},
+		{
+			name:        "dedups against existing seen",
+			values:      []string{"A", "B", "A"},
+			seedSeen:    map[string]struct{}{"A": {}},
+			expectedOut: []string{"B"},
+			expectedSeen: map[string]bool{
+				"A": true,
+				"B": true,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var out []string
+			seen := copySet(tc.seedSeen)
+
+			appendUniqueAbbreviated(tc.values, seen, &out)
+
+			assert.Equal(t, tc.expectedOut, out)
+			for must := range tc.expectedSeen {
+				_, ok := seen[must]
+				assert.True(t, ok, "expected %q present in seenOriginals", must)
+			}
+		})
+	}
+}
+
+func TestAppendUniqueMapKeysAbbreviated(t *testing.T) {
+	longKey := strings.Repeat("K", 31)
+	longAbbr := longKey[:10] + "..." + longKey[len(longKey)-10:]
+
+	tests := []struct {
+		name         string
+		rawKeys      []string
+		seedSeen     map[string]struct{}
+		expectedOut  []string
+		expectedSeen map[string]bool
+	}{
+		{
+			name:     "abbreviates long keys and deduplicates",
+			rawKeys:  []string{"a", "b", longKey, longKey, "a"},
+			seedSeen: map[string]struct{}{},
+			expectedOut: []string{
+				"a", "b", longAbbr,
+			},
+			expectedSeen: map[string]bool{
+				"a": true, "b": true, longKey: true,
+			},
+		},
+		{
+			name:         "empty map",
+			rawKeys:      nil,
+			seedSeen:     map[string]struct{}{},
+			expectedOut:  nil,
+			expectedSeen: map[string]bool{},
+		},
+		{
+			name:        "dedups against pre-seeded seen",
+			rawKeys:     []string{"X", "Y"},
+			seedSeen:    map[string]struct{}{"X": {}},
+			expectedOut: []string{"Y"},
+			expectedSeen: map[string]bool{
+				"X": true, "Y": true,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := make(map[string]struct{}, len(tc.rawKeys))
+			for _, k := range tc.rawKeys {
+				m[k] = struct{}{}
+			}
+			var out []string
+			seen := copySet(tc.seedSeen)
+
+			appendUniqueMapKeysAbbreviated(m, seen, &out)
+
+			assert.Equal(t, tc.expectedOut, out)
+			for must := range tc.expectedSeen {
+				_, ok := seen[must]
+				assert.True(t, ok, "expected %q present in seenOriginals", must)
+			}
+		})
+	}
+}
+
+func TestMissingSelectorsWarningMessage(t *testing.T) {
+	long := strings.Repeat("9", 31)
+	abbr := long[:10] + "..." + long[len(long)-10:]
+
+	const prefix = "The following page IDs, space keys, or space IDs couldn’t be processed because they either don’t exist or you don’t have access permissions: "
+	const suffixTail = ". These items were excluded from the scan."
+
+	tests := []struct {
+		name     string
+		setup    func() *ConfluencePlugin
+		expected string
+	}{
+		{
+			name: "empty everything returns empty message",
+			setup: func() *ConfluencePlugin {
+				return &ConfluencePlugin{
+					returnedPageIDs:   map[string]struct{}{},
+					returnedSpaceIDs:  map[string]struct{}{},
+					invalidPageIDs:    map[string]struct{}{},
+					invalidSpaceIDs:   map[string]struct{}{},
+					resolvedSpaceKeys: map[string]string{},
+				}
+			},
+			expected: "",
+		},
+		{
+			name: "shows first four and suffix for remaining",
+			setup: func() *ConfluencePlugin {
+				return &ConfluencePlugin{
+					PageIDs:           []string{long, "A", "B", "C", "D", "E"},
+					returnedPageIDs:   map[string]struct{}{},
+					returnedSpaceIDs:  map[string]struct{}{},
+					invalidPageIDs:    map[string]struct{}{},
+					invalidSpaceIDs:   map[string]struct{}{},
+					resolvedSpaceKeys: map[string]string{},
+				}
+			},
+			expected: prefix + strings.Join([]string{abbr, "A", "B", "C"}, ", ") + " + 2 more" + suffixTail,
+		},
+		{
+			name: "invalid page and space IDs only",
+			setup: func() *ConfluencePlugin {
+				return &ConfluencePlugin{
+					// simulate user requested these; nothing returned
+					PageIDs:          []string{"P_BAD1"},
+					SpaceIDs:         []string{"S_BAD1"},
+					returnedPageIDs:  map[string]struct{}{},
+					returnedSpaceIDs: map[string]struct{}{},
+					// walker marked them as invalid
+					invalidPageIDs:  map[string]struct{}{"P_BAD1": {}},
+					invalidSpaceIDs: map[string]struct{}{"S_BAD1": {}},
+					// no keys involved here
+					resolvedSpaceKeys: map[string]string{},
+				}
+			},
+			expected: prefix + strings.Join([]string{"P_BAD1", "S_BAD1"}, ", ") + suffixTail,
+		},
+		{
+			name: "mixed selectors and dedup",
+			setup: func() *ConfluencePlugin {
+				return &ConfluencePlugin{
+					PageIDs:  []string{"X", "Y", "Y", "Z", "X"},
+					SpaceIDs: []string{"S1", "S2", "S2"},
+					SpaceKeys: []string{
+						"K1", "K2", "K1",
+					},
+					returnedPageIDs:   map[string]struct{}{"X": {}},
+					returnedSpaceIDs:  map[string]struct{}{"S1": {}},
+					resolvedSpaceKeys: map[string]string{"K1": "S-resolved-1"},
+					invalidPageIDs:    map[string]struct{}{},
+					invalidSpaceIDs:   map[string]struct{}{},
+				}
+			},
+			expected: prefix + strings.Join([]string{"Y", "Z", "K2", "S2"}, ", ") + suffixTail,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p := tc.setup()
+			actual := p.missingSelectorsWarningMessage()
 			assert.Equal(t, tc.expected, actual)
 		})
+	}
+}
+
+func TestTrimNonEmpty(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "nil input",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name:     "empty slice ",
+			input:    []string{},
+			expected: nil,
+		},
+		{
+			name:     "all spaces",
+			input:    []string{"   ", "\t", "\n"},
+			expected: nil,
+		},
+		{
+			name:     "mix of spaces and values",
+			input:    []string{"  A  ", "   ", "\tB", "C\t", "   D   "},
+			expected: []string{"A", "B", "C", "D"},
+		},
+		{
+			name:     "already trimmed values kept",
+			input:    []string{"A", "B", "C"},
+			expected: []string{"A", "B", "C"},
+		},
+		{
+			name:     "duplicates preserved",
+			input:    []string{" A ", "A", "  A  "},
+			expected: []string{"A", "A", "A"},
+		},
+	}
+
+	for _, tc := range tests {
+		actual := trimNonEmpty(tc.input)
+		assert.Equal(t, tc.expected, actual, tc.name)
 	}
 }
 
@@ -1433,4 +1713,15 @@ func makeRangeStrings(start, end int) []string {
 		out = append(out, strconv.Itoa(i))
 	}
 	return out
+}
+
+func copySet(src map[string]struct{}) map[string]struct{} {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]struct{}, len(src))
+	for k := range src {
+		dst[k] = struct{}{}
+	}
+	return dst
 }
