@@ -1,9 +1,8 @@
-name: CI Projects
+name: CESARt
 on:
   pull_request:
-    types: [closed]
-    branches:
-      - master
+    types: [ labeled ]
+
 
 env:
   ENGINE_VERSION: ${{ vars.ENGINE_VERSION }}
@@ -11,15 +10,16 @@ env:
   ENGINE: "2ms"
   CES_ENVIROMENT: "prod"
   LOG_FILE: ${{ github.workspace }}/log.log
+  REMOVE_HISTORY: "true"
 
 jobs:
-  ci-projects:
-    if: github.event.pull_request.merged == true
+  cesar:
+    if: (github.event.label.name == 'cesar' && github.event.pull_request.mergeable == true)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
           path: 2ms
 
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
@@ -50,20 +50,25 @@ jobs:
           cd cli
           go build -o excutor
 
+
       - name: Create Metadata File
         run: |
           COMMIT_TIMESTAMP=$(git -C "$GITHUB_WORKSPACE/2ms" log -1 --format=%ct)
           METADATA_PATH="$GITHUB_WORKSPACE/pr-metadata.json"
+          CURR_TIMESTAMP=$(date +%s)
           echo '{
             "seq": "'"${COMMIT_TIMESTAMP}"'",
             "tag": "'"${{ github.event.number }}"'",
             "comment": "'"${{ github.event.pull_request.title }}"'",
-            "commit": "'"${{ github.sha }}"'",
+            "commit": "'"${{ github.event.pull_request.head.sha }}"'",
             "owner": "'"${{ github.actor }}"'",
-            "branch": "'"${{ github.base_ref }}"'",
+            "branch": "'"${{ github.head_ref }}"'",
             "engine": "'"${ENGINE}"'",
             "platform": "'"${PLATFORM}"'",
-            "version": "'"${ENGINE_VERSION}"'"
+            "version": "'"${ENGINE_VERSION"'",
+            "forkSeq": "'"${CURR_TIMESTAMP}"'",
+            "forkBranch": "'"${{ github.base_ref }}"'",
+            "removeHistory" : "'"${REMOVE_HISTORY}"'"
           }' > "$METADATA_PATH"
 
           echo "" >> "$LOG_FILE"
