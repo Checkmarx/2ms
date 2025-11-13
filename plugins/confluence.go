@@ -150,7 +150,7 @@ func isValidURL(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("invalid URL: %w", err)
 	}
-	if parsedURL.Scheme != "https" {
+	if parsedURL.Scheme != schemeHTTPS {
 		return fmt.Errorf("invalid URL: %w", ErrHTTPSRequired)
 	}
 	if parsedURL.Host == "" {
@@ -523,7 +523,7 @@ func (p *ConfluencePlugin) missingSelectorsWarningMessage() string {
 	}
 
 	return fmt.Sprintf(
-		"The following page IDs, space keys, or space IDs couldn’t be processed because they either don’t exist or you don’t have access permissions: %s%s. These items were excluded from the scan.",
+		"The following page IDs, space keys, or space IDs couldn’t be processed because they either don’t exist or you don’t have access permissions: %s%s. These items were excluded from the scan.", //nolint:lll // long, user-facing message
 		strings.Join(show, ", "),
 		suffix,
 	)

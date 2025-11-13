@@ -15,7 +15,10 @@ import (
 )
 
 const (
-	httpTimeout = 60 * time.Second
+	httpTimeout       = 60 * time.Second
+	schemeHTTPS       = "https"
+	authMissingScopes = "missing-scopes"
+	authBadCreds      = "bad-credentials"
 )
 
 var (
@@ -93,7 +96,7 @@ func normalizeWikiBase(inputURL string) (string, error) {
 		return "", fmt.Errorf("invalid url: missing host")
 	}
 	// force https and canonical wiki root
-	parsedURL.Scheme = "https"
+	parsedURL.Scheme = schemeHTTPS
 	parsedURL.User = nil
 	parsedURL.RawQuery = ""
 	parsedURL.Fragment = ""
@@ -122,7 +125,7 @@ func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, err
 		return "", fmt.Errorf("parse base url: %w", err)
 	}
 	site.RawQuery, site.Fragment, site.User = "", "", nil
-	site.Scheme = "https"
+	site.Scheme = schemeHTTPS
 	site.Path = "/_edge/tenant_info"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, site.String(), http.NoBody)
@@ -350,7 +353,7 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
 		if resp.StatusCode == http.StatusUnauthorized {
 			switch classifyAuth401(bodyBytes) {
-			case "missing-scopes":
+			case authMissingScopes:
 				return nil, nil, ErrMissingScopes
 			default:
 				return nil, nil, fmt.Errorf("%w: invalid username or token", ErrBadCredentials)
@@ -393,7 +396,7 @@ func (c *httpConfluenceClient) getJSONStream(ctx context.Context, reqURL string)
 		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
 		if resp.StatusCode == http.StatusUnauthorized {
 			switch classifyAuth401(bodyBytes) {
-			case "missing-scopes":
+			case authMissingScopes:
 				return nil, nil, ErrMissingScopes
 			default:
 				return nil, nil, fmt.Errorf("%w: invalid username or token", ErrBadCredentials)
@@ -415,9 +418,9 @@ func classifyAuth401(body []byte) string {
 	_ = json.Unmarshal(body, &payload)
 	msg := strings.ToLower(strings.TrimSpace(payload.Message))
 	if strings.Contains(msg, "scope does not match") {
-		return "missing-scopes"
+		return authMissingScopes
 	}
-	return "bad-credentials"
+	return authBadCreds
 }
 
 // rateLimitMessage formats a user-friendly message for HTTP 429 responses,
