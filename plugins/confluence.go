@@ -510,7 +510,7 @@ func appendUniqueAbbreviated(values []string, seenOriginals map[string]struct{},
 }
 
 // appendUniqueMapKeysAbbreviated collects keys from m and delegates to appendUniqueAbbreviated.
-func appendUniqueMapKeysAbbreviated(m map[string]struct{}, seenOriginals map[string]struct{}, out *[]string) {
+func appendUniqueMapKeysAbbreviated(m, seenOriginals map[string]struct{}, out *[]string) {
 	if len(m) == 0 {
 		return
 	}
