@@ -30,21 +30,11 @@ func TestBuildAPIBase(t *testing.T) {
 	tests := []struct {
 		name         string
 		setup        func() *httpConfluenceClient
-		tokenType    TokenType
 		expectedBase string
 		expectedErr  error
 	}{
 		{
-			name: "api-token",
-			setup: func() *httpConfluenceClient {
-				return &httpConfluenceClient{baseWikiURL: "https://tenant.atlassian.net/wiki"}
-			},
-			tokenType:    ApiToken,
-			expectedBase: "https://tenant.atlassian.net/wiki/api/v2",
-			expectedErr:  nil,
-		},
-		{
-			name: "scoped-api-token (discovers cloudId)",
+			name: "discovers cloudId",
 			setup: func() *httpConfluenceClient {
 				ts := tlsTenant("abc-123")
 				t.Cleanup(ts.Close)
@@ -55,12 +45,11 @@ func TestBuildAPIBase(t *testing.T) {
 					httpClient:  ts.Client(), // trust the TLS test server
 				}
 			},
-			tokenType:    ScopedApiToken,
 			expectedBase: "https://api.atlassian.com/ex/confluence/abc-123/wiki/api/v2",
 			expectedErr:  nil,
 		},
 		{
-			name: "scoped (discoverCloudID error)",
+			name: "discoverCloudID error",
 			setup: func() *httpConfluenceClient {
 				// TLS server that returns 500 for /_edge/tenant_info
 				ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -79,24 +68,15 @@ func TestBuildAPIBase(t *testing.T) {
 					httpClient:  ts.Client(), // trust test server
 				}
 			},
-			tokenType:    ScopedApiToken,
 			expectedBase: "",
-			expectedErr:  ErrUnexpectedHTTPStatus,
-		},
-		{
-			name: "unsupported",
-			setup: func() *httpConfluenceClient {
-				return &httpConfluenceClient{baseWikiURL: "https://example.test/wiki"}
-			},
-			tokenType:   TokenType("bad"),
-			expectedErr: ErrUnsupportedTokenType,
+			expectedErr:  ErrBaseURLInvalidOrUnreachable,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			c := tc.setup()
-			actualBase, err := c.buildAPIBase(context.Background(), tc.tokenType)
+			actualBase, err := c.buildAPIBase(context.Background())
 			assert.ErrorIs(t, err, tc.expectedErr)
 			assert.Equal(t, tc.expectedBase, actualBase)
 		})
@@ -152,7 +132,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, func() {}
 			},
 			expectedID:  "",
-			expectedErr: fmt.Errorf("tenant_info request"),
+			expectedErr: ErrBaseURLInvalidOrUnreachable,
 		},
 		{
 			name: "non-200 http with snippet",
@@ -171,7 +151,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, ts.Close
 			},
 			expectedID:  "",
-			expectedErr: ErrUnexpectedHTTPStatus,
+			expectedErr: ErrBaseURLInvalidOrUnreachable,
 		},
 		{
 			name: "decode error",
@@ -189,7 +169,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, ts.Close
 			},
 			expectedID:  "",
-			expectedErr: io.ErrUnexpectedEOF,
+			expectedErr: ErrBaseURLInvalidOrUnreachable,
 		},
 		{
 			name: "empty cloudId",
@@ -207,7 +187,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, ts.Close
 			},
 			expectedID:  "",
-			expectedErr: ErrEmptyCloudID,
+			expectedErr: ErrBaseURLInvalidOrUnreachable,
 		},
 	}
 
@@ -1327,6 +1307,108 @@ func TestDecodeLinksNext(t *testing.T) {
 
 			assert.ErrorIs(t, err, tc.expectedErr)
 			assert.Equal(t, tc.expectedNext, actualNext)
+		})
+	}
+}
+
+func TestNormalizeWikiBase(t *testing.T) {
+	tests := []struct {
+		name              string
+		in                string
+		expected          string
+		expectedErr       error
+		useContainsForErr bool
+	}{
+		{
+			name:     "site root → /wiki",
+			in:       "https://tenant.atlassian.net",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:     "/wiki with trailing slash",
+			in:       "https://tenant.atlassian.net/wiki/",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:     "force https scheme",
+			in:       "http://tenant.atlassian.net/wiki",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:     "page url with path/query/fragment",
+			in:       "https://tenant.atlassian.net/wiki/spaces/KEY/pages/123?x=1#frag",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:     "trim spaces and drop userinfo",
+			in:       "  https://user:pass@tenant.atlassian.net/some/where \n",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:              "parse error",
+			in:                "%",
+			expectedErr:       fmt.Errorf("invalid URL escape"),
+			useContainsForErr: true,
+		},
+		{
+			name:              "missing host (absolute with empty host)",
+			in:                "https:///wiki",
+			expectedErr:       fmt.Errorf("invalid url: missing host"),
+			useContainsForErr: true,
+		},
+		{
+			name:              "missing host (relative path)",
+			in:                "/wiki",
+			expectedErr:       fmt.Errorf("invalid url: missing host"),
+			useContainsForErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := normalizeWikiBase(tc.in)
+			if tc.useContainsForErr {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestClassifyAuth401(t *testing.T) {
+	tests := []struct {
+		name     string
+		body     string
+		expected string
+	}{
+		{
+			name:     "missing scopes (any case)",
+			body:     `{"code":401,"message":"Scope DOES NOT MATCH token"}`,
+			expected: "missing-scopes",
+		},
+		{
+			name:     "bad credentials generic",
+			body:     `{"code":401,"message":"Invalid credentials"}`,
+			expected: "bad-credentials",
+		},
+		{
+			name:     "empty json",
+			body:     `{}`,
+			expected: "bad-credentials",
+		},
+		{
+			name:     "invalid json still defaults",
+			body:     `{`,
+			expected: "bad-credentials",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := classifyAuth401([]byte(tc.body))
+			assert.Equal(t, tc.expected, actual)
 		})
 	}
 }
