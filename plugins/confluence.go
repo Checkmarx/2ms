@@ -62,21 +62,37 @@ type ConfluencePlugin struct {
 	client  ConfluenceClient
 	chunker chunk.IChunk
 
-	// Tracking (no extra HTTP requests):
-	// queuedSpaceIDs: space IDs we are planning to query (dedup inputs before API calls).
-	queuedSpaceIDs map[string]struct{}
-	// returnedSpaceIDs: space IDs actually observed in returned pages (to detect space-ids that yielded no pages).
+	// returnedSpaceIDs records space IDs actually seen on pages we emitted.
+	// Used after the run to warn about requested space-ids (or resolved keys)
+	// that returned no pages (invalid, inaccessible, or empty).
 	returnedSpaceIDs map[string]struct{}
-	// returnedPageIDs: page IDs actually emitted (prevents duplicates; also used to detect missing page-ids).
+
+	// returnedPageIDs records page IDs we have already emitted in this run.
+	// Prevents duplicate emission and lets us warn about requested page-ids
+	// that produced no results.
 	returnedPageIDs map[string]struct{}
-	// resolvedSpaceKeys: map of space-key -> space-id for keys that resolved (to detect keys that didn't resolve).
+
+	// resolvedSpaceKeys records successful space-key to space-id resolutions from WalkSpacesByKeys.
+	// Keys that do not appear here failed to resolve (invalid/inaccessible),
+	// and will be included in the warning.
 	resolvedSpaceKeys map[string]string
+
+	// invalidSpaceIDs holds user-provided (or resolved) space-ids that failed numeric/length validation.
+	invalidSpaceIDs map[string]struct{}
+
+	// invalidPageIDs holds user-provided page-ids that failed numeric/length validation.
+	invalidPageIDs map[string]struct{}
 }
 
 // NewConfluencePlugin constructs a new Confluence plugin with a default chunker.
 func NewConfluencePlugin() IPlugin {
 	return &ConfluencePlugin{
-		chunker: chunk.New(),
+		chunker:           chunk.New(),
+		returnedSpaceIDs:  map[string]struct{}{},
+		returnedPageIDs:   map[string]struct{}{},
+		resolvedSpaceKeys: map[string]string{},
+		invalidSpaceIDs:   map[string]struct{}{},
+		invalidPageIDs:    map[string]struct{}{},
 	}
 }
 
@@ -156,23 +172,15 @@ func (p *ConfluencePlugin) initialize(base, username, token string) error {
 
 // walkAndEmitPages discovers pages by the provided selectors (space IDs, space keys, page IDs).
 // If no selector is provided, it walks all accessible pages. Pages are de-duplicated by ID.
-// Also tracks which selectors yielded results and logs warnings for invalid/inaccessible selectors,
-// without issuing additional API requests.
+// Also tracks which selectors yielded results and logs a single consolidated warning for
+// invalid/unresolvable/inaccessible selectors, without issuing additional API requests.
 func (p *ConfluencePlugin) walkAndEmitPages(ctx context.Context) error {
-	// (Re)initialize tracking for this run.
-	p.queuedSpaceIDs = make(map[string]struct{}, len(p.SpaceIDs))
-	p.returnedSpaceIDs = make(map[string]struct{}, 256)
-	p.returnedPageIDs = make(map[string]struct{}, len(p.PageIDs))
-	p.resolvedSpaceKeys = make(map[string]string, 256)
-
-	if len(p.SpaceIDs) > 0 {
-		if err := p.scanBySpaceIDs(ctx); err != nil {
+	if len(p.SpaceIDs) > 0 || len(p.SpaceKeys) > 0 {
+		allSpaceIDs, err := p.resolveAndCollectSpaceIDs(ctx)
+		if err != nil {
 			return err
 		}
-	}
-
-	if len(p.SpaceKeys) > 0 {
-		if err := p.scanBySpaceKeys(ctx); err != nil {
+		if err := p.scanBySpaceIDs(ctx, allSpaceIDs); err != nil {
 			return err
 		}
 	}
@@ -191,70 +199,71 @@ func (p *ConfluencePlugin) walkAndEmitPages(ctx context.Context) error {
 		}
 	}
 
-	p.warnMissingSelectors()
+	if msg := p.missingSelectorsWarningMessage(); msg != "" {
+		log.Warn().Msg(msg)
+	}
 
 	return nil
 }
 
-// scanBySpaceIDs walks pages in the explicitly provided space IDs (p.SpaceIDs).
-// It deduplicates input space IDs with p.queuedSpaceIDs, batches requests (maxSpaceIDsPerRequest),
-// and emits pages via emitUniquePage while tracking p.returnedPageIDs to avoid duplicates.
-func (p *ConfluencePlugin) scanBySpaceIDs(ctx context.Context) error {
-	var uniqueSpaceIDs []string
-	for _, spaceID := range p.SpaceIDs {
-		if _, alreadySeen := p.queuedSpaceIDs[spaceID]; alreadySeen {
+// resolveAndCollectSpaceIDs resolves space keys into space IDs, merges them with the
+// explicitly provided space IDs, validates user input, removes duplicates, and returns
+// the unique set of space IDs to scan.
+func (p *ConfluencePlugin) resolveAndCollectSpaceIDs(ctx context.Context) ([]string, error) {
+	unique := make(map[string]struct{}, len(p.SpaceIDs)+len(p.SpaceKeys))
+
+	for _, id := range p.SpaceIDs {
+		if !isValidNumericID(id) {
+			p.invalidSpaceIDs[id] = struct{}{}
 			continue
 		}
-		p.queuedSpaceIDs[spaceID] = struct{}{}
-		uniqueSpaceIDs = append(uniqueSpaceIDs, spaceID)
+		unique[id] = struct{}{}
 	}
 
+	for _, batch := range chunkStrings(p.SpaceKeys, maxSpaceKeysPerRequest) {
+		err := p.client.WalkSpacesByKeys(ctx, batch, maxPageSize, func(space *Space) error {
+			p.resolvedSpaceKeys[space.Key] = space.ID
+
+			unique[space.ID] = struct{}{}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	uniqueSpaceIDs := make([]string, 0, len(unique))
+	for id := range unique {
+		uniqueSpaceIDs = append(uniqueSpaceIDs, id)
+	}
+	return uniqueSpaceIDs, nil
+}
+
+// scanBySpaceIDs walks pages by the provided space IDs.
+func (p *ConfluencePlugin) scanBySpaceIDs(ctx context.Context, ids []string) error {
 	return p.walkPagesByIDBatches(
 		ctx,
-		uniqueSpaceIDs,
+		ids,
 		maxSpaceIDsPerRequest,
 		p.client.WalkPagesBySpaceIDs,
 	)
 }
 
-// scanBySpaceKeys resolves space keys (p.SpaceKeys) to space IDs, deduplicates with
-// p.queuedSpaceIDs, then walks pages by those IDs in batches. Each page is emitted via
-// emitUniquePage, updating p.returnedPageIDs.
-func (p *ConfluencePlugin) scanBySpaceKeys(ctx context.Context) error {
-	for _, spaceKeyBatch := range chunkStrings(p.SpaceKeys, maxSpaceKeysPerRequest) {
-		var newlyResolvedSpaceIDs []string
-		if err := p.client.WalkSpacesByKeys(ctx, spaceKeyBatch, maxPageSize, func(space *Space) error {
-			if space != nil && space.Key != "" && space.ID != "" {
-				p.resolvedSpaceKeys[space.Key] = space.ID
-			}
-			if _, alreadySeen := p.queuedSpaceIDs[space.ID]; alreadySeen {
-				return nil
-			}
-			p.queuedSpaceIDs[space.ID] = struct{}{}
-			newlyResolvedSpaceIDs = append(newlyResolvedSpaceIDs, space.ID)
-			return nil
-		}); err != nil {
-			return err
-		}
-
-		if err := p.walkPagesByIDBatches(
-			ctx,
-			newlyResolvedSpaceIDs,
-			maxSpaceIDsPerRequest,
-			p.client.WalkPagesBySpaceIDs,
-		); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // scanByPageIDs walks the specific page IDs in p.PageIDs, batching requests (maxPageIDsPerRequest),
 // and emits each page via emitUniquePage while tracking p.returnedPageIDs to avoid duplicates.
 func (p *ConfluencePlugin) scanByPageIDs(ctx context.Context) error {
+	valid := make([]string, 0, len(p.PageIDs))
+	for _, id := range p.PageIDs {
+		if !isValidNumericID(id) {
+			p.invalidPageIDs[id] = struct{}{}
+			continue
+		}
+		valid = append(valid, id)
+	}
+
 	return p.walkPagesByIDBatches(
 		ctx,
-		p.PageIDs,
+		valid,
 		maxPageIDsPerRequest,
 		p.client.WalkPagesByIDs,
 	)
@@ -403,7 +412,7 @@ func (p *ConfluencePlugin) resolveConfluenceSourceURL(page *Page, versionNumber 
 	return "", false
 }
 
-// walkPagesByIDBatches batch IDs and emit pages using the provided walker.
+// walkPagesByIDBatches batches IDs and emits pages using the provided walker.
 func (p *ConfluencePlugin) walkPagesByIDBatches(
 	ctx context.Context,
 	ids []string,
@@ -420,7 +429,7 @@ func (p *ConfluencePlugin) walkPagesByIDBatches(
 	return nil
 }
 
-// differenceStrings returns the subset of wants not present in seen (map set).
+// differenceStrings returns the subset of wants not present in seen.
 func differenceStrings(wants []string, seen map[string]struct{}) []string {
 	if len(wants) == 0 {
 		return nil
@@ -434,7 +443,7 @@ func differenceStrings(wants []string, seen map[string]struct{}) []string {
 	return missing
 }
 
-// missingKeysFromResolved returns keys that did not resolve to any space (invisible or invalid).
+// missingKeysFromResolved returns keys that did not resolve to any space.
 func missingKeysFromResolved(requestedKeys []string, resolved map[string]string) []string {
 	if len(requestedKeys) == 0 {
 		return nil
@@ -448,63 +457,91 @@ func missingKeysFromResolved(requestedKeys []string, resolved map[string]string)
 	return missing
 }
 
-// dedupStringsStable returns a de-duplicated copy of input preserving order.
-func dedupStringsStable(input []string) []string {
-	if len(input) == 0 {
-		return nil
-	}
-	seen := make(map[string]struct{}, len(input))
-	out := make([]string, 0, len(input))
-	for _, v := range input {
-		if _, ok := seen[v]; ok {
-			continue
+// missingSelectorsWarningMessage builds one consolidated warning message showing up to maxShow examples across
+// page IDs, space keys, and space IDs that couldn’t be processed (invalid, non-existent,
+// or no access). The rest are summarized as "+ N more".
+// It returns an empty string when there's nothing to report.
+func (p *ConfluencePlugin) missingSelectorsWarningMessage() string {
+	seen := make(map[string]struct{})
+	ordered := make([]string, 0, 16)
+
+	add := func(xs []string) {
+		for _, x := range xs {
+			x = strings.TrimSpace(x)
+			if x == "" {
+				continue
+			}
+			if _, ok := seen[x]; ok {
+				continue
+			}
+			seen[x] = struct{}{}
+			ordered = append(ordered, x)
 		}
-		seen[v] = struct{}{}
-		out = append(out, v)
 	}
-	return out
-}
-
-// warnList logs a single warning with the sample values and, when applicable,
-// appends "…and N more ..." to the same message.
-func (p *ConfluencePlugin) warnList(label string, values []string) {
-	const maxShow = 3
-	if len(values) == 0 {
-		return
+	addMapKeys := func(m map[string]struct{}) {
+		if len(m) == 0 {
+			return
+		}
+		tmp := make([]string, 0, len(m))
+		for k := range m {
+			k = strings.TrimSpace(k)
+			if k == "" {
+				continue
+			}
+			tmp = append(tmp, k)
+		}
+		add(tmp)
 	}
 
-	// De-duplicate for cleaner logs.
-	values = dedupStringsStable(values)
-
-	show := values
-	omitted := 0
-	if len(values) > maxShow {
-		show = values[:maxShow]
-		omitted = len(values) - maxShow
-	}
-	msg := fmt.Sprintf("No results for some %s(s). They may be invalid, inaccessible, or empty.", label)
-
-	ev := log.Warn().
-		Str("selector", label).
-		Strs("values", show)
-	if omitted > 0 {
-		ev = ev.Int("omitted", omitted)
-	}
-	ev.Msg(msg)
-}
-
-// warnMissingSelectors compares user-provided selectors with observed results and logs concise warnings.
-func (p *ConfluencePlugin) warnMissingSelectors() {
 	if len(p.PageIDs) > 0 {
-		missingPages := differenceStrings(p.PageIDs, p.returnedPageIDs)
-		p.warnList("page-id", missingPages)
+		add(differenceStrings(p.PageIDs, p.returnedPageIDs))
 	}
 	if len(p.SpaceKeys) > 0 {
-		missingKeys := missingKeysFromResolved(p.SpaceKeys, p.resolvedSpaceKeys)
-		p.warnList("space-key", missingKeys)
+		add(missingKeysFromResolved(p.SpaceKeys, p.resolvedSpaceKeys))
 	}
 	if len(p.SpaceIDs) > 0 {
-		missingSpaces := differenceStrings(p.SpaceIDs, p.returnedSpaceIDs)
-		p.warnList("space-id", missingSpaces)
+		add(differenceStrings(p.SpaceIDs, p.returnedSpaceIDs))
 	}
+	addMapKeys(p.invalidPageIDs)
+	addMapKeys(p.invalidSpaceIDs)
+
+	if len(ordered) == 0 {
+		return ""
+	}
+
+	const maxShow = 4
+	show := ordered
+	omitted := 0
+	if len(ordered) > maxShow {
+		show = ordered[:maxShow]
+		omitted = len(ordered) - maxShow
+	}
+
+	suffix := ""
+	if omitted > 0 {
+		suffix = fmt.Sprintf(" + %d more", omitted)
+	}
+
+	return fmt.Sprintf(
+		"The following page IDs, space keys, or space IDs couldn’t be processed because they either don’t exist or you don’t have access permissions: %s%s. These items were excluded from the scan.",
+		strings.Join(show, ", "),
+		suffix,
+	)
+}
+
+// isValidNumericID reports whether s consists only of ASCII digits ('0'–'9')
+// and its byte length is in the range [1, 18]. Confluence typically returns
+// HTTP 400 for IDs with length ≥ 19. Note that returning true here does not
+// guarantee the ID actually exists or is accessible; it only means the value
+// won’t be rejected due to format/length.
+func isValidNumericID(s string) bool {
+	if s == "" || len(s) >= 19 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
 }

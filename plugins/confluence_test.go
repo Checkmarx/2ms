@@ -300,13 +300,15 @@ func TestWalkPagesByIDBatches(t *testing.T) {
 			mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(tc.expectedEmitCount)
 
 			p := &ConfluencePlugin{
-				itemsChan: make(chan ISourceItem, 100),
-				chunker:   mockChunk,
-				client:    mockClient,
+				itemsChan:         make(chan ISourceItem, 100),
+				chunker:           mockChunk,
+				client:            mockClient,
+				returnedSpaceIDs:  map[string]struct{}{},
+				returnedPageIDs:   map[string]struct{}{},
+				resolvedSpaceKeys: map[string]string{},
+				invalidSpaceIDs:   map[string]struct{}{},
+				invalidPageIDs:    map[string]struct{}{},
 			}
-
-			p.returnedPageIDs = map[string]struct{}{}
-			p.returnedSpaceIDs = map[string]struct{}{}
 
 			var seenBatches [][]string
 			walker := func(ctx context.Context, ids []string, lim int, v func(*Page) error) error {
@@ -517,11 +519,11 @@ func TestEmitHistory(t *testing.T) {
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			items := collectEmittedItems(p.itemsChan)
-			got := make([]string, len(items))
+			actual := make([]string, len(items))
 			for i := range items {
-				got[i] = items[i].ID
+				actual[i] = items[i].ID
 			}
-			assert.ElementsMatch(t, tc.expectedIDs, got)
+			assert.ElementsMatch(t, tc.expectedIDs, actual)
 		})
 	}
 }
@@ -539,17 +541,17 @@ func TestScanBySpaceIDs(t *testing.T) {
 		expectedErr          error
 	}{
 		{
-			name:                 "dedupe and emit pages",
-			spaceIDs:             []string{"S1", "S2", "S1"},
+			name:                 "emit pages",
+			spaceIDs:             []string{"1", "2"},
 			pagesErr:             nil,
 			expectWikiCalls:      2,
 			expectThresholdCalls: 2,
-			expectedIDs:          []string{"confluence-P1-1", "confluence-P2-1"},
+			expectedIDs:          []string{"confluence-1-1", "confluence-2-1"},
 			expectedErr:          nil,
 		},
 		{
 			name:                 "error from WalkPagesBySpaceIDs",
-			spaceIDs:             []string{"S1", "S2"},
+			spaceIDs:             []string{"1", "2"},
 			pagesErr:             assert.AnError,
 			expectWikiCalls:      0,
 			expectThresholdCalls: 0,
@@ -570,14 +572,16 @@ func TestScanBySpaceIDs(t *testing.T) {
 			mockClient.EXPECT().WikiBaseURL().Return(base).Times(tc.expectWikiCalls)
 
 			p := &ConfluencePlugin{
-				itemsChan: make(chan ISourceItem, 10),
-				client:    mockClient,
-				chunker:   mockChunk,
-				SpaceIDs:  tc.spaceIDs,
+				itemsChan:         make(chan ISourceItem, 10),
+				client:            mockClient,
+				chunker:           mockChunk,
+				SpaceIDs:          tc.spaceIDs,
+				returnedSpaceIDs:  map[string]struct{}{},
+				returnedPageIDs:   map[string]struct{}{},
+				resolvedSpaceKeys: map[string]string{},
+				invalidSpaceIDs:   map[string]struct{}{},
+				invalidPageIDs:    map[string]struct{}{},
 			}
-
-			p.returnedPageIDs = map[string]struct{}{}
-			p.returnedSpaceIDs = map[string]struct{}{}
 
 			mockClient.
 				EXPECT().
@@ -586,15 +590,13 @@ func TestScanBySpaceIDs(t *testing.T) {
 					if tc.pagesErr != nil {
 						return tc.pagesErr
 					}
-					// dedup should yield S1,S2 in any order
-					assert.ElementsMatch(t, []string{"S1", "S2"}, ids)
-					_ = visit(mkPage("P1", 1))
-					_ = visit(mkPage("P2", 1))
+					assert.Equal(t, tc.spaceIDs, ids)
+					_ = visit(mkPage("1", 1))
+					_ = visit(mkPage("2", 1))
 					return nil
 				}).Times(1)
 
-			p.queuedSpaceIDs = map[string]struct{}{}
-			err := p.scanBySpaceIDs(context.Background())
+			err := p.scanBySpaceIDs(context.Background(), tc.spaceIDs)
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			items := collectEmittedItems(p.itemsChan)
@@ -607,35 +609,47 @@ func TestScanBySpaceIDs(t *testing.T) {
 	}
 }
 
-func TestScanBySpaceKeys(t *testing.T) {
-	const base = "https://tenant.atlassian.net/wiki"
-
+func TestResolveAndCollectSpaceIDs(t *testing.T) {
 	tests := []struct {
-		name                 string
-		spaceKeys            []string
-		pagesErr             error
-		expectWikiCalls      int
-		expectThresholdCalls int
-		expectedIDs          []string
-		expectedErr          error
+		name        string
+		spaceKeys   []string
+		mockWalker  func(m *MockConfluenceClient)
+		expectedIDs []string
+		expectedErr error
 	}{
 		{
-			name:                 "dedup and emit pages",
-			spaceKeys:            []string{"K1", "K2", "K1"},
-			pagesErr:             nil,
-			expectWikiCalls:      2,
-			expectThresholdCalls: 2,
-			expectedIDs:          []string{"confluence-P-S1-1", "confluence-P-S2-1"},
-			expectedErr:          nil,
+			name:      "happy path: resolves keys and dedupes",
+			spaceKeys: []string{"K1", "K2", "K1"},
+			mockWalker: func(m *MockConfluenceClient) {
+				m.EXPECT().
+					WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
+					DoAndReturn(func(_ context.Context, keys []string, _ int, visit func(*Space) error) error {
+						for _, k := range keys {
+							switch k {
+							case "K1":
+								_ = visit(&Space{ID: "1", Key: "K1"})
+							case "K2":
+								_ = visit(&Space{ID: "2", Key: "K2"})
+							}
+						}
+						return nil
+					}).
+					Times(1)
+			},
+			expectedIDs: []string{"1", "2"},
+			expectedErr: nil,
 		},
 		{
-			name:                 "error from WalkPagesBySpaceKeys",
-			spaceKeys:            []string{"K1", "K2"},
-			pagesErr:             assert.AnError,
-			expectWikiCalls:      0,
-			expectThresholdCalls: 0,
-			expectedIDs:          []string{},
-			expectedErr:          assert.AnError,
+			name:      "propagates WalkSpacesByKeys error",
+			spaceKeys: []string{"Key1", "Key2"},
+			mockWalker: func(m *MockConfluenceClient) {
+				m.EXPECT().
+					WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
+					Return(assert.AnError).
+					Times(1)
+			},
+			expectedIDs: nil,
+			expectedErr: assert.AnError,
 		},
 	}
 
@@ -644,66 +658,23 @@ func TestScanBySpaceKeys(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockChunk := chunk.NewMockIChunk(ctrl)
-			mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(tc.expectThresholdCalls)
-
 			mockClient := NewMockConfluenceClient(ctrl)
-			mockClient.EXPECT().WikiBaseURL().Return(base).Times(tc.expectWikiCalls)
 
 			p := &ConfluencePlugin{
-				itemsChan: make(chan ISourceItem, 10),
-				client:    mockClient,
-				chunker:   mockChunk,
-				SpaceKeys: tc.spaceKeys,
+				client:            mockClient,
+				SpaceKeys:         tc.spaceKeys,
+				returnedSpaceIDs:  map[string]struct{}{},
+				returnedPageIDs:   map[string]struct{}{},
+				resolvedSpaceKeys: map[string]string{},
+				invalidSpaceIDs:   map[string]struct{}{},
+				invalidPageIDs:    map[string]struct{}{},
 			}
 
-			p.queuedSpaceIDs = map[string]struct{}{}
-			p.resolvedSpaceKeys = map[string]string{}
-			p.returnedPageIDs = map[string]struct{}{}
-			p.returnedSpaceIDs = map[string]struct{}{}
+			tc.mockWalker(mockClient)
 
-			// Resolve spaces by keys -> S1 for K1, S2 for K2 (dedup happens in code under test)
-			mockClient.
-				EXPECT().
-				WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-				DoAndReturn(func(_ context.Context, keys []string, _ int, visit func(*Space) error) error {
-					for _, k := range keys {
-						switch k {
-						case "K1":
-							_ = visit(&Space{ID: "S1", Key: "K1"})
-						case "K2":
-							_ = visit(&Space{ID: "S2", Key: "K2"})
-						}
-					}
-					return nil
-				}).
-				Times(1)
-
-			// Then walk pages by resolved space IDs in batches
-			mockClient.
-				EXPECT().
-				WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-				DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
-					if tc.pagesErr != nil {
-						return tc.pagesErr
-					}
-					assert.ElementsMatch(t, []string{"S1", "S2"}, ids)
-					for _, id := range ids {
-						_ = visit(mkPage("P-"+id, 1))
-					}
-					return nil
-				}).
-				Times(1)
-
-			err := p.scanBySpaceKeys(context.Background())
+			ids, err := p.resolveAndCollectSpaceIDs(context.Background())
 			assert.ErrorIs(t, err, tc.expectedErr)
-
-			items := collectEmittedItems(p.itemsChan)
-			var actualIDs []string
-			for _, it := range items {
-				actualIDs = append(actualIDs, it.ID)
-			}
-			assert.ElementsMatch(t, tc.expectedIDs, actualIDs)
+			assert.ElementsMatch(t, tc.expectedIDs, ids)
 		})
 	}
 }
@@ -752,14 +723,16 @@ func TestScanByPageIDs(t *testing.T) {
 			mockClient.EXPECT().WikiBaseURL().Return(base).Times(tc.expectWikiCalls)
 
 			p := &ConfluencePlugin{
-				itemsChan: make(chan ISourceItem, 10),
-				client:    mockClient,
-				chunker:   mockChunk,
-				PageIDs:   tc.pageIDs,
+				itemsChan:         make(chan ISourceItem, 10),
+				client:            mockClient,
+				chunker:           mockChunk,
+				PageIDs:           tc.pageIDs,
+				returnedSpaceIDs:  map[string]struct{}{},
+				returnedPageIDs:   map[string]struct{}{},
+				resolvedSpaceKeys: map[string]string{},
+				invalidSpaceIDs:   map[string]struct{}{},
+				invalidPageIDs:    map[string]struct{}{},
 			}
-
-			p.returnedPageIDs = map[string]struct{}{}
-			p.returnedSpaceIDs = map[string]struct{}{}
 
 			mockClient.
 				EXPECT().
@@ -863,22 +836,33 @@ func TestWalkAndEmitPages(t *testing.T) {
 			name: "SpaceIDs only (dedupe pages)",
 			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				m.EXPECT().
-					WalkPagesBySpaceIDs(gomock.Any(), []string{"S1", "S2"}, maxPageSize, gomock.Any()).
-					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Page) error) error {
-						_ = visit(mkPage("P1", 2))
-						_ = visit(mkPage("P1", 2))
-						_ = visit(mkPage("P2", 1))
+					WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
+					DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
+						assert.ElementsMatch(t, []string{"1", "2"}, ids)
+
+						p1 := mkPage("1", 2)
+						p1.SpaceID = "1"
+						_ = visit(p1)
+
+						p1dup := mkPage("1", 2)
+						p1dup.SpaceID = "1"
+						_ = visit(p1dup)
+
+						p2 := mkPage("2", 1)
+						p2.SpaceID = "2"
+						_ = visit(p2)
+
 						return nil
 					}).Times(1)
 			},
-			setupPlugin: func(p *ConfluencePlugin) { p.SpaceIDs = []string{"S1", "S2"} },
+			setupPlugin: func(p *ConfluencePlugin) { p.SpaceIDs = []string{"1", "2"} },
 			expectedErr: nil,
-			expectedIDs: []string{"confluence-P1-2", "confluence-P2-1"},
+			expectedIDs: []string{"confluence-1-2", "confluence-2-1"},
 			expectedSources: []string{
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P1&pageVersion=2",
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P2&pageVersion=1",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=1&pageVersion=2",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=2&pageVersion=1",
 			},
-			expectedBodies:     []string{"content P1", "content P2"},
+			expectedBodies:     []string{"content 1", "content 2"},
 			fileThresholdCalls: 2,
 			wikiBaseURLCalls:   2,
 		},
@@ -909,17 +893,22 @@ func TestWalkAndEmitPages(t *testing.T) {
 			name: "filters collide (unique by page ID)",
 			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				m.EXPECT().
-					WalkPagesBySpaceIDs(gomock.Any(), []string{"S1"}, maxPageSize, gomock.Any()).
+					WalkPagesBySpaceIDs(gomock.Any(), []string{"1"}, maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Page) error) error {
-						_ = visit(mkPage("P1", 3))
-						_ = visit(mkPage("P2", 1))
+						p1 := mkPage("1", 3)
+						p1.SpaceID = "1"
+						_ = visit(p1)
+
+						p2 := mkPage("2", 1)
+						p2.SpaceID = "1"
+						_ = visit(p2)
 						return nil
 					}).Times(1)
 
 				m.EXPECT().
 					WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Space) error) error {
-						_ = visit(&Space{ID: "S1", Key: "Key1"})
+						_ = visit(&Space{ID: "1", Key: "Key1"})
 						return nil
 					}).Times(1)
 
@@ -933,18 +922,18 @@ func TestWalkAndEmitPages(t *testing.T) {
 					}).Times(1)
 			},
 			setupPlugin: func(p *ConfluencePlugin) {
-				p.SpaceIDs = []string{"S1"}
+				p.SpaceIDs = []string{"1"}
 				p.SpaceKeys = []string{"Key1"}
-				p.PageIDs = []string{"P1", "P3"}
+				p.PageIDs = []string{"1", "3"}
 			},
 			expectedErr: nil,
-			expectedIDs: []string{"confluence-P1-3", "confluence-P2-1", "confluence-P3-1"},
+			expectedIDs: []string{"confluence-1-3", "confluence-2-1", "confluence-3-1"},
 			expectedSources: []string{
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P1&pageVersion=3",
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P2&pageVersion=1",
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P3&pageVersion=1",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=1&pageVersion=3",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=2&pageVersion=1",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=3&pageVersion=1",
 			},
-			expectedBodies:     []string{"content P1", "content P2", "content P3"},
+			expectedBodies:     []string{"content 1", "content 2", "content 3"},
 			fileThresholdCalls: 3,
 			wikiBaseURLCalls:   3,
 		},
@@ -1272,6 +1261,114 @@ func TestEmitInChunks(t *testing.T) {
 	}
 }
 
+func TestIsValidNumericID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{name: "empty string", input: "", expected: false},
+		{name: "single digit", input: "7", expected: true},
+		{name: "leading zeros allowed", input: "000123", expected: true},
+		{name: "non-digit char", input: "12a3", expected: false},
+		{name: "whitespace not allowed", input: "12 3", expected: false},
+		{name: "symbol not allowed", input: "123-", expected: false},
+		{name: "unicode fullwidth digits not allowed", input: "１２３", expected: false},
+		{name: "length exactly 18 ok", input: "123456789012345678", expected: true},
+		{name: "length 19 rejected", input: "1234567890123456789", expected: false},
+		{name: "length 20 rejected", input: "12345678901234567890", expected: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := isValidNumericID(tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestDifferenceStrings(t *testing.T) {
+	tests := []struct {
+		name     string
+		wants    []string
+		seen     map[string]struct{}
+		expected []string
+	}{
+		{
+			name:     "empty wants",
+			wants:    nil,
+			seen:     map[string]struct{}{"a": {}},
+			expected: nil,
+		},
+		{
+			name:     "all present",
+			wants:    []string{"a", "b"},
+			seen:     map[string]struct{}{"a": {}, "b": {}},
+			expected: nil,
+		},
+		{
+			name:     "some missing",
+			wants:    []string{"a", "b", "c"},
+			seen:     map[string]struct{}{"b": {}},
+			expected: []string{"a", "c"},
+		},
+		{
+			name:     "nil seen treated as empty set",
+			wants:    []string{"m", "n"},
+			seen:     nil,
+			expected: []string{"m", "n"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := differenceStrings(tc.wants, tc.seen)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestMissingKeysFromResolved(t *testing.T) {
+	tests := []struct {
+		name          string
+		requestedKeys []string
+		resolved      map[string]string
+		expected      []string
+	}{
+		{
+			name:          "empty requested",
+			requestedKeys: nil,
+			resolved:      map[string]string{"K1": "1"},
+			expected:      nil,
+		},
+		{
+			name:          "all resolved",
+			requestedKeys: []string{"K1", "K2"},
+			resolved:      map[string]string{"K1": "1", "K2": "2"},
+			expected:      nil,
+		},
+		{
+			name:          "some unresolved",
+			requestedKeys: []string{"K1", "K2", "K3"},
+			resolved:      map[string]string{"K1": "1"},
+			expected:      []string{"K2", "K3"},
+		},
+		{
+			name:          "nil resolved",
+			requestedKeys: []string{"R1", "R2"},
+			resolved:      nil,
+			expected:      []string{"R1", "R2"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := missingKeysFromResolved(tc.requestedKeys, tc.resolved)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
 func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *MockConfluenceClient, *chunk.MockIChunk) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -1280,9 +1377,14 @@ func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *Mo
 	mockChunk := chunk.NewMockIChunk(ctrl)
 
 	p := &ConfluencePlugin{
-		itemsChan: make(chan ISourceItem, 1000),
-		client:    mockClient,
-		chunker:   mockChunk,
+		itemsChan:         make(chan ISourceItem, 1000),
+		client:            mockClient,
+		chunker:           mockChunk,
+		returnedSpaceIDs:  map[string]struct{}{},
+		returnedPageIDs:   map[string]struct{}{},
+		resolvedSpaceKeys: map[string]string{},
+		invalidSpaceIDs:   map[string]struct{}{},
+		invalidPageIDs:    map[string]struct{}{},
 	}
 	return p, ctrl, mockClient, mockChunk
 }
