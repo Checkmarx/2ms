@@ -1,26 +1,10 @@
 package rules
 
 import (
-	"errors"
-	"fmt"
 	"strings"
 
-	"regexp"
-	"slices"
-
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
-	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/rs/zerolog/log"
-)
-
-var (
-	errMissingRuleID   = fmt.Errorf("missing ruleID")
-	errMissingRuleName = fmt.Errorf("missing ruleName")
-	errMissingRegex    = fmt.Errorf("missing regex")
-	errInvalidRegex    = fmt.Errorf("invalid regex")
-	errInvalidSeverity = fmt.Errorf("invalid severity")
-	errInvalidCategory = fmt.Errorf("invalid category")
-	errInvalidRuleType = fmt.Errorf("invalid rule type")
 )
 
 func GetDefaultRules(includeDeprecated bool) []*ruledefine.Rule { //nolint:funlen // This function contains all rule definitions
@@ -356,67 +340,4 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 		}
 	}
 	return selectedRules
-}
-
-// CheckRulesRequiredFields checks that required fields are present in the Rule.
-// This is meant for user defined rules, default rules have more strict checks in unit tests
-func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
-	var err error
-	for i, rule := range rulesToCheck {
-		if rule.RuleID == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleID))
-		}
-		if rule.RuleName == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleName))
-		}
-
-		if rule.Regex == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRegex))
-		} else {
-			if _, errRegex := regexp.Compile(rule.Regex); errRegex != nil {
-				invalidRegexError := fmt.Errorf("%w: %v", errInvalidRegex, errRegex)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRegexError))
-			}
-		}
-
-		if rule.Severity != "" {
-			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
-				invalidSeverityError := fmt.Errorf("%w: %s not one of (%s)", errInvalidSeverity, rule.Severity, ruledefine.SeverityOrder)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidSeverityError))
-			}
-		}
-
-		if rule.ScoreParameters.Category != "" {
-			if _, ok := score.CategoryScoreMap[rule.ScoreParameters.Category]; !ok {
-				invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory",
-					errInvalidCategory, rule.ScoreParameters.Category)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
-			}
-		}
-
-		if rule.ScoreParameters.RuleType != 0 {
-			if rule.ScoreParameters.RuleType > score.RuleTypeMaxValue {
-				invalidRuleTypeError := fmt.Errorf("%w: %d not an acceptable uint8 value, maximum is %d",
-					errInvalidRuleType, rule.ScoreParameters.RuleType, score.RuleTypeMaxValue)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRuleTypeError))
-			}
-		}
-	}
-
-	// Add a newline at start of error if it's not nil, for better presentation in output
-	if err != nil {
-		err = fmt.Errorf("\n%w", err)
-	}
-
-	return err
-}
-
-func buildCustomRuleError(ruleIndex int, rule *ruledefine.Rule, issue error) error {
-	if rule.RuleID == "" {
-		if rule.RuleName == "" {
-			return fmt.Errorf("rule#%d: %w", ruleIndex, issue)
-		}
-		return fmt.Errorf("rule#%d;RuleName-%s: %w", ruleIndex, rule.RuleName, issue)
-	}
-	return fmt.Errorf("rule#%d;RuleID-%s: %w", ruleIndex, rule.RuleID, issue)
 }
