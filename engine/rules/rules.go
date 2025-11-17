@@ -388,7 +388,8 @@ func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 
 		if rule.ScoreParameters.Category != "" {
 			if _, ok := score.CategoryScoreMap[rule.ScoreParameters.Category]; !ok {
-				invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory", errInvalidCategory, rule.ScoreParameters.Category)
+				invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory",
+					errInvalidCategory, rule.ScoreParameters.Category)
 				err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
 			}
 		}
