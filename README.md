@@ -22,9 +22,9 @@
 - [Scan Targets](#scan-targets)
   - [Local File System](#local-file-system)
   - [Git Repositories](#git-repositories)
+  - [Confluence Cloud](#confluence-cloud)
   - [Slack](#slack)
   - [Discord](#discord)
-  - [Confluence Cloud](#confluence-cloud)
   - [Paligo](#paligo)
 - [Configuration & Tuning](#configuration--tuning)
   - [Global Flags](#global-flags)
@@ -149,6 +149,57 @@ Provide tokens and other secrets through environment variables (`-e SLACK_TOKEN=
 | `--base-commit` | string | Only scan commits between the base commit and `HEAD`. |
 | `--project-name` | string | Optional label to differentiate results. |
 
+### Confluence Cloud
+
+```bash
+2ms confluence https://<org>.atlassian.net/wiki --space-keys ENG,SEC --history \
+  --username alice@example.com --token-type api-token --token-value "$ATLASSIAN_TOKEN"
+```
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--space-keys` | string slice | Comma-separated space keys to crawl. |
+| `--space-ids` | string slice | Comma-separated space IDs to crawl. |
+| `--page-ids` | string slice | Specific page IDs to scan. |
+| `--history` | bool | Include all revisions (page history). |
+| `--username` | string | Confluence user/email for authentication. |
+| `--token-type` | string | `api-token` or `scoped-api-token`. Required when `--token-value` is set. |
+| `--token-value` | string | Token value used with `--token-type`. |
+
+URLs must be HTTPS. Without credentials 2ms scans only public content.
+
+#### Authentication
+- To scan **private spaces**, provide `--username`, `--token-type` and `--token-value` (API token).
+- How to create a Confluence API token: https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
+
+#### Examples
+
+- Scan **all public pages** (no auth):
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki
+    ```
+
+- Scan **private pages with an api token** (requires auth):
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token-type api-token --token-value <API_TOKEN>
+    ```
+
+- Scan **private pages with a scoped api token** (requires auth):
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token-type scoped-api-token --token-value <API_TOKEN>
+    ```
+
+- Scan specific **spaces by ID**:
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --space-ids 1234567890,9876543210
+    ```
+
+- Scan specific **pages by ID**:
+    ```bash
+    2ms confluence https://<company id>.atlassian.net/wiki --page-ids 11223344556,99887766554
+    ```
+
+
 ### Slack
 
 ```bash
@@ -176,25 +227,6 @@ Provide tokens and other secrets through environment variables (`-e SLACK_TOKEN=
 | `--channel` | string slice | Channel names or IDs to restrict the scan. Defaults to all channels. |
 | `--duration` | duration | Look back interval (default `14d`). |
 | `--messages-count` | int | Maximum messages per channel (0 = scan until duration is met). |
-
-### Confluence Cloud
-
-```bash
-2ms confluence https://<org>.atlassian.net/wiki --space-keys ENG,SEC --history \
-  --username alice@example.com --token-type api-token --token-value "$ATLASSIAN_TOKEN"
-```
-
-| Flag | Type | Description |
-|------|------|-------------|
-| `--space-keys` | string slice | Comma-separated space keys to crawl. |
-| `--space-ids` | string slice | Comma-separated space IDs to crawl. |
-| `--page-ids` | string slice | Specific page IDs to scan. |
-| `--history` | bool | Include all revisions (page history). |
-| `--username` | string | Confluence user/email for authentication. |
-| `--token-type` | string | `api-token` or `scoped-api-token`. Required when `--token-value` is set. |
-| `--token-value` | string | Token value used with `--token-type`. |
-
-URLs must be HTTPS. Without credentials 2ms scans only public content.
 
 ### Paligo
 
