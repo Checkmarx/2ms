@@ -2,16 +2,13 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
-	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -23,12 +20,6 @@ var (
 	errInvalidOutputFormat         = fmt.Errorf("invalid output format")
 	errInvalidReportExtension      = fmt.Errorf("invalid report extension")
 	errInvalidCustomRulesExtension = fmt.Errorf("unknown file extension, expected JSON or YAML")
-	errMissingRuleID               = fmt.Errorf("missing ruleID")
-	errMissingRuleName             = fmt.Errorf("missing ruleName")
-	errMissingRegex                = fmt.Errorf("missing regex")
-	errInvalidRegex                = fmt.Errorf("invalid regex")
-	errInvalidSeverity             = fmt.Errorf("invalid severity")
-	errInvalidCategory             = fmt.Errorf("invalid category")
 )
 
 func processFlags(rootCmd *cobra.Command) error {
@@ -156,13 +147,13 @@ func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
 	}
 
 	ext := filepath.Ext(path)
-	var rules []*ruledefine.Rule
+	var customRules []*ruledefine.Rule
 
 	switch ext {
 	case ".json":
-		err = json.Unmarshal(data, &rules)
+		err = json.Unmarshal(data, &customRules)
 	case ".yaml", ".yml":
-		err = yaml.Unmarshal(data, &rules)
+		err = yaml.Unmarshal(data, &customRules)
 	default:
 		return nil, errInvalidCustomRulesExtension
 	}
@@ -170,65 +161,5 @@ func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
 		return nil, err
 	}
 
-	err = checkRulesRequiredFields(rules)
-	if err != nil {
-		return nil, err
-	}
-
-	return rules, nil
-}
-
-// checkRequiredFields checks that required fields are present in the Rule.
-// This is meant for user defined rules, default rules have more strict checks in unit tests
-func checkRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
-	var err error
-	for i, rule := range rulesToCheck {
-		if rule.RuleID == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleID))
-		}
-		if rule.RuleName == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleName))
-		}
-
-		if rule.Regex == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRegex))
-		} else {
-			if _, errRegex := regexp.Compile(rule.Regex); errRegex != nil {
-				invalidRegexError := fmt.Errorf("%w: %v", errInvalidRegex, errRegex)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRegexError))
-			}
-		}
-
-		if rule.Severity != "" {
-			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
-				invalidSeverityError := fmt.Errorf("%w: %s not one of (%s)", errInvalidSeverity, rule.Severity, ruledefine.SeverityOrder)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidSeverityError))
-			}
-		}
-
-		if rule.ScoreParameters.Category != "" {
-			// if exists in map
-			if _, ok := score.CategoryScoreMap[rule.ScoreParameters.Category]; !ok {
-				invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory", errInvalidCategory, rule.ScoreParameters.Category)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
-			}
-		}
-	}
-
-	// Add a newline at start of error if it's not nil, for better presentation in output
-	if err != nil {
-		err = fmt.Errorf("\n%w", err)
-	}
-
-	return err
-}
-
-func buildCustomRuleError(ruleIndex int, rule *ruledefine.Rule, issue error) error {
-	if rule.RuleID == "" {
-		if rule.RuleName == "" {
-			return fmt.Errorf("rule#%d: %w", ruleIndex, issue)
-		}
-		return fmt.Errorf("rule#%d;RuleName-%s: %w", ruleIndex, rule.RuleName, issue)
-	}
-	return fmt.Errorf("rule#%d;RuleID-%s: %w", ruleIndex, rule.RuleID, issue)
+	return customRules, nil
 }
