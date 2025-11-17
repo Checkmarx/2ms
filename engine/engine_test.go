@@ -1177,6 +1177,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 				{
 					RuleID:            ruledefine.GitHubPat().RuleID,
 					RuleName:          ruledefine.GitHubPat().RuleName,
+					Regex:             ruledefine.GitHubPat().Regex,
 					Severity:          ruledefine.GitHubPat().Severity,
 					ScoreParameters:   ruledefine.GitlabPat().ScoreParameters,
 					DisableValidation: true,
