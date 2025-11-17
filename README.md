@@ -263,6 +263,69 @@ docker run -v $(pwd)/.2ms.yml:/app/.2ms.yml checkmarx/2ms \
 
 [![asciicast](https://asciinema.org/a/n8RHL4v6vI87uiUPZ9I7CgfYy.svg)](https://asciinema.org/a/n8RHL4v6vI87uiUPZ9I7CgfYy)
 
+## Custom Rules File
+
+We support custom rules, which are user defined rules that can be passed via a custom rules file using the `--custom-rules-path` flag. The custom rules file format and extension can be YAML or JSON.
+
+Custom rules can be:
+
+- **Overrides** - if a rule present in the file shares the same ruleId as a default rule of 2ms, the rule present in the file will replace (override) the default rule in the scan. 
+  - Note: If a rule is overridden, it will simply take all fields from the rule as defined in the file. You must include all fields that you want to be defined, otherwise they will be nil/empty.
+
+- **New rules** - if a rule does not share ruleId with a default rule, it will be appended to the list of rules used in the scan.
+
+Custom rules work properly with --rule and --ignore-rule flags. Rules can be selected/ignored by ruleId, ruleName and tag
+
+Regardless of being an override or new rule, a custom rule has the following required fields:
+- ruleId - unique identifier of the rule
+- ruleName - human readable name of the rule
+- regex - regex pattern used to identify the secret
+
+Other fields are optional and can be seen in the example bellow of a file with a custom rule
+
+**YAML Example:**
+```yaml
+- ruleId: 01ab7659-d25a-4a1c-9f98-dee9d0cf2e70 # REQUIRED: unique id, must match default rule id to override that default rule. Rule ids be used as values in --rule and --ignore-rule flags
+  ruleName: Custom-Api-Key # REQUIRED: human-readable name. Rule names used as values in --rule and --ignore-rule flags 
+  description: Custom rule 
+  regex: (?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']? # REQUIRED: golang regular expression used to find secrets. If capture group is present in regex, it used to find the secret, otherwise whole regex is used. which group is considered the secret can be defined with secretGroup
+  keywords: # Keywords are used for pre-regex check filtering. Rules that contain keywords will perform a quick string compare check to make sure the keyword(s) are in the content being scanned.
+    - access
+    - api
+  entropy: 3.5 # shannon entropy, measures how random a string is. The value will be higher the more random a string is. Default rules that use entropy have values between 2.0 and 4.5. Leave empty to consider matches regardless of entropy
+  secretGroup: 1 # defines which capture group of regex match is considered the secret. Is also used as the group that will have its entropy checked if `entropy` is set. Can be left empty, in which case the first capture group to match will be considered the secret
+  path: (?i)\.(?:tf|hcl)$ # regex to limit the rule to specific file paths. For example, only .tf and .hcl files
+  severity: High # severity, can only be one of [Critical, High, Medium, Low, Info]
+  tags: # identifiers for the rule, tags defined here can be used as values of --rule and --ignore-rule flags
+    - api-key
+  scoreParameters:
+    category: General # category of the rule, should be a string of type ruledefine.RuleCategory. Impacts cvss score
+    ruleType: 4 # can go from 4 to 0, 4 being most severe. Impacts cvss score
+  allowLists: # allowed values to ignore if matched
+    - description: Allowlist for Custom Rule
+      matchCondition: OR # determines whether all criteria in the allowList must match. Can be AND or OR. Defaults to OR if not specified
+      regexTarget: match - # determines whether the regexes in allowList are tested against the rule.Regex match or the full line being scanned. Can be 'match' or 'line'. Defaults to 'match' if not specified
+      regexes: # allowed regex patterns
+        - (?i)(?:access(?:ibility|or)|access[_.-]?id|random[_.-]?access|api[_.-]?(?:id|name|version)|rapid|capital|[a-z0-9-]*?api[a-z0-9-]*?:jar:|author|X-MS-Exchange-Organization-Auth|Authentication-Results|(?:credentials?[_.-]?id|withCredentials)|(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}|(?:bucket|foreign|hot|idx|natural|primary|pub(?:lic)?|schema|sequence)[_.-]?key|(?:turkey)|key[_.-]?(?:alias|board|code|frame|id|length|mesh|name|pair|press(?:ed)?|ring|selector|signature|size|stone|storetype|word|up|down|left|right)|KeyVault(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?|key[_.-]?vault[_.-]?(?:id|name)|keyVaultToStoreSecrets|key(?:store|tab)[_.-]?(?:file|path)|issuerkeyhash|(?-i:[DdMm]onkey|[DM]ONKEY)|keying|(?:secret)[_.-]?(?:length|name|size)|UserSecretsId|(?:csrf)[_.-]?token|(?:io\.jsonwebtoken[
+          \t]?:[
+          \t]?[\w-]+)|(?:api|credentials|token)[_.-]?(?:endpoint|ur[il])|public[_.-]?token|(?:key|token)[_.-]?file|(?-i:(?:[A-Z_]+=\n[A-Z_]+=|[a-z_]+=\n[a-z_]+=)(?:\n|\z))|(?-i:(?:[A-Z.]+=\n[A-Z.]+=|[a-z.]+=\n[a-z.]+=)(?:\n|\z)))
+      stopWords:  # stop words that if found in the secret, will discard the finding. Stop words are searched on the secret, which can be either the full regex match or the capture group if any is defined in the rule regex
+        - 000000,
+        - 6fe4476ee5a1832882e326b506d14126
+      paths: # paths that can be ignored for this allowList
+        - \.bb$
+        - \.bbappend$
+        - \.bbclass$
+        - \.inc$
+    - matchCondition: AND
+      regexTarget: line
+      regexes:
+        - LICENSE[^=]*=\s*"[^"]+
+        - LIC_FILES_CHKSUM[^=]*=\s*"[^"]+
+        - SRC[^=]*=\s*"[a-zA-Z0-9]+
+```
+
+
 ## Scan Commands
 
 The following sections describe the arguments used for scanning each of the supported platforms.

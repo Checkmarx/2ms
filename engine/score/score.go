@@ -10,6 +10,47 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
+var CategoryScoreMap = map[ruledefine.RuleCategory]uint8{
+	ruledefine.CategoryAuthenticationAndAuthorization: 4,
+	ruledefine.CategoryCryptocurrencyExchange:         4,
+	ruledefine.CategoryFinancialServices:              4,
+	ruledefine.CategoryPaymentProcessing:              4,
+	ruledefine.CategorySecurity:                       4,
+	ruledefine.CategoryAPIAccess:                      3,
+	ruledefine.CategoryCICD:                           3,
+	ruledefine.CategoryCloudPlatform:                  3,
+	ruledefine.CategoryDatabaseAsAService:             3,
+	ruledefine.CategoryDevelopmentPlatform:            3,
+	ruledefine.CategoryEmailDeliveryService:           3,
+	ruledefine.CategoryGeneralOrUnknown:               3,
+	ruledefine.CategoryInfrastructureAsCode:           3,
+	ruledefine.CategoryPackageManagement:              3,
+	ruledefine.CategorySourceCodeManagement:           3,
+	ruledefine.CategoryWebHostingAndDeployment:        3,
+	ruledefine.CategoryBackgroundProcessingService:    2,
+	ruledefine.CategoryCDN:                            2,
+	ruledefine.CategoryContentManagementSystem:        2,
+	ruledefine.CategoryCustomerSupport:                2,
+	ruledefine.CategoryDataAnalytics:                  2,
+	ruledefine.CategoryFileStorageAndSharing:          2,
+	ruledefine.CategoryIoTPlatform:                    2,
+	ruledefine.CategoryMappingAndLocationServices:     2,
+	ruledefine.CategoryNetworking:                     2,
+	ruledefine.CategoryPhotoSharing:                   2,
+	ruledefine.CategorySaaS:                           2,
+	ruledefine.CategoryShipping:                       2,
+	ruledefine.CategorySoftwareDevelopment:            2,
+	ruledefine.CategoryAIAndMachineLearning:           1,
+	ruledefine.CategoryApplicationMonitoring:          1,
+	ruledefine.CategoryECommercePlatform:              1,
+	ruledefine.CategoryMarketingAutomation:            1,
+	ruledefine.CategoryNewsAndMedia:                   1,
+	ruledefine.CategoryOnlineSurveyPlatform:           1,
+	ruledefine.CategoryProjectManagement:              1,
+	ruledefine.CategorySearchService:                  1,
+	ruledefine.CategorySocialMedia:                    1,
+}
+
 type scorer struct {
 	rulesBaseRiskScore       map[string]float64
 	withValidation           bool
@@ -49,50 +90,6 @@ func (s *scorer) AssignScoreAndSeverity(secret *secrets.Secret) {
 	secret.CvssScore = getCvssScore(s.rulesBaseRiskScore[secret.RuleID], validationStatus)
 }
 
-func getCategoryScore(category ruledefine.RuleCategory) uint8 {
-	CategoryScore := map[ruledefine.RuleCategory]uint8{
-		ruledefine.CategoryAuthenticationAndAuthorization: 4,
-		ruledefine.CategoryCryptocurrencyExchange:         4,
-		ruledefine.CategoryFinancialServices:              4,
-		ruledefine.CategoryPaymentProcessing:              4,
-		ruledefine.CategorySecurity:                       4,
-		ruledefine.CategoryAPIAccess:                      3,
-		ruledefine.CategoryCICD:                           3,
-		ruledefine.CategoryCloudPlatform:                  3,
-		ruledefine.CategoryDatabaseAsAService:             3,
-		ruledefine.CategoryDevelopmentPlatform:            3,
-		ruledefine.CategoryEmailDeliveryService:           3,
-		ruledefine.CategoryGeneralOrUnknown:               3,
-		ruledefine.CategoryInfrastructureAsCode:           3,
-		ruledefine.CategoryPackageManagement:              3,
-		ruledefine.CategorySourceCodeManagement:           3,
-		ruledefine.CategoryWebHostingAndDeployment:        3,
-		ruledefine.CategoryBackgroundProcessingService:    2,
-		ruledefine.CategoryCDN:                            2,
-		ruledefine.CategoryContentManagementSystem:        2,
-		ruledefine.CategoryCustomerSupport:                2,
-		ruledefine.CategoryDataAnalytics:                  2,
-		ruledefine.CategoryFileStorageAndSharing:          2,
-		ruledefine.CategoryIoTPlatform:                    2,
-		ruledefine.CategoryMappingAndLocationServices:     2,
-		ruledefine.CategoryNetworking:                     2,
-		ruledefine.CategoryPhotoSharing:                   2,
-		ruledefine.CategorySaaS:                           2,
-		ruledefine.CategoryShipping:                       2,
-		ruledefine.CategorySoftwareDevelopment:            2,
-		ruledefine.CategoryAIAndMachineLearning:           1,
-		ruledefine.CategoryApplicationMonitoring:          1,
-		ruledefine.CategoryECommercePlatform:              1,
-		ruledefine.CategoryMarketingAutomation:            1,
-		ruledefine.CategoryNewsAndMedia:                   1,
-		ruledefine.CategoryOnlineSurveyPlatform:           1,
-		ruledefine.CategoryProjectManagement:              1,
-		ruledefine.CategorySearchService:                  1,
-		ruledefine.CategorySocialMedia:                    1,
-	}
-	return CategoryScore[category]
-}
-
 func getValidityScore(baseRiskScore float64, validationStatus secrets.ValidationResult) float64 {
 	switch validationStatus {
 	case secrets.ValidResult:
@@ -104,7 +101,7 @@ func getValidityScore(baseRiskScore float64, validationStatus secrets.Validation
 }
 
 func GetBaseRiskScore(category ruledefine.RuleCategory, ruleType uint8) float64 {
-	categoryScore := getCategoryScore(category)
+	categoryScore := CategoryScoreMap[category]
 	return float64(categoryScore)*0.6 + float64(ruleType)*0.4
 }
 

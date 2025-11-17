@@ -47,5 +47,23 @@
     },
     "disableValidation": false,
     "deprecated": false
+  },
+  {
+    "ruleId": "b47a1995-6572-41bb-b01d",
+    "ruleName": "mock-rule2",
+    "description": "Match API keys",
+    "regex": "(?i)\\b(glsa_[A-Za-z0-9]{32}_[A-Fa-f0-9]{8})(?:[\\x60'\"\\s;]|\\\\[nr]|$)",
+    "keywords": ["glsa_"],
+    "entropy": 2.0,
+    "severity": "Medium",
+    "oldSeverity": "High",
+    "allowLists": [],
+    "tags": ["test-regexes"],
+    "scoreParameters": {
+      "category": "API",
+      "ruleType": 1
+    },
+    "disableValidation": false,
+    "deprecated": false
   }
 ]

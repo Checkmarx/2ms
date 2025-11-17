@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -27,6 +28,7 @@ var (
 	errMissingRegex                = fmt.Errorf("missing regex")
 	errInvalidRegex                = fmt.Errorf("invalid regex")
 	errInvalidSeverity             = fmt.Errorf("invalid severity")
+	errInvalidCategory             = fmt.Errorf("invalid category")
 )
 
 func processFlags(rootCmd *cobra.Command) error {
@@ -201,6 +203,14 @@ func checkRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
 				invalidSeverityError := fmt.Errorf("%w: %s not one of (%s)", errInvalidSeverity, rule.Severity, ruledefine.SeverityOrder)
 				err = errors.Join(err, buildCustomRuleError(i, rule, invalidSeverityError))
+			}
+		}
+
+		if rule.ScoreParameters.Category != "" {
+			// if exists in map
+			if _, ok := score.CategoryScoreMap[rule.ScoreParameters.Category]; !ok {
+				invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory", errInvalidCategory, rule.ScoreParameters.Category)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
 			}
 		}
 	}
