@@ -80,7 +80,7 @@ func TestPreRun(t *testing.T) {
 			},
 		},
 		{
-			name: "errors on custom rules, regex and severity invalid",
+			name: "errors on custom rules, regex, severity and score parameters invalid",
 			engineConfigVar: engine.EngineConfig{
 				CustomRules: []*ruledefine.Rule{
 					{
@@ -89,6 +89,10 @@ func TestPreRun(t *testing.T) {
 						Description: "Match passwords",
 						Regex:       "[A-Za-z0-9]{32})",
 						Severity:    "mockSeverity",
+						ScoreParameters: ruledefine.ScoreParameters{
+							Category: "mockCategory",
+							RuleType: 10,
+						},
 					},
 					{
 						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
@@ -103,6 +107,9 @@ func TestPreRun(t *testing.T) {
 				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid regex"),
 				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid severity:" +
 					" mockSeverity not one of ([Critical High Medium Low Info])"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid category:" +
+					" mockCategory not an acceptable category of type RuleCategory"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid rule type: 10 not an acceptable uint8 value, maximum is 4"),
 			},
 		},
 		{

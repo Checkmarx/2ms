@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v4/engine/score"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,6 +19,8 @@ var (
 	errMissingRegex    = fmt.Errorf("missing regex")
 	errInvalidRegex    = fmt.Errorf("invalid regex")
 	errInvalidSeverity = fmt.Errorf("invalid severity")
+	errInvalidCategory = fmt.Errorf("invalid category")
+	errInvalidRuleType = fmt.Errorf("invalid rule type")
 )
 
 func GetDefaultRules(includeDeprecated bool) []*ruledefine.Rule { //nolint:funlen // This function contains all rule definitions
@@ -380,6 +383,21 @@ func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
 				invalidSeverityError := fmt.Errorf("%w: %s not one of (%s)", errInvalidSeverity, rule.Severity, ruledefine.SeverityOrder)
 				err = errors.Join(err, buildCustomRuleError(i, rule, invalidSeverityError))
+			}
+		}
+
+		if rule.ScoreParameters.Category != "" {
+			if _, ok := score.CategoryScoreMap[rule.ScoreParameters.Category]; !ok {
+				invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory", errInvalidCategory, rule.ScoreParameters.Category)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
+			}
+		}
+
+		if rule.ScoreParameters.RuleType != 0 {
+			if rule.ScoreParameters.RuleType > score.RuleTypeMaxValue {
+				invalidRuleTypeError := fmt.Errorf("%w: %d not an acceptable uint8 value, maximum is %d",
+					errInvalidRuleType, rule.ScoreParameters.RuleType, score.RuleTypeMaxValue)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRuleTypeError))
 			}
 		}
 	}
