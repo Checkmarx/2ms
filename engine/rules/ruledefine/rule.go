@@ -107,3 +107,7 @@ type AllowList struct { // For patterns that are allowed to be ignored
 	Regexes        []string `json:"regexes" yaml:"regexes"`
 	StopWords      []string `json:"stopWords" yaml:"stopWords"` // stop words that are allowed to be ignored
 }
+
+func (r Rule) CreateRuleNameFromRuleID() {
+	r.RuleName = r.RuleID
+}

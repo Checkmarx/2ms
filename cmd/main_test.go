@@ -58,7 +58,7 @@ func TestPreRun(t *testing.T) {
 			expectedPreRunErr: nil,
 		},
 		{
-			name: "errors on custom rules, rule name, id, regex missing",
+			name: "errors on custom rules, rule id and regex missing",
 			engineConfigVar: engine.EngineConfig{
 				CustomRules: []*ruledefine.Rule{
 					{
@@ -75,7 +75,6 @@ func TestPreRun(t *testing.T) {
 			expectedPreRunErr: nil,
 			expectedContainsInitErrs: []error{
 				fmt.Errorf("rule#0: missing ruleID"),
-				fmt.Errorf("rule#0: missing ruleName"),
 				fmt.Errorf("rule#0: missing regex"),
 			},
 		},

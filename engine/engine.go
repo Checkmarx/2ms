@@ -47,7 +47,6 @@ var (
 	ErrNoRulesSelected          = fmt.Errorf("no rules were selected")
 	ErrFailedToCompileRegexRule = fmt.Errorf("failed to compile regex rule")
 	errMissingRuleID            = fmt.Errorf("missing ruleID")
-	errMissingRuleName          = fmt.Errorf("missing ruleName")
 	errMissingRegex             = fmt.Errorf("missing regex")
 	errInvalidRegex             = fmt.Errorf("invalid regex")
 	errInvalidSeverity          = fmt.Errorf("invalid severity")
@@ -843,9 +842,6 @@ func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 	for i, rule := range rulesToCheck {
 		if rule.RuleID == "" {
 			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleID))
-		}
-		if rule.RuleName == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleName))
 		}
 
 		if rule.Regex == "" {

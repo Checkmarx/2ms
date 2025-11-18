@@ -330,14 +330,32 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 		ruleMatch := false
 		for i := range selectedRules {
 			if selectedRules[i].RuleID == customRule.RuleID {
+				completeOverrideEmptyFields(selectedRules[i], customRule)
 				selectedRules[i] = customRule
 				ruleMatch = true
 				break
 			}
 		}
 		if !ruleMatch {
+			if customRule.RuleName == "" {
+				customRule.CreateRuleNameFromRuleID()
+			}
 			selectedRules = append(selectedRules, customRule)
 		}
 	}
 	return selectedRules
+}
+
+func completeOverrideEmptyFields(rule *ruledefine.Rule, overrideRule *ruledefine.Rule) {
+	if overrideRule.RuleName == "" {
+		overrideRule.RuleName = rule.RuleName
+	}
+
+	if overrideRule.ScoreParameters.Category == "" {
+		overrideRule.ScoreParameters.Category = rule.ScoreParameters.Category
+		// only replace with default ruleType if category wasn't defined, otherwise assume user set RuleType at 0 intentionally
+		if overrideRule.ScoreParameters.RuleType == 0 {
+			overrideRule.ScoreParameters.RuleType = rule.ScoreParameters.RuleType
+		}
+	}
 }
