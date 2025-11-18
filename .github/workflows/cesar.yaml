@@ -16,15 +16,31 @@ jobs:
   cesar:
     if: (github.event.label.name == 'cesar' && github.event.pull_request.mergeable == true)
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
+
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
           path: 2ms
 
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: ${{ secrets.CES_EXECUTOR_REPO }}
+          token: ${{ secrets.TWOMS_BOT_PAT }}
+          path: cli
+          ref: master
+
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: "^1.22"
+          go-version-file: 2ms/go.mod
+          cache: true
+          cache-dependency-path: |
+            2ms/go.sum
+            cli/go.sum
 
       - name: Build 2ms Binary
         env:
@@ -36,20 +52,10 @@ jobs:
           go build -ldflags "-s -w" -a -installsuffix cgo -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
-
-      - name: Checkout CLI repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ secrets.CES_EXECUTOR_REPO }}
-          token: ${{ secrets.TWOMS_BOT_PAT }}
-          path: cli
-          ref: master
-
       - name: Build Engines Excutor
         run: |
           cd cli
           go build -o excutor
-
 
       - name: Create Metadata File
         run: |
@@ -82,10 +88,6 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/zips/"
           cd cli
           ./excutor sources -s $GITHUB_WORKSPACE/zips/ -e $ENGINE >> "$LOG_FILE" 2>&1
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
 
       - name: Prepare Projects
         run: |
@@ -104,18 +106,8 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/results
           ./cli/excutor run -b $GITHUB_WORKSPACE/2ms/dist/2ms -s $GITHUB_WORKSPACE/zips/ -r $GITHUB_WORKSPACE/results -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -p 1 --env $CES_ENVIROMENT >> "$LOG_FILE" 2>&1
 
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
-
       - name: Upload log
         if: failure()
         run: |
           ./cli/excutor save-log -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -l $LOG_FILE --env $CES_ENVIROMENT > /dev/null 2>&1
-
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
 
