@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           repository: ${{ secrets.CES_EXECUTOR_REPO }}
-          token: ${{ secrets.TWOMS_BOT_PAT }}
+          token: ${{ secrets.CES_GITHUB_TOKEN }}
           path: cli
           ref: master
 
@@ -38,9 +38,7 @@ jobs:
         with:
           go-version-file: 2ms/go.mod
           cache: true
-          cache-dependency-path: |
-            2ms/go.sum
-            cli/go.sum
+          cache-dependency-path: 2ms/go.sum
 
       - name: Build 2ms Binary
         env:
