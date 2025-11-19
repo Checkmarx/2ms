@@ -352,11 +352,10 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 }
 
 // completeOverridesWithDefaultFields fills in some missing fields in custom rules if they match default rules by ruleID
-func completeOverridesWithDefaultFields(customRules []*ruledefine.Rule, defaultRules []*ruledefine.Rule) {
+func completeOverridesWithDefaultFields(customRules, defaultRules []*ruledefine.Rule) {
 	for _, customRule := range customRules {
 		for _, defaultRule := range defaultRules {
 			if defaultRule.RuleID == customRule.RuleID {
-
 				if customRule.RuleName == "" {
 					customRule.RuleName = defaultRule.RuleName
 				}

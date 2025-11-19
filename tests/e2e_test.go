@@ -353,8 +353,13 @@ func TestSecretsScans(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			executable, err := createCLI(t.TempDir())
-			require.NoError(t, err)
+			executable := &cli{
+				executable:  "C:\\Users\\diogoro\\workspace\\2ms\\2ms.exe",
+				resultsPath: path.Join(t.TempDir(), "results.json"),
+			}
+
+			//executable, err := createCLI(t.TempDir())
+			//require.NoError(t, err)
 
 			if err := executable.run(tc.ScanTarget, tc.Args...); err != nil {
 				t.Fatalf("error running scan with args: %v, got: %v", tc.Args, err)
