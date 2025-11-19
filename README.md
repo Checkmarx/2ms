@@ -285,8 +285,8 @@ Other fields are optional and can be seen in the example bellow of a file with a
 
 **YAML Example:**
 ```yaml
-- ruleId: 01ab7659-d25a-4a1c-9f98-dee9d0cf2e70 # REQUIRED: unique id, must match default rule id to override that default rule. Rule ids be used as values in --rule and --ignore-rule flags
-  ruleName: Custom-Api-Key # REQUIRED: human-readable name. Rule names used as values in --rule and --ignore-rule flags 
+- ruleId: 01ab7659-d25a-4a1c-9f98-dee9d0cf2e70 # REQUIRED: unique id, must match default rule id to override that default rule. Rule ids can be used as values in --rule and --ignore-rule flags
+  ruleName: Custom-Api-Key # human-readable name. Can be left empty for overrides, in which case the respective default rule name will be considered. Rule names can be used as values in --rule and --ignore-rule flags 
   description: Custom rule 
   regex: (?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']? # REQUIRED: golang regular expression used to find secrets. If capture group is present in regex, it used to find the secret, otherwise whole regex is used. which group is considered the secret can be defined with secretGroup
   keywords: # Keywords are used for pre-regex check filtering. Rules that contain keywords will perform a quick string compare check to make sure the keyword(s) are in the content being scanned.
@@ -296,11 +296,11 @@ Other fields are optional and can be seen in the example bellow of a file with a
   secretGroup: 1 # defines which capture group of regex match is considered the secret. Is also used as the group that will have its entropy checked if `entropy` is set. Can be left empty, in which case the first capture group to match will be considered the secret
   path: (?i)\.(?:tf|hcl)$ # regex to limit the rule to specific file paths. For example, only .tf and .hcl files
   severity: High # severity, can only be one of [Critical, High, Medium, Low, Info]
-  tags: # identifiers for the rule, tags defined here can be used as values of --rule and --ignore-rule flags
+  tags: # identifiers for the rule, tags can be used as values of --rule and --ignore-rule flags
     - api-key
-  scoreParameters:
+  scoreParameters: # scoreParameters can be omitted for overrides, in which case the respective default rule scoreParameters will be considered
     category: General # category of the rule, should be a string of type ruledefine.RuleCategory. Impacts cvss score
-    ruleType: 4 # can go from 4 to 0, 4 being most severe. Impacts cvss score
+    ruleType: 4 # can go from 4 to 0, 4 being most severe. For overrides, if Category is defined, ruleType also needs to be defined, or otherwise it will be considered 0. Impacts cvss score
   allowLists: # allowed values to ignore if matched
     - description: Allowlist for Custom Rule
       matchCondition: OR # determines whether all criteria in the allowList must match. Can be AND or OR. Defaults to OR if not specified
