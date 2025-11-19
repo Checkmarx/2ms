@@ -286,7 +286,7 @@ Other fields are optional and can be seen in the example bellow of a file with a
 **YAML Example:**
 ```yaml
 - ruleId: 01ab7659-d25a-4a1c-9f98-dee9d0cf2e70 # REQUIRED: unique id, must match default rule id to override that default rule. Rule ids can be used as values in --rule and --ignore-rule flags
-  ruleName: Custom-Api-Key # human-readable name. Can be left empty for overrides, in which case the respective default rule name will be considered. Rule names can be used as values in --rule and --ignore-rule flags 
+  ruleName: Custom-Api-Key # should be human-readable name. If left empty for new rule, ruleName will take the value of ruleId. If left empty for override, default rule name will be considered. Rule names can be used as values in --rule and --ignore-rule flags 
   description: Custom rule 
   regex: (?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']? # REQUIRED: golang regular expression used to find secrets. If capture group is present in regex, it used to find the secret, otherwise whole regex is used. which group is considered the secret can be defined with secretGroup
   keywords: # Keywords are used for pre-regex check filtering. Rules that contain keywords will perform a quick string compare check to make sure the keyword(s) are in the content being scanned.
