@@ -91,7 +91,7 @@ type Rule struct {
 	Path              string          `json:"path" yaml:"path"`               // present in some gitleaks secrets (regex)
 	SecretGroup       int             `json:"secretGroup" yaml:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
 	Severity          Severity        `json:"severity" yaml:"severity"`
-	OldSeverity       string          `json:"oldSeverity" yaml:"oldSeverity"` // fallback for when critical is not enabled, has no effect on open source
+	OldSeverity       string          `json:"oldSeverity" yaml:"oldSeverity"` //nolint:lll // fallback for when critical is not enabled, has no effect on open source
 	AllowLists        []*AllowList    `json:"allowLists" yaml:"allowLists"`
 	Tags              []string        `json:"tags" yaml:"tags"`
 	ScoreParameters   ScoreParameters `json:"scoreParameters" yaml:"scoreParameters"`     // used for ASPM
