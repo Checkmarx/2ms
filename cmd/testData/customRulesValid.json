@@ -22,7 +22,7 @@
     ],
     "tags": ["security", "credentials"],
     "scoreParameters": {
-      "category": "Secrets",
+      "category": "General",
       "ruleType": 2
     },
     "disableValidation": true,
@@ -41,10 +41,6 @@
     "oldSeverity": "High",
     "allowLists": [],
     "tags": ["api", "custom"],
-    "scoreParameters": {
-      "category": "API",
-      "ruleType": 1
-    },
     "disableValidation": false,
     "deprecated": false
   }

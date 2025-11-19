@@ -309,7 +309,7 @@ func TestSecretsScans(t *testing.T) {
 				"--rule",
 				"custom",
 				"--ignore-rule",
-				"Generic-Api-Key-Custom,Github-Pat",
+				"Generic-Api-Key,Github-Pat-Custom",
 				"--ignore-on-exit",
 				"results",
 			},

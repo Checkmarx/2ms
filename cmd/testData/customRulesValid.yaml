@@ -26,7 +26,7 @@
     - security
     - credentials
   scoreParameters:
-    category: Secrets
+    category: General
     ruleType: 2
   disableValidation: true
   deprecated: true
@@ -47,8 +47,5 @@
   tags:
     - api
     - custom
-  scoreParameters:
-    category: API
-    ruleType: 1
   disableValidation: false
   deprecated: false

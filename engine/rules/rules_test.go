@@ -6,6 +6,7 @@ import (
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/regexp"
@@ -161,15 +162,35 @@ func Test_CustomRules(t *testing.T) {
 
 	genericCredentialOverride := &ruledefine.Rule{
 		RuleID:      ruledefine.GenericCredential().RuleID,
-		RuleName:    ruledefine.GenericCredential().RuleID,
 		Description: "Custom rule for Generic API Key",
 		Regex:       "[A-Za-z0-9]{32}",
 		Tags:        []string{"custom"},
 	}
+	// expected rule should have rule name and score parameters with values, copied from default rule into override
+	expectedGenericCredentialOverride := &ruledefine.Rule{
+		RuleID:          ruledefine.GenericCredential().RuleID,
+		RuleName:        ruledefine.GenericCredential().RuleName,
+		Description:     "Custom rule for Generic API Key",
+		Regex:           "[A-Za-z0-9]{32}",
+		Tags:            []string{"custom"},
+		ScoreParameters: ruledefine.GenericCredential().ScoreParameters,
+	}
+
+	completeGenericCredentialOverride := &ruledefine.Rule{
+		RuleID:      ruledefine.GenericCredential().RuleID,
+		RuleName:    "Custom Generic API Key",
+		Description: "Custom rule for Generic API Key",
+		Regex:       "[A-Za-z0-9]{32}",
+		Tags:        []string{"custom"},
+		ScoreParameters: ruledefine.ScoreParameters{
+			Category: ruledefine.CategorySaaS,
+			RuleType: 1,
+		},
+	}
 
 	deprecatedGenericCredentialOverride := &ruledefine.Rule{
 		RuleID:      ruledefine.GenericCredential().RuleID,
-		RuleName:    ruledefine.GenericCredential().RuleID,
+		RuleName:    ruledefine.GenericCredential().RuleName,
 		Description: "Custom rule for Generic API Key",
 		Regex:       "[A-Za-z0-9]{40}", // this regex is different to be able to distinguish with non deprecated rule
 		Tags:        []string{"custom"},
@@ -202,7 +223,6 @@ func Test_CustomRules(t *testing.T) {
 		ignoreList           []string
 		specialList          []string
 		customRules          []*ruledefine.Rule
-		onlyCustomRules      bool
 		expectedPresentRules []*ruledefine.Rule
 		expectedMissingRules []*ruledefine.Rule
 		expectedLen          int
@@ -212,11 +232,11 @@ func Test_CustomRules(t *testing.T) {
 			selectedList: []string{},
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule},
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule)},
 			expectedPresentRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -228,11 +248,11 @@ func Test_CustomRules(t *testing.T) {
 			selectedList: []string{genericCredentialOverride.RuleID},
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedPresentRules: []*ruledefine.Rule{
-				genericCredentialOverride,
+				cloneRule(expectedGenericCredentialOverride),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -240,15 +260,47 @@ func Test_CustomRules(t *testing.T) {
 			expectedLen: 1,
 		},
 		{
-			name:         "select only custom generic-api-key with ruleName",
-			selectedList: []string{genericCredentialOverride.RuleName},
+			name:         "select only complete custom generic-api-key with ruleID",
+			selectedList: []string{completeGenericCredentialOverride.RuleID},
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(completeGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedPresentRules: []*ruledefine.Rule{
-				genericCredentialOverride,
+				cloneRule(completeGenericCredentialOverride),
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "select only custom generic-api-key with ruleName, even if missing ruleName in custom rule definition",
+			selectedList: []string{ruledefine.GenericCredential().RuleName},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				cloneRule(expectedGenericCredentialOverride),
+			},
+			expectedMissingRules: []*ruledefine.Rule{
+				ruledefine.GenericCredential(),
+			},
+			expectedLen: 1,
+		},
+		{
+			name:         "select only complete custom generic-api-key with ruleName",
+			selectedList: []string{expectedGenericCredentialOverride.RuleName},
+			ignoreList:   []string{},
+			customRules: []*ruledefine.Rule{
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
+			},
+			expectedPresentRules: []*ruledefine.Rule{
+				cloneRule(expectedGenericCredentialOverride),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -257,13 +309,14 @@ func Test_CustomRules(t *testing.T) {
 		},
 		{
 			name:         "select only custom generic-api-key with ruleName in lowercase",
-			selectedList: []string{strings.ToLower(genericCredentialOverride.RuleName)},
+			selectedList: []string{strings.ToLower(ruledefine.GenericCredential().RuleName)},
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule},
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
+			},
 			expectedPresentRules: []*ruledefine.Rule{
-				genericCredentialOverride,
+				cloneRule(expectedGenericCredentialOverride),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -275,10 +328,11 @@ func Test_CustomRules(t *testing.T) {
 			selectedList: []string{genericCredentialOverride.Tags[0]},
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule},
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
+			},
 			expectedPresentRules: []*ruledefine.Rule{
-				genericCredentialOverride,
+				cloneRule(expectedGenericCredentialOverride),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -293,11 +347,11 @@ func Test_CustomRules(t *testing.T) {
 			},
 			ignoreList: []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule},
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule)},
 			expectedPresentRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -312,11 +366,12 @@ func Test_CustomRules(t *testing.T) {
 			},
 			ignoreList: []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule},
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
+			},
 			expectedPresentRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -332,12 +387,13 @@ func Test_CustomRules(t *testing.T) {
 			},
 			ignoreList: []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule},
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
+			},
 			expectedPresentRules: []*ruledefine.Rule{
 				ruledefine.CurlBasicAuth(),
-				genericCredentialOverride,
-				customRule,
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -353,12 +409,13 @@ func Test_CustomRules(t *testing.T) {
 			},
 			ignoreList: []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule},
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
+			},
 			expectedPresentRules: []*ruledefine.Rule{
 				ruledefine.CurlBasicAuth(),
-				genericCredentialOverride,
-				customRule,
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -370,10 +427,11 @@ func Test_CustomRules(t *testing.T) {
 			selectedList: []string{genericCredentialOverride.RuleID},
 			ignoreList:   []string{},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				deprecatedGenericCredentialOverride},
+				cloneRule(genericCredentialOverride),
+				cloneRule(deprecatedGenericCredentialOverride),
+			},
 			expectedPresentRules: []*ruledefine.Rule{
-				genericCredentialOverride,
+				cloneRule(expectedGenericCredentialOverride),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
@@ -388,13 +446,13 @@ func Test_CustomRules(t *testing.T) {
 				customRule.RuleID,
 			},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
-				genericCredentialOverride,
-				customRule,
+				cloneRule(deprecatedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedLen: rulesCount - 1,
 		},
@@ -405,15 +463,16 @@ func Test_CustomRules(t *testing.T) {
 				genericCredentialOverride.RuleID,
 			},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedPresentRules: []*ruledefine.Rule{
-				customRule,
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
-				genericCredentialOverride,
+				cloneRule(genericCredentialOverride),
+				cloneRule(expectedGenericCredentialOverride),
 			},
 			expectedLen: rulesCount,
 		},
@@ -428,13 +487,14 @@ func Test_CustomRules(t *testing.T) {
 				customRule.RuleID,
 			},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedLen: 0,
 		},
@@ -449,13 +509,14 @@ func Test_CustomRules(t *testing.T) {
 				customRule.RuleName,
 			},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedLen: 0,
 		},
@@ -470,13 +531,14 @@ func Test_CustomRules(t *testing.T) {
 				customRule.RuleName,
 			},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedLen: 0,
 		},
@@ -491,15 +553,16 @@ func Test_CustomRules(t *testing.T) {
 				customRule.Tags[0],
 			},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedPresentRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
 			},
 			expectedMissingRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedLen: 1,
 		},
@@ -514,8 +577,8 @@ func Test_CustomRules(t *testing.T) {
 				customRule.RuleID,
 			},
 			customRules: []*ruledefine.Rule{
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(customRule),
 			},
 			specialList: []string{
 				ruledefine.HardcodedPassword().RuleName,
@@ -525,8 +588,9 @@ func Test_CustomRules(t *testing.T) {
 			},
 			expectedMissingRules: []*ruledefine.Rule{
 				ruledefine.GenericCredential(),
-				genericCredentialOverride,
-				customRule,
+				cloneRule(genericCredentialOverride),
+				cloneRule(expectedGenericCredentialOverride),
+				cloneRule(customRule),
 			},
 			expectedLen: 1,
 		},
@@ -538,11 +602,11 @@ func Test_CustomRules(t *testing.T) {
 
 			assert.Equal(t, tt.expectedLen, len(rules))
 			for _, expectedRule := range tt.expectedPresentRules {
-				assert.Contains(t, rules, expectedRule, "can't find expected rule")
+				assert.Contains(t, rules, expectedRule, "can't find expected rule %s", expectedRule.RuleID)
 			}
 
 			for _, expectedMissingRule := range tt.expectedMissingRules {
-				assert.NotContains(t, rules, expectedMissingRule, "found unexpected rule")
+				assert.NotContains(t, rules, expectedMissingRule, "found unexpected rule %s", expectedMissingRule.RuleID)
 			}
 		})
 	}
@@ -724,4 +788,10 @@ func TestIgnoreRules(t *testing.T) {
 			}
 		})
 	}
+}
+
+func cloneRule(r *ruledefine.Rule) *ruledefine.Rule {
+	var ruleCopy ruledefine.Rule
+	_ = copier.CopyWithOption(&ruleCopy, r, copier.Option{DeepCopy: true})
+	return &ruleCopy
 }

@@ -10,47 +10,8 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
-type scorer struct {
-	rulesBaseRiskScore       map[string]float64
-	withValidation           bool
-	keywords                 map[string]struct{}
-	twomsRulesToBeApplied    map[string]ruledefine.Rule
-	gitleaksRulesToBeApplied map[string]config.Rule // same rules from twomsRulesToBeApplied, converted to gitleaks format
-}
-
-func NewScorer(selectedRules []*ruledefine.Rule, withValidation bool) *scorer {
-	twomsRulesToBeApplied := make(map[string]ruledefine.Rule)
-	gitleaksRulesToBeApplied := make(map[string]config.Rule)
-	rulesBaseRiskScore := make(map[string]float64)
-	keywords := make(map[string]struct{})
-	for _, rule := range selectedRules {
-		twomsRulesToBeApplied[rule.RuleID] = *rule
-		gitleaksRulesToBeApplied[rule.RuleID] = *ruledefine.TwomsToGitleaksRule(rule)
-		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
-		for _, keyword := range rule.Keywords {
-			keywords[strings.ToLower(keyword)] = struct{}{}
-		}
-	}
-	return &scorer{
-		rulesBaseRiskScore:       rulesBaseRiskScore,
-		withValidation:           withValidation,
-		keywords:                 keywords,
-		twomsRulesToBeApplied:    twomsRulesToBeApplied,
-		gitleaksRulesToBeApplied: gitleaksRulesToBeApplied,
-	}
-}
-
-func (s *scorer) AssignScoreAndSeverity(secret *secrets.Secret) {
-	validationStatus := secrets.UnknownResult // default validity
-	if s.withValidation {
-		validationStatus = secret.ValidationStatus
-	}
-	secret.Severity = getSeverity(s.twomsRulesToBeApplied[secret.RuleID].Severity, validationStatus)
-	secret.CvssScore = getCvssScore(s.rulesBaseRiskScore[secret.RuleID], validationStatus)
-}
-
-func getCategoryScore(category ruledefine.RuleCategory) uint8 {
-	CategoryScore := map[ruledefine.RuleCategory]uint8{
+var (
+	CategoryScoreMap = map[ruledefine.RuleCategory]uint8{
 		ruledefine.CategoryAuthenticationAndAuthorization: 4,
 		ruledefine.CategoryCryptocurrencyExchange:         4,
 		ruledefine.CategoryFinancialServices:              4,
@@ -90,7 +51,47 @@ func getCategoryScore(category ruledefine.RuleCategory) uint8 {
 		ruledefine.CategorySearchService:                  1,
 		ruledefine.CategorySocialMedia:                    1,
 	}
-	return CategoryScore[category]
+
+	RuleTypeMaxValue uint8 = 4
+)
+
+type scorer struct {
+	rulesBaseRiskScore       map[string]float64
+	withValidation           bool
+	keywords                 map[string]struct{}
+	twomsRulesToBeApplied    map[string]ruledefine.Rule
+	gitleaksRulesToBeApplied map[string]config.Rule // same rules from twomsRulesToBeApplied, converted to gitleaks format
+}
+
+func NewScorer(selectedRules []*ruledefine.Rule, withValidation bool) *scorer {
+	twomsRulesToBeApplied := make(map[string]ruledefine.Rule)
+	gitleaksRulesToBeApplied := make(map[string]config.Rule)
+	rulesBaseRiskScore := make(map[string]float64)
+	keywords := make(map[string]struct{})
+	for _, rule := range selectedRules {
+		twomsRulesToBeApplied[rule.RuleID] = *rule
+		gitleaksRulesToBeApplied[rule.RuleID] = *ruledefine.TwomsToGitleaksRule(rule)
+		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
+		for _, keyword := range rule.Keywords {
+			keywords[strings.ToLower(keyword)] = struct{}{}
+		}
+	}
+	return &scorer{
+		rulesBaseRiskScore:       rulesBaseRiskScore,
+		withValidation:           withValidation,
+		keywords:                 keywords,
+		twomsRulesToBeApplied:    twomsRulesToBeApplied,
+		gitleaksRulesToBeApplied: gitleaksRulesToBeApplied,
+	}
+}
+
+func (s *scorer) AssignScoreAndSeverity(secret *secrets.Secret) {
+	validationStatus := secrets.UnknownResult // default validity
+	if s.withValidation {
+		validationStatus = secret.ValidationStatus
+	}
+	secret.Severity = getSeverity(s.twomsRulesToBeApplied[secret.RuleID].Severity, validationStatus)
+	secret.CvssScore = getCvssScore(s.rulesBaseRiskScore[secret.RuleID], validationStatus)
 }
 
 func getValidityScore(baseRiskScore float64, validationStatus secrets.ValidationResult) float64 {
@@ -104,7 +105,7 @@ func getValidityScore(baseRiskScore float64, validationStatus secrets.Validation
 }
 
 func GetBaseRiskScore(category ruledefine.RuleCategory, ruleType uint8) float64 {
-	categoryScore := getCategoryScore(category)
+	categoryScore := CategoryScoreMap[category]
 	return float64(categoryScore)*0.6 + float64(ruleType)*0.4
 }
 

@@ -45,8 +45,8 @@
         "id": "63139b45c38f502bbbe15115a7995003d76b2a81",
         "source": "testData/secrets/github-pat.txt",
         "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-        "ruleName": "Github-Pat",
-        "ruleCategory": "Development Platform",
+        "ruleName": "Github-Pat-Custom",
+        "ruleCategory": "Package Management",
         "startLine": 0,
         "endLine": 0,
         "lineContent": "TextExampleghp_1234567890abcdefghijklmnopqrstuvwxyzTextExampleghp_abcdefghijklmnopqrstuvwxyz1234567890TextExample",
@@ -56,7 +56,7 @@
         "validationStatus": "Unknown",
         "ruleDescription": "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
         "severity": "Low",
-        "cvssScore": 8.2
+        "cvssScore": 7
       }
     ],
     "9346cf95d4513bb2861d1ecfc3e82421bd14cbd8": [
@@ -89,8 +89,8 @@
         "id": "993b789425c810d4956c5ed8c84f02f90b0531ee",
         "source": "testData/secrets/github-pat.txt",
         "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-        "ruleName": "Github-Pat",
-        "ruleCategory": "Development Platform",
+        "ruleName": "Github-Pat-Custom",
+        "ruleCategory": "Package Management",
         "startLine": 1,
         "endLine": 1,
         "lineContent": "           Text_Example =                                     ghp_9876543210zyxwvutsrqponmlkjihgfedcba",
@@ -100,7 +100,7 @@
         "validationStatus": "Unknown",
         "ruleDescription": "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
         "severity": "Low",
-        "cvssScore": 8.2
+        "cvssScore": 7
       }
     ],
     "ab72977b91e213ab4d91eaa2dc89e0b5d54856d5": [
@@ -127,8 +127,8 @@
         "id": "c31705d99e835e4ac7bc3f688bd9558309e056ed",
         "source": "testData/secrets/github-pat.txt",
         "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-        "ruleName": "Github-Pat",
-        "ruleCategory": "Development Platform",
+        "ruleName": "Github-Pat-Custom",
+        "ruleCategory": "Package Management",
         "startLine": 0,
         "endLine": 0,
         "lineContent": "TextExampleghp_1234567890abcdefghijklmnopqrstuvwxyzTextExampleghp_abcdefghijklmnopqrstuvwxyz1234567890TextExample",
@@ -138,7 +138,7 @@
         "validationStatus": "Unknown",
         "ruleDescription": "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
         "severity": "Low",
-        "cvssScore": 8.2
+        "cvssScore": 7
       }
     ],
     "efc9a9ee89f1d732c7321067eb701b9656e91f15": [
