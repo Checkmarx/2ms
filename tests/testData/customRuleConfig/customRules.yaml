@@ -1,5 +1,5 @@
 - ruleId: 01ab7659-d25a-4a1c-9f98-dee9d0cf2e70
-  ruleName: Generic-Api-Key-Custom
+  ruleName: Generic-Api-Key
   description: >-
     Custom Generic Api Key override, should override the default one (very specific regex just for testing purposes, shouldn't match with aws-access-token
   regex: "(?i)\\b\\w*secret\\w*\\b\\s*:?=\\s*[\"']?([A-Za-z0-9/_+=-]{8,150})[\"']?"
@@ -56,6 +56,6 @@
     - custom
     - override
   scoreParameters:
-    category: Development Platform
-    ruleType: 4
+    category: Package Management
+    ruleType: 3
   disableValidation: true

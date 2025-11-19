@@ -7,8 +7,8 @@
         "id": "4431f6f38c1a36156f0486df95b0436810272bfb",
         "source": "testData/input/custom_rules_secrets.txt",
         "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-        "ruleName": "Github-Pat",
-        "ruleCategory": "Development Platform",
+        "ruleName": "Github-Pat-Custom",
+        "ruleCategory": "Package Management",
         "startLine": 1,
         "endLine": 1,
         "lineContent": "ghp_1234567890abcdefghijklmnopqrstuvwxyz123",
@@ -18,7 +18,7 @@
         "validationStatus": "Unknown",
         "ruleDescription": "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
         "severity": "Low",
-        "cvssScore": 8.2
+        "cvssScore": 7
       }
     ],
     "58a104ec1b079f2e63d3794d374587048ef6548a": [
@@ -26,7 +26,7 @@
         "id": "58a104ec1b079f2e63d3794d374587048ef6548a",
         "source": "testData/input/custom_rules_secrets.txt",
         "ruleId": "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
-        "ruleName": "Generic-Api-Key-Custom",
+        "ruleName": "Generic-Api-Key",
         "ruleCategory": "General",
         "startLine": 3,
         "endLine": 3,
@@ -45,7 +45,7 @@
         "id": "b69313d6d65da942f1b91a5f12dca17637bff7d9",
         "source": "testData/input/custom_rules_secrets.txt",
         "ruleId": "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
-        "ruleName": "Generic-Api-Key-Custom",
+        "ruleName": "Generic-Api-Key",
         "ruleCategory": "General",
         "startLine": 4,
         "endLine": 4,

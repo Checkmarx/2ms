@@ -295,6 +295,10 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 
 	selectedRules = GetDefaultRules(false)
 
+	// Fill in missing fields in custom rules if they match default rules.
+	// Needs to run before selection/ignoring so that if rule names are used in selected/ignored, overrides will be selected/ignored properly
+	completeOverridesWithDefaultFields(customRules, selectedRules)
+
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
 		customRules = selectRules(customRules, selectedList)
@@ -304,6 +308,8 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 		customRules = ignoreRules(customRules, ignoreList)
 	}
 
+	// Adding custom rules needs to happen after selection/ignoring so that if tags of overrides are used in ignore,
+	//		the default Rule can still run (if not ignored itself)
 	selectedRules = addCustomRules(selectedRules, customRules)
 
 	if len(specialList) > 0 {
@@ -330,7 +336,6 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 		ruleMatch := false
 		for i := range selectedRules {
 			if selectedRules[i].RuleID == customRule.RuleID {
-				completeOverrideEmptyFields(selectedRules[i], customRule)
 				selectedRules[i] = customRule
 				ruleMatch = true
 				break
@@ -346,16 +351,24 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 	return selectedRules
 }
 
-func completeOverrideEmptyFields(rule *ruledefine.Rule, overrideRule *ruledefine.Rule) {
-	if overrideRule.RuleName == "" {
-		overrideRule.RuleName = rule.RuleName
-	}
+// completeOverridesWithDefaultFields fills in some missing fields in custom rules if they match default rules by ruleID
+func completeOverridesWithDefaultFields(customRules []*ruledefine.Rule, defaultRules []*ruledefine.Rule) {
+	for _, customRule := range customRules {
+		for _, defaultRule := range defaultRules {
+			if defaultRule.RuleID == customRule.RuleID {
 
-	if overrideRule.ScoreParameters.Category == "" {
-		overrideRule.ScoreParameters.Category = rule.ScoreParameters.Category
-		// only replace with default ruleType if category wasn't defined, otherwise assume user set RuleType at 0 intentionally
-		if overrideRule.ScoreParameters.RuleType == 0 {
-			overrideRule.ScoreParameters.RuleType = rule.ScoreParameters.RuleType
+				if customRule.RuleName == "" {
+					customRule.RuleName = defaultRule.RuleName
+				}
+
+				if customRule.ScoreParameters.Category == "" {
+					customRule.ScoreParameters.Category = defaultRule.ScoreParameters.Category
+					// only replace with default ruleType if category wasn't defined, otherwise assume user set RuleType at 0 intentionally
+					if customRule.ScoreParameters.RuleType == 0 {
+						customRule.ScoreParameters.RuleType = defaultRule.ScoreParameters.RuleType
+					}
+				}
+			}
 		}
 	}
 }

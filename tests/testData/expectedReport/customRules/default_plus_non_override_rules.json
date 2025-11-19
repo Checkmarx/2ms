@@ -45,18 +45,18 @@
         "id": "4431f6f38c1a36156f0486df95b0436810272bfb",
         "source": "testData/input/custom_rules_secrets.txt",
         "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-        "ruleName": "Github-Pat",
-        "ruleCategory": "Development Platform",
+        "ruleName": "Github-Pat-Custom",
+        "ruleCategory": "Package Management",
         "startLine": 1,
         "endLine": 1,
         "lineContent": "ghp_1234567890abcdefghijklmnopqrstuvwxyz123",
         "startColumn": 1,
         "endColumn": 40,
         "value": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",
-        "validationStatus": "Invalid",
-        "ruleDescription": "Uncovered a GitHub Personal Access Token, potentially leading to unauthorized repository access and sensitive content exposure.",
-        "severity": "Medium",
-        "cvssScore": 5.2
+        "validationStatus": "Unknown",
+        "ruleDescription": "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
+        "severity": "Low",
+        "cvssScore": 7
       }
     ],
     "b72e2b9140a555724a63bbb8e8e6689b81ebaf28": [
