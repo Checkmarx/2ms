@@ -301,6 +301,8 @@ Other fields are optional and can be seen in the example bellow of a file with a
   scoreParameters: # scoreParameters can be omitted for overrides, in which case the respective default rule scoreParameters will be considered
     category: General # category of the rule, should be a string of type ruledefine.RuleCategory. Impacts cvss score
     ruleType: 4 # can go from 4 to 0, 4 being most severe. For overrides, if Category is defined, ruleType also needs to be defined, or otherwise it will be considered 0. Impacts cvss score
+  disableValidation: false # if true, disables validity check for this rule, regardless of --validate flag
+  deprecated: false # if true, the rule will not be used in the scan, regardless of --rule flag
   allowLists: # allowed values to ignore if matched
     - description: Allowlist for Custom Rule
       matchCondition: OR # determines whether all criteria in the allowList must match. Can be AND or OR. Defaults to OR if not specified
