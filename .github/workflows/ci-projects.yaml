@@ -9,7 +9,7 @@ env:
   ENGINE_VERSION: ${{ vars.ENGINE_VERSION }}
   PLATFORM: "LINUX_X64"
   ENGINE: "2ms"
-  CES_ENVIROMENT: "prod"
+  CES_ENVIRONMENT: "prod"
   LOG_FILE: ${{ github.workspace }}/log.log
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
           GOARCH: amd64
         run: |
           cd $GITHUB_WORKSPACE/2ms
-          go build -ldflags "-s -w" -a -installsuffix cgo -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
+          go build -buildvcs=false -ldflags "-s -w" -a -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
       - name: Build Engines Excutor
@@ -98,10 +98,10 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p $GITHUB_WORKSPACE/results
-          ./cli/excutor run -b $GITHUB_WORKSPACE/2ms/dist/2ms -s $GITHUB_WORKSPACE/zips/ -r $GITHUB_WORKSPACE/results -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -p 1 --env $CES_ENVIROMENT >> "$LOG_FILE" 2>&1
+          ./cli/excutor run -b $GITHUB_WORKSPACE/2ms/dist/2ms -s $GITHUB_WORKSPACE/zips/ -r $GITHUB_WORKSPACE/results -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -p 1 --env $CES_ENVIRONMENT >> "$LOG_FILE" 2>&1
 
       - name: Upload log
         if: failure()
         run: |
-          ./cli/excutor save-log -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -l $LOG_FILE --env $CES_ENVIROMENT > /dev/null 2>&1
+          ./cli/excutor save-log -e $ENGINE -j $GITHUB_WORKSPACE/pr-metadata.json -l $LOG_FILE --env $CES_ENVIRONMENT > /dev/null 2>&1
 
