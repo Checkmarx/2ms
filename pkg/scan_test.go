@@ -15,6 +15,7 @@ import (
 	"github.com/checkmarx/2ms/v4/lib/secrets"
 	"github.com/checkmarx/2ms/v4/lib/utils"
 	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,16 +41,12 @@ var updateExpected = flag.Bool("update-test-data", false, "Update expected test 
 // Rules to be used to test custom rules. Rules will be selected and ignored depending on the test case
 var customRules = []*ruledefine.Rule{
 	{
+		// this rule is missing name and score parameters to test if they are correctly inherited from the default rule
 		RuleID:      "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
-		RuleName:    "Generic-Api-Key-Custom",
 		Description: "Custom Generic Api Key override, should override the default one (very specific regex just for testing purposes)",
 		Regex:       `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
 		Severity:    "Medium",
 		Tags:        []string{"custom", "override"},
-		ScoreParameters: ruledefine.ScoreParameters{
-			Category: "General",
-			RuleType: 4,
-		},
 	},
 	{
 		RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
@@ -86,15 +83,15 @@ var customRules = []*ruledefine.Rule{
 	},
 	{
 		RuleID:            "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
-		RuleName:          "Github-Pat",
+		RuleName:          "Github-Pat-Custom", // different from default to test if override works
 		Description:       "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
 		Regex:             `ghp_[0-9a-zA-Z]{36}`,
 		Severity:          "Low",
 		Tags:              []string{"custom", "override"},
 		DisableValidation: true,
 		ScoreParameters: ruledefine.ScoreParameters{
-			Category: "Development Platform",
-			RuleType: 4,
+			Category: "Package Management", // different from default to test if override works
+			RuleType: 3,                    // different from default to test if override works
 		},
 	},
 }
@@ -445,7 +442,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run all default + custom rules",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 			},
 			ScanItems:          scanItems,
@@ -455,7 +452,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run only custom rules",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
 			},
@@ -466,7 +463,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run only custom override rules",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"override"},
 			},
@@ -477,7 +474,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run default + non override rules",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				IgnoreRules:    []string{"override"},
 			},
@@ -488,7 +485,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run only custom rules and ignore overrides",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
 				IgnoreRules:    []string{"override"},
@@ -500,7 +497,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run only default rules by ignoring custom rules",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				IgnoreRules:    []string{"custom"},
 			},
@@ -511,7 +508,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run only custom rules by ignoring custom rules by id",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
 				IgnoreRules: []string{
@@ -526,12 +523,12 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run only custom rules by ignoring custom rules by name",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
 				IgnoreRules: []string{
-					"Generic-Api-Key-Custom",
-					"Github-Pat",
+					"Generic-Api-Key",
+					"Github-Pat-Custom",
 				},
 			},
 			ScanItems:          scanItems,
@@ -541,7 +538,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		{
 			Name: "Run only custom rules by ignoring override result Ids",
 			ScanConfig: resources.ScanConfig{
-				CustomRules:    customRules,
+				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
 				IgnoreResultIds: []string{
@@ -573,12 +570,11 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 			ExpectedReportPath: "",
 			expectErrors: []error{
 				fmt.Errorf("rule#0: missing ruleID"),
-				fmt.Errorf("rule#0: missing ruleName"),
 				fmt.Errorf("rule#0: missing regex"),
 			},
 		},
 		{
-			Name: "Regex and severity invalid",
+			Name: "Regex, severity and score parameters invalid",
 			ScanConfig: resources.ScanConfig{
 				CustomRules: []*ruledefine.Rule{
 					{
@@ -587,6 +583,10 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 						Description: "Match passwords",
 						Regex:       "[A-Za-z0-9]{32})",
 						Severity:    "mockSeverity",
+						ScoreParameters: ruledefine.ScoreParameters{
+							Category: "mockCategory",
+							RuleType: 10,
+						},
 					},
 					{
 						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
@@ -602,6 +602,9 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid regex"),
 				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid severity:" +
 					" mockSeverity not one of ([Critical High Medium Low Info])"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid category:" +
+					" mockCategory not an acceptable category of type RuleCategory"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid rule type: 10 not an acceptable uint8 value, maximum is 4"),
 			},
 		},
 		{
@@ -1033,4 +1036,19 @@ func compareOrUpdateTestData(t *testing.T, actualReport reporting.IReport, expec
 	assert.NoError(t, err, "Failed to normalize expected report")
 
 	assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+}
+
+func cloneRules(rulesToClone []*ruledefine.Rule) []*ruledefine.Rule {
+	clonedRules := make([]*ruledefine.Rule, 0, len(rulesToClone))
+	for _, rule := range rulesToClone {
+		clonedRule := cloneRule(rule)
+		clonedRules = append(clonedRules, clonedRule)
+	}
+	return clonedRules
+}
+
+func cloneRule(r *ruledefine.Rule) *ruledefine.Rule {
+	var ruleCopy ruledefine.Rule
+	_ = copier.CopyWithOption(&ruleCopy, r, copier.Option{DeepCopy: true})
+	return &ruleCopy
 }

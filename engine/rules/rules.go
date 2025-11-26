@@ -1,23 +1,10 @@
 package rules
 
 import (
-	"errors"
-	"fmt"
 	"strings"
-
-	"regexp"
-	"slices"
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/rs/zerolog/log"
-)
-
-var (
-	errMissingRuleID   = fmt.Errorf("missing ruleID")
-	errMissingRuleName = fmt.Errorf("missing ruleName")
-	errMissingRegex    = fmt.Errorf("missing regex")
-	errInvalidRegex    = fmt.Errorf("invalid regex")
-	errInvalidSeverity = fmt.Errorf("invalid severity")
 )
 
 func GetDefaultRules(includeDeprecated bool) []*ruledefine.Rule { //nolint:funlen // This function contains all rule definitions
@@ -308,6 +295,10 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 
 	selectedRules = GetDefaultRules(false)
 
+	// Fill in missing fields in custom rules if they match default rules.
+	// Needs to run before selection/ignoring so that if rule names are used in selected/ignored, overrides will be selected/ignored properly
+	completeOverridesWithDefaultFields(customRules, selectedRules)
+
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
 		customRules = selectRules(customRules, selectedList)
@@ -317,6 +308,8 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 		customRules = ignoreRules(customRules, ignoreList)
 	}
 
+	// Adding custom rules needs to happen after selection/ignoring so that if tags of overrides are used in ignore,
+	//		the default Rule can still run (if not ignored itself)
 	selectedRules = addCustomRules(selectedRules, customRules)
 
 	if len(specialList) > 0 {
@@ -349,55 +342,33 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 			}
 		}
 		if !ruleMatch {
+			if customRule.RuleName == "" {
+				customRule.CreateRuleNameFromRuleID()
+			}
 			selectedRules = append(selectedRules, customRule)
 		}
 	}
 	return selectedRules
 }
 
-// CheckRulesRequiredFields checks that required fields are present in the Rule.
-// This is meant for user defined rules, default rules have more strict checks in unit tests
-func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
-	var err error
-	for i, rule := range rulesToCheck {
-		if rule.RuleID == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleID))
-		}
-		if rule.RuleName == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleName))
-		}
+// completeOverridesWithDefaultFields fills in some missing fields in custom rules if they match default rules by ruleID
+func completeOverridesWithDefaultFields(customRules, defaultRules []*ruledefine.Rule) {
+	for _, customRule := range customRules {
+		for _, defaultRule := range defaultRules {
+			if defaultRule.RuleID == customRule.RuleID {
+				if customRule.RuleName == "" {
+					customRule.RuleName = defaultRule.RuleName
+				}
 
-		if rule.Regex == "" {
-			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRegex))
-		} else {
-			if _, errRegex := regexp.Compile(rule.Regex); errRegex != nil {
-				invalidRegexError := fmt.Errorf("%w: %v", errInvalidRegex, errRegex)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRegexError))
-			}
-		}
-
-		if rule.Severity != "" {
-			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
-				invalidSeverityError := fmt.Errorf("%w: %s not one of (%s)", errInvalidSeverity, rule.Severity, ruledefine.SeverityOrder)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidSeverityError))
+				if customRule.ScoreParameters.Category == "" {
+					customRule.ScoreParameters.Category = defaultRule.ScoreParameters.Category
+					// only replace with default ruleType if category wasn't defined, otherwise assume user set RuleType at 0 intentionally
+					if customRule.ScoreParameters.RuleType == 0 {
+						customRule.ScoreParameters.RuleType = defaultRule.ScoreParameters.RuleType
+					}
+				}
+				break
 			}
 		}
 	}
-
-	// Add a newline at start of error if it's not nil, for better presentation in output
-	if err != nil {
-		err = fmt.Errorf("\n%w", err)
-	}
-
-	return err
-}
-
-func buildCustomRuleError(ruleIndex int, rule *ruledefine.Rule, issue error) error {
-	if rule.RuleID == "" {
-		if rule.RuleName == "" {
-			return fmt.Errorf("rule#%d: %w", ruleIndex, issue)
-		}
-		return fmt.Errorf("rule#%d;RuleName-%s: %w", ruleIndex, rule.RuleName, issue)
-	}
-	return fmt.Errorf("rule#%d;RuleID-%s: %w", ruleIndex, rule.RuleID, issue)
 }
