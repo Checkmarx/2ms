@@ -1,0 +1,120 @@
+name: Run CI Projects
+
+on:
+  workflow_call:
+    inputs:
+      machines-count:
+        description: 'Total number of machines'
+        required: true
+        type: number
+
+env:
+  ENGINE: "2ms"
+  CES_ENVIRONMENT: "prod"
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      machines: ${{ steps.set-machines.outputs.machines }}
+    steps:
+      - name: Generate Machine Matrix
+        id: set-machines
+        run: |
+          machines=$(seq -s, 0 $((${{ inputs.machines-count }} - 1)))
+          echo "machines=[$machines]" >> "$GITHUB_OUTPUT"
+
+  run-projects:
+    needs: setup
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
+
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        machine: ${{ fromJSON(needs.setup.outputs.machines) }}
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: ${{ secrets.CES_EXECUTOR_REPO }}
+          token: ${{ secrets.CES_GITHUB_TOKEN }}
+          path: cli
+          ref: master
+
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version-file: cli/go.mod
+          cache: false
+
+      - name: Download 2ms
+        uses: actions/download-artifact@v4
+        with:
+          name: 2ms
+          path: .
+
+      - name: Unzip 2ms
+        run: |
+          unzip -q 2ms.zip
+
+      - name: Download Json
+        uses: actions/download-artifact@v4
+        with:
+          name: Metadata
+          path: .
+
+      - name: Build Engines Executor
+        run: |
+          cd cli
+          go build -o executor
+
+      - name: Set log file
+        run: |
+          LOG_FILE="$GITHUB_WORKSPACE/log_${{ matrix.machine }}.log"
+          echo "LOG_FILE=$LOG_FILE" >> $GITHUB_ENV
+
+      - name: Select Projects
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/zips/"
+          cd cli
+          ./executor sources \
+          -s $GITHUB_WORKSPACE/zips/ \
+          -e $ENGINE \
+          --chunk ${{ matrix.machine }} \
+          --machines ${{ inputs.machines-count }} \
+          >> $LOG_FILE 2>&1
+
+      - name: Prepare Projects
+        run: |
+          cd "$GITHUB_WORKSPACE/zips/"
+          for zip in *.zip; do
+            [ -e "$zip" ] || continue
+            zip_name=$(basename "$zip" .zip)
+            echo "::add-mask::$zip_name"
+            unzip -qqo "$zip" -d "./$zip_name" >> $LOG_FILE 2>&1
+          done
+
+      - name: Run Engines Executor
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/results
+          ./cli/executor run 2ms \
+          -b $GITHUB_WORKSPACE/2ms/dist/2ms \
+          -s $GITHUB_WORKSPACE/zips/ \
+          -r $GITHUB_WORKSPACE/results \
+          -j $GITHUB_WORKSPACE/pr-metadata.json \
+          --env $CES_ENVIRONMENT \
+          >> $LOG_FILE 2>&1
+
+      - name: Upload log
+        if: failure()
+        run: |
+          ./cli/executor save-log \
+          -e $ENGINE \
+          -j $GITHUB_WORKSPACE/pr-metadata.json \
+          -l $LOG_FILE \
+          --env $CES_ENVIRONMENT \
+          > /dev/null 2>&1

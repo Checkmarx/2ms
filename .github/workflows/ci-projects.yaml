@@ -9,15 +9,11 @@ env:
   ENGINE_VERSION: ${{ vars.ENGINE_VERSION }}
   PLATFORM: "LINUX_X64"
   ENGINE: "2ms"
-  CES_ENVIRONMENT: "prod"
-  MACHINES: 10
 
 jobs:
   build:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    outputs:
-      machines: ${{ steps.set-machines.outputs.machines }}
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -76,101 +72,9 @@ jobs:
           path: ${{ github.workspace }}/pr-metadata.json
           retention-days: 1
 
-      - name: Generate Machine Matrix
-        id: set-machines
-        run: |
-          machines=$(seq -s, 0 $((MACHINES - 1)))
-          echo "machines=[$machines]" >> "$GITHUB_OUTPUT"
-
   ci-projects:
     needs: build
-    runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.CES_BUCKET_AWS_REGION }}
-
-    strategy:
-      fail-fast: false
-      max-parallel: 10
-      matrix:
-        machine: ${{ fromJSON(needs.build.outputs.machines) }}
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          repository: ${{ secrets.CES_EXECUTOR_REPO }}
-          token: ${{ secrets.CES_GITHUB_TOKEN }}
-          path: cli
-          ref: master
-
-      - name: Download 2ms
-        uses: actions/download-artifact@v4
-        with:
-          name: 2ms
-          path: .
-
-      - name: Unzip 2ms
-        run: |
-          unzip -q 2ms.zip
-
-      - name: Download Json
-        uses: actions/download-artifact@v4
-        with:
-          name: Metadata
-          path: .
-
-      - name: Build Engines Excutor
-        run: |
-          cd cli
-          go build -o excutor
-
-      - name: Set log file
-        run: |
-          LOG_FILE="$GITHUB_WORKSPACE/log_${{ matrix.machine }}.log"
-          echo "LOG_FILE=$LOG_FILE" >> $GITHUB_ENV
-
-      - name: Select Projects
-        run: |
-          set -o pipefail
-          mkdir -p "$GITHUB_WORKSPACE/zips/"
-          cd cli
-          ./excutor sources \
-          -s $GITHUB_WORKSPACE/zips/ \
-          -e $ENGINE \
-          --chunk ${{ matrix.machine }} \
-          --machines $MACHINES \
-          >> "$LOG_FILE" 2>&1
-
-      - name: Prepare Projects
-        run: |
-          set -o pipefail
-          cd "$GITHUB_WORKSPACE/zips/"
-          for zip in *.zip; do
-            [ -e "$zip" ] || continue
-            echo "::add-mask::$(pwd)/$zip"
-            zip_name=$(basename "$zip" .zip)
-            unzip -qqo "$zip" -d "./$zip_name" >> "$LOG_FILE" 2>&1
-          done
-
-      - name: Run Engines Executor
-        run: |
-          set -o pipefail
-          mkdir -p $GITHUB_WORKSPACE/results
-          ./cli/excutor run 2ms \
-          -b $GITHUB_WORKSPACE/2ms/dist/2ms \
-          -s $GITHUB_WORKSPACE/zips/ \
-          -r $GITHUB_WORKSPACE/results \
-          -j $GITHUB_WORKSPACE/pr-metadata.json \
-          --env $CES_ENVIRONMENT \
-          >> "$LOG_FILE" 2>&1
-
-      - name: Upload log
-        if: failure()
-        run: |
-          ./cli/excutor save-log \
-          -e $ENGINE \
-          -j $GITHUB_WORKSPACE/pr-metadata.json \
-          -l $LOG_FILE \
-          --env $CES_ENVIRONMENT \
-          > /dev/null 2>&1
-
+    uses: ./.github/workflows/run-projects.yaml
+    with:
+      machines-count: 10
+    secrets: inherit
