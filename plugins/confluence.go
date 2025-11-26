@@ -525,7 +525,7 @@ func appendUniqueMapKeysAbbreviated(m, seenOriginals map[string]struct{}, out *[
 }
 
 // missingSelectorsWarningMessage builds one consolidated warning message showing up to maxShow examples across
-// page IDs, space keys, and space IDs that couldn’t be processed (invalid, non-existent,
+// page IDs, space keys, and space IDs that could not be processed (invalid, non-existent,
 // or no access). The rest are summarized as "+ N more".
 // It returns an empty string when there's nothing to report.
 func (p *ConfluencePlugin) missingSelectorsWarningMessage() string {
@@ -562,7 +562,7 @@ func (p *ConfluencePlugin) missingSelectorsWarningMessage() string {
 	}
 
 	return fmt.Sprintf(
-		"The following page IDs, space keys, or space IDs couldn’t be processed because they either don’t exist or you don’t have access permissions: %s%s. These items were excluded from the scan.", //nolint:lll // long, user-facing message
+		"The following page IDs, space keys, or space IDs could not be processed because they either don’t exist or you don’t have access permissions: %s%s. These items were excluded from the scan.", //nolint:lll // long, user-facing message
 		strings.Join(samplesToShow, ", "),
 		moreSuffix,
 	)

@@ -1523,7 +1523,7 @@ func TestMissingSelectorsWarningMessage(t *testing.T) {
 	long := strings.Repeat("9", 31)
 	abbr := long[:10] + "..." + long[len(long)-10:]
 
-	const prefix = "The following page IDs, space keys, or space IDs couldn’t be processed because they either don’t exist or you don’t have access permissions: "
+	const prefix = "The following page IDs, space keys, or space IDs could not be processed because they either don’t exist or you don’t have access permissions: "
 	const suffixTail = ". These items were excluded from the scan."
 
 	tests := []struct {
