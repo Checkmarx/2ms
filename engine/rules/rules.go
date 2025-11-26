@@ -367,6 +367,7 @@ func completeOverridesWithDefaultFields(customRules, defaultRules []*ruledefine.
 						customRule.ScoreParameters.RuleType = defaultRule.ScoreParameters.RuleType
 					}
 				}
+				break
 			}
 		}
 	}
