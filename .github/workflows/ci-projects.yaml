@@ -1,0 +1,80 @@
+name: CI Projects
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+env:
+  ENGINE_VERSION: ${{ vars.ENGINE_VERSION }}
+  PLATFORM: "LINUX_X64"
+  ENGINE: "2ms"
+
+jobs:
+  build:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          path: 2ms
+
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version-file: 2ms/go.mod
+          cache-dependency-path: 2ms/go.sum
+          cache: true
+
+      - name: Build 2ms Binary
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          cd $GITHUB_WORKSPACE/2ms
+          go build -buildvcs=false -ldflags "-s -w" -a -o $GITHUB_WORKSPACE/2ms/dist/2ms main.go
+          chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
+
+      - name: Create Metadata File
+        run: |
+          COMMIT_TIMESTAMP=$(git -C "$GITHUB_WORKSPACE/2ms" log -1 --format=%ct)
+          METADATA_PATH="$GITHUB_WORKSPACE/pr-metadata.json"
+          echo '{
+            "seq": "'"${COMMIT_TIMESTAMP}"'",
+            "tag": "'"${{ github.event.number }}"'",
+            "comment": "'"${{ github.event.pull_request.title }}"'",
+            "commit": "'"${{ github.sha }}"'",
+            "owner": "'"${{ github.actor }}"'",
+            "branch": "'"${{ github.base_ref }}"'",
+            "engine": "'"${ENGINE}"'",
+            "platform": "'"${PLATFORM}"'",
+            "version": "'"${ENGINE_VERSION}"'"
+          }' > "$METADATA_PATH"
+
+      - name: Zip 2ms Folder
+        run: |
+          cd $GITHUB_WORKSPACE
+          zip -qr 2ms.zip 2ms/
+
+      - name: Save 2ms
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2ms
+          path: ${{ github.workspace }}/2ms.zip
+          retention-days: 1
+
+      - name: Pr parameters
+        uses: actions/upload-artifact@v4
+        with:
+          name: Metadata
+          path: ${{ github.workspace }}/pr-metadata.json
+          retention-days: 1
+
+  ci-projects:
+    needs: build
+    uses: ./.github/workflows/run-projects.yaml
+    with:
+      machines-count: 10
+    secrets: inherit
