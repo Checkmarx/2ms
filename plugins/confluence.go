@@ -175,11 +175,11 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 
 	// Optional limits (0 disables each check).
 	flags.IntVar(&maxAPIResponseMB, flagMaxAPIResponseMB, 0,
-		"limit for per-request API response size in megabytes. When exceeded, the batch is skipped and a warning is logged (0 disables the check).")
+		"limit for per-request API response size in megabytes. When exceeded, the batch is skipped and a warning is logged.")
 	flags.IntVar(&maxPageBodyMB, flagMaxPageBodyMB, 0,
-		"limit for individual page body size in megabytes. Pages above this size are skipped and logged as warnings (0 disables the check).")
+		"limit for individual page body size in megabytes. Pages above this size are skipped and logged as warnings.")
 	flags.IntVar(&maxTotalScanMB, flagMaxTotalScanMB, 0,
-		"limit for total downloaded data in megabytes for this Confluence scan. When exceeded, scanning stops gracefully and logs a warning (0 disables the check).")
+		"limit for total downloaded data in megabytes for this Confluence scan. When exceeded, scanning stops gracefully and logs a warning.")
 
 	return cmd, nil
 }

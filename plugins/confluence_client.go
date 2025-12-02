@@ -331,7 +331,8 @@ func walkPaginated[T any](
 	}
 }
 
-// walkPagesPaginated iterates pages starting from initialURL (streaming decode of results array).
+// walkPagesPaginated iterates pages starting from initialURL using streaming
+// decode, applying size limits and pagination until no further cursor exists.
 func (c *httpConfluenceClient) walkPagesPaginated(
 	ctx context.Context, initialURL string, visit func(*Page) error,
 ) error {
@@ -353,75 +354,29 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 		// even if we have to stop decoding this batch early.
 		linkNext := nextURLFromLinkHeader(headers)
 
-		// Wrap the body in a counting reader to enforce:
-		//   - per-response size limit (maxAPIResponseBytes)
-		//   - total scan volume limit (maxTotalScanBytes)
-		var reader io.Reader = rc
-		if c.maxAPIResponseBytes > 0 || c.maxTotalScanBytes > 0 {
-			reader = &countingReader{
-				r:               rc,
-				apiLimitBytes:   c.maxAPIResponseBytes,
-				apiConsumed:     0,
-				totalBytes:      &c.totalScanBytes,
-				totalLimitBytes: c.maxTotalScanBytes,
-			}
-		}
-
-		// Wrap the visitor to apply per-page body-size limit when configured.
-		limitedVisit := visit
-		if c.maxPageBodyBytes > 0 {
-			underlying := visit
-			limitedVisit = func(p *Page) error {
-				if p.Body.Storage != nil {
-					bodySize := int64(len(p.Body.Storage.Value))
-					if bodySize > c.maxPageBodyBytes {
-						log.Warn().
-							Str("page_id", p.ID).
-							Int64("body_bytes", bodySize).
-							Msg("Skipping page content because the Confluence page body exceeded the configured size limit.")
-						return nil
-					}
-				}
-				return underlying(p)
-			}
-		}
+		reader := c.wrapWithCountingReader(rc)
+		limitedVisit := c.wrapWithPageBodyLimit(visit)
 
 		bodyNext, decodeErr := streamPagesFromBody(reader, limitedVisit)
 		closeErr := rc.Close()
 
 		if decodeErr != nil {
-			switch {
-			case errors.Is(decodeErr, ErrAPIResponseTooLarge):
-				// record that at least one batch exceeded the per-request
-				// size limit and move to the next page if we know the cursor.
-				// The plugin will emit a single consolidated warning after the scan.
-				c.apiResponseLimitHit = true
-
-				if closeErr != nil {
-					return closeErr
-				}
-
-				cur := cursorFromURL(linkNext)
-				if cur == "" {
-					// No "next" link: nothing else to do.
-					return nil
-				}
-				nextURL = withCursor(base, cur)
-				continue
-
-			case errors.Is(decodeErr, ErrTotalScanVolumeExceeded):
-				// Global total-volume limit hit: stop scanning gracefully.
-				if closeErr != nil {
-					return closeErr
-				}
-				return ErrTotalScanVolumeExceeded
-
-			default:
-				if closeErr != nil {
-					return closeErr
-				}
-				return decodeErr
+			newNextURL, done, handleErr := c.handleStreamError(decodeErr, closeErr, linkNext, base)
+			if handleErr != nil {
+				return handleErr
 			}
+			if done {
+				// Either we've reached the end or we've hit a terminal error that
+				// was handled gracefully.
+				return nil
+			}
+			if newNextURL == "" {
+				// No follow-up cursor to continue with.
+				return nil
+			}
+
+			nextURL = newNextURL
+			continue
 		}
 
 		if closeErr != nil {
@@ -435,6 +390,86 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 		}
 		nextURL = withCursor(base, cur)
 	}
+}
+
+// wrapWithCountingReader wraps the response body with a countingReader when
+// any per-response or total scan limits are configured, otherwise returns rc.
+func (c *httpConfluenceClient) wrapWithCountingReader(rc io.ReadCloser) io.Reader {
+	if c.maxAPIResponseBytes == 0 && c.maxTotalScanBytes == 0 {
+		return rc
+	}
+
+	return &countingReader{
+		r:               rc,
+		apiLimitBytes:   c.maxAPIResponseBytes,
+		apiConsumed:     0,
+		totalBytes:      &c.totalScanBytes,
+		totalLimitBytes: c.maxTotalScanBytes,
+	}
+}
+
+// wrapWithPageBodyLimit decorates the visit callback to skip pages whose
+// storage body exceeds maxPageBodyBytes, logging a warning when that happens.
+func (c *httpConfluenceClient) wrapWithPageBodyLimit(
+	visit func(*Page) error,
+) func(*Page) error {
+	if c.maxPageBodyBytes <= 0 {
+		return visit
+	}
+
+	return func(p *Page) error {
+		if p.Body.Storage != nil {
+			bodySize := int64(len(p.Body.Storage.Value))
+			if bodySize > c.maxPageBodyBytes {
+				log.Warn().
+					Str("page_id", p.ID).
+					Int64("body_bytes", bodySize).
+					Msg("Skipping page content because the Confluence page body exceeded the configured size limit.")
+				return nil
+			}
+		}
+		return visit(p)
+	}
+}
+
+// handleStreamError centralizes handling for decode/close errors and decides
+// whether to stop, continue with a new cursor, or return an error.
+func (c *httpConfluenceClient) handleStreamError(
+	decodeErr, closeErr error,
+	linkNext string,
+	base *url.URL,
+) (nextURL string, done bool, err error) {
+	if errors.Is(decodeErr, ErrAPIResponseTooLarge) {
+		// record that at least one batch exceeded the per-request
+		// size limit and move to the next page if we know the cursor.
+		// The plugin will emit a single consolidated warning after the scan.
+		c.apiResponseLimitHit = true
+
+		if closeErr != nil {
+			return "", true, closeErr
+		}
+
+		cur := cursorFromURL(linkNext)
+		if cur == "" {
+			// No "next" link: nothing else to do.
+			return "", true, nil
+		}
+		return withCursor(base, cur), false, nil
+	}
+
+	if errors.Is(decodeErr, ErrTotalScanVolumeExceeded) {
+		// Global total-volume limit hit: stop scanning gracefully.
+		if closeErr != nil {
+			return "", true, closeErr
+		}
+		return "", true, ErrTotalScanVolumeExceeded
+	}
+
+	// Any other decode error is treated as fatal for this scan.
+	if closeErr != nil {
+		return "", true, closeErr
+	}
+	return "", true, decodeErr
 }
 
 // apiURL joins the relative API path to the platform base,

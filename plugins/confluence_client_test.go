@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1470,6 +1471,262 @@ func TestCountingReader(t *testing.T) {
 			assert.Greater(t, n, 0)
 			assert.ErrorIs(t, err, tc.expectedErr)
 			tc.assertTotal(t, total)
+		})
+	}
+}
+
+func TestWrapWithCountingReader(t *testing.T) {
+	tests := []struct {
+		name          string
+		maxAPIBytes   int64
+		maxTotalBytes int64
+		expectWrapped bool
+	}{
+		{
+			name:          "no limits returns original",
+			maxAPIBytes:   0,
+			maxTotalBytes: 0,
+			expectWrapped: false,
+		},
+		{
+			name:          "api limit only wraps reader",
+			maxAPIBytes:   10,
+			maxTotalBytes: 0,
+			expectWrapped: true,
+		},
+		{
+			name:          "total limit only wraps reader",
+			maxAPIBytes:   0,
+			maxTotalBytes: 20,
+			expectWrapped: true,
+		},
+		{
+			name:          "both limits wrap reader",
+			maxAPIBytes:   10,
+			maxTotalBytes: 20,
+			expectWrapped: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &httpConfluenceClient{
+				maxAPIResponseBytes: tc.maxAPIBytes,
+				maxTotalScanBytes:   tc.maxTotalBytes,
+			}
+
+			rc := io.NopCloser(strings.NewReader("payload"))
+			reader := c.wrapWithCountingReader(rc)
+
+			_, isCounting := reader.(*countingReader)
+
+			assert.Equal(t, tc.expectWrapped, isCounting)
+		})
+	}
+}
+
+func TestWrapWithPageBodyLimit(t *testing.T) {
+	mkStorage := func(content string) *struct {
+		Value string `json:"value"`
+	} {
+		return &struct {
+			Value string `json:"value"`
+		}{Value: content}
+	}
+
+	tests := []struct {
+		name              string
+		maxPageBodyBytes  int64
+		page              *Page
+		visitErr          error
+		expectVisitCalled bool
+		expectedErr       error
+		expectSameFunc    bool
+	}{
+		{
+			name:             "no limit uses original visitor",
+			maxPageBodyBytes: 0,
+			page: &Page{
+				ID: "P1",
+				Body: PageBody{
+					Storage: mkStorage("some content that can be any size"),
+				},
+			},
+			visitErr:          assert.AnError,
+			expectVisitCalled: true,
+			expectedErr:       assert.AnError,
+			expectSameFunc:    true,
+		},
+		{
+			name:             "body below limit calls visitor",
+			maxPageBodyBytes: 10,
+			page: &Page{
+				ID: "P2",
+				Body: PageBody{
+					Storage: mkStorage("small"), // len = 5
+				},
+			},
+			visitErr:          assert.AnError,
+			expectVisitCalled: true,
+			expectedErr:       assert.AnError,
+			expectSameFunc:    false,
+		},
+		{
+			name:             "body above limit skips visitor",
+			maxPageBodyBytes: 5,
+			page: &Page{
+				ID: "P3",
+				Body: PageBody{
+					Storage: mkStorage("too-large-body"), // len > 5
+				},
+			},
+			visitErr:          assert.AnError, // should never be returned
+			expectVisitCalled: false,
+			expectedErr:       nil,
+			expectSameFunc:    false,
+		},
+		{
+			name:             "nil storage calls visitor",
+			maxPageBodyBytes: 5,
+			page: &Page{
+				ID: "P4",
+				Body: PageBody{
+					Storage: nil,
+				},
+			},
+			visitErr:          assert.AnError,
+			expectVisitCalled: true,
+			expectedErr:       assert.AnError,
+			expectSameFunc:    false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &httpConfluenceClient{
+				maxPageBodyBytes: tc.maxPageBodyBytes,
+			}
+
+			visited := false
+			visitErr := tc.visitErr
+
+			visit := func(p *Page) error {
+				visited = true
+				return visitErr
+			}
+
+			wrapped := c.wrapWithPageBodyLimit(visit)
+
+			sameFunc := reflect.ValueOf(visit).Pointer() == reflect.ValueOf(wrapped).Pointer()
+
+			err := wrapped(tc.page)
+
+			assert.Equal(t, tc.expectSameFunc, sameFunc)
+			assert.Equal(t, tc.expectVisitCalled, visited)
+			assert.ErrorIs(t, err, tc.expectedErr)
+		})
+	}
+}
+
+func TestHandleStreamError(t *testing.T) {
+	base, _ := url.Parse("https://x.test/wiki/api/v2/pages?limit=10")
+
+	tests := []struct {
+		name               string
+		decodeErr          error
+		closeErr           error
+		linkNext           string
+		expectedNext       string
+		expectedDone       bool
+		expectedErr        error
+		expectCloseErrWins bool
+		expectLimitHitFlag bool
+	}{
+		{
+			name:               "API limit hit with next cursor continues",
+			decodeErr:          ErrAPIResponseTooLarge,
+			closeErr:           nil,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "https://x.test/wiki/api/v2/pages?cursor=next&limit=10",
+			expectedDone:       false,
+			expectedErr:        nil,
+			expectLimitHitFlag: true,
+		},
+		{
+			name:               "API limit hit without cursor stops silently",
+			decodeErr:          ErrAPIResponseTooLarge,
+			closeErr:           nil,
+			linkNext:           "",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        nil,
+			expectLimitHitFlag: true,
+		},
+		{
+			name:               "API limit hit but closeErr happens",
+			decodeErr:          ErrAPIResponseTooLarge,
+			closeErr:           assert.AnError,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        assert.AnError,
+			expectLimitHitFlag: true,
+		},
+		{
+			name:               "total scan limit hit returns sentinel",
+			decodeErr:          ErrTotalScanVolumeExceeded,
+			closeErr:           nil,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        ErrTotalScanVolumeExceeded,
+			expectLimitHitFlag: false,
+		},
+		{
+			name:               "total scan limit hit but closeErr happens",
+			decodeErr:          ErrTotalScanVolumeExceeded,
+			closeErr:           assert.AnError,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        assert.AnError,
+			expectLimitHitFlag: false,
+		},
+		{
+			name:               "generic decode error uses decodeErr",
+			decodeErr:          assert.AnError,
+			closeErr:           nil,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        assert.AnError,
+			expectLimitHitFlag: false,
+		},
+		{
+			name:               "generic decode error but closeErr happens",
+			decodeErr:          assert.AnError,
+			closeErr:           fmt.Errorf("close-failed"),
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        fmt.Errorf("close-failed"),
+			expectLimitHitFlag: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &httpConfluenceClient{}
+			nextURL, done, err := c.handleStreamError(tc.decodeErr, tc.closeErr, tc.linkNext, base)
+
+			if tc.name == "generic decode error but closeErr happens" {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
+			assert.Equal(t, tc.expectedNext, nextURL)
+			assert.Equal(t, tc.expectedDone, done)
+			assert.Equal(t, tc.expectLimitHitFlag, c.apiResponseLimitHit)
 		})
 	}
 }
