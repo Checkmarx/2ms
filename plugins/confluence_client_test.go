@@ -1412,3 +1412,64 @@ func TestClassifyAuth401(t *testing.T) {
 		})
 	}
 }
+
+func TestWithLimits(t *testing.T) {
+	c := &httpConfluenceClient{}
+	WithLimits(1, 2, 3)(c)
+
+	assert.Equal(t, int64(1), c.maxAPIResponseBytes)
+	assert.Equal(t, int64(2), c.maxTotalScanBytes)
+	assert.Equal(t, int64(3), c.maxPageBodyBytes)
+}
+
+func TestCountingReader(t *testing.T) {
+	tests := []struct {
+		name            string
+		apiLimitBytes   int64
+		totalLimitBytes int64
+		expectedErr     error
+		assertTotal     func(t *testing.T, total int64)
+	}{
+		{
+			name:            "API limit exceeded",
+			apiLimitBytes:   5,
+			totalLimitBytes: 0,
+			expectedErr:     ErrAPIResponseTooLarge,
+			assertTotal: func(t *testing.T, total int64) {
+				// Current behavior: API limit hit does not advance the total counter.
+				assert.Equal(t, int64(0), total)
+			},
+		},
+		{
+			name:            "total limit exceeded",
+			apiLimitBytes:   0,
+			totalLimitBytes: 5,
+			expectedErr:     ErrTotalScanVolumeExceeded,
+			assertTotal: func(t *testing.T, total int64) {
+				// We expect to have read more than the configured total limit.
+				assert.Greater(t, total, int64(5))
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			buf := strings.NewReader(strings.Repeat("x", 10))
+			var total int64
+
+			cr := &countingReader{
+				r:               buf,
+				apiLimitBytes:   tc.apiLimitBytes,
+				totalBytes:      &total,
+				totalLimitBytes: tc.totalLimitBytes,
+			}
+
+			p := make([]byte, 10)
+			n, err := cr.Read(p)
+
+			assert.Greater(t, n, 0)
+			assert.ErrorIs(t, err, tc.expectedErr)
+			tc.assertTotal(t, total)
+		})
+	}
+}

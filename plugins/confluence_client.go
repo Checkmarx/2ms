@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -33,6 +35,16 @@ var (
 
 	// ErrUnexpectedHTTPStatus is used for other non-2xx statuses not classified above.
 	ErrUnexpectedHTTPStatus = errors.New("unexpected http status")
+
+	// ErrAPIResponseTooLarge is returned internally when a single API response exceeds
+	// the configured per-request size limit. Callers treat this as a soft failure:
+	// skip the current batch and move on when possible.
+	ErrAPIResponseTooLarge = errors.New("confluence api response exceeded configured size limit")
+
+	// ErrTotalScanVolumeExceeded is returned when the total downloaded bytes across
+	// the scan exceed the configured global limit. Callers should stop scanning
+	// gracefully and not treat this as a hard failure.
+	ErrTotalScanVolumeExceeded = errors.New("confluence total scan volume exceeded configured limit")
 )
 
 // ConfluenceClient defines the operations required by the Confluence plugin.
@@ -45,6 +57,7 @@ type ConfluenceClient interface {
 	FetchPageAtVersion(ctx context.Context, pageID string, version int) (*Page, error)
 	WalkSpacesByKeys(ctx context.Context, spaceKeys []string, limit int, visit func(*Space) error) error
 	WikiBaseURL() string
+	APIResponseLimitHit() bool
 }
 
 // httpConfluenceClient is a ConfluenceClient implementation backed by net/http.
@@ -55,6 +68,30 @@ type httpConfluenceClient struct {
 	username    string
 	token       string
 	apiBase     string
+
+	// Optional limits (0 means "no limit").
+	maxAPIResponseBytes int64
+	maxTotalScanBytes   int64
+	maxPageBodyBytes    int64
+
+	totalScanBytes int64
+
+	// apiResponseLimitHit indicates that at least one API batch exceeded the
+	// configured per-request size limit during this scan. Used by the plugin
+	// to emit a single consolidated warning instead of one per batch.
+	apiResponseLimitHit bool
+}
+
+type ConfluenceClientOption func(*httpConfluenceClient)
+
+// WithLimits configures optional per-response, total-scan, and page-body size
+// limits in bytes for the Confluence client.
+func WithLimits(maxAPIResponseBytes, maxTotalScanBytes, maxPageBodyBytes int64) ConfluenceClientOption {
+	return func(c *httpConfluenceClient) {
+		c.maxAPIResponseBytes = maxAPIResponseBytes
+		c.maxTotalScanBytes = maxTotalScanBytes
+		c.maxPageBodyBytes = maxPageBodyBytes
+	}
 }
 
 // NewConfluenceClient constructs a ConfluenceClient for the given base input URL.
@@ -62,7 +99,9 @@ type httpConfluenceClient struct {
 //   - Normalizes base wiki URL to "https://{host}/wiki".
 //   - Discovers cloudId and always uses platform v2:
 //     "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
-func NewConfluenceClient(inputBaseURL, username, token string) (ConfluenceClient, error) {
+//   - Applies any provided ConfluenceClientOption values (for example, response/scan
+//     size limits) before issuing API requests.
+func NewConfluenceClient(inputBaseURL, username, token string, opts ...ConfluenceClientOption) (ConfluenceClient, error) {
 	baseWikiURL, err := normalizeWikiBase(inputBaseURL)
 	if err != nil {
 		return nil, err
@@ -72,6 +111,9 @@ func NewConfluenceClient(inputBaseURL, username, token string) (ConfluenceClient
 		httpClient:  &http.Client{Timeout: httpTimeout},
 		username:    username,
 		token:       token,
+	}
+	for _, opt := range opts {
+		opt(c)
 	}
 	apiBase, err := c.buildAPIBase(context.Background())
 	if err != nil {
@@ -84,6 +126,12 @@ func NewConfluenceClient(inputBaseURL, username, token string) (ConfluenceClient
 // WikiBaseURL returns the base Confluence wiki URL configured for this client.
 // Example: "https://tenant.atlassian.net/wiki".
 func (c *httpConfluenceClient) WikiBaseURL() string { return c.baseWikiURL }
+
+// APIResponseLimitHit reports whether any API response exceeded the configured
+// per-request size limit during this scan.
+func (c *httpConfluenceClient) APIResponseLimitHit() bool {
+	return c.apiResponseLimitHit
+}
 
 // normalizeWikiBase takes any Confluence-related URL (site root, /wiki, a page URL, etc.)
 // and returns "https://{host}/wiki".
@@ -300,17 +348,87 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 		if err != nil {
 			return err
 		}
-		// Prefer Link header; body may also include _links.next.
+
+		// Prefer Link header to discover the next cursor so we can safely move on
+		// even if we have to stop decoding this batch early.
 		linkNext := nextURLFromLinkHeader(headers)
-		bodyNext, decodeErr := streamPagesFromBody(rc, visit)
-		closeErr := rc.Close()
-		if decodeErr != nil {
-			return decodeErr
+
+		// Wrap the body in a counting reader to enforce:
+		//   - per-response size limit (maxAPIResponseBytes)
+		//   - total scan volume limit (maxTotalScanBytes)
+		var reader io.Reader = rc
+		if c.maxAPIResponseBytes > 0 || c.maxTotalScanBytes > 0 {
+			reader = &countingReader{
+				r:               rc,
+				apiLimitBytes:   c.maxAPIResponseBytes,
+				apiConsumed:     0,
+				totalBytes:      &c.totalScanBytes,
+				totalLimitBytes: c.maxTotalScanBytes,
+			}
 		}
+
+		// Wrap the visitor to apply per-page body-size limit when configured.
+		limitedVisit := visit
+		if c.maxPageBodyBytes > 0 {
+			underlying := visit
+			limitedVisit = func(p *Page) error {
+				if p.Body.Storage != nil {
+					bodySize := int64(len(p.Body.Storage.Value))
+					if bodySize > c.maxPageBodyBytes {
+						log.Warn().
+							Str("page_id", p.ID).
+							Int64("body_bytes", bodySize).
+							Msg("Skipping page content because the Confluence page body exceeded the configured size limit.")
+						return nil
+					}
+				}
+				return underlying(p)
+			}
+		}
+
+		bodyNext, decodeErr := streamPagesFromBody(reader, limitedVisit)
+		closeErr := rc.Close()
+
+		if decodeErr != nil {
+			switch {
+			case errors.Is(decodeErr, ErrAPIResponseTooLarge):
+				// record that at least one batch exceeded the per-request
+				// size limit and move to the next page if we know the cursor.
+				// The plugin will emit a single consolidated warning after the scan.
+				c.apiResponseLimitHit = true
+
+				if closeErr != nil {
+					return closeErr
+				}
+
+				cur := cursorFromURL(linkNext)
+				if cur == "" {
+					// No "next" link: nothing else to do.
+					return nil
+				}
+				nextURL = withCursor(base, cur)
+				continue
+
+			case errors.Is(decodeErr, ErrTotalScanVolumeExceeded):
+				// Global total-volume limit hit: stop scanning gracefully.
+				if closeErr != nil {
+					return closeErr
+				}
+				return ErrTotalScanVolumeExceeded
+
+			default:
+				if closeErr != nil {
+					return closeErr
+				}
+				return decodeErr
+			}
+		}
+
 		if closeErr != nil {
 			return closeErr
 		}
-		// Extract only the cursor and rebuild the next URL from our base.
+
+		// use Link header when available, fall back to body _links.next.
 		cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
 		if cur == "" {
 			return nil
@@ -366,6 +484,15 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 	if err != nil {
 		return nil, nil, fmt.Errorf("read body: %w", err)
 	}
+
+	// Track total scan volume for non-streamed responses as well.
+	if c.maxTotalScanBytes > 0 {
+		c.totalScanBytes += int64(len(body))
+		if c.totalScanBytes > c.maxTotalScanBytes {
+			return nil, nil, ErrTotalScanVolumeExceeded
+		}
+	}
+
 	return body, resp.Header.Clone(), nil
 }
 
@@ -678,4 +805,44 @@ func firstNonEmptyString(primary, fallback string) string {
 		return primary
 	}
 	return fallback
+}
+
+// countingReader wraps an io.Reader and tracks:
+//   - bytes read for the current API response, enforcing maxAPIResponseBytes
+//   - global total bytes read across the scan, enforcing totalLimitBytes.
+//
+// When a limit is exceeded, subsequent reads return a sentinel error and allow
+// callers (streaming decoders) to bail out gracefully.
+type countingReader struct {
+	r               io.Reader
+	apiLimitBytes   int64
+	apiConsumed     int64
+	totalBytes      *int64
+	totalLimitBytes int64
+}
+
+func (cr *countingReader) Read(p []byte) (int, error) {
+	n, err := cr.r.Read(p)
+	if n <= 0 {
+		return n, err
+	}
+
+	if cr.apiLimitBytes > 0 {
+		cr.apiConsumed += int64(n)
+		if cr.apiConsumed > cr.apiLimitBytes {
+			// Surface a sentinel error to the decoder so callers can classify it
+			// as warn for this batch.
+			return n, ErrAPIResponseTooLarge
+		}
+	}
+
+	if cr.totalBytes != nil {
+		*cr.totalBytes += int64(n)
+		if cr.totalLimitBytes > 0 && *cr.totalBytes > cr.totalLimitBytes {
+			// Global total-volume limit exceeded.
+			return n, ErrTotalScanVolumeExceeded
+		}
+	}
+
+	return n, err
 }

@@ -782,6 +782,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 					DoAndReturn(func(_ context.Context, _ int, visit func(*Page) error) error {
 						return visit(page)
 					}).Times(1)
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin:        func(p *ConfluencePlugin) { p.History = false },
 			expectedErr:        nil,
@@ -817,6 +818,8 @@ func TestWalkAndEmitPages(t *testing.T) {
 							return mkPage("200", v), nil
 						}).Times(1)
 				}
+
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin: func(p *ConfluencePlugin) { p.History = true },
 			expectedErr: nil,
@@ -854,6 +857,8 @@ func TestWalkAndEmitPages(t *testing.T) {
 
 						return nil
 					}).Times(1)
+
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin: func(p *ConfluencePlugin) { p.SpaceIDs = []string{"1", "2"} },
 			expectedErr: nil,
@@ -877,6 +882,8 @@ func TestWalkAndEmitPages(t *testing.T) {
 						}
 						return nil
 					}).Times(1)
+
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin: func(p *ConfluencePlugin) { p.PageIDs = []string{"10", "20", "10"} },
 			expectedErr: nil,
@@ -920,6 +927,8 @@ func TestWalkAndEmitPages(t *testing.T) {
 						}
 						return nil
 					}).Times(1)
+
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin: func(p *ConfluencePlugin) {
 				p.SpaceIDs = []string{"1"}
@@ -1005,6 +1014,42 @@ func TestWalkAndEmitPages(t *testing.T) {
 			fileThresholdCalls: 0,
 			wikiBaseURLCalls:   0,
 		},
+		{
+			name: "no filters, limit hit triggers warning",
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
+				page := mkPage("300", 1)
+				m.EXPECT().
+					WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int, visit func(*Page) error) error {
+						return visit(page)
+					}).Times(1)
+
+				m.EXPECT().APIResponseLimitHit().Return(true).Times(1)
+			},
+			setupPlugin:        func(p *ConfluencePlugin) {},
+			expectedErr:        nil,
+			expectedIDs:        []string{"confluence-300-1"},
+			expectedSources:    []string{"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=300&pageVersion=1"},
+			expectedBodies:     []string{"content 300"},
+			fileThresholdCalls: 1,
+			wikiBaseURLCalls:   1,
+		},
+		{
+			name: "total scan volume exceeded treated as soft error",
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
+				m.EXPECT().
+					WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
+					Return(ErrTotalScanVolumeExceeded).
+					Times(1)
+			},
+			setupPlugin:        func(p *ConfluencePlugin) {},
+			expectedErr:        nil,
+			expectedIDs:        []string{},
+			expectedSources:    []string{},
+			expectedBodies:     []string{},
+			fileThresholdCalls: 0,
+			wikiBaseURLCalls:   0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -1083,6 +1128,10 @@ func TestDefineCommand(t *testing.T) {
 
 			cmd, err := p.DefineCommand(items, errs)
 			assert.NoError(t, err)
+
+			if tc.expectedErr == nil {
+				mockClient.EXPECT().APIResponseLimitHit().Return(false).Times(1)
+			}
 
 			mockClient.EXPECT().
 				WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
@@ -1510,7 +1559,8 @@ func TestAppendUniqueMapKeysAbbreviated(t *testing.T) {
 
 			appendUniqueMapKeysAbbreviated(m, seen, &out)
 
-			assert.Equal(t, tc.expectedOut, out)
+			assert.ElementsMatch(t, tc.expectedOut, out)
+
 			for must := range tc.expectedSeen {
 				_, ok := seen[must]
 				assert.True(t, ok, "expected %q present in seenOriginals", must)

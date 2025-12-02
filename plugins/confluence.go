@@ -27,6 +27,10 @@ const (
 	flagUsername  = "username"
 	flagToken     = "token"
 	flagHistory   = "history"
+
+	flagMaxAPIResponseMB = "max-api-response-megabytes"
+	flagMaxPageBodyMB    = "max-page-body-megabytes"
+	flagMaxTotalScanMB   = "max-total-scan-megabytes"
 )
 
 // Confluence Cloud REST API v2 per-request limits (server caps by endpoint/param).
@@ -46,6 +50,9 @@ const (
 	// maxPageSize is the requested number of items per page in paginated responses.
 	// Confluence v2 accepts 1–250; we use 250 to minimize requests so we're less likely to hit rate limits.
 	maxPageSize = 250
+
+	// bytesPerMegabyte is used to convert CLI megabyte values into bytes.
+	bytesPerMegabyte = 1024 * 1024
 )
 
 type ConfluencePlugin struct {
@@ -82,6 +89,11 @@ type ConfluencePlugin struct {
 
 	// invalidPageIDs holds user-provided page-ids that failed numeric/length validation.
 	invalidPageIDs map[string]struct{}
+
+	// Optional limits (0 means "no limit").
+	maxAPIResponseBytes int64
+	maxTotalScanBytes   int64
+	maxPageBodyBytes    int64
 }
 
 // NewConfluencePlugin constructs a new Confluence plugin with a default chunker.
@@ -107,6 +119,11 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	var username string
 	var token string
 
+	// CLI values in megabytes; converted to bytes in PreRunE.
+	var maxAPIResponseMB int
+	var maxPageBodyMB int
+	var maxTotalScanMB int
+
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s <URL>", p.GetName()),
 		Short:   "Scan Confluence Cloud",
@@ -118,9 +135,21 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 			p.SpaceIDs = trimNonEmpty(p.SpaceIDs)
 			p.PageIDs = trimNonEmpty(p.PageIDs)
 
+			// Convert per-run/response/page limits from megabytes to bytes.
+			if maxAPIResponseMB > 0 {
+				p.maxAPIResponseBytes = int64(maxAPIResponseMB) * bytesPerMegabyte
+			}
+			if maxTotalScanMB > 0 {
+				p.maxTotalScanBytes = int64(maxTotalScanMB) * bytesPerMegabyte
+			}
+			if maxPageBodyMB > 0 {
+				p.maxPageBodyBytes = int64(maxPageBodyMB) * bytesPerMegabyte
+			}
+
 			if err := p.initialize(args[0], username, token); err != nil {
 				return err
 			}
+
 			if username == "" || token == "" {
 				log.Warn().Msg("Confluence credentials not provided. The scan will run anonymously (public pages only).")
 			}
@@ -143,6 +172,14 @@ func (p *ConfluencePlugin) DefineCommand(items chan ISourceItem, errs chan error
 	flags.StringVar(&username, flagUsername, "", "Confluence user name or email for authentication.")
 	flags.StringVar(&token, flagToken, "", "Confluence API/scoped token value.")
 	flags.BoolVar(&p.History, flagHistory, false, "Also scan all page revisions (all versions).")
+
+	// Optional limits (0 disables each check).
+	flags.IntVar(&maxAPIResponseMB, flagMaxAPIResponseMB, 0,
+		"limit for per-request API response size in megabytes. When exceeded, the batch is skipped and a warning is logged (0 disables the check).")
+	flags.IntVar(&maxPageBodyMB, flagMaxPageBodyMB, 0,
+		"limit for individual page body size in megabytes. Pages above this size are skipped and logged as warnings (0 disables the check).")
+	flags.IntVar(&maxTotalScanMB, flagMaxTotalScanMB, 0,
+		"limit for total downloaded data in megabytes for this Confluence scan. When exceeded, scanning stops gracefully and logs a warning (0 disables the check).")
 
 	return cmd, nil
 }
@@ -185,7 +222,12 @@ func isValidURL(_ *cobra.Command, args []string) error {
 // initialize stores the normalized base wiki URL and constructs the Confluence client.
 // It validates the base by discovering the cloudId; if discovery fails, init fails.
 func (p *ConfluencePlugin) initialize(base, username, token string) error {
-	client, err := NewConfluenceClient(base, username, token)
+	client, err := NewConfluenceClient(
+		base,
+		username,
+		token,
+		WithLimits(p.maxAPIResponseBytes, p.maxTotalScanBytes, p.maxPageBodyBytes),
+	)
 	if err != nil {
 		return err
 	}
@@ -198,19 +240,27 @@ func (p *ConfluencePlugin) initialize(base, username, token string) error {
 // Also tracks which selectors yielded results and logs a single consolidated warning for
 // invalid/unresolvable/inaccessible selectors, without issuing additional API requests.
 func (p *ConfluencePlugin) walkAndEmitPages(ctx context.Context) error {
+	handleTotalLimit := func(err error) error {
+		if errors.Is(err, ErrTotalScanVolumeExceeded) {
+			log.Warn().Msg("Some Confluence pages could not be processed because the scan reached the configured total-volume limit.")
+			return nil
+		}
+		return err
+	}
+
 	if len(p.SpaceIDs) > 0 || len(p.SpaceKeys) > 0 {
 		allSpaceIDs, err := p.resolveAndCollectSpaceIDs(ctx)
 		if err != nil {
-			return err
+			return handleTotalLimit(err)
 		}
 		if err := p.scanBySpaceIDs(ctx, allSpaceIDs); err != nil {
-			return err
+			return handleTotalLimit(err)
 		}
 	}
 
 	if len(p.PageIDs) > 0 {
 		if err := p.scanByPageIDs(ctx); err != nil {
-			return err
+			return handleTotalLimit(err)
 		}
 	}
 
@@ -218,12 +268,16 @@ func (p *ConfluencePlugin) walkAndEmitPages(ctx context.Context) error {
 		if err := p.client.WalkAllPages(ctx, maxPageSize, func(page *Page) error {
 			return p.emitUniquePage(ctx, page)
 		}); err != nil {
-			return err
+			return handleTotalLimit(err)
 		}
 	}
 
 	if msg := p.missingSelectorsWarningMessage(); msg != "" {
 		log.Warn().Msg(msg)
+	}
+
+	if p.client.APIResponseLimitHit() {
+		log.Warn().Msg("Some Confluence pages could not be processed because one or more API responses exceeded the configured size limit.")
 	}
 
 	return nil
