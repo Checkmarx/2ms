@@ -164,6 +164,9 @@ Provide tokens and other secrets through environment variables (`-e SLACK_TOKEN=
 | `--history` | bool | Include all revisions (page history).                   |
 | `--username` | string | Confluence user/email for authentication.               |
 | `--token` | string | Authentication token (Confluence API token or scoped API token). |
+| `--max-api-response-megabytes` | int  | Soft per-response size limit (MB). `0` disables it. Exceeded batches are skipped.      |
+| `--max-page-body-megabytes`    | int  | Soft per-page body size limit (MB). `0` disables it. Oversized pages are skipped.      |
+| `--max-total-scan-megabytes`   | int  | Global download limit (MB). `0` disables it. If exceeded, the scan stops early.        |
 
 URLs must be HTTPS. Without credentials 2ms scans only public content.
 
