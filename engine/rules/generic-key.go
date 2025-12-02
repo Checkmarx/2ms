@@ -7,6 +7,8 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
+const GenericApiKeyID = "generic-api-key"
+
 func GenericCredential() *config.Rule {
 	regex := generateSemiGenericRegexIncludingXml([]string{
 		"access",
@@ -21,7 +23,7 @@ func GenericCredential() *config.Rule {
 	}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true)
 
 	return &config.Rule{
-		RuleID:      "generic-api-key",
+		RuleID:      GenericApiKeyID,
 		Description: "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
 		Regex:       regex,
 		Keywords: []string{
@@ -65,11 +67,14 @@ func GenericCredential() *config.Rule {
 						`|Authentication-Results` + // email header
 						// Credentials
 						`|(?:credentials?[_.-]?id|withCredentials)` + // Jenkins plugins
+						// IPv4
+						`|(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}` +
 						// Key
 						`|(?:bucket|foreign|hot|idx|natural|primary|pub(?:lic)?|schema|sequence)[_.-]?key` +
 						`|(?:turkey)` +
 						`|key[_.-]?(?:alias|board|code|frame|id|length|mesh|name|pair|press(?:ed)?|ring|selector|signature|size|stone|storetype|word|up|down|left|right)` + //nolint:lll
 						// Azure KeyVault
+						`|KeyVault(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?` + //nolint:lll
 						`|key[_.-]?vault[_.-]?(?:id|name)|keyVaultToStoreSecrets` +
 						`|key(?:store|tab)[_.-]?(?:file|path)` +
 						`|issuerkeyhash` + // part of ssl cert
@@ -77,13 +82,10 @@ func GenericCredential() *config.Rule {
 						// Secret
 						`|(?:secret)[_.-]?(?:length|name|size)` + // name of e.g. env variable
 						`|UserSecretsId` + // https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-8.0&tabs=linux
-
 						// Token
 						`|(?:csrf)[_.-]?token` +
-
 						// Maven library coordinates. (e.g., https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt)
 						`|(?:io\.jsonwebtoken[ \t]?:[ \t]?[\w-]+)` +
-
 						// General
 						`|(?:api|credentials|token)[_.-]?(?:endpoint|ur[il])` +
 						`|public[_.-]?token` +
