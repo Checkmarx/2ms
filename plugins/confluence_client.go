@@ -12,16 +12,39 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
-	httpTimeout = 60 * time.Second
+	httpTimeout       = 60 * time.Second
+	schemeHTTPS       = "https"
+	authMissingScopes = "missing-scopes"
+	authBadCreds      = "bad-credentials"
 )
 
 var (
-	ErrUnsupportedTokenType = errors.New("unsupported token type")
-	ErrEmptyCloudID         = errors.New("empty cloudID")
+	// ErrBaseURLInvalidOrUnreachable is returned when the base URL/host/service is invalid or unreachable.
+	ErrBaseURLInvalidOrUnreachable = errors.New("base url invalid or service unreachable")
+
+	// ErrBadCredentials indicates token is invalid/expired or username does not match the token.
+	ErrBadCredentials = errors.New("bad credentials")
+
+	// ErrMissingScopes indicates the token is valid but missing required scopes.
+	ErrMissingScopes = errors.New("token missing required scopes")
+
+	// ErrUnexpectedHTTPStatus is used for other non-2xx statuses not classified above.
 	ErrUnexpectedHTTPStatus = errors.New("unexpected http status")
+
+	// ErrAPIResponseTooLarge is returned internally when a single API response exceeds
+	// the configured per-request size limit. Callers treat this as a soft failure:
+	// skip the current batch and move on when possible.
+	ErrAPIResponseTooLarge = errors.New("confluence api response exceeded configured size limit")
+
+	// ErrTotalScanVolumeExceeded is returned when the total downloaded bytes across
+	// the scan exceed the configured global limit. Callers should stop scanning
+	// gracefully and not treat this as a hard failure.
+	ErrTotalScanVolumeExceeded = errors.New("confluence total scan volume exceeded configured limit")
 )
 
 // ConfluenceClient defines the operations required by the Confluence plugin.
@@ -34,6 +57,7 @@ type ConfluenceClient interface {
 	FetchPageAtVersion(ctx context.Context, pageID string, version int) (*Page, error)
 	WalkSpacesByKeys(ctx context.Context, spaceKeys []string, limit int, visit func(*Space) error) error
 	WikiBaseURL() string
+	APIResponseLimitHit() bool
 }
 
 // httpConfluenceClient is a ConfluenceClient implementation backed by net/http.
@@ -44,19 +68,79 @@ type httpConfluenceClient struct {
 	username    string
 	token       string
 	apiBase     string
+
+	// Optional limits (0 means "no limit").
+	maxAPIResponseBytes int64
+	maxTotalScanBytes   int64
+	maxPageBodyBytes    int64
+
+	totalScanBytes int64
+
+	// apiResponseLimitHit indicates that at least one API batch exceeded the
+	// configured per-request size limit during this scan. Used by the plugin
+	// to emit a single consolidated warning instead of one per batch.
+	apiResponseLimitHit bool
 }
 
-// NewConfluenceClient constructs a ConfluenceClient for the given base wiki URL
-// (e.g., https://<company id>.atlassian.net/wiki). If username and token are
-// non-empty, requests use HTTP Basic Auth.
-func NewConfluenceClient(baseWikiURL, username string, tokenType TokenType, tokenValue string) (ConfluenceClient, error) {
+type ConfluenceClientOption func(*httpConfluenceClient)
+
+// WithMaxAPIResponseBytes sets an optional per-request API response size limit in bytes.
+// A value of 0 disables the limit. Negative values are treated as 0.
+func WithMaxAPIResponseBytes(n int64) ConfluenceClientOption {
+	if n < 0 {
+		n = 0
+	}
+	return func(c *httpConfluenceClient) {
+		c.maxAPIResponseBytes = n
+	}
+}
+
+// WithMaxTotalScanBytes sets an optional total downloaded-bytes limit in bytes
+// for the entire Confluence scan. A value of 0 disables the limit.
+// Negative values are treated as 0.
+func WithMaxTotalScanBytes(n int64) ConfluenceClientOption {
+	if n < 0 {
+		n = 0
+	}
+	return func(c *httpConfluenceClient) {
+		c.maxTotalScanBytes = n
+	}
+}
+
+// WithMaxPageBodyBytes sets an optional limit in bytes for individual page bodies.
+// Pages whose storage body exceeds this limit are skipped and logged as warnings.
+// A value of 0 disables the limit. Negative values are treated as 0.
+func WithMaxPageBodyBytes(n int64) ConfluenceClientOption {
+	if n < 0 {
+		n = 0
+	}
+	return func(c *httpConfluenceClient) {
+		c.maxPageBodyBytes = n
+	}
+}
+
+// NewConfluenceClient constructs a ConfluenceClient for the given base input URL.
+// Behavior:
+//   - Normalizes base wiki URL to "https://{host}/wiki".
+//   - Discovers cloudId and always uses platform v2:
+//     "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
+//   - Applies any provided ConfluenceClientOption values (for example, response/scan
+//     size limits) before issuing API requests.
+func NewConfluenceClient(inputBaseURL, username, token string, opts ...ConfluenceClientOption) (ConfluenceClient, error) {
+	baseWikiURL, err := normalizeWikiBase(inputBaseURL)
+	if err != nil {
+		return nil, err
+	}
 	c := &httpConfluenceClient{
-		baseWikiURL: strings.TrimRight(baseWikiURL, "/"),
+		baseWikiURL: baseWikiURL,
 		httpClient:  &http.Client{Timeout: httpTimeout},
 		username:    username,
-		token:       tokenValue,
+		token:       token,
 	}
-	apiBase, err := c.buildAPIBase(context.Background(), tokenType)
+	for _, opt := range opts {
+		opt(c)
+	}
+	apiBase, err := c.buildAPIBase(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -65,46 +149,56 @@ func NewConfluenceClient(baseWikiURL, username string, tokenType TokenType, toke
 }
 
 // WikiBaseURL returns the base Confluence wiki URL configured for this client.
+// Example: "https://tenant.atlassian.net/wiki".
 func (c *httpConfluenceClient) WikiBaseURL() string { return c.baseWikiURL }
 
-// buildAPIBase returns the REST v2 base URL to use for this client.
-// For api-token (or no) tokens it builds "<wikiBase>/api/v2".
-// For scoped tokens it discovers the site's cloudId and builds
-// "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
-func (c *httpConfluenceClient) buildAPIBase(ctx context.Context, tokenType TokenType) (string, error) {
-	switch tokenType {
-	case "", ApiToken:
-		u, err := url.Parse(c.baseWikiURL)
-		if err != nil {
-			return "", fmt.Errorf("parse base wiki url: %w", err)
-		}
-		u.Path = path.Join(u.Path, "api", "v2")
-		return strings.TrimRight(u.String(), "/"), nil
+// APIResponseLimitHit reports whether any API response exceeded the configured
+// per-request size limit during this scan.
+func (c *httpConfluenceClient) APIResponseLimitHit() bool {
+	return c.apiResponseLimitHit
+}
 
-	case ScopedApiToken:
-		cloudID, err := c.discoverCloudID(ctx)
-		if err != nil {
-			return "", err
-		}
-		u, _ := url.Parse("https://api.atlassian.com")
-		u.Path = path.Join("/ex/confluence", cloudID, "wiki", "api", "v2")
-		return strings.TrimRight(u.String(), "/"), nil
-
-	default:
-		return "", fmt.Errorf("%w %q", ErrUnsupportedTokenType, tokenType)
+// normalizeWikiBase takes any Confluence-related URL (site root, /wiki, a page URL, etc.)
+// and returns "https://{host}/wiki".
+func normalizeWikiBase(inputURL string) (string, error) {
+	parsedURL, err := url.Parse(strings.TrimSpace(inputURL))
+	if err != nil {
+		return "", fmt.Errorf("parse base url: %w", err)
 	}
+	if parsedURL.Host == "" {
+		return "", fmt.Errorf("invalid url: missing host")
+	}
+	// force https and canonical wiki root
+	parsedURL.Scheme = schemeHTTPS
+	parsedURL.User = nil
+	parsedURL.RawQuery = ""
+	parsedURL.Fragment = ""
+	parsedURL.Path = "/wiki"
+	return strings.TrimRight(parsedURL.String(), "/"), nil
+}
+
+// buildAPIBase discovers the site's cloudId and builds the platform v2 base:
+// "https://api.atlassian.com/ex/confluence/{cloudId}/wiki/api/v2".
+func (c *httpConfluenceClient) buildAPIBase(ctx context.Context) (string, error) {
+	cloudID, err := c.discoverCloudID(ctx)
+	if err != nil {
+		return "", err
+	}
+	u, _ := url.Parse("https://api.atlassian.com")
+	u.Path = path.Join("/ex/confluence", cloudID, "wiki", "api", "v2")
+	return strings.TrimRight(u.String(), "/"), nil
 }
 
 // discoverCloudID resolves the Atlassian cloudId for baseWikiURL by calling
-// "https://<site>/_edge/tenant_info" and decoding {"cloudId": "..."}.
-// Used when constructing the v2 API base for scoped api tokens.
+// "https://{host}/_edge/tenant_info" and decoding {"cloudId": "..."}.
+// If cloudId cannot be obtained, the base URL is considered invalid/unavailable.
 func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, error) {
 	site, err := url.Parse(c.baseWikiURL)
 	if err != nil {
 		return "", fmt.Errorf("parse base url: %w", err)
 	}
-	site.RawQuery, site.Fragment = "", ""
-	site.Scheme = "https"
+	site.RawQuery, site.Fragment, site.User = "", "", nil
+	site.Scheme = schemeHTTPS
 	site.Path = "/_edge/tenant_info"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, site.String(), http.NoBody)
@@ -113,57 +207,65 @@ func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, err
 	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("tenant_info request: %w", err)
+		return "", ErrBaseURLInvalidOrUnreachable
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return "", fmt.Errorf("tenant_info: %w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(b)))
+		// Any non-200 here indicates the host/service isn't a valid Confluence wiki endpoint
+		// or is unavailable to us.
+		_, _ = io.ReadAll(io.LimitReader(resp.Body, 2048)) // drain for completeness
+		return "", ErrBaseURLInvalidOrUnreachable
 	}
 
 	var tmp struct {
 		CloudID string `json:"cloudId"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&tmp); err != nil {
-		return "", fmt.Errorf("decode tenant_info: %w", err)
+		return "", ErrBaseURLInvalidOrUnreachable
 	}
 	if tmp.CloudID == "" {
-		return "", fmt.Errorf("tenant_info: %w", ErrEmptyCloudID)
+		return "", ErrBaseURLInvalidOrUnreachable
 	}
 	return tmp.CloudID, nil
 }
 
-// WalkAllPages iterates all accessible pages and calls visit for each Page.
-func (c *httpConfluenceClient) WalkAllPages(ctx context.Context, limit int, visit func(*Page) error) error {
+// walkPagesWithFilter builds a /pages request with common query parameters
+// and an optional filter (id, space-id, etc.), then streams pages via visit.
+func (c *httpConfluenceClient) walkPagesWithFilter(
+	ctx context.Context,
+	filterKey string,
+	filterValues []string,
+	limit int,
+	visit func(*Page) error,
+) error {
 	apiURL := c.apiURL("/pages")
 	q := apiURL.Query()
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("body-format", "storage")
+	q.Set("sort", "-created-date") // Newest created date to oldest
+
+	if filterKey != "" && len(filterValues) > 0 {
+		q.Set(filterKey, strings.Join(filterValues, ","))
+	}
+
 	apiURL.RawQuery = q.Encode()
 	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
+}
+
+// WalkAllPages iterates all accessible pages and calls visit for each Page.
+func (c *httpConfluenceClient) WalkAllPages(ctx context.Context, limit int, visit func(*Page) error) error {
+	return c.walkPagesWithFilter(ctx, "", nil, limit, visit)
 }
 
 // WalkPagesByIDs iterates the given page IDs and calls visit for each Page.
 func (c *httpConfluenceClient) WalkPagesByIDs(ctx context.Context, pageIDs []string, limit int, visit func(*Page) error) error {
-	apiURL := c.apiURL("/pages")
-	q := apiURL.Query()
-	q.Set("limit", strconv.Itoa(limit))
-	q.Set("body-format", "storage")
-	q.Set("id", strings.Join(pageIDs, ","))
-	apiURL.RawQuery = q.Encode()
-	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
+	return c.walkPagesWithFilter(ctx, "id", pageIDs, limit, visit)
 }
 
 // WalkPagesBySpaceIDs iterates pages across the provided space IDs and calls visit.
 func (c *httpConfluenceClient) WalkPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int, visit func(*Page) error) error {
-	apiURL := c.apiURL("/pages")
-	q := apiURL.Query()
-	q.Set("limit", strconv.Itoa(limit))
-	q.Set("body-format", "storage")
-	q.Set("space-id", strings.Join(spaceIDs, ","))
-	apiURL.RawQuery = q.Encode()
-	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
+	return c.walkPagesWithFilter(ctx, "space-id", spaceIDs, limit, visit)
 }
 
 // WalkPageVersions lists version numbers for a page and calls visit for each.
@@ -218,9 +320,9 @@ func (c *httpConfluenceClient) WalkSpacesByKeys(ctx context.Context, spaceKeys [
 	)
 }
 
-// Generic pager
-// Fetches items from initialURL, applies parse, calls visit for each item,
-// and advances using resolveNext until there is no next page.
+// walkPaginated is a generic pager.
+// It fetches items from initial URL, applies parse, calls visit for each item,
+// then advances using resolveNext until there is no next page.
 func walkPaginated[T any](
 	ctx context.Context,
 	apiURL *url.URL,
@@ -236,18 +338,15 @@ func walkPaginated[T any](
 		if err != nil {
 			return err
 		}
-
 		items, linkNext, bodyNext, err := parse(headers, body)
 		if err != nil {
 			return err
 		}
-
 		for _, it := range items {
 			if err := visit(it); err != nil {
 				return err
 			}
 		}
-
 		rawNext := linkNext
 		if rawNext == "" {
 			rawNext = bodyNext
@@ -255,7 +354,6 @@ func walkPaginated[T any](
 		if rawNext == "" {
 			return nil
 		}
-
 		cur := cursorFromURL(rawNext)
 		if cur == "" {
 			return nil
@@ -264,11 +362,11 @@ func walkPaginated[T any](
 	}
 }
 
-// walkPagesPaginated iterates pages starting from initialURL (streaming decode of results array).
+// walkPagesPaginated iterates pages starting from initialURL using streaming
+// decode, applying size limits and pagination until no further cursor exists.
 func (c *httpConfluenceClient) walkPagesPaginated(
 	ctx context.Context, initialURL string, visit func(*Page) error,
 ) error {
-	// Build a base URL without any cursor, then append the next cursor each time.
 	start, err := url.Parse(initialURL)
 	if err != nil {
 		return fmt.Errorf("parse initial pages url: %w", err)
@@ -282,18 +380,37 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 			return err
 		}
 
-		// Prefer Link header; body may also include _links.next.
 		linkNext := nextURLFromLinkHeader(headers)
-		bodyNext, decodeErr := streamPagesFromBody(rc, visit)
+
+		reader := c.wrapWithCountingReader(rc)
+		limitedVisit := c.wrapWithPageBodyLimit(visit)
+
+		bodyNext, decodeErr := streamPagesFromBody(reader, limitedVisit)
 		closeErr := rc.Close()
+
 		if decodeErr != nil {
-			return decodeErr
+			newNextURL, done, handleErr := c.handleStreamError(decodeErr, closeErr, linkNext, base)
+			if handleErr != nil {
+				return handleErr
+			}
+			if done {
+				// Either we've reached the end or we've hit a terminal error that
+				// was handled gracefully.
+				return nil
+			}
+			if newNextURL == "" {
+				// No follow-up cursor to continue with.
+				return nil
+			}
+
+			nextURL = newNextURL
+			continue
 		}
+
 		if closeErr != nil {
 			return closeErr
 		}
 
-		// Extract only the cursor and rebuild the next URL from our base.
 		cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
 		if cur == "" {
 			return nil
@@ -302,7 +419,82 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 	}
 }
 
-// apiURL joins the relative API path to the base wiki URL or the platform host,
+// wrapWithCountingReader wraps the response body with a countingReader when
+// any per-response or total scan limits are configured, otherwise returns rc.
+func (c *httpConfluenceClient) wrapWithCountingReader(rc io.ReadCloser) io.Reader {
+	if c.maxAPIResponseBytes == 0 && c.maxTotalScanBytes == 0 {
+		return rc
+	}
+
+	return &countingReader{
+		r:               rc,
+		apiLimitBytes:   c.maxAPIResponseBytes,
+		apiConsumed:     0,
+		totalBytes:      &c.totalScanBytes,
+		totalLimitBytes: c.maxTotalScanBytes,
+	}
+}
+
+// wrapWithPageBodyLimit decorates the visit callback to skip pages whose
+// storage body exceeds maxPageBodyBytes, logging a warning when that happens.
+func (c *httpConfluenceClient) wrapWithPageBodyLimit(
+	visit func(*Page) error,
+) func(*Page) error {
+	if c.maxPageBodyBytes == 0 {
+		return visit
+	}
+
+	return func(p *Page) error {
+		if p.Body.Storage != nil {
+			bodySize := int64(len(p.Body.Storage.Value))
+			if bodySize > c.maxPageBodyBytes {
+				log.Warn().
+					Str("page_id", p.ID).
+					Int64("body_bytes", bodySize).
+					Msg("Skipping page content because the Confluence page body exceeded the configured size limit.")
+				return nil
+			}
+		}
+		return visit(p)
+	}
+}
+
+// handleStreamError centralizes handling for decode/close errors and decides
+// whether to stop, continue with a new cursor, or return an error.
+func (c *httpConfluenceClient) handleStreamError(
+	decodeErr, closeErr error,
+	linkNext string,
+	base *url.URL,
+) (nextURL string, done bool, err error) {
+	if errors.Is(decodeErr, ErrAPIResponseTooLarge) {
+		c.apiResponseLimitHit = true
+
+		if closeErr != nil {
+			return "", true, closeErr
+		}
+
+		cur := cursorFromURL(linkNext)
+		if cur == "" {
+			// No "next" link: nothing else to do.
+			return "", true, nil
+		}
+		return withCursor(base, cur), false, nil
+	}
+
+	if errors.Is(decodeErr, ErrTotalScanVolumeExceeded) {
+		if closeErr != nil {
+			return "", true, closeErr
+		}
+		return "", true, ErrTotalScanVolumeExceeded
+	}
+
+	if closeErr != nil {
+		return "", true, closeErr
+	}
+	return "", true, decodeErr
+}
+
+// apiURL joins the relative API path to the platform base,
 // producing a URL rooted at .../api/v2/<relative>.
 func (c *httpConfluenceClient) apiURL(relativePath string) *url.URL {
 	parsedURL, _ := url.Parse(c.apiBase)
@@ -312,8 +504,7 @@ func (c *httpConfluenceClient) apiURL(relativePath string) *url.URL {
 
 // getJSON performs a GET request and returns the response body and headers.
 // It sets Accept: application/json and uses Basic Auth when credentials were
-// provided. Non-2xx responses return an error with a short body snippet.
-// HTTP 429 includes a human-friendly message derived from Retry-After.
+// provided. Non-2xx responses are classified into sentinel errors when possible.
 func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]byte, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, http.NoBody)
 	if err != nil {
@@ -334,20 +525,37 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 		return nil, nil, fmt.Errorf("%s", rateLimitMessage(resp.Header))
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
-		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(snippet)))
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
+		if resp.StatusCode == http.StatusUnauthorized {
+			switch classifyAuth401(bodyBytes) {
+			case authMissingScopes:
+				return nil, nil, ErrMissingScopes
+			default:
+				return nil, nil, fmt.Errorf("%w: invalid username or token", ErrBadCredentials)
+			}
+		}
+		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(bodyBytes)))
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read body: %w", err)
 	}
+
+	// Track total scan volume for non-streamed responses as well.
+	if c.maxTotalScanBytes > 0 {
+		c.totalScanBytes += int64(len(body))
+		if c.totalScanBytes > c.maxTotalScanBytes {
+			return nil, nil, ErrTotalScanVolumeExceeded
+		}
+	}
+
 	return body, resp.Header.Clone(), nil
 }
 
 // getJSONStream performs a GET request and returns the response Body (caller must Close)
 // and headers, allowing streaming decode without buffering the entire payload.
-// HTTP errors are handled similarly to getJSON.
+// Non-2xx responses are classified into sentinel errors when possible.
 func (c *httpConfluenceClient) getJSONStream(ctx context.Context, reqURL string) (io.ReadCloser, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, http.NoBody)
 	if err != nil {
@@ -369,12 +577,34 @@ func (c *httpConfluenceClient) getJSONStream(ctx context.Context, reqURL string)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		defer resp.Body.Close()
-		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
-		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(snippet)))
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
+		if resp.StatusCode == http.StatusUnauthorized {
+			switch classifyAuth401(bodyBytes) {
+			case authMissingScopes:
+				return nil, nil, ErrMissingScopes
+			default:
+				return nil, nil, fmt.Errorf("%w: invalid username or token", ErrBadCredentials)
+			}
+		}
+		return nil, nil, fmt.Errorf("%w %d: %s", ErrUnexpectedHTTPStatus, resp.StatusCode, strings.TrimSpace(string(bodyBytes)))
 	}
 
 	// Caller must Close.
 	return resp.Body, resp.Header.Clone(), nil
+}
+
+// classifyAuth401 inspects a 401 JSON body to distinguish missing scopes vs generic unauthorized.
+func classifyAuth401(body []byte) string {
+	var payload struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	_ = json.Unmarshal(body, &payload)
+	msg := strings.ToLower(strings.TrimSpace(payload.Message))
+	if strings.Contains(msg, "scope does not match") {
+		return authMissingScopes
+	}
+	return authBadCreds
 }
 
 // rateLimitMessage formats a user-friendly message for HTTP 429 responses,
@@ -405,19 +635,19 @@ type PageBody struct {
 	} `json:"storage,omitempty"`
 }
 
-// Page represents a Confluence page
+// Page represents a Confluence page.
 type Page struct {
-	ID      string            `json:"id"`
-	Status  string            `json:"status"`
-	Title   string            `json:"title"`
-	SpaceID string            `json:"spaceId"`
-	Type    string            `json:"type"`
-	Body    PageBody          `json:"body"`
-	Links   map[string]string `json:"_links"`
-	Version PageVersion       `json:"version"`
+	ID        string            `json:"id"`
+	Status    string            `json:"status"`
+	Title     string            `json:"title"`
+	SpaceID   string            `json:"spaceId"`
+	Type      string            `json:"type"`
+	Body      PageBody          `json:"body"`
+	Links     map[string]string `json:"_links"`
+	Version   PageVersion       `json:"version"`
 }
 
-// Space represents a Confluence space
+// Space represents a Confluence space.
 type Space struct {
 	ID    string            `json:"id"`
 	Key   string            `json:"key"`
@@ -463,12 +693,10 @@ func parseVersionsResponse(headers http.Header, body []byte) ([]int, string, str
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return nil, "", "", fmt.Errorf("decode versions: %w", err)
 	}
-
 	versionNumbers := make([]int, 0, len(payload.Results))
 	for _, entry := range payload.Results {
 		versionNumbers = append(versionNumbers, entry.Number)
 	}
-
 	linkNext := nextURLFromLinkHeader(headers)
 	bodyNext := ""
 	if payload.Links != nil {
@@ -574,7 +802,6 @@ func decodeResultsArray(dec *json.Decoder, visit func(*Page) error) error {
 		}
 	}
 
-	// read closing ']'
 	if tok, err = dec.Token(); err != nil {
 		return fmt.Errorf("decode: results ']': %w", err)
 	}
@@ -634,4 +861,44 @@ func firstNonEmptyString(primary, fallback string) string {
 		return primary
 	}
 	return fallback
+}
+
+// countingReader wraps an io.Reader and tracks:
+//   - bytes read for the current API response, enforcing maxAPIResponseBytes
+//   - global total bytes read across the scan, enforcing totalLimitBytes.
+//
+// When a limit is exceeded, subsequent reads return a sentinel error and allow
+// callers (streaming decoders) to bail out gracefully.
+type countingReader struct {
+	r               io.Reader
+	apiLimitBytes   int64
+	apiConsumed     int64
+	totalBytes      *int64
+	totalLimitBytes int64
+}
+
+func (cr *countingReader) Read(p []byte) (int, error) {
+	n, err := cr.r.Read(p)
+	if n <= 0 {
+		return n, err
+	}
+
+	if cr.apiLimitBytes > 0 {
+		cr.apiConsumed += int64(n)
+		if cr.apiConsumed > cr.apiLimitBytes {
+			// Surface a sentinel error to the decoder so callers can classify it
+			// as warn for this batch.
+			return n, ErrAPIResponseTooLarge
+		}
+	}
+
+	if cr.totalBytes != nil {
+		*cr.totalBytes += int64(n)
+		if cr.totalLimitBytes > 0 && *cr.totalBytes > cr.totalLimitBytes {
+			// Global total-volume limit exceeded.
+			return n, ErrTotalScanVolumeExceeded
+		}
+	}
+
+	return n, err
 }

@@ -153,52 +153,48 @@ Provide tokens and other secrets through environment variables (`-e SLACK_TOKEN=
 
 ```bash
 2ms confluence https://<org>.atlassian.net/wiki --space-keys ENG,SEC --history \
-  --username alice@example.com --token-type api-token --token-value "$ATLASSIAN_TOKEN"
+  --username alice@example.com --token "$ATLASSIAN_TOKEN"
 ```
 
-| Flag | Type | Description |
-|------|------|-------------|
-| `--space-keys` | string slice | Comma-separated space keys to crawl. |
-| `--space-ids` | string slice | Comma-separated space IDs to crawl. |
-| `--page-ids` | string slice | Specific page IDs to scan. |
-| `--history` | bool | Include all revisions (page history). |
-| `--username` | string | Confluence user/email for authentication. |
-| `--token-type` | string | `api-token` or `scoped-api-token`. Required when `--token-value` is set. |
-| `--token-value` | string | Token value used with `--token-type`. |
+| Flag | Type | Description                                             |
+|------|------|---------------------------------------------------------|
+| `--space-keys` | string slice | Comma-separated space keys to crawl.                    |
+| `--space-ids` | string slice | Comma-separated space IDs to crawl.                     |
+| `--page-ids` | string slice | Specific page IDs to scan.                              |
+| `--history` | bool | Include all revisions (page history).                   |
+| `--username` | string | Confluence user/email for authentication.               |
+| `--token` | string | Authentication token (Confluence API token or scoped API token). |
+| `--max-api-response-megabytes` | int  | Soft per-response size limit (MB). `0` disables it. Exceeded batches are skipped.      |
+| `--max-page-body-megabytes`    | int  | Soft per-page body size limit (MB). `0` disables it. Oversized pages are skipped.      |
+| `--max-total-scan-megabytes`   | int  | Global download limit (MB). `0` disables it. If exceeded, the scan stops early.        |
 
 URLs must be HTTPS. Without credentials 2ms scans only public content.
 
 #### Authentication
-- To scan **private spaces**, provide `--username`, `--token-type` and `--token-value` (API token).
+- To scan **private spaces**, provide `--username` and `--token` (API token).
 - How to create a Confluence API token: https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
 
 #### Examples
 
 - Scan **all public pages** (no auth):
     ```bash
-    2ms confluence https://<company id>.atlassian.net/wiki
+    2ms confluence https://<org>.atlassian.net/wiki
     ```
 
-- Scan **private pages with an api token** (requires auth):
+- Scan **private pages with an api token or a scoped api token** (requires auth):
     ```bash
-    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token-type api-token --token-value <API_TOKEN>
-    ```
-
-- Scan **private pages with a scoped api token** (requires auth):
-    ```bash
-    2ms confluence https://<company id>.atlassian.net/wiki --username <USERNAME> --token-type scoped-api-token --token-value <API_TOKEN>
+    2ms confluence https://<org>.atlassian.net/wiki --username <USERNAME> --token <API_TOKEN>
     ```
 
 - Scan specific **spaces by ID**:
     ```bash
-    2ms confluence https://<company id>.atlassian.net/wiki --space-ids 1234567890,9876543210
+    2ms confluence https://<org>.atlassian.net/wiki --space-ids 1234567890,9876543210
     ```
 
 - Scan specific **pages by ID**:
     ```bash
-    2ms confluence https://<company id>.atlassian.net/wiki --page-ids 11223344556,99887766554
+    2ms confluence https://<org>.atlassian.net/wiki --page-ids 11223344556,99887766554
     ```
-
 
 ### Slack
 

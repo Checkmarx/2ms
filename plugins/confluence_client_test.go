@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -30,21 +31,11 @@ func TestBuildAPIBase(t *testing.T) {
 	tests := []struct {
 		name         string
 		setup        func() *httpConfluenceClient
-		tokenType    TokenType
 		expectedBase string
 		expectedErr  error
 	}{
 		{
-			name: "api-token",
-			setup: func() *httpConfluenceClient {
-				return &httpConfluenceClient{baseWikiURL: "https://tenant.atlassian.net/wiki"}
-			},
-			tokenType:    ApiToken,
-			expectedBase: "https://tenant.atlassian.net/wiki/api/v2",
-			expectedErr:  nil,
-		},
-		{
-			name: "scoped-api-token (discovers cloudId)",
+			name: "discovers cloudId",
 			setup: func() *httpConfluenceClient {
 				ts := tlsTenant("abc-123")
 				t.Cleanup(ts.Close)
@@ -55,12 +46,11 @@ func TestBuildAPIBase(t *testing.T) {
 					httpClient:  ts.Client(), // trust the TLS test server
 				}
 			},
-			tokenType:    ScopedApiToken,
 			expectedBase: "https://api.atlassian.com/ex/confluence/abc-123/wiki/api/v2",
 			expectedErr:  nil,
 		},
 		{
-			name: "scoped (discoverCloudID error)",
+			name: "discoverCloudID error",
 			setup: func() *httpConfluenceClient {
 				// TLS server that returns 500 for /_edge/tenant_info
 				ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -79,24 +69,15 @@ func TestBuildAPIBase(t *testing.T) {
 					httpClient:  ts.Client(), // trust test server
 				}
 			},
-			tokenType:    ScopedApiToken,
 			expectedBase: "",
-			expectedErr:  ErrUnexpectedHTTPStatus,
-		},
-		{
-			name: "unsupported",
-			setup: func() *httpConfluenceClient {
-				return &httpConfluenceClient{baseWikiURL: "https://example.test/wiki"}
-			},
-			tokenType:   TokenType("bad"),
-			expectedErr: ErrUnsupportedTokenType,
+			expectedErr:  ErrBaseURLInvalidOrUnreachable,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			c := tc.setup()
-			actualBase, err := c.buildAPIBase(context.Background(), tc.tokenType)
+			actualBase, err := c.buildAPIBase(context.Background())
 			assert.ErrorIs(t, err, tc.expectedErr)
 			assert.Equal(t, tc.expectedBase, actualBase)
 		})
@@ -152,7 +133,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, func() {}
 			},
 			expectedID:  "",
-			expectedErr: fmt.Errorf("tenant_info request"),
+			expectedErr: ErrBaseURLInvalidOrUnreachable,
 		},
 		{
 			name: "non-200 http with snippet",
@@ -171,7 +152,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, ts.Close
 			},
 			expectedID:  "",
-			expectedErr: ErrUnexpectedHTTPStatus,
+			expectedErr: ErrBaseURLInvalidOrUnreachable,
 		},
 		{
 			name: "decode error",
@@ -189,7 +170,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, ts.Close
 			},
 			expectedID:  "",
-			expectedErr: io.ErrUnexpectedEOF,
+			expectedErr: ErrBaseURLInvalidOrUnreachable,
 		},
 		{
 			name: "empty cloudId",
@@ -207,7 +188,7 @@ func TestDiscoverCloudID(t *testing.T) {
 				return c, ts.Close
 			},
 			expectedID:  "",
-			expectedErr: ErrEmptyCloudID,
+			expectedErr: ErrBaseURLInvalidOrUnreachable,
 		},
 	}
 
@@ -1327,6 +1308,515 @@ func TestDecodeLinksNext(t *testing.T) {
 
 			assert.ErrorIs(t, err, tc.expectedErr)
 			assert.Equal(t, tc.expectedNext, actualNext)
+		})
+	}
+}
+
+func TestNormalizeWikiBase(t *testing.T) {
+	tests := []struct {
+		name              string
+		in                string
+		expected          string
+		expectedErr       error
+		useContainsForErr bool
+	}{
+		{
+			name:     "site root → /wiki",
+			in:       "https://tenant.atlassian.net",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:     "/wiki with trailing slash",
+			in:       "https://tenant.atlassian.net/wiki/",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:     "force https scheme",
+			in:       "http://tenant.atlassian.net/wiki",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:     "page url with path/query/fragment",
+			in:       "https://tenant.atlassian.net/wiki/spaces/KEY/pages/123?x=1#frag",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:     "trim spaces and drop userinfo",
+			in:       "  https://user:pass@tenant.atlassian.net/some/where \n",
+			expected: "https://tenant.atlassian.net/wiki",
+		},
+		{
+			name:              "parse error",
+			in:                "%",
+			expectedErr:       fmt.Errorf("invalid URL escape"),
+			useContainsForErr: true,
+		},
+		{
+			name:              "missing host (absolute with empty host)",
+			in:                "https:///wiki",
+			expectedErr:       fmt.Errorf("invalid url: missing host"),
+			useContainsForErr: true,
+		},
+		{
+			name:              "missing host (relative path)",
+			in:                "/wiki",
+			expectedErr:       fmt.Errorf("invalid url: missing host"),
+			useContainsForErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := normalizeWikiBase(tc.in)
+			if tc.useContainsForErr {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestClassifyAuth401(t *testing.T) {
+	tests := []struct {
+		name     string
+		body     string
+		expected string
+	}{
+		{
+			name:     "missing scopes (any case)",
+			body:     `{"code":401,"message":"Scope DOES NOT MATCH token"}`,
+			expected: "missing-scopes",
+		},
+		{
+			name:     "bad credentials generic",
+			body:     `{"code":401,"message":"Invalid credentials"}`,
+			expected: "bad-credentials",
+		},
+		{
+			name:     "empty json",
+			body:     `{}`,
+			expected: "bad-credentials",
+		},
+		{
+			name:     "invalid json still defaults",
+			body:     `{`,
+			expected: "bad-credentials",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := classifyAuth401([]byte(tc.body))
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestWithMaxAPIResponseBytes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input int64
+		want  int64
+	}{
+		{
+			name:  "zero disables limit",
+			input: 0,
+			want:  0,
+		},
+		{
+			name:  "positive sets limit",
+			input: 10,
+			want:  10,
+		},
+		{
+			name:  "negative treated as zero",
+			input: -5,
+			want:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &httpConfluenceClient{}
+			WithMaxAPIResponseBytes(tt.input)(c)
+
+			assert.Equal(t, tt.want, c.maxAPIResponseBytes)
+		})
+	}
+}
+
+func TestWithMaxTotalScanBytes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input int64
+		want  int64
+	}{
+		{
+			name:  "zero disables limit",
+			input: 0,
+			want:  0,
+		},
+		{
+			name:  "positive sets limit",
+			input: 500,
+			want:  500,
+		},
+		{
+			name:  "negative treated as zero",
+			input: -123,
+			want:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &httpConfluenceClient{}
+			WithMaxTotalScanBytes(tt.input)(c)
+
+			assert.Equal(t, tt.want, c.maxTotalScanBytes)
+		})
+	}
+}
+
+func TestWithMaxPageBodyBytes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input int64
+		want  int64
+	}{
+		{
+			name:  "zero disables limit",
+			input: 0,
+			want:  0,
+		},
+		{
+			name:  "positive sets limit",
+			input: 1024,
+			want:  1024,
+		},
+		{
+			name:  "negative treated as zero",
+			input: -42,
+			want:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &httpConfluenceClient{}
+			WithMaxPageBodyBytes(tt.input)(c)
+
+			assert.Equal(t, tt.want, c.maxPageBodyBytes)
+		})
+	}
+}
+
+func TestCountingReader(t *testing.T) {
+	tests := []struct {
+		name            string
+		apiLimitBytes   int64
+		totalLimitBytes int64
+		expectedErr     error
+		assertTotal     func(t *testing.T, total int64)
+	}{
+		{
+			name:            "API limit exceeded",
+			apiLimitBytes:   5,
+			totalLimitBytes: 0,
+			expectedErr:     ErrAPIResponseTooLarge,
+			assertTotal: func(t *testing.T, total int64) {
+				// Current behavior: API limit hit does not advance the total counter.
+				assert.Equal(t, int64(0), total)
+			},
+		},
+		{
+			name:            "total limit exceeded",
+			apiLimitBytes:   0,
+			totalLimitBytes: 5,
+			expectedErr:     ErrTotalScanVolumeExceeded,
+			assertTotal: func(t *testing.T, total int64) {
+				// We expect to have read more than the configured total limit.
+				assert.Greater(t, total, int64(5))
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			buf := strings.NewReader(strings.Repeat("x", 10))
+			var total int64
+
+			cr := &countingReader{
+				r:               buf,
+				apiLimitBytes:   tc.apiLimitBytes,
+				totalBytes:      &total,
+				totalLimitBytes: tc.totalLimitBytes,
+			}
+
+			p := make([]byte, 10)
+			n, err := cr.Read(p)
+
+			assert.Greater(t, n, 0)
+			assert.ErrorIs(t, err, tc.expectedErr)
+			tc.assertTotal(t, total)
+		})
+	}
+}
+
+func TestWrapWithCountingReader(t *testing.T) {
+	tests := []struct {
+		name          string
+		maxAPIBytes   int64
+		maxTotalBytes int64
+		expectWrapped bool
+	}{
+		{
+			name:          "no limits returns original",
+			maxAPIBytes:   0,
+			maxTotalBytes: 0,
+			expectWrapped: false,
+		},
+		{
+			name:          "api limit only wraps reader",
+			maxAPIBytes:   10,
+			maxTotalBytes: 0,
+			expectWrapped: true,
+		},
+		{
+			name:          "total limit only wraps reader",
+			maxAPIBytes:   0,
+			maxTotalBytes: 20,
+			expectWrapped: true,
+		},
+		{
+			name:          "both limits wrap reader",
+			maxAPIBytes:   10,
+			maxTotalBytes: 20,
+			expectWrapped: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &httpConfluenceClient{
+				maxAPIResponseBytes: tc.maxAPIBytes,
+				maxTotalScanBytes:   tc.maxTotalBytes,
+			}
+
+			rc := io.NopCloser(strings.NewReader("payload"))
+			reader := c.wrapWithCountingReader(rc)
+
+			_, isCounting := reader.(*countingReader)
+
+			assert.Equal(t, tc.expectWrapped, isCounting)
+		})
+	}
+}
+
+func TestWrapWithPageBodyLimit(t *testing.T) {
+	mkStorage := func(content string) *struct {
+		Value string `json:"value"`
+	} {
+		return &struct {
+			Value string `json:"value"`
+		}{Value: content}
+	}
+
+	tests := []struct {
+		name              string
+		maxPageBodyBytes  int64
+		page              *Page
+		visitErr          error
+		expectVisitCalled bool
+		expectedErr       error
+		expectSameFunc    bool
+	}{
+		{
+			name:             "no limit uses original visitor",
+			maxPageBodyBytes: 0,
+			page: &Page{
+				ID: "P1",
+				Body: PageBody{
+					Storage: mkStorage("some content that can be any size"),
+				},
+			},
+			visitErr:          assert.AnError,
+			expectVisitCalled: true,
+			expectedErr:       assert.AnError,
+			expectSameFunc:    true,
+		},
+		{
+			name:             "body below limit calls visitor",
+			maxPageBodyBytes: 10,
+			page: &Page{
+				ID: "P2",
+				Body: PageBody{
+					Storage: mkStorage("small"), // len = 5
+				},
+			},
+			visitErr:          assert.AnError,
+			expectVisitCalled: true,
+			expectedErr:       assert.AnError,
+			expectSameFunc:    false,
+		},
+		{
+			name:             "body above limit skips visitor",
+			maxPageBodyBytes: 5,
+			page: &Page{
+				ID: "P3",
+				Body: PageBody{
+					Storage: mkStorage("too-large-body"), // len > 5
+				},
+			},
+			visitErr:          assert.AnError, // should never be returned
+			expectVisitCalled: false,
+			expectedErr:       nil,
+			expectSameFunc:    false,
+		},
+		{
+			name:             "nil storage calls visitor",
+			maxPageBodyBytes: 5,
+			page: &Page{
+				ID: "P4",
+				Body: PageBody{
+					Storage: nil,
+				},
+			},
+			visitErr:          assert.AnError,
+			expectVisitCalled: true,
+			expectedErr:       assert.AnError,
+			expectSameFunc:    false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &httpConfluenceClient{
+				maxPageBodyBytes: tc.maxPageBodyBytes,
+			}
+
+			visited := false
+			visitErr := tc.visitErr
+
+			visit := func(p *Page) error {
+				visited = true
+				return visitErr
+			}
+
+			wrapped := c.wrapWithPageBodyLimit(visit)
+
+			sameFunc := reflect.ValueOf(visit).Pointer() == reflect.ValueOf(wrapped).Pointer()
+
+			err := wrapped(tc.page)
+
+			assert.Equal(t, tc.expectSameFunc, sameFunc)
+			assert.Equal(t, tc.expectVisitCalled, visited)
+			assert.ErrorIs(t, err, tc.expectedErr)
+		})
+	}
+}
+
+func TestHandleStreamError(t *testing.T) {
+	base, _ := url.Parse("https://x.test/wiki/api/v2/pages?limit=10")
+
+	tests := []struct {
+		name               string
+		decodeErr          error
+		closeErr           error
+		linkNext           string
+		expectedNext       string
+		expectedDone       bool
+		expectedErr        error
+		expectCloseErrWins bool
+		expectLimitHitFlag bool
+	}{
+		{
+			name:               "API limit hit with next cursor continues",
+			decodeErr:          ErrAPIResponseTooLarge,
+			closeErr:           nil,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "https://x.test/wiki/api/v2/pages?cursor=next&limit=10",
+			expectedDone:       false,
+			expectedErr:        nil,
+			expectLimitHitFlag: true,
+		},
+		{
+			name:               "API limit hit without cursor stops silently",
+			decodeErr:          ErrAPIResponseTooLarge,
+			closeErr:           nil,
+			linkNext:           "",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        nil,
+			expectLimitHitFlag: true,
+		},
+		{
+			name:               "API limit hit but closeErr happens",
+			decodeErr:          ErrAPIResponseTooLarge,
+			closeErr:           assert.AnError,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        assert.AnError,
+			expectLimitHitFlag: true,
+		},
+		{
+			name:               "total scan limit hit returns sentinel",
+			decodeErr:          ErrTotalScanVolumeExceeded,
+			closeErr:           nil,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        ErrTotalScanVolumeExceeded,
+			expectLimitHitFlag: false,
+		},
+		{
+			name:               "total scan limit hit but closeErr happens",
+			decodeErr:          ErrTotalScanVolumeExceeded,
+			closeErr:           assert.AnError,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        assert.AnError,
+			expectLimitHitFlag: false,
+		},
+		{
+			name:               "generic decode error uses decodeErr",
+			decodeErr:          assert.AnError,
+			closeErr:           nil,
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        assert.AnError,
+			expectLimitHitFlag: false,
+		},
+		{
+			name:               "generic decode error but closeErr happens",
+			decodeErr:          assert.AnError,
+			closeErr:           fmt.Errorf("close-failed"),
+			linkNext:           "/wiki/api/v2/pages?cursor=next",
+			expectedNext:       "",
+			expectedDone:       true,
+			expectedErr:        fmt.Errorf("close-failed"),
+			expectLimitHitFlag: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &httpConfluenceClient{}
+			nextURL, done, err := c.handleStreamError(tc.decodeErr, tc.closeErr, tc.linkNext, base)
+
+			if tc.name == "generic decode error but closeErr happens" {
+				assert.Contains(t, err.Error(), tc.expectedErr.Error())
+			} else {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			}
+			assert.Equal(t, tc.expectedNext, nextURL)
+			assert.Equal(t, tc.expectedDone, done)
+			assert.Equal(t, tc.expectLimitHitFlag, c.apiResponseLimitHit)
 		})
 	}
 }

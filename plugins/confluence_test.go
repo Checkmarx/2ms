@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"strconv"
 	"strings"
 	"testing"
@@ -56,94 +55,6 @@ func TestIsValidURL(t *testing.T) {
 			} else {
 				assert.ErrorIs(t, err, tc.expectedErr)
 			}
-		})
-	}
-}
-
-func TestIsValidTokenType(t *testing.T) {
-	tests := []struct {
-		name          string
-		tokenType     TokenType
-		expectedValid bool
-	}{
-		{
-			name:          "empty",
-			tokenType:     "",
-			expectedValid: true,
-		},
-		{
-			name:          "api-token",
-			tokenType:     ApiToken,
-			expectedValid: true,
-		},
-		{
-			name:          "scoped-api-token",
-			tokenType:     ScopedApiToken,
-			expectedValid: true,
-		},
-		{
-			name:          "invalid",
-			tokenType:     TokenType("weird"),
-			expectedValid: false,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expectedValid, isValidTokenType(tc.tokenType))
-		})
-	}
-}
-
-func TestInitialize(t *testing.T) {
-	const (
-		baseURL         = "https://tenant.atlassian.net/wiki"
-		expectedAPIBase = "https://tenant.atlassian.net/wiki/api/v2"
-		username        = "user@example.com"
-		tokenValue      = "token123"
-	)
-
-	tests := []struct {
-		name           string
-		base           string
-		tokenType      TokenType
-		username       string
-		tokenValue     string
-		expectedErr    error
-		expectedClient ConfluenceClient
-	}{
-		{
-			name:        "valid initialization (api-token)",
-			base:        baseURL,
-			tokenType:   ApiToken,
-			username:    username,
-			tokenValue:  tokenValue,
-			expectedErr: nil,
-			expectedClient: &httpConfluenceClient{
-				baseWikiURL: baseURL,
-				httpClient:  &http.Client{Timeout: httpTimeout},
-				username:    username,
-				token:       tokenValue,
-				apiBase:     expectedAPIBase,
-			},
-		},
-		{
-			name:           "invalid initialization (unsupported token type)",
-			base:           baseURL,
-			tokenType:      TokenType("bad"),
-			username:       username,
-			tokenValue:     tokenValue,
-			expectedErr:    ErrUnsupportedTokenType,
-			expectedClient: nil,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			p := NewConfluencePlugin().(*ConfluencePlugin)
-			err := p.initialize(tc.base, tc.username, tc.tokenType, tc.tokenValue)
-
-			assert.ErrorIs(t, err, tc.expectedErr)
-			assert.Equal(t, tc.expectedClient, p.client)
 		})
 	}
 }
@@ -389,25 +300,30 @@ func TestWalkPagesByIDBatches(t *testing.T) {
 			mockClient.EXPECT().WikiBaseURL().Return("https://tenant.atlassian.net/wiki").Times(tc.expectedEmitCount)
 
 			p := &ConfluencePlugin{
-				itemsChan: make(chan ISourceItem, 100),
-				chunker:   mockChunk,
-				client:    mockClient,
+				itemsChan:         make(chan ISourceItem, 100),
+				chunker:           mockChunk,
+				client:            mockClient,
+				returnedSpaceIDs:  map[string]struct{}{},
+				returnedPageIDs:   map[string]struct{}{},
+				resolvedSpaceKeys: map[string]string{},
+				invalidSpaceIDs:   map[string]struct{}{},
+				invalidPageIDs:    map[string]struct{}{},
 			}
 
-			seen := map[string]struct{}{}
 			var seenBatches [][]string
 			walker := func(ctx context.Context, ids []string, lim int, v func(*Page) error) error {
 				seenBatches = append(seenBatches, append([]string(nil), ids...))
 				return tc.setupWalker()(ctx, ids, lim, v)
 			}
 
-			err := p.walkPagesByIDBatches(context.Background(), tc.allIDs, tc.perBatch, seen, walker)
+			err := p.walkPagesByIDBatches(context.Background(), tc.allIDs, tc.perBatch, walker)
 			assert.ErrorIs(t, err, tc.expectedErr)
 			assert.Equal(t, tc.expectedBatches, seenBatches)
 			assert.Len(t, collectEmittedItems(p.itemsChan), tc.expectedEmitCount)
 		})
 	}
 }
+
 func TestEmitUniquePage(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -496,7 +412,8 @@ func TestEmitUniquePage(t *testing.T) {
 				tc.setupMocks(mockClient, mockChunk, tc.page)
 			}
 
-			err := p.emitUniquePage(context.Background(), tc.page, tc.seenPages)
+			p.returnedPageIDs = tc.seenPages
+			err := p.emitUniquePage(context.Background(), tc.page)
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			emitted := collectEmittedItems(p.itemsChan)
@@ -602,11 +519,11 @@ func TestEmitHistory(t *testing.T) {
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			items := collectEmittedItems(p.itemsChan)
-			got := make([]string, len(items))
+			actual := make([]string, len(items))
 			for i := range items {
-				got[i] = items[i].ID
+				actual[i] = items[i].ID
 			}
-			assert.ElementsMatch(t, tc.expectedIDs, got)
+			assert.ElementsMatch(t, tc.expectedIDs, actual)
 		})
 	}
 }
@@ -624,17 +541,17 @@ func TestScanBySpaceIDs(t *testing.T) {
 		expectedErr          error
 	}{
 		{
-			name:                 "dedupe and emit pages",
-			spaceIDs:             []string{"S1", "S2", "S1"},
+			name:                 "emit pages",
+			spaceIDs:             []string{"1", "2"},
 			pagesErr:             nil,
 			expectWikiCalls:      2,
 			expectThresholdCalls: 2,
-			expectedIDs:          []string{"confluence-P1-1", "confluence-P2-1"},
+			expectedIDs:          []string{"confluence-1-1", "confluence-2-1"},
 			expectedErr:          nil,
 		},
 		{
 			name:                 "error from WalkPagesBySpaceIDs",
-			spaceIDs:             []string{"S1", "S2"},
+			spaceIDs:             []string{"1", "2"},
 			pagesErr:             assert.AnError,
 			expectWikiCalls:      0,
 			expectThresholdCalls: 0,
@@ -655,14 +572,16 @@ func TestScanBySpaceIDs(t *testing.T) {
 			mockClient.EXPECT().WikiBaseURL().Return(base).Times(tc.expectWikiCalls)
 
 			p := &ConfluencePlugin{
-				itemsChan: make(chan ISourceItem, 10),
-				client:    mockClient,
-				chunker:   mockChunk,
-				SpaceIDs:  tc.spaceIDs,
+				itemsChan:         make(chan ISourceItem, 10),
+				client:            mockClient,
+				chunker:           mockChunk,
+				SpaceIDs:          tc.spaceIDs,
+				returnedSpaceIDs:  map[string]struct{}{},
+				returnedPageIDs:   map[string]struct{}{},
+				resolvedSpaceKeys: map[string]string{},
+				invalidSpaceIDs:   map[string]struct{}{},
+				invalidPageIDs:    map[string]struct{}{},
 			}
-
-			seenPages := map[string]struct{}{}
-			seenSpaces := map[string]struct{}{}
 
 			mockClient.
 				EXPECT().
@@ -671,14 +590,13 @@ func TestScanBySpaceIDs(t *testing.T) {
 					if tc.pagesErr != nil {
 						return tc.pagesErr
 					}
-					// dedup should yield S1,S2 in any order
-					assert.ElementsMatch(t, []string{"S1", "S2"}, ids)
-					_ = visit(mkPage("P1", 1))
-					_ = visit(mkPage("P2", 1))
+					assert.Equal(t, tc.spaceIDs, ids)
+					_ = visit(mkPage("1", 1))
+					_ = visit(mkPage("2", 1))
 					return nil
 				}).Times(1)
 
-			err := p.scanBySpaceIDs(context.Background(), seenPages, seenSpaces)
+			err := p.scanBySpaceIDs(context.Background(), tc.spaceIDs)
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			items := collectEmittedItems(p.itemsChan)
@@ -691,35 +609,47 @@ func TestScanBySpaceIDs(t *testing.T) {
 	}
 }
 
-func TestScanBySpaceKeys(t *testing.T) {
-	const base = "https://tenant.atlassian.net/wiki"
-
+func TestResolveAndCollectSpaceIDs(t *testing.T) {
 	tests := []struct {
-		name                 string
-		spaceKeys            []string
-		pagesErr             error
-		expectWikiCalls      int
-		expectThresholdCalls int
-		expectedIDs          []string
-		expectedErr          error
+		name        string
+		spaceKeys   []string
+		mockWalker  func(m *MockConfluenceClient)
+		expectedIDs []string
+		expectedErr error
 	}{
 		{
-			name:                 "dedup and emit pages",
-			spaceKeys:            []string{"K1", "K2", "K1"},
-			pagesErr:             nil,
-			expectWikiCalls:      2,
-			expectThresholdCalls: 2,
-			expectedIDs:          []string{"confluence-P-S1-1", "confluence-P-S2-1"},
-			expectedErr:          nil,
+			name:      "happy path: resolves keys and dedupes",
+			spaceKeys: []string{"K1", "K2", "K1"},
+			mockWalker: func(m *MockConfluenceClient) {
+				m.EXPECT().
+					WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
+					DoAndReturn(func(_ context.Context, keys []string, _ int, visit func(*Space) error) error {
+						for _, k := range keys {
+							switch k {
+							case "K1":
+								_ = visit(&Space{ID: "1", Key: "K1"})
+							case "K2":
+								_ = visit(&Space{ID: "2", Key: "K2"})
+							}
+						}
+						return nil
+					}).
+					Times(1)
+			},
+			expectedIDs: []string{"1", "2"},
+			expectedErr: nil,
 		},
 		{
-			name:                 "error from WalkPagesBySpaceKeys",
-			spaceKeys:            []string{"K1", "K2"},
-			pagesErr:             assert.AnError,
-			expectWikiCalls:      0,
-			expectThresholdCalls: 0,
-			expectedIDs:          []string{},
-			expectedErr:          assert.AnError,
+			name:      "propagates WalkSpacesByKeys error",
+			spaceKeys: []string{"Key1", "Key2"},
+			mockWalker: func(m *MockConfluenceClient) {
+				m.EXPECT().
+					WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
+					Return(assert.AnError).
+					Times(1)
+			},
+			expectedIDs: nil,
+			expectedErr: assert.AnError,
 		},
 	}
 
@@ -728,64 +658,23 @@ func TestScanBySpaceKeys(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockChunk := chunk.NewMockIChunk(ctrl)
-			mockChunk.EXPECT().GetFileThreshold().Return(int64(mockGetFileThresholdReturn)).Times(tc.expectThresholdCalls)
-
 			mockClient := NewMockConfluenceClient(ctrl)
-			mockClient.EXPECT().WikiBaseURL().Return(base).Times(tc.expectWikiCalls)
 
 			p := &ConfluencePlugin{
-				itemsChan: make(chan ISourceItem, 10),
-				client:    mockClient,
-				chunker:   mockChunk,
-				SpaceKeys: tc.spaceKeys,
+				client:            mockClient,
+				SpaceKeys:         tc.spaceKeys,
+				returnedSpaceIDs:  map[string]struct{}{},
+				returnedPageIDs:   map[string]struct{}{},
+				resolvedSpaceKeys: map[string]string{},
+				invalidSpaceIDs:   map[string]struct{}{},
+				invalidPageIDs:    map[string]struct{}{},
 			}
 
-			seenPages := map[string]struct{}{}
-			seenSpaces := map[string]struct{}{}
+			tc.mockWalker(mockClient)
 
-			// Resolve spaces by keys -> S1 for K1, S2 for K2 (dedup happens in code under test)
-			mockClient.
-				EXPECT().
-				WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-				DoAndReturn(func(_ context.Context, keys []string, _ int, visit func(*Space) error) error {
-					for _, k := range keys {
-						switch k {
-						case "K1":
-							_ = visit(&Space{ID: "S1", Key: "K1"})
-						case "K2":
-							_ = visit(&Space{ID: "S2", Key: "K2"})
-						}
-					}
-					return nil
-				}).
-				Times(1)
-
-			// Then walk pages by resolved space IDs in batches
-			mockClient.
-				EXPECT().
-				WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
-				DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
-					if tc.pagesErr != nil {
-						return tc.pagesErr
-					}
-					assert.ElementsMatch(t, []string{"S1", "S2"}, ids)
-					for _, id := range ids {
-						_ = visit(mkPage("P-"+id, 1))
-					}
-					return nil
-				}).
-				Times(1)
-
-			err := p.scanBySpaceKeys(context.Background(), seenPages, seenSpaces)
+			ids, err := p.resolveAndCollectSpaceIDs(context.Background())
 			assert.ErrorIs(t, err, tc.expectedErr)
-
-			items := collectEmittedItems(p.itemsChan)
-			var actualIDs []string
-			for _, it := range items {
-				actualIDs = append(actualIDs, it.ID)
-			}
-			assert.ElementsMatch(t, tc.expectedIDs, actualIDs)
+			assert.ElementsMatch(t, tc.expectedIDs, ids)
 		})
 	}
 }
@@ -834,13 +723,16 @@ func TestScanByPageIDs(t *testing.T) {
 			mockClient.EXPECT().WikiBaseURL().Return(base).Times(tc.expectWikiCalls)
 
 			p := &ConfluencePlugin{
-				itemsChan: make(chan ISourceItem, 10),
-				client:    mockClient,
-				chunker:   mockChunk,
-				PageIDs:   tc.pageIDs,
+				itemsChan:         make(chan ISourceItem, 10),
+				client:            mockClient,
+				chunker:           mockChunk,
+				PageIDs:           tc.pageIDs,
+				returnedSpaceIDs:  map[string]struct{}{},
+				returnedPageIDs:   map[string]struct{}{},
+				resolvedSpaceKeys: map[string]string{},
+				invalidSpaceIDs:   map[string]struct{}{},
+				invalidPageIDs:    map[string]struct{}{},
 			}
-
-			seenPages := map[string]struct{}{}
 
 			mockClient.
 				EXPECT().
@@ -856,7 +748,7 @@ func TestScanByPageIDs(t *testing.T) {
 					return nil
 				}).Times(1)
 
-			err := p.scanByPageIDs(context.Background(), seenPages)
+			err := p.scanByPageIDs(context.Background())
 			assert.ErrorIs(t, err, tc.expectedErr)
 
 			items := collectEmittedItems(p.itemsChan)
@@ -890,6 +782,7 @@ func TestWalkAndEmitPages(t *testing.T) {
 					DoAndReturn(func(_ context.Context, _ int, visit func(*Page) error) error {
 						return visit(page)
 					}).Times(1)
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin:        func(p *ConfluencePlugin) { p.History = false },
 			expectedErr:        nil,
@@ -925,6 +818,8 @@ func TestWalkAndEmitPages(t *testing.T) {
 							return mkPage("200", v), nil
 						}).Times(1)
 				}
+
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin: func(p *ConfluencePlugin) { p.History = true },
 			expectedErr: nil,
@@ -944,22 +839,35 @@ func TestWalkAndEmitPages(t *testing.T) {
 			name: "SpaceIDs only (dedupe pages)",
 			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				m.EXPECT().
-					WalkPagesBySpaceIDs(gomock.Any(), []string{"S1", "S2"}, maxPageSize, gomock.Any()).
-					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Page) error) error {
-						_ = visit(mkPage("P1", 2))
-						_ = visit(mkPage("P1", 2))
-						_ = visit(mkPage("P2", 1))
+					WalkPagesBySpaceIDs(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
+					DoAndReturn(func(_ context.Context, ids []string, _ int, visit func(*Page) error) error {
+						assert.ElementsMatch(t, []string{"1", "2"}, ids)
+
+						p1 := mkPage("1", 2)
+						p1.SpaceID = "1"
+						_ = visit(p1)
+
+						p1dup := mkPage("1", 2)
+						p1dup.SpaceID = "1"
+						_ = visit(p1dup)
+
+						p2 := mkPage("2", 1)
+						p2.SpaceID = "2"
+						_ = visit(p2)
+
 						return nil
 					}).Times(1)
+
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
-			setupPlugin: func(p *ConfluencePlugin) { p.SpaceIDs = []string{"S1", "S2"} },
+			setupPlugin: func(p *ConfluencePlugin) { p.SpaceIDs = []string{"1", "2"} },
 			expectedErr: nil,
-			expectedIDs: []string{"confluence-P1-2", "confluence-P2-1"},
+			expectedIDs: []string{"confluence-1-2", "confluence-2-1"},
 			expectedSources: []string{
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P1&pageVersion=2",
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P2&pageVersion=1",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=1&pageVersion=2",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=2&pageVersion=1",
 			},
-			expectedBodies:     []string{"content P1", "content P2"},
+			expectedBodies:     []string{"content 1", "content 2"},
 			fileThresholdCalls: 2,
 			wikiBaseURLCalls:   2,
 		},
@@ -974,6 +882,8 @@ func TestWalkAndEmitPages(t *testing.T) {
 						}
 						return nil
 					}).Times(1)
+
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin: func(p *ConfluencePlugin) { p.PageIDs = []string{"10", "20", "10"} },
 			expectedErr: nil,
@@ -990,17 +900,22 @@ func TestWalkAndEmitPages(t *testing.T) {
 			name: "filters collide (unique by page ID)",
 			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
 				m.EXPECT().
-					WalkPagesBySpaceIDs(gomock.Any(), []string{"S1"}, maxPageSize, gomock.Any()).
+					WalkPagesBySpaceIDs(gomock.Any(), []string{"1"}, maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Page) error) error {
-						_ = visit(mkPage("P1", 3))
-						_ = visit(mkPage("P2", 1))
+						p1 := mkPage("1", 3)
+						p1.SpaceID = "1"
+						_ = visit(p1)
+
+						p2 := mkPage("2", 1)
+						p2.SpaceID = "1"
+						_ = visit(p2)
 						return nil
 					}).Times(1)
 
 				m.EXPECT().
 					WalkSpacesByKeys(gomock.Any(), gomock.Any(), maxPageSize, gomock.Any()).
 					DoAndReturn(func(_ context.Context, _ []string, _ int, visit func(*Space) error) error {
-						_ = visit(&Space{ID: "S1", Key: "Key1"})
+						_ = visit(&Space{ID: "1", Key: "Key1"})
 						return nil
 					}).Times(1)
 
@@ -1012,20 +927,22 @@ func TestWalkAndEmitPages(t *testing.T) {
 						}
 						return nil
 					}).Times(1)
+
+				m.EXPECT().APIResponseLimitHit().Return(false).Times(1)
 			},
 			setupPlugin: func(p *ConfluencePlugin) {
-				p.SpaceIDs = []string{"S1"}
+				p.SpaceIDs = []string{"1"}
 				p.SpaceKeys = []string{"Key1"}
-				p.PageIDs = []string{"P1", "P3"}
+				p.PageIDs = []string{"1", "3"}
 			},
 			expectedErr: nil,
-			expectedIDs: []string{"confluence-P1-3", "confluence-P2-1", "confluence-P3-1"},
+			expectedIDs: []string{"confluence-1-3", "confluence-2-1", "confluence-3-1"},
 			expectedSources: []string{
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P1&pageVersion=3",
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P2&pageVersion=1",
-				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=P3&pageVersion=1",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=1&pageVersion=3",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=2&pageVersion=1",
+				"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=3&pageVersion=1",
 			},
-			expectedBodies:     []string{"content P1", "content P2", "content P3"},
+			expectedBodies:     []string{"content 1", "content 2", "content 3"},
 			fileThresholdCalls: 3,
 			wikiBaseURLCalls:   3,
 		},
@@ -1097,6 +1014,42 @@ func TestWalkAndEmitPages(t *testing.T) {
 			fileThresholdCalls: 0,
 			wikiBaseURLCalls:   0,
 		},
+		{
+			name: "no filters, limit hit triggers warning",
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
+				page := mkPage("300", 1)
+				m.EXPECT().
+					WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ int, visit func(*Page) error) error {
+						return visit(page)
+					}).Times(1)
+
+				m.EXPECT().APIResponseLimitHit().Return(true).Times(1)
+			},
+			setupPlugin:        func(p *ConfluencePlugin) {},
+			expectedErr:        nil,
+			expectedIDs:        []string{"confluence-300-1"},
+			expectedSources:    []string{"https://tenant.atlassian.net/wiki/pages/viewpage.action?pageId=300&pageVersion=1"},
+			expectedBodies:     []string{"content 300"},
+			fileThresholdCalls: 1,
+			wikiBaseURLCalls:   1,
+		},
+		{
+			name: "total scan volume exceeded treated as soft error",
+			setupMocks: func(p *ConfluencePlugin, m *MockConfluenceClient, mc *chunk.MockIChunk) {
+				m.EXPECT().
+					WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
+					Return(ErrTotalScanVolumeExceeded).
+					Times(1)
+			},
+			setupPlugin:        func(p *ConfluencePlugin) {},
+			expectedErr:        nil,
+			expectedIDs:        []string{},
+			expectedSources:    []string{},
+			expectedBodies:     []string{},
+			fileThresholdCalls: 0,
+			wikiBaseURLCalls:   0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -1134,138 +1087,63 @@ func TestWalkAndEmitPages(t *testing.T) {
 }
 
 func TestDefineCommand(t *testing.T) {
-	t.Run("RunE validation", func(t *testing.T) {
-		tests := []struct {
-			name        string
-			expectedErr error
-		}{
-			{
-				name:        "normal execution",
-				expectedErr: nil,
-			},
-			{
-				name:        "error during execution",
-				expectedErr: assert.AnError,
-			},
-		}
+	tests := []struct {
+		name        string
+		expectedErr error
+	}{
+		{
+			name:        "normal execution",
+			expectedErr: nil,
+		},
+		{
+			name:        "error during execution",
+			expectedErr: assert.AnError,
+		},
+	}
 
-		recvErr := func(ch <-chan error) error {
-			select {
-			case e := <-ch:
-				return e
-			default:
-				return nil
+	recvErr := func(ch <-chan error) error {
+		select {
+		case e := <-ch:
+			return e
+		default:
+			return nil
+		}
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			items := make(chan ISourceItem, 8)
+			errs := make(chan error, 1)
+
+			mockClient := NewMockConfluenceClient(ctrl)
+
+			p := &ConfluencePlugin{
+				itemsChan:  items,
+				errorsChan: errs,
+				client:     mockClient,
 			}
-		}
 
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				ctrl := gomock.NewController(t)
-				defer ctrl.Finish()
+			cmd, err := p.DefineCommand(items, errs)
+			assert.NoError(t, err)
 
-				items := make(chan ISourceItem, 8)
-				errs := make(chan error, 1)
+			if tc.expectedErr == nil {
+				mockClient.EXPECT().APIResponseLimitHit().Return(false).Times(1)
+			}
 
-				mockClient := NewMockConfluenceClient(ctrl)
+			mockClient.EXPECT().
+				WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
+				Return(tc.expectedErr).
+				Times(1)
 
-				p := &ConfluencePlugin{
-					itemsChan:  items,
-					errorsChan: errs,
-					client:     mockClient,
-				}
+			cmd.Run(cmd, []string{"https://tenant.atlassian.net/wiki"})
 
-				cmd, err := p.DefineCommand(items, errs)
-				assert.NoError(t, err)
-
-				mockClient.EXPECT().
-					WalkAllPages(gomock.Any(), maxPageSize, gomock.Any()).
-					Return(tc.expectedErr).
-					Times(1)
-
-				cmd.Run(cmd, []string{"https://tenant.atlassian.net/wiki"})
-
-				err = recvErr(errs)
-				assert.ErrorIs(t, err, tc.expectedErr)
-			})
-		}
-	})
-
-	t.Run("PreRunE validation", func(t *testing.T) {
-		tests := []struct {
-			name        string
-			setFlags    func(cmd *cobra.Command)
-			args        []string
-			expectedErr error
-		}{
-			{
-				name: "token value but no token type",
-				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("token-value", "value")
-					// token-type intentionally not set
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: fmt.Errorf("--token-type must be set when --token-value is provided"),
-			},
-			{
-				name: "invalid token type",
-				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("token-type", "bad")
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: fmt.Errorf("invalid --token-type \"bad\"; valid values are \"api-token\" or \"scoped-api-token\""),
-			},
-			{
-				name: "token type api-token but without token value",
-				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("token-type", string(ApiToken))
-					// no token-value
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: fmt.Errorf("--token-type requires --token-value"),
-			},
-			{
-				name: "without credentials",
-				setFlags: func(cmd *cobra.Command) {
-					// nothing set
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: nil,
-			},
-			{
-				name: "token type api-token and token value provided",
-				setFlags: func(cmd *cobra.Command) {
-					_ = cmd.Flags().Set("username", "user@example.com")
-					_ = cmd.Flags().Set("token-type", string(ApiToken))
-					_ = cmd.Flags().Set("token-value", "tok")
-				},
-				args:        []string{"https://tenant.atlassian.net/wiki"},
-				expectedErr: nil,
-			},
-			{
-				name:        "initialize fails with invalid base URL",
-				setFlags:    func(cmd *cobra.Command) {},
-				args:        []string{"%"},
-				expectedErr: fmt.Errorf("invalid URL escape"),
-			},
-		}
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				p := &ConfluencePlugin{}
-				cmd, err := p.DefineCommand(make(chan ISourceItem, 1), make(chan error, 1))
-				assert.NoError(t, err)
-
-				if tc.setFlags != nil {
-					tc.setFlags(cmd)
-				}
-				err = cmd.PreRunE(cmd, tc.args)
-				if tc.name == "initialize fails with invalid base URL" {
-					assert.Contains(t, err.Error(), tc.expectedErr.Error())
-				} else {
-					assert.Equal(t, tc.expectedErr, err)
-				}
-			})
-		}
-	})
+			err = recvErr(errs)
+			assert.ErrorIs(t, err, tc.expectedErr)
+		})
+	}
 }
 
 func TestEmitInChunks(t *testing.T) {
@@ -1432,6 +1310,395 @@ func TestEmitInChunks(t *testing.T) {
 	}
 }
 
+func TestIsValidNumericID(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{name: "empty string", input: "", expected: false},
+		{name: "single digit", input: "7", expected: true},
+		{name: "leading zeros allowed", input: "000123", expected: true},
+		{name: "non-digit char", input: "12a3", expected: false},
+		{name: "whitespace not allowed", input: "12 3", expected: false},
+		{name: "symbol not allowed", input: "123-", expected: false},
+		{name: "unicode fullwidth digits not allowed", input: "１２３", expected: false},
+		{name: "length exactly 18 ok", input: "123456789012345678", expected: true},
+		{name: "length 19 rejected", input: "1234567890123456789", expected: false},
+		{name: "length 20 rejected", input: "12345678901234567890", expected: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := isValidNumericID(tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestDifferenceStrings(t *testing.T) {
+	tests := []struct {
+		name     string
+		wants    []string
+		seen     map[string]struct{}
+		expected []string
+	}{
+		{
+			name:     "empty wants",
+			wants:    nil,
+			seen:     map[string]struct{}{"a": {}},
+			expected: nil,
+		},
+		{
+			name:     "all present",
+			wants:    []string{"a", "b"},
+			seen:     map[string]struct{}{"a": {}, "b": {}},
+			expected: nil,
+		},
+		{
+			name:     "some missing",
+			wants:    []string{"a", "b", "c"},
+			seen:     map[string]struct{}{"b": {}},
+			expected: []string{"a", "c"},
+		},
+		{
+			name:     "nil seen treated as empty set",
+			wants:    []string{"m", "n"},
+			seen:     nil,
+			expected: []string{"m", "n"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := differenceStrings(tc.wants, tc.seen)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestMissingKeysFromResolved(t *testing.T) {
+	tests := []struct {
+		name          string
+		requestedKeys []string
+		resolved      map[string]string
+		expected      []string
+	}{
+		{
+			name:          "emptyRequested",
+			requestedKeys: nil,
+			resolved:      map[string]string{"K1": "1"},
+			expected:      nil,
+		},
+		{
+			name:          "allResolved",
+			requestedKeys: []string{"K1", "K2"},
+			resolved:      map[string]string{"K1": "1", "K2": "2"},
+			expected:      nil,
+		},
+		{
+			name:          "someUnresolved",
+			requestedKeys: []string{"K1", "K2", "K3"},
+			resolved:      map[string]string{"K1": "1"},
+			expected:      []string{"K2", "K3"},
+		},
+		{
+			name:          "nilResolved",
+			requestedKeys: []string{"R1", "R2"},
+			resolved:      nil,
+			expected:      []string{"R1", "R2"},
+		},
+	}
+
+	for _, tc := range tests {
+		actual := missingKeysFromResolved(tc.requestedKeys, tc.resolved)
+		assert.Equal(t, tc.expected, actual, tc.name)
+	}
+}
+
+func TestAbbreviateMiddle(t *testing.T) {
+	long30 := strings.Repeat("x", 30)
+	long31 := strings.Repeat("y", 31)
+	longRunes := strings.Repeat("界", 35) // 35 runes
+
+	tests := []struct {
+		name     string
+		in       string
+		expected string
+	}{
+		{
+			name:     "empty",
+			in:       "",
+			expected: "",
+		},
+		{
+			name:     "29 should be unchanged",
+			in:       strings.Repeat("a", 29),
+			expected: strings.Repeat("a", 29),
+		},
+		{
+			name:     "exactly 30 should be abbreviated",
+			in:       long30,
+			expected: long30[:10] + "..." + long30[len(long30)-10:],
+		},
+		{
+			name:     "longer than 30 should be abbreviated",
+			in:       long31,
+			expected: long31[:10] + "..." + long31[len(long31)-10:],
+		},
+		{
+			name:     "unicode runes should be abbreviated",
+			in:       longRunes,
+			expected: string([]rune(longRunes)[:10]) + "..." + string([]rune(longRunes)[len([]rune(longRunes))-10:]),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, abbreviateMiddle(tc.in))
+		})
+	}
+}
+
+func TestAppendUniqueAbbreviated(t *testing.T) {
+	long := strings.Repeat("z", 31) // > 30, should abbreviate
+	abbr := long[:10] + "..." + long[len(long)-10:]
+
+	tests := []struct {
+		name         string
+		values       []string
+		seedSeen     map[string]struct{}
+		expectedOut  []string
+		expectedSeen map[string]bool
+	}{
+		{
+			name:        "abbreviates >30 chars and keeps unique",
+			values:      []string{long, long},
+			seedSeen:    map[string]struct{}{},
+			expectedOut: []string{abbr},
+			expectedSeen: map[string]bool{
+				long: true,
+			},
+		},
+		{
+			name:        "dedups against existing seen",
+			values:      []string{"A", "B", "A"},
+			seedSeen:    map[string]struct{}{"A": {}},
+			expectedOut: []string{"B"},
+			expectedSeen: map[string]bool{
+				"A": true,
+				"B": true,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var out []string
+			seen := copySet(tc.seedSeen)
+
+			appendUniqueAbbreviated(tc.values, seen, &out)
+
+			assert.Equal(t, tc.expectedOut, out)
+			for must := range tc.expectedSeen {
+				_, ok := seen[must]
+				assert.True(t, ok, "expected %q present in seenOriginals", must)
+			}
+		})
+	}
+}
+
+func TestAppendUniqueMapKeysAbbreviated(t *testing.T) {
+	longKey := strings.Repeat("K", 31)
+	longAbbr := longKey[:10] + "..." + longKey[len(longKey)-10:]
+
+	tests := []struct {
+		name         string
+		rawKeys      []string
+		seedSeen     map[string]struct{}
+		expectedOut  []string
+		expectedSeen map[string]bool
+	}{
+		{
+			name:     "abbreviates long keys and deduplicates",
+			rawKeys:  []string{"a", "b", longKey, longKey, "a"},
+			seedSeen: map[string]struct{}{},
+			expectedOut: []string{
+				"a", "b", longAbbr,
+			},
+			expectedSeen: map[string]bool{
+				"a": true, "b": true, longKey: true,
+			},
+		},
+		{
+			name:         "empty map",
+			rawKeys:      nil,
+			seedSeen:     map[string]struct{}{},
+			expectedOut:  nil,
+			expectedSeen: map[string]bool{},
+		},
+		{
+			name:        "dedups against pre-seeded seen",
+			rawKeys:     []string{"X", "Y"},
+			seedSeen:    map[string]struct{}{"X": {}},
+			expectedOut: []string{"Y"},
+			expectedSeen: map[string]bool{
+				"X": true, "Y": true,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := make(map[string]struct{}, len(tc.rawKeys))
+			for _, k := range tc.rawKeys {
+				m[k] = struct{}{}
+			}
+			var out []string
+			seen := copySet(tc.seedSeen)
+
+			appendUniqueMapKeysAbbreviated(m, seen, &out)
+
+			assert.ElementsMatch(t, tc.expectedOut, out)
+
+			for must := range tc.expectedSeen {
+				_, ok := seen[must]
+				assert.True(t, ok, "expected %q present in seenOriginals", must)
+			}
+		})
+	}
+}
+
+func TestMissingSelectorsWarningMessage(t *testing.T) {
+	long := strings.Repeat("9", 31)
+	abbr := long[:10] + "..." + long[len(long)-10:]
+
+	const prefix = "The following page IDs, space keys, or space IDs could not be processed because they either don’t exist or you don’t have access permissions: "
+	const suffixTail = ". These items were excluded from the scan."
+
+	tests := []struct {
+		name     string
+		setup    func() *ConfluencePlugin
+		expected string
+	}{
+		{
+			name: "empty everything returns empty message",
+			setup: func() *ConfluencePlugin {
+				return &ConfluencePlugin{
+					returnedPageIDs:   map[string]struct{}{},
+					returnedSpaceIDs:  map[string]struct{}{},
+					invalidPageIDs:    map[string]struct{}{},
+					invalidSpaceIDs:   map[string]struct{}{},
+					resolvedSpaceKeys: map[string]string{},
+				}
+			},
+			expected: "",
+		},
+		{
+			name: "shows first four and suffix for remaining",
+			setup: func() *ConfluencePlugin {
+				return &ConfluencePlugin{
+					PageIDs:           []string{long, "A", "B", "C", "D", "E"},
+					returnedPageIDs:   map[string]struct{}{},
+					returnedSpaceIDs:  map[string]struct{}{},
+					invalidPageIDs:    map[string]struct{}{},
+					invalidSpaceIDs:   map[string]struct{}{},
+					resolvedSpaceKeys: map[string]string{},
+				}
+			},
+			expected: prefix + strings.Join([]string{abbr, "A", "B", "C"}, ", ") + " + 2 more" + suffixTail,
+		},
+		{
+			name: "invalid page and space IDs only",
+			setup: func() *ConfluencePlugin {
+				return &ConfluencePlugin{
+					// simulate user requested these; nothing returned
+					PageIDs:          []string{"P_BAD1"},
+					SpaceIDs:         []string{"S_BAD1"},
+					returnedPageIDs:  map[string]struct{}{},
+					returnedSpaceIDs: map[string]struct{}{},
+					// walker marked them as invalid
+					invalidPageIDs:  map[string]struct{}{"P_BAD1": {}},
+					invalidSpaceIDs: map[string]struct{}{"S_BAD1": {}},
+					// no keys involved here
+					resolvedSpaceKeys: map[string]string{},
+				}
+			},
+			expected: prefix + strings.Join([]string{"P_BAD1", "S_BAD1"}, ", ") + suffixTail,
+		},
+		{
+			name: "mixed selectors and dedup",
+			setup: func() *ConfluencePlugin {
+				return &ConfluencePlugin{
+					PageIDs:  []string{"X", "Y", "Y", "Z", "X"},
+					SpaceIDs: []string{"S1", "S2", "S2"},
+					SpaceKeys: []string{
+						"K1", "K2", "K1",
+					},
+					returnedPageIDs:   map[string]struct{}{"X": {}},
+					returnedSpaceIDs:  map[string]struct{}{"S1": {}},
+					resolvedSpaceKeys: map[string]string{"K1": "S-resolved-1"},
+					invalidPageIDs:    map[string]struct{}{},
+					invalidSpaceIDs:   map[string]struct{}{},
+				}
+			},
+			expected: prefix + strings.Join([]string{"Y", "Z", "K2", "S2"}, ", ") + suffixTail,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p := tc.setup()
+			actual := p.missingSelectorsWarningMessage()
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestTrimNonEmpty(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "nil input",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name:     "empty slice ",
+			input:    []string{},
+			expected: nil,
+		},
+		{
+			name:     "all spaces",
+			input:    []string{"   ", "\t", "\n"},
+			expected: nil,
+		},
+		{
+			name:     "mix of spaces and values",
+			input:    []string{"  A  ", "   ", "\tB", "C\t", "   D   "},
+			expected: []string{"A", "B", "C", "D"},
+		},
+		{
+			name:     "already trimmed values kept",
+			input:    []string{"A", "B", "C"},
+			expected: []string{"A", "B", "C"},
+		},
+		{
+			name:     "duplicates preserved",
+			input:    []string{" A ", "A", "  A  "},
+			expected: []string{"A", "A", "A"},
+		},
+	}
+
+	for _, tc := range tests {
+		actual := trimNonEmpty(tc.input)
+		assert.Equal(t, tc.expected, actual, tc.name)
+	}
+}
+
 func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *MockConfluenceClient, *chunk.MockIChunk) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -1440,9 +1707,14 @@ func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *Mo
 	mockChunk := chunk.NewMockIChunk(ctrl)
 
 	p := &ConfluencePlugin{
-		itemsChan: make(chan ISourceItem, 1000),
-		client:    mockClient,
-		chunker:   mockChunk,
+		itemsChan:         make(chan ISourceItem, 1000),
+		client:            mockClient,
+		chunker:           mockChunk,
+		returnedSpaceIDs:  map[string]struct{}{},
+		returnedPageIDs:   map[string]struct{}{},
+		resolvedSpaceKeys: map[string]string{},
+		invalidSpaceIDs:   map[string]struct{}{},
+		invalidPageIDs:    map[string]struct{}{},
 	}
 	return p, ctrl, mockClient, mockChunk
 }
@@ -1491,4 +1763,15 @@ func makeRangeStrings(start, end int) []string {
 		out = append(out, strconv.Itoa(i))
 	}
 	return out
+}
+
+func copySet(src map[string]struct{}) map[string]struct{} {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]struct{}, len(src))
+	for k := range src {
+		dst[k] = struct{}{}
+	}
+	return dst
 }

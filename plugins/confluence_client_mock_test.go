@@ -40,6 +40,20 @@ func (m *MockConfluenceClient) EXPECT() *MockConfluenceClientMockRecorder {
 	return m.recorder
 }
 
+// APIResponseLimitHit mocks base method.
+func (m *MockConfluenceClient) APIResponseLimitHit() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "APIResponseLimitHit")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// APIResponseLimitHit indicates an expected call of APIResponseLimitHit.
+func (mr *MockConfluenceClientMockRecorder) APIResponseLimitHit() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "APIResponseLimitHit", reflect.TypeOf((*MockConfluenceClient)(nil).APIResponseLimitHit))
+}
+
 // FetchPageAtVersion mocks base method.
 func (m *MockConfluenceClient) FetchPageAtVersion(ctx context.Context, pageID string, version int) (*Page, error) {
 	m.ctrl.T.Helper()
