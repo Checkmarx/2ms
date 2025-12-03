@@ -1414,13 +1414,103 @@ func TestClassifyAuth401(t *testing.T) {
 	}
 }
 
-func TestWithLimits(t *testing.T) {
-	c := &httpConfluenceClient{}
-	WithLimits(1, 2, 3)(c)
+func TestWithMaxAPIResponseBytes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input int64
+		want  int64
+	}{
+		{
+			name:  "zero disables limit",
+			input: 0,
+			want:  0,
+		},
+		{
+			name:  "positive sets limit",
+			input: 10,
+			want:  10,
+		},
+		{
+			name:  "negative treated as zero",
+			input: -5,
+			want:  0,
+		},
+	}
 
-	assert.Equal(t, int64(1), c.maxAPIResponseBytes)
-	assert.Equal(t, int64(2), c.maxTotalScanBytes)
-	assert.Equal(t, int64(3), c.maxPageBodyBytes)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &httpConfluenceClient{}
+			WithMaxAPIResponseBytes(tt.input)(c)
+
+			assert.Equal(t, tt.want, c.maxAPIResponseBytes)
+		})
+	}
+}
+
+func TestWithMaxTotalScanBytes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input int64
+		want  int64
+	}{
+		{
+			name:  "zero disables limit",
+			input: 0,
+			want:  0,
+		},
+		{
+			name:  "positive sets limit",
+			input: 500,
+			want:  500,
+		},
+		{
+			name:  "negative treated as zero",
+			input: -123,
+			want:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &httpConfluenceClient{}
+			WithMaxTotalScanBytes(tt.input)(c)
+
+			assert.Equal(t, tt.want, c.maxTotalScanBytes)
+		})
+	}
+}
+
+func TestWithMaxPageBodyBytes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input int64
+		want  int64
+	}{
+		{
+			name:  "zero disables limit",
+			input: 0,
+			want:  0,
+		},
+		{
+			name:  "positive sets limit",
+			input: 1024,
+			want:  1024,
+		},
+		{
+			name:  "negative treated as zero",
+			input: -42,
+			want:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &httpConfluenceClient{}
+			WithMaxPageBodyBytes(tt.input)(c)
+
+			assert.Equal(t, tt.want, c.maxPageBodyBytes)
+		})
+	}
 }
 
 func TestCountingReader(t *testing.T) {

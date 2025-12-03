@@ -226,7 +226,9 @@ func (p *ConfluencePlugin) initialize(base, username, token string) error {
 		base,
 		username,
 		token,
-		WithLimits(p.maxAPIResponseBytes, p.maxTotalScanBytes, p.maxPageBodyBytes),
+		WithMaxAPIResponseBytes(p.maxAPIResponseBytes),
+		WithMaxTotalScanBytes(p.maxTotalScanBytes),
+		WithMaxPageBodyBytes(p.maxPageBodyBytes),
 	)
 	if err != nil {
 		return err
@@ -464,7 +466,6 @@ func (p *ConfluencePlugin) resolveConfluenceSourceURL(page *Page, versionNumber 
 		return "", false
 	}
 
-	// Prefer "webui"
 	if webUIPath, ok := page.Links["webui"]; ok && webUIPath != "" {
 		baseURL, err := url.Parse(strings.TrimRight(p.client.WikiBaseURL(), "/") + "/") // e.g., https://tenant.atlassian.net/wiki/
 		if err != nil {
@@ -481,7 +482,6 @@ func (p *ConfluencePlugin) resolveConfluenceSourceURL(page *Page, versionNumber 
 		return resolvedURL.String(), true
 	}
 
-	// Fallback: "_links.base"
 	if baseLink, ok := page.Links["base"]; ok && baseLink != "" {
 		return baseLink, true
 	}

@@ -84,13 +84,38 @@ type httpConfluenceClient struct {
 
 type ConfluenceClientOption func(*httpConfluenceClient)
 
-// WithLimits configures optional per-response, total-scan, and page-body size
-// limits in bytes for the Confluence client.
-func WithLimits(maxAPIResponseBytes, maxTotalScanBytes, maxPageBodyBytes int64) ConfluenceClientOption {
+// WithMaxAPIResponseBytes sets an optional per-request API response size limit in bytes.
+// A value of 0 disables the limit. Negative values are treated as 0.
+func WithMaxAPIResponseBytes(n int64) ConfluenceClientOption {
+	if n < 0 {
+		n = 0
+	}
 	return func(c *httpConfluenceClient) {
-		c.maxAPIResponseBytes = maxAPIResponseBytes
-		c.maxTotalScanBytes = maxTotalScanBytes
-		c.maxPageBodyBytes = maxPageBodyBytes
+		c.maxAPIResponseBytes = n
+	}
+}
+
+// WithMaxTotalScanBytes sets an optional total downloaded-bytes limit in bytes
+// for the entire Confluence scan. A value of 0 disables the limit.
+// Negative values are treated as 0.
+func WithMaxTotalScanBytes(n int64) ConfluenceClientOption {
+	if n < 0 {
+		n = 0
+	}
+	return func(c *httpConfluenceClient) {
+		c.maxTotalScanBytes = n
+	}
+}
+
+// WithMaxPageBodyBytes sets an optional limit in bytes for individual page bodies.
+// Pages whose storage body exceeds this limit are skipped and logged as warnings.
+// A value of 0 disables the limit. Negative values are treated as 0.
+func WithMaxPageBodyBytes(n int64) ConfluenceClientOption {
+	if n < 0 {
+		n = 0
+	}
+	return func(c *httpConfluenceClient) {
+		c.maxPageBodyBytes = n
 	}
 }
 
@@ -211,6 +236,7 @@ func (c *httpConfluenceClient) WalkAllPages(ctx context.Context, limit int, visi
 	q := apiURL.Query()
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("body-format", "storage")
+	q.Set("sort", "-created-date") // Newest created date to oldest
 	apiURL.RawQuery = q.Encode()
 	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
 }
@@ -222,6 +248,7 @@ func (c *httpConfluenceClient) WalkPagesByIDs(ctx context.Context, pageIDs []str
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("body-format", "storage")
 	q.Set("id", strings.Join(pageIDs, ","))
+	q.Set("sort", "-created-date") // Newest created date to oldest
 	apiURL.RawQuery = q.Encode()
 	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
 }
@@ -233,6 +260,7 @@ func (c *httpConfluenceClient) WalkPagesBySpaceIDs(ctx context.Context, spaceIDs
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("body-format", "storage")
 	q.Set("space-id", strings.Join(spaceIDs, ","))
+	q.Set("sort", "-created-date") // Newest created date to oldest
 	apiURL.RawQuery = q.Encode()
 	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
 }
@@ -336,7 +364,6 @@ func walkPaginated[T any](
 func (c *httpConfluenceClient) walkPagesPaginated(
 	ctx context.Context, initialURL string, visit func(*Page) error,
 ) error {
-	// Build a base URL without any cursor, then append the next cursor each time.
 	start, err := url.Parse(initialURL)
 	if err != nil {
 		return fmt.Errorf("parse initial pages url: %w", err)
@@ -350,8 +377,6 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 			return err
 		}
 
-		// Prefer Link header to discover the next cursor so we can safely move on
-		// even if we have to stop decoding this batch early.
 		linkNext := nextURLFromLinkHeader(headers)
 
 		reader := c.wrapWithCountingReader(rc)
@@ -383,7 +408,6 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 			return closeErr
 		}
 
-		// use Link header when available, fall back to body _links.next.
 		cur := firstNonEmptyString(cursorFromURL(linkNext), cursorFromURL(bodyNext))
 		if cur == "" {
 			return nil
@@ -413,7 +437,7 @@ func (c *httpConfluenceClient) wrapWithCountingReader(rc io.ReadCloser) io.Reade
 func (c *httpConfluenceClient) wrapWithPageBodyLimit(
 	visit func(*Page) error,
 ) func(*Page) error {
-	if c.maxPageBodyBytes <= 0 {
+	if c.maxPageBodyBytes == 0 {
 		return visit
 	}
 
@@ -440,9 +464,6 @@ func (c *httpConfluenceClient) handleStreamError(
 	base *url.URL,
 ) (nextURL string, done bool, err error) {
 	if errors.Is(decodeErr, ErrAPIResponseTooLarge) {
-		// record that at least one batch exceeded the per-request
-		// size limit and move to the next page if we know the cursor.
-		// The plugin will emit a single consolidated warning after the scan.
 		c.apiResponseLimitHit = true
 
 		if closeErr != nil {
@@ -458,14 +479,12 @@ func (c *httpConfluenceClient) handleStreamError(
 	}
 
 	if errors.Is(decodeErr, ErrTotalScanVolumeExceeded) {
-		// Global total-volume limit hit: stop scanning gracefully.
 		if closeErr != nil {
 			return "", true, closeErr
 		}
 		return "", true, ErrTotalScanVolumeExceeded
 	}
 
-	// Any other decode error is treated as fatal for this scan.
 	if closeErr != nil {
 		return "", true, closeErr
 	}
@@ -615,14 +634,14 @@ type PageBody struct {
 
 // Page represents a Confluence page.
 type Page struct {
-	ID      string            `json:"id"`
-	Status  string            `json:"status"`
-	Title   string            `json:"title"`
-	SpaceID string            `json:"spaceId"`
-	Type    string            `json:"type"`
-	Body    PageBody          `json:"body"`
-	Links   map[string]string `json:"_links"`
-	Version PageVersion       `json:"version"`
+	ID        string            `json:"id"`
+	Status    string            `json:"status"`
+	Title     string            `json:"title"`
+	SpaceID   string            `json:"spaceId"`
+	Type      string            `json:"type"`
+	Body      PageBody          `json:"body"`
+	Links     map[string]string `json:"_links"`
+	Version   PageVersion       `json:"version"`
 }
 
 // Space represents a Confluence space.
@@ -780,7 +799,6 @@ func decodeResultsArray(dec *json.Decoder, visit func(*Page) error) error {
 		}
 	}
 
-	// read closing ']'
 	if tok, err = dec.Token(); err != nil {
 		return fmt.Errorf("decode: results ']': %w", err)
 	}
