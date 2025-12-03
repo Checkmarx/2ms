@@ -230,39 +230,42 @@ func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, err
 	return tmp.CloudID, nil
 }
 
-// WalkAllPages iterates all accessible pages and calls visit for each Page.
-func (c *httpConfluenceClient) WalkAllPages(ctx context.Context, limit int, visit func(*Page) error) error {
+// walkPagesWithFilter builds a /pages request with common query parameters
+// and an optional filter (id, space-id, etc.), then streams pages via visit.
+func (c *httpConfluenceClient) walkPagesWithFilter(
+	ctx context.Context,
+	filterKey string,
+	filterValues []string,
+	limit int,
+	visit func(*Page) error,
+) error {
 	apiURL := c.apiURL("/pages")
 	q := apiURL.Query()
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("body-format", "storage")
 	q.Set("sort", "-created-date") // Newest created date to oldest
+
+	if filterKey != "" && len(filterValues) > 0 {
+		q.Set(filterKey, strings.Join(filterValues, ","))
+	}
+
 	apiURL.RawQuery = q.Encode()
 	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
+}
+
+// WalkAllPages iterates all accessible pages and calls visit for each Page.
+func (c *httpConfluenceClient) WalkAllPages(ctx context.Context, limit int, visit func(*Page) error) error {
+	return c.walkPagesWithFilter(ctx, "", nil, limit, visit)
 }
 
 // WalkPagesByIDs iterates the given page IDs and calls visit for each Page.
 func (c *httpConfluenceClient) WalkPagesByIDs(ctx context.Context, pageIDs []string, limit int, visit func(*Page) error) error {
-	apiURL := c.apiURL("/pages")
-	q := apiURL.Query()
-	q.Set("limit", strconv.Itoa(limit))
-	q.Set("body-format", "storage")
-	q.Set("id", strings.Join(pageIDs, ","))
-	q.Set("sort", "-created-date") // Newest created date to oldest
-	apiURL.RawQuery = q.Encode()
-	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
+	return c.walkPagesWithFilter(ctx, "id", pageIDs, limit, visit)
 }
 
 // WalkPagesBySpaceIDs iterates pages across the provided space IDs and calls visit.
 func (c *httpConfluenceClient) WalkPagesBySpaceIDs(ctx context.Context, spaceIDs []string, limit int, visit func(*Page) error) error {
-	apiURL := c.apiURL("/pages")
-	q := apiURL.Query()
-	q.Set("limit", strconv.Itoa(limit))
-	q.Set("body-format", "storage")
-	q.Set("space-id", strings.Join(spaceIDs, ","))
-	q.Set("sort", "-created-date") // Newest created date to oldest
-	apiURL.RawQuery = q.Encode()
-	return c.walkPagesPaginated(ctx, apiURL.String(), visit)
+	return c.walkPagesWithFilter(ctx, "space-id", spaceIDs, limit, visit)
 }
 
 // WalkPageVersions lists version numbers for a page and calls visit for each.
