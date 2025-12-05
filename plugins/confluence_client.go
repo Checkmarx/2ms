@@ -12,8 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -72,7 +70,6 @@ type httpConfluenceClient struct {
 	// Optional limits (0 means "no limit").
 	maxAPIResponseBytes int64
 	maxTotalScanBytes   int64
-	maxPageBodyBytes    int64
 
 	totalScanBytes int64
 
@@ -104,18 +101,6 @@ func WithMaxTotalScanBytes(n int64) ConfluenceClientOption {
 	}
 	return func(c *httpConfluenceClient) {
 		c.maxTotalScanBytes = n
-	}
-}
-
-// WithMaxPageBodyBytes sets an optional limit in bytes for individual page bodies.
-// Pages whose storage body exceeds this limit are skipped and logged as warnings.
-// A value of 0 disables the limit. Negative values are treated as 0.
-func WithMaxPageBodyBytes(n int64) ConfluenceClientOption {
-	if n < 0 {
-		n = 0
-	}
-	return func(c *httpConfluenceClient) {
-		c.maxPageBodyBytes = n
 	}
 }
 
@@ -383,9 +368,8 @@ func (c *httpConfluenceClient) walkPagesPaginated(
 		linkNext := nextURLFromLinkHeader(headers)
 
 		reader := c.wrapWithCountingReader(rc)
-		limitedVisit := c.wrapWithPageBodyLimit(visit)
 
-		bodyNext, decodeErr := streamPagesFromBody(reader, limitedVisit)
+		bodyNext, decodeErr := streamPagesFromBody(reader, visit)
 		closeErr := rc.Close()
 
 		if decodeErr != nil {
@@ -432,30 +416,6 @@ func (c *httpConfluenceClient) wrapWithCountingReader(rc io.ReadCloser) io.Reade
 		apiConsumed:     0,
 		totalBytes:      &c.totalScanBytes,
 		totalLimitBytes: c.maxTotalScanBytes,
-	}
-}
-
-// wrapWithPageBodyLimit decorates the visit callback to skip pages whose
-// storage body exceeds maxPageBodyBytes, logging a warning when that happens.
-func (c *httpConfluenceClient) wrapWithPageBodyLimit(
-	visit func(*Page) error,
-) func(*Page) error {
-	if c.maxPageBodyBytes == 0 {
-		return visit
-	}
-
-	return func(p *Page) error {
-		if p.Body.Storage != nil {
-			bodySize := int64(len(p.Body.Storage.Value))
-			if bodySize > c.maxPageBodyBytes {
-				log.Warn().
-					Str("page_id", p.ID).
-					Int64("body_bytes", bodySize).
-					Msg("Skipping page content because the Confluence page body exceeded the configured size limit.")
-				return nil
-			}
-		}
-		return visit(p)
 	}
 }
 
@@ -637,14 +597,14 @@ type PageBody struct {
 
 // Page represents a Confluence page.
 type Page struct {
-	ID        string            `json:"id"`
-	Status    string            `json:"status"`
-	Title     string            `json:"title"`
-	SpaceID   string            `json:"spaceId"`
-	Type      string            `json:"type"`
-	Body      PageBody          `json:"body"`
-	Links     map[string]string `json:"_links"`
-	Version   PageVersion       `json:"version"`
+	ID      string            `json:"id"`
+	Status  string            `json:"status"`
+	Title   string            `json:"title"`
+	SpaceID string            `json:"spaceId"`
+	Type    string            `json:"type"`
+	Body    PageBody          `json:"body"`
+	Links   map[string]string `json:"_links"`
+	Version PageVersion       `json:"version"`
 }
 
 // Space represents a Confluence space.
