@@ -228,7 +228,8 @@ func (p *ConfluencePlugin) initialize(base, username, token string) error {
 		token,
 		WithMaxAPIResponseBytes(p.maxAPIResponseBytes),
 		WithMaxTotalScanBytes(p.maxTotalScanBytes),
-		WithMaxPageBodyBytes(p.maxPageBodyBytes),
+		// Page-body size limit is enforced in the plugin layer so that
+		// large-but-accessible pages still count as "seen".
 	)
 	if err != nil {
 		return err
@@ -383,6 +384,26 @@ func (p *ConfluencePlugin) emitInChunks(page *Page) error {
 	}
 }
 
+// shouldSkipPageBody applies the per-page body size limit (if configured).
+// It logs a warning when the limit is exceeded and returns true to indicate
+// that the page's content (and history) should be skipped.
+func (p *ConfluencePlugin) shouldSkipPageBody(page *Page) bool {
+	if p.maxPageBodyBytes == 0 || page == nil || page.Body.Storage == nil {
+		return false
+	}
+
+	bodySize := int64(len(page.Body.Storage.Value))
+	if bodySize <= p.maxPageBodyBytes {
+		return false
+	}
+
+	log.Warn().
+		Str("page_id", page.ID).
+		Int64("body_bytes", bodySize).
+		Msg("Skipping page content because the Confluence page body exceeded the configured size limit.")
+	return true
+}
+
 // emitUniquePage emits the current version of a page (and, if enabled, its historical versions)
 // ensuring each page ID is emitted only once. Also records the page SpaceID for selector warnings.
 func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page) error {
@@ -393,6 +414,12 @@ func (p *ConfluencePlugin) emitUniquePage(ctx context.Context, page *Page) error
 
 	if page.SpaceID != "" {
 		p.returnedSpaceIDs[page.SpaceID] = struct{}{}
+	}
+
+	// Enforce page body size limit after marking the page as seen, so that
+	// large-but-accessible pages are not misreported as missing or unauthorized.
+	if p.shouldSkipPageBody(page) {
+		return nil
 	}
 
 	// current version
@@ -419,6 +446,9 @@ func (p *ConfluencePlugin) emitHistory(ctx context.Context, page *Page) error {
 		versionedPage, err := p.client.FetchPageAtVersion(ctx, page.ID, versionNumber)
 		if err != nil {
 			return err
+		}
+		if p.shouldSkipPageBody(versionedPage) {
+			return nil
 		}
 		return p.emitInChunks(versionedPage)
 	})

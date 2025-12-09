@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1480,39 +1479,6 @@ func TestWithMaxTotalScanBytes(t *testing.T) {
 	}
 }
 
-func TestWithMaxPageBodyBytes(t *testing.T) {
-	tests := []struct {
-		name  string
-		input int64
-		want  int64
-	}{
-		{
-			name:  "zero disables limit",
-			input: 0,
-			want:  0,
-		},
-		{
-			name:  "positive sets limit",
-			input: 1024,
-			want:  1024,
-		},
-		{
-			name:  "negative treated as zero",
-			input: -42,
-			want:  0,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &httpConfluenceClient{}
-			WithMaxPageBodyBytes(tt.input)(c)
-
-			assert.Equal(t, tt.want, c.maxPageBodyBytes)
-		})
-	}
-}
-
 func TestCountingReader(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -1611,109 +1577,6 @@ func TestWrapWithCountingReader(t *testing.T) {
 			_, isCounting := reader.(*countingReader)
 
 			assert.Equal(t, tc.expectWrapped, isCounting)
-		})
-	}
-}
-
-func TestWrapWithPageBodyLimit(t *testing.T) {
-	mkStorage := func(content string) *struct {
-		Value string `json:"value"`
-	} {
-		return &struct {
-			Value string `json:"value"`
-		}{Value: content}
-	}
-
-	tests := []struct {
-		name              string
-		maxPageBodyBytes  int64
-		page              *Page
-		visitErr          error
-		expectVisitCalled bool
-		expectedErr       error
-		expectSameFunc    bool
-	}{
-		{
-			name:             "no limit uses original visitor",
-			maxPageBodyBytes: 0,
-			page: &Page{
-				ID: "P1",
-				Body: PageBody{
-					Storage: mkStorage("some content that can be any size"),
-				},
-			},
-			visitErr:          assert.AnError,
-			expectVisitCalled: true,
-			expectedErr:       assert.AnError,
-			expectSameFunc:    true,
-		},
-		{
-			name:             "body below limit calls visitor",
-			maxPageBodyBytes: 10,
-			page: &Page{
-				ID: "P2",
-				Body: PageBody{
-					Storage: mkStorage("small"), // len = 5
-				},
-			},
-			visitErr:          assert.AnError,
-			expectVisitCalled: true,
-			expectedErr:       assert.AnError,
-			expectSameFunc:    false,
-		},
-		{
-			name:             "body above limit skips visitor",
-			maxPageBodyBytes: 5,
-			page: &Page{
-				ID: "P3",
-				Body: PageBody{
-					Storage: mkStorage("too-large-body"), // len > 5
-				},
-			},
-			visitErr:          assert.AnError, // should never be returned
-			expectVisitCalled: false,
-			expectedErr:       nil,
-			expectSameFunc:    false,
-		},
-		{
-			name:             "nil storage calls visitor",
-			maxPageBodyBytes: 5,
-			page: &Page{
-				ID: "P4",
-				Body: PageBody{
-					Storage: nil,
-				},
-			},
-			visitErr:          assert.AnError,
-			expectVisitCalled: true,
-			expectedErr:       assert.AnError,
-			expectSameFunc:    false,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			c := &httpConfluenceClient{
-				maxPageBodyBytes: tc.maxPageBodyBytes,
-			}
-
-			visited := false
-			visitErr := tc.visitErr
-
-			visit := func(p *Page) error {
-				visited = true
-				return visitErr
-			}
-
-			wrapped := c.wrapWithPageBodyLimit(visit)
-
-			sameFunc := reflect.ValueOf(visit).Pointer() == reflect.ValueOf(wrapped).Pointer()
-
-			err := wrapped(tc.page)
-
-			assert.Equal(t, tc.expectSameFunc, sameFunc)
-			assert.Equal(t, tc.expectVisitCalled, visited)
-			assert.ErrorIs(t, err, tc.expectedErr)
 		})
 	}
 }
