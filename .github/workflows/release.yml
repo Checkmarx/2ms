@@ -27,9 +27,7 @@ jobs:
 
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: "^1.22"
-      - name: Go Linter
-        run: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run --timeout=5m
+          go-version-file: go.mod
 
       - name: Unit Tests
         run: go test ./...
@@ -61,7 +59,7 @@ jobs:
 
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version: "^1.22"
+          go-version-file: go.mod
 
       - name: Go Mod Tidy
         run: go mod tidy
@@ -75,6 +73,16 @@ jobs:
         run: |
           go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
           zip -j dist/linux-amd64.zip dist/2ms
+          rm dist/2ms
+      - name: Compile for Linux arm64
+        env:
+          VERSION: ${{ needs.test.outputs.version }}
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: arm64
+        run: |
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          zip -j dist/linux-arm64.zip dist/2ms
           rm dist/2ms
 
       - name: Compile for MacOS amd64
