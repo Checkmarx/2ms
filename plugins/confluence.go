@@ -387,10 +387,6 @@ func (p *ConfluencePlugin) emitInChunks(page *Page) error {
 // shouldSkipPageBody applies the per-page body size limit (if configured).
 // It logs a warning when the limit is exceeded and returns true to indicate
 // that the page's content (and history) should be skipped.
-//
-// Importantly, we call this *after* recording the page/space IDs as "seen" so
-// that selectors for pages that were too large are not misreported as
-// non-existent or inaccessible.
 func (p *ConfluencePlugin) shouldSkipPageBody(page *Page) bool {
 	if p.maxPageBodyBytes == 0 || page == nil || page.Body.Storage == nil {
 		return false
