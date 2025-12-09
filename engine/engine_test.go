@@ -1072,7 +1072,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 					ID:           "mockId",
 					RuleID:       ruledefine.JWT().RuleID,
 					RuleName:     ruledefine.JWT().RuleName,
-					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
+					RuleCategory: string(ruledefine.JWT().Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
 					ExtraDetails: map[string]interface{}{
 						"secretDetails": map[string]interface{}{
@@ -1085,7 +1085,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 					ID:           "mockId2",
 					RuleID:       ruledefine.JWT().RuleID,
 					RuleName:     ruledefine.JWT().RuleName,
-					RuleCategory: string(ruledefine.JWT().ScoreParameters.Category),
+					RuleCategory: string(ruledefine.JWT().Category),
 					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
 					ExtraDetails: map[string]interface{}{
 						"secretDetails": map[string]interface{}{
@@ -1098,7 +1098,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 					ID:           "mockId3",
 					RuleID:       ruledefine.HubSpot().RuleID,
 					RuleName:     ruledefine.HubSpot().RuleName,
-					RuleCategory: string(ruledefine.HubSpot().ScoreParameters.Category),
+					RuleCategory: string(ruledefine.HubSpot().Category),
 					Value:        "mockValue",
 				},
 			},
@@ -1179,7 +1179,8 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 					RuleName:          ruledefine.GitHubPat().RuleName,
 					Regex:             ruledefine.GitHubPat().Regex,
 					Severity:          ruledefine.GitHubPat().Severity,
-					ScoreParameters:   ruledefine.GitlabPat().ScoreParameters,
+					Category:          ruledefine.GitHubPat().Category,
+					ScoreRuleType:     ruledefine.GitHubPat().ScoreRuleType,
 					DisableValidation: true,
 				},
 			},

@@ -12,8 +12,9 @@ func Prefect() *Rule {
 		Keywords: []string{
 			"pnu_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryAPIAccess,
+		ScoreRuleType: 4,
 	}
 }

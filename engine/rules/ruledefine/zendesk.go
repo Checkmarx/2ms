@@ -11,8 +11,9 @@ func ZendeskSecretKey() *Rule {
 		Keywords: []string{
 			"zendesk",
 		},
-		Severity:        "High",
-		Tags:            []string{TagSecretKey},
-		ScoreParameters: ScoreParameters{Category: CategoryCustomerSupport, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagSecretKey},
+		Category:      CategoryCustomerSupport,
+		ScoreRuleType: 4,
 	}
 }

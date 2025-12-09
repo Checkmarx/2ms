@@ -16,8 +16,9 @@ func LinkedinClientSecret() *Rule {
 			"linked_in",
 			"linked-in",
 		},
-		Severity:        "High",
-		Tags:            []string{TagClientSecret},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagClientSecret},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

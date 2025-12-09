@@ -12,8 +12,9 @@ func ShippoAPIToken() *Rule {
 		Keywords: []string{
 			"shippo_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryShipping, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryShipping,
+		ScoreRuleType: 4,
 	}
 }

@@ -18,8 +18,9 @@ func TeamsWebhook() *Rule {
 			"webhookb2",
 			"IncomingWebhook",
 		},
-		Severity:        "High",
-		Tags:            []string{TagWebhook},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagWebhook},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

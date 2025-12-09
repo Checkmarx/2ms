@@ -83,15 +83,13 @@ func TestPreRun(t *testing.T) {
 			engineConfigVar: engine.EngineConfig{
 				CustomRules: []*ruledefine.Rule{
 					{
-						RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
-						RuleName:    "mock-rule",
-						Description: "Match passwords",
-						Regex:       "[A-Za-z0-9]{32})",
-						Severity:    "mockSeverity",
-						ScoreParameters: ruledefine.ScoreParameters{
-							Category: "mockCategory",
-							RuleType: 10,
-						},
+						RuleID:        "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+						RuleName:      "mock-rule",
+						Description:   "Match passwords",
+						Regex:         "[A-Za-z0-9]{32})",
+						Severity:      "mockSeverity",
+						Category:      "mockCategory",
+						ScoreRuleType: 10,
 					},
 					{
 						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",

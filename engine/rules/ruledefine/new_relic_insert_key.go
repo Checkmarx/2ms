@@ -15,8 +15,9 @@ func NewRelicInsertKey() *Rule {
 		Keywords: []string{
 			"NRII-",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiKey},
+		Category:      CategoryApplicationMonitoring,
+		ScoreRuleType: 4,
 	}
 }

@@ -12,8 +12,9 @@ func MailGunPrivateAPIToken() *Rule {
 		Keywords: []string{
 			"mailgun",
 		},
-		Severity:        "High",
-		Tags:            []string{TagPrivateKey},
-		ScoreParameters: ScoreParameters{Category: CategoryEmailDeliveryService, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagPrivateKey},
+		Category:      CategoryEmailDeliveryService,
+		ScoreRuleType: 4,
 	}
 }

@@ -17,8 +17,9 @@ func StripeAccessToken() *Rule {
 			"rk_live",
 			"rk_prod",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryPaymentProcessing, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryPaymentProcessing,
+		ScoreRuleType: 4,
 	}
 }

@@ -8,14 +8,15 @@ var linearAPIKeyRegex = regexp.MustCompile(`lin_api_(?i)[a-z0-9]{40}`).String()
 
 func LinearAPIToken() *Rule {
 	return &Rule{
-		RuleID:          "e366eacb-5244-4f4b-8a09-bb3c3da9c621",
-		Description:     "Detected a Linear API Token, posing a risk to project management tools and sensitive task data.",
-		RuleName:        "Linear-Api-Key",
-		Regex:           linearAPIKeyRegex,
-		Entropy:         2,
-		Keywords:        []string{"lin_api_"},
-		Severity:        "High",
-		Tags:            []string{TagApiToken, TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+		RuleID:        "e366eacb-5244-4f4b-8a09-bb3c3da9c621",
+		Description:   "Detected a Linear API Token, posing a risk to project management tools and sensitive task data.",
+		RuleName:      "Linear-Api-Key",
+		Regex:         linearAPIKeyRegex,
+		Entropy:       2,
+		Keywords:      []string{"lin_api_"},
+		Severity:      "High",
+		Tags:          []string{TagApiToken, TagApiKey},
+		Category:      CategoryAPIAccess,
+		ScoreRuleType: 4,
 	}
 }

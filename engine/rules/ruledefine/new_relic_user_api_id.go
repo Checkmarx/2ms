@@ -17,8 +17,9 @@ func NewRelicUserKey() *Rule {
 			"newrelic",
 			"new_relic",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessId},
-		ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessId},
+		Category:      CategoryApplicationMonitoring,
+		ScoreRuleType: 4,
 	}
 }

@@ -19,12 +19,13 @@ func Atlassian() *Rule {
 		Description: `Detected an Atlassian API token, 
 			posing a threat to project management and 
 			collaboration tool security and data confidentiality.`,
-		RuleName:        "Atlassian-Api-Token",
-		Regex:           atlassianRegex,
-		Entropy:         3.5,
-		Keywords:        []string{"atlassian", "confluence", "jira", "atatt3"},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategorySoftwareDevelopment, RuleType: 4},
+		RuleName:      "Atlassian-Api-Token",
+		Regex:         atlassianRegex,
+		Entropy:       3.5,
+		Keywords:      []string{"atlassian", "confluence", "jira", "atatt3"},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategorySoftwareDevelopment,
+		ScoreRuleType: 4,
 	}
 }

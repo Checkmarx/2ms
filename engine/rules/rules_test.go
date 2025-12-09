@@ -36,9 +36,9 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 		assert.Contains(t, ruledefine.SeverityOrder, rule.Severity, "rule %d: Severity %s is not an acceptable severity (%s), in rule %s", i,
 			rule.Severity, ruledefine.SeverityOrder, rule.RuleName)
 		assert.NotEqual(t, "", rule.Regex, "rule %d: Regex is not defined for rule %s", i, rule.RuleName)
-		// Check for ScoreParameters
-		assert.NotEqual(t, ruledefine.RuleCategory(""), rule.ScoreParameters.Category, "rule %d: ScoreParameters.Category is not defined for rule %s", i, rule.RuleName)
-		assert.NotEqual(t, uint8(0), rule.ScoreParameters.RuleType, "rule %d: ScoreParameters.RuleType is not defined for rule %s", i, rule.RuleName)
+		// Check for Score parameters
+		assert.NotEqual(t, ruledefine.RuleCategory(""), rule.Category, "rule %d: Category is not defined for rule %s", i, rule.RuleName)
+		assert.NotEqual(t, uint8(0), rule.ScoreRuleType, "rule %d: ScoreRuleType is not defined for rule %s", i, rule.RuleName)
 
 		// Verify duplicate rule names
 		if _, ok := ruleIDMap[rule.RuleName]; ok {
@@ -168,24 +168,23 @@ func Test_CustomRules(t *testing.T) {
 	}
 	// expected rule should have rule name and score parameters with values, copied from default rule into override
 	expectedGenericCredentialOverride := &ruledefine.Rule{
-		RuleID:          ruledefine.GenericCredential().RuleID,
-		RuleName:        ruledefine.GenericCredential().RuleName,
-		Description:     "Custom rule for Generic API Key",
-		Regex:           "[A-Za-z0-9]{32}",
-		Tags:            []string{"custom"},
-		ScoreParameters: ruledefine.GenericCredential().ScoreParameters,
+		RuleID:        ruledefine.GenericCredential().RuleID,
+		RuleName:      ruledefine.GenericCredential().RuleName,
+		Description:   "Custom rule for Generic API Key",
+		Regex:         "[A-Za-z0-9]{32}",
+		Tags:          []string{"custom"},
+		Category:      ruledefine.GenericCredential().Category,
+		ScoreRuleType: ruledefine.GenericCredential().ScoreRuleType,
 	}
 
 	completeGenericCredentialOverride := &ruledefine.Rule{
-		RuleID:      ruledefine.GenericCredential().RuleID,
-		RuleName:    "Custom Generic API Key",
-		Description: "Custom rule for Generic API Key",
-		Regex:       "[A-Za-z0-9]{32}",
-		Tags:        []string{"custom"},
-		ScoreParameters: ruledefine.ScoreParameters{
-			Category: ruledefine.CategorySaaS,
-			RuleType: 1,
-		},
+		RuleID:        ruledefine.GenericCredential().RuleID,
+		RuleName:      "Custom Generic API Key",
+		Description:   "Custom rule for Generic API Key",
+		Regex:         "[A-Za-z0-9]{32}",
+		Tags:          []string{"custom"},
+		Category:      ruledefine.CategorySaaS,
+		ScoreRuleType: 1,
 	}
 
 	deprecatedGenericCredentialOverride := &ruledefine.Rule{
@@ -213,8 +212,9 @@ func Test_CustomRules(t *testing.T) {
 				},
 			},
 		},
-		Tags:            []string{"custom2"},
-		ScoreParameters: ruledefine.ScoreParameters{Category: ruledefine.CategoryGeneralOrUnknown, RuleType: 4},
+		Tags:          []string{"custom2"},
+		Category:      ruledefine.CategoryGeneralOrUnknown,
+		ScoreRuleType: 4,
 	}
 
 	tests := []struct {

@@ -12,11 +12,12 @@ func SlackUserToken() *Rule {
 		RuleName:    "Slack-User-Token",
 		Description: "Found a Slack User token, posing a risk of unauthorized user impersonation and data access within Slack workspaces.",
 		// The last segment seems to be consistently 32 characters. I've made it 28-34 just in case.
-		Regex:           slackUserTokenRegex,
-		Entropy:         2,
-		Keywords:        []string{"xoxp-", "xoxe-"},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		Regex:         slackUserTokenRegex,
+		Entropy:       2,
+		Keywords:      []string{"xoxp-", "xoxe-"},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

@@ -49,16 +49,14 @@ var customRules = []*ruledefine.Rule{
 		Tags:        []string{"custom", "override"},
 	},
 	{
-		RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
-		RuleName:    "Generic-Api-Key-Completely-New",
-		Description: "Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run",
-		Regex:       `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
-		Severity:    "Low",
-		Tags:        []string{"custom"},
-		ScoreParameters: ruledefine.ScoreParameters{
-			Category: "General",
-			RuleType: 4,
-		},
+		RuleID:        "b47a1995-6572-41bb-b01d-d215b43ab089",
+		RuleName:      "Generic-Api-Key-Completely-New",
+		Description:   "Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run",
+		Regex:         `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
+		Severity:      "Low",
+		Tags:          []string{"custom"},
+		Category:      "General",
+		ScoreRuleType: 4,
 	},
 	{
 		RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
@@ -70,16 +68,14 @@ var customRules = []*ruledefine.Rule{
 		Deprecated:  true,
 	},
 	{
-		RuleID:      "16be2682-51ee-44f5-82dc-695f4d1eda45",
-		RuleName:    "Mock-Custom-Rule",
-		Description: "Rule that checks for a very specific string",
-		Regex:       `very_secret_value`,
-		Severity:    "Low",
-		Tags:        []string{"custom"},
-		ScoreParameters: ruledefine.ScoreParameters{
-			Category: "General",
-			RuleType: 4,
-		},
+		RuleID:        "16be2682-51ee-44f5-82dc-695f4d1eda45",
+		RuleName:      "Mock-Custom-Rule",
+		Description:   "Rule that checks for a very specific string",
+		Regex:         `very_secret_value`,
+		Severity:      "Low",
+		Tags:          []string{"custom"},
+		Category:      "General",
+		ScoreRuleType: 4,
 	},
 	{
 		RuleID:            "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
@@ -89,10 +85,8 @@ var customRules = []*ruledefine.Rule{
 		Severity:          "Low",
 		Tags:              []string{"custom", "override"},
 		DisableValidation: true,
-		ScoreParameters: ruledefine.ScoreParameters{
-			Category: "Package Management", // different from default to test if override works
-			RuleType: 3,                    // different from default to test if override works
-		},
+		Category:          "Package Management", // different from default to test if override works
+		ScoreRuleType:     3,                    // different from default to test if override works
 	},
 }
 
@@ -578,15 +572,13 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 			ScanConfig: resources.ScanConfig{
 				CustomRules: []*ruledefine.Rule{
 					{
-						RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
-						RuleName:    "mock-rule",
-						Description: "Match passwords",
-						Regex:       "[A-Za-z0-9]{32})",
-						Severity:    "mockSeverity",
-						ScoreParameters: ruledefine.ScoreParameters{
-							Category: "mockCategory",
-							RuleType: 10,
-						},
+						RuleID:        "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+						RuleName:      "mock-rule",
+						Description:   "Match passwords",
+						Regex:         "[A-Za-z0-9]{32})",
+						Severity:      "mockSeverity",
+						Category:      "mockCategory",
+						ScoreRuleType: 10,
 					},
 					{
 						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",

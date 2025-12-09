@@ -14,8 +14,9 @@ func LobPubAPIToken() *Rule {
 			"live_pub",
 			"_pub",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiKey},
+		Category:      CategoryAPIAccess,
+		ScoreRuleType: 4,
 	}
 }

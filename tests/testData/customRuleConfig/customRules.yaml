@@ -7,9 +7,8 @@
   tags:
     - custom
     - override
-  scoreParameters:
-    category: General
-    ruleType: 4
+  category: General
+  ruleType: 4
 
 - ruleId: b47a1995-6572-41bb-b01d-d215b43ab089
   ruleName: Generic-Api-Key-Completely-New
@@ -19,9 +18,8 @@
   severity: Low
   tags:
     - custom
-  scoreParameters:
-    category: General
-    ruleType: 4
+  category: General
+  scoreRuleType: 4
 
 - ruleId: b47a1995-6572-41bb-b01d-d215b43ab089
   ruleName: Deprecated-Generic-Api-Key-Completely-New
@@ -30,9 +28,8 @@
   severity: Low
   tags:
     - custom
-  scoreParameters:
-    category: General
-    ruleType: 4
+  category: General
+  scoreRuleType: 4
   deprecated: true
 
 - ruleId: 16be2682-51ee-44f5-82dc-695f4d1eda45
@@ -42,9 +39,8 @@
   severity: Low
   tags:
     - custom
-  scoreParameters:
-    category: General
-    ruleType: 4
+  category: General
+  scoreRuleType: 4
 
 - ruleId: 9f24ac30-9e04-4dc2-bc32-26da201f87e5
   ruleName: Github-Pat-Custom
@@ -55,7 +51,6 @@
   tags:
     - custom
     - override
-  scoreParameters:
-    category: Package Management
-    ruleType: 3
+  category: Package Management
+  scoreRuleType: 3
   disableValidation: true

@@ -731,7 +731,7 @@ func (e *Engine) addExtrasToSecret(secret *secrets.Secret) {
 	// add general extra data
 	extra.Mtxs.Lock(secret.ID)
 	secret.RuleName = e.rules[secret.RuleID].RuleName
-	secret.RuleCategory = string(e.rules[secret.RuleID].ScoreParameters.Category)
+	secret.RuleCategory = string(e.rules[secret.RuleID].Category)
 	extra.Mtxs.Unlock(secret.ID)
 
 	// add rule specific extra data
@@ -860,18 +860,18 @@ func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 			}
 		}
 
-		if rule.ScoreParameters.Category != "" {
-			if _, ok := score.CategoryScoreMap[rule.ScoreParameters.Category]; !ok {
+		if rule.Category != "" {
+			if _, ok := score.CategoryScoreMap[rule.Category]; !ok {
 				invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory",
-					errInvalidCategory, rule.ScoreParameters.Category)
+					errInvalidCategory, rule.Category)
 				err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
 			}
 		}
 
-		if rule.ScoreParameters.RuleType != 0 {
-			if rule.ScoreParameters.RuleType > score.RuleTypeMaxValue {
+		if rule.ScoreRuleType != 0 {
+			if rule.ScoreRuleType > score.RuleTypeMaxValue {
 				invalidRuleTypeError := fmt.Errorf("%w: %d not an acceptable uint8 value, maximum is %d",
-					errInvalidRuleType, rule.ScoreParameters.RuleType, score.RuleTypeMaxValue)
+					errInvalidRuleType, rule.ScoreRuleType, score.RuleTypeMaxValue)
 				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRuleTypeError))
 			}
 		}

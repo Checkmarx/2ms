@@ -11,8 +11,9 @@ func KucoinSecretKey() *Rule {
 		Keywords: []string{
 			"kucoin",
 		},
-		Severity:        "High",
-		Tags:            []string{TagSecretKey},
-		ScoreParameters: ScoreParameters{Category: CategoryCryptocurrencyExchange, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagSecretKey},
+		Category:      CategoryCryptocurrencyExchange,
+		ScoreRuleType: 4,
 	}
 }

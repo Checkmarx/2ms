@@ -12,11 +12,12 @@ func GitlabCiCdJobToken() *Rule {
 		RuleName: "Gitlab-Cicd-Job-Token",
 		Description: "Identified a GitLab CI/CD Job Token," +
 			" potential access to projects and some APIs on behalf of a user while the CI job is running.",
-		Regex:           gitlabCiCdJobTokenRegex,
-		Entropy:         3,
-		Keywords:        []string{"glcbt-"},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
+		Regex:         gitlabCiCdJobTokenRegex,
+		Entropy:       3,
+		Keywords:      []string{"glcbt-"},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryCICD,
+		ScoreRuleType: 4,
 	}
 }

@@ -28,8 +28,9 @@ func AWS() *Rule {
 				},
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryAuthenticationAndAuthorization,
+		ScoreRuleType: 4,
 	}
 }

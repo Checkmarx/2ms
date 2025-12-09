@@ -71,7 +71,7 @@ func NewScorer(selectedRules []*ruledefine.Rule, withValidation bool) *scorer {
 	for _, rule := range selectedRules {
 		twomsRulesToBeApplied[rule.RuleID] = *rule
 		gitleaksRulesToBeApplied[rule.RuleID] = *ruledefine.TwomsToGitleaksRule(rule)
-		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
+		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.Category, rule.ScoreRuleType)
 		for _, keyword := range rule.Keywords {
 			keywords[strings.ToLower(keyword)] = struct{}{}
 		}

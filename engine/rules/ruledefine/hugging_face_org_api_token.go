@@ -14,8 +14,9 @@ func HuggingFaceOrganizationApiToken() *Rule {
 		Keywords: []string{
 			"api_org_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryAIAndMachineLearning, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryAIAndMachineLearning,
+		ScoreRuleType: 4,
 	}
 }

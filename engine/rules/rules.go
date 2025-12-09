@@ -360,11 +360,11 @@ func completeOverridesWithDefaultFields(customRules, defaultRules []*ruledefine.
 					customRule.RuleName = defaultRule.RuleName
 				}
 
-				if customRule.ScoreParameters.Category == "" {
-					customRule.ScoreParameters.Category = defaultRule.ScoreParameters.Category
-					// only replace with default ruleType if category wasn't defined, otherwise assume user set RuleType at 0 intentionally
-					if customRule.ScoreParameters.RuleType == 0 {
-						customRule.ScoreParameters.RuleType = defaultRule.ScoreParameters.RuleType
+				if customRule.Category == "" {
+					customRule.Category = defaultRule.Category
+					// only replace with default ScoreRuleType if category wasn't defined, otherwise assume user set RuleType at 0 intentionally
+					if customRule.ScoreRuleType == 0 {
+						customRule.ScoreRuleType = defaultRule.ScoreRuleType
 					}
 				}
 				break
