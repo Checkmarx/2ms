@@ -228,7 +228,7 @@ func (c *httpConfluenceClient) walkPagesWithFilter(
 	q := apiURL.Query()
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("body-format", "storage")
-	q.Set("sort", "-created-date") // Newest created date to oldest
+	q.Set("sort", "-modified-date") // Newest modified date to oldest
 
 	if filterKey != "" && len(filterValues) > 0 {
 		q.Set(filterKey, strings.Join(filterValues, ","))
