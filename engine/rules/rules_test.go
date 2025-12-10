@@ -174,7 +174,7 @@ func Test_CustomRules(t *testing.T) {
 		Regex:         "[A-Za-z0-9]{32}",
 		Tags:          []string{"custom"},
 		Category:      ruledefine.GenericCredential().Category,
-		ScoreRuleType: ruledefine.GenericCredential().ScoreRuleType,
+		ScoreRuleType: 1,
 	}
 
 	completeGenericCredentialOverride := &ruledefine.Rule{
@@ -184,7 +184,7 @@ func Test_CustomRules(t *testing.T) {
 		Regex:         "[A-Za-z0-9]{32}",
 		Tags:          []string{"custom"},
 		Category:      ruledefine.CategorySaaS,
-		ScoreRuleType: 1,
+		ScoreRuleType: 2,
 	}
 
 	deprecatedGenericCredentialOverride := &ruledefine.Rule{
