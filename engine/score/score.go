@@ -105,10 +105,9 @@ func getValidityScore(baseRiskScore float64, validationStatus secrets.Validation
 }
 
 func GetBaseRiskScore(category ruledefine.RuleCategory, ruleType uint8) float64 {
-	var categoryScore uint8
-	var ok bool
+	categoryScore, ok := CategoryScoreMap[category]
 	// default to the lowest score if category not found, should only happen on custom rules with undefined category
-	if categoryScore, ok = CategoryScoreMap[category]; !ok {
+	if !ok {
 		categoryScore = 1
 	}
 	return float64(categoryScore)*0.6 + float64(ruleType)*0.4
