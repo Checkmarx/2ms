@@ -351,7 +351,7 @@ func TestGetOutputSarif(t *testing.T) {
 			},
 		},
 		{
-			name: "confluence.pageId from secret extra detail should be in result properties",
+			name: "includes confluence.pageId in sarif result properties",
 			arg: &Report{
 				TotalItemsScanned: 1,
 				TotalSecretsFound: 1,
