@@ -469,7 +469,7 @@ func chunkStrings(input []string, chunkSize int) [][]string {
 
 // convertPageToItem converts a Confluence Page into an ISourceItem.
 func (p *ConfluencePlugin) convertPageToItem(page *Page) ISourceItem {
-	itemID := fmt.Sprintf("%s-%s-%s", p.GetName(), page.ID, strconv.Itoa(page.Version.Number))
+	itemID := p.NewConfluenceItemID(page.ID, page.Version.Number)
 
 	sourceURL := ""
 	if resolvedURL, ok := p.resolveConfluenceSourceURL(page, page.Version.Number); ok {
@@ -667,4 +667,32 @@ func isValidNumericID(s string) bool {
 		}
 	}
 	return true
+}
+
+// NewConfluenceItemID builds the item ID for a Confluence page.
+func (p *ConfluencePlugin) NewConfluenceItemID(pageID string, version int) string {
+	return fmt.Sprintf("%s-%s-%d", p.GetName(), pageID, version)
+}
+
+// ParseConfluenceItemID extracts the Confluence page ID from an item ID
+// produced by NewConfluenceItemID. It returns ("", false) if the ID does not
+// conform to the expected pattern.
+func ParseConfluenceItemID(id string) (string, bool) {
+	parts := strings.Split(id, "-")
+	if len(parts) != 3 {
+		return "", false
+	}
+
+	// Last segment must be an integer version.
+	if _, err := strconv.Atoi(parts[len(parts)-1]); err != nil {
+		return "", false
+	}
+
+	// Second-to-last segment must be a valid numeric pageId.
+	pageID := parts[len(parts)-2]
+	if !isValidNumericID(pageID) {
+		return "", false
+	}
+
+	return pageID, true
 }
