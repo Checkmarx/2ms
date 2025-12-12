@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -344,6 +345,12 @@ func TestCustomRulesFlag(t *testing.T) {
 			customRulesFile: "testData/customRulesInvalidFormat.toml",
 			expectedRules:   nil,
 			expectErrors:    []error{errInvalidCustomRulesExtension},
+		},
+		{
+			name:            "Invalid rule type",
+			customRulesFile: "testData/customRulesInvalidRuleType.json",
+			expectedRules:   nil,
+			expectErrors:    []error{fmt.Errorf("cannot unmarshal number -2 into Go struct field Rule.scoreRuleType of type uint8")},
 		},
 	}
 

@@ -27,7 +27,7 @@
         "source": "testData/input/custom_rules_secrets.txt",
         "ruleId": "16be2682-51ee-44f5-82dc-695f4d1eda45",
         "ruleName": "Mock-Custom-Rule",
-        "ruleCategory": "General",
+        "ruleCategory": "",
         "startLine": 4,
         "endLine": 4,
         "lineContent": "mock_secret:=very_secret_value",
@@ -37,7 +37,7 @@
         "validationStatus": "Unknown",
         "ruleDescription": "Rule that checks for a very specific string",
         "severity": "Low",
-        "cvssScore": 8.2
+        "cvssScore": 1
       }
     ],
     "4431f6f38c1a36156f0486df95b0436810272bfb": [

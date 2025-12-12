@@ -860,20 +860,17 @@ func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
 			}
 		}
 
-		if rule.Category != "" {
-			if _, ok := score.CategoryScoreMap[rule.Category]; !ok {
-				invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory",
-					errInvalidCategory, rule.Category)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
-			}
+		_, validCategory := score.CategoryScoreMap[rule.Category]
+		if rule.Category != "" && !validCategory {
+			invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory",
+				errInvalidCategory, rule.Category)
+			err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
 		}
 
-		if rule.ScoreRuleType != 0 {
-			if rule.ScoreRuleType > score.RuleTypeMaxValue {
-				invalidRuleTypeError := fmt.Errorf("%w: %d not an acceptable uint8 value, maximum is %d",
-					errInvalidRuleType, rule.ScoreRuleType, score.RuleTypeMaxValue)
-				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRuleTypeError))
-			}
+		if rule.ScoreRuleType != 0 && rule.ScoreRuleType > score.RuleTypeMaxValue {
+			invalidRuleTypeError := fmt.Errorf("%w: %d not an acceptable uint8 value, should be between 1 and 4",
+				errInvalidRuleType, rule.ScoreRuleType)
+			err = errors.Join(err, buildCustomRuleError(i, rule, invalidRuleTypeError))
 		}
 	}
 

@@ -106,7 +106,7 @@ func TestPreRun(t *testing.T) {
 					" mockSeverity not one of ([Critical High Medium Low Info])"),
 				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid category:" +
 					" mockCategory not an acceptable category of type RuleCategory"),
-				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid rule type: 10 not an acceptable uint8 value, maximum is 4"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid rule type: 10 not an acceptable uint8 value, should be between 1 and 4"),
 			},
 		},
 		{

@@ -35,8 +35,6 @@
     "regex": "very_secret_value",
     "severity": "Low",
     "tags": ["custom"],
-    "category": "General",
-    "scoreRuleType": 4
   },
   {
     "ruleId": "9f24ac30-9e04-4dc2-bc32-26da201f87e5",

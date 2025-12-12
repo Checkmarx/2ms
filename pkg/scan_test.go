@@ -67,15 +67,14 @@ var customRules = []*ruledefine.Rule{
 		Tags:        []string{"custom"},
 		Deprecated:  true,
 	},
+	// missing category and scoreRuleType, which should be defaulted to 1
 	{
-		RuleID:        "16be2682-51ee-44f5-82dc-695f4d1eda45",
-		RuleName:      "Mock-Custom-Rule",
-		Description:   "Rule that checks for a very specific string",
-		Regex:         `very_secret_value`,
-		Severity:      "Low",
-		Tags:          []string{"custom"},
-		Category:      "General",
-		ScoreRuleType: 4,
+		RuleID:      "16be2682-51ee-44f5-82dc-695f4d1eda45",
+		RuleName:    "Mock-Custom-Rule",
+		Description: "Rule that checks for a very specific string",
+		Regex:       `very_secret_value`,
+		Severity:    "Low",
+		Tags:        []string{"custom"},
 	},
 	{
 		RuleID:            "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
@@ -596,7 +595,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 					" mockSeverity not one of ([Critical High Medium Low Info])"),
 				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid category:" +
 					" mockCategory not an acceptable category of type RuleCategory"),
-				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid rule type: 10 not an acceptable uint8 value, maximum is 4"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid rule type: 10 not an acceptable uint8 value, should be between 1 and 4"),
 			},
 		},
 		{

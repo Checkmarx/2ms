@@ -298,8 +298,8 @@ Other fields are optional and can be seen in the example bellow of a file with a
   severity: High # severity, can only be one of [Critical, High, Medium, Low, Info]
   tags: # identifiers for the rule, tags can be used as values of --rule and --ignore-rule flags
     - api-key
-  category: General # category of the rule, should be a string of type ruledefine.RuleCategory. Impacts cvss score
-  scoreRuleType: 4 # can go from 4 to 0, 4 being most severe. For overrides, if Category is defined, ruleType also needs to be defined, or otherwise it will be considered 0. Impacts cvss score
+  category: General # category of the rule, should be a string of type ruledefine.RuleCategory. Can be omitted in custom rule, but if omitted and ruleId matches a default rule, the category will take the value of the category of that defaultRule. Impacts cvss score
+  scoreRuleType: 4 # can go from 1 to 4, 4 being most severe. If omitted in rule it will take the value of 1. Impacts cvss score
   disableValidation: false # if true, disables validity check for this rule, regardless of --validate flag
   deprecated: false # if true, the rule will not be used in the scan, regardless of --rule flag
   allowLists: # allowed values to ignore if matched

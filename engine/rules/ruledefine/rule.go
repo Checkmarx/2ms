@@ -89,8 +89,8 @@ type Rule struct {
 	OldSeverity       string       `json:"oldSeverity" yaml:"oldSeverity"` //nolint:lll // fallback for when critical is not enabled, has no effect on open source
 	AllowLists        []*AllowList `json:"allowLists" yaml:"allowLists"`
 	Tags              []string     `json:"tags" yaml:"tags"`
-	Category          RuleCategory `json:"category" yaml:"category"`                   // used for ASPM
-	ScoreRuleType     uint8        `json:"scoreRuleType" yaml:"scoreRuleType"`         // used for ASPM
+	Category          RuleCategory `json:"category" yaml:"category"`                   // used for cvssScore
+	ScoreRuleType     uint8        `json:"scoreRuleType" yaml:"scoreRuleType"`         // used for cvssScore
 	DisableValidation bool         `json:"disableValidation" yaml:"disableValidation"` ////nolint:lll // if true, validation checks will be skipped for this rule if any validation is possible
 	Deprecated        bool         `json:"deprecated" yaml:"deprecated"`
 }
