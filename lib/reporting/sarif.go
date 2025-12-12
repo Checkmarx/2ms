@@ -89,18 +89,26 @@ func getResults(report *Report) []Results {
 		return results
 	}
 
-	for _, secrets := range report.Results {
-		for _, secret := range secrets {
+	for _, secretsSlice := range report.Results {
+		for _, secret := range secretsSlice {
+			props := Properties{
+				"validationStatus": secret.ValidationStatus,
+				"cvssScore":        secret.CvssScore,
+			}
+
+			if secret.ExtraDetails != nil {
+				if pageID, ok := secret.ExtraDetails["confluence.pageId"]; ok {
+					props["confluence.pageId"] = pageID
+				}
+			}
+
 			r := Results{
 				Message: Message{
 					Text: createMessageText(secret.RuleID, secret.Source),
 				},
-				RuleId:    secret.RuleID,
-				Locations: getLocation(secret),
-				Properties: Properties{
-					"validationStatus": secret.ValidationStatus,
-					"cvssScore":        secret.CvssScore,
-				},
+				RuleId:     secret.RuleID,
+				Locations:  getLocation(secret),
+				Properties: props,
 			}
 			results = append(results, r)
 		}
