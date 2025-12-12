@@ -13,8 +13,9 @@ func CohereAPIToken() *Rule {
 			"cohere",
 			"CO_API_KEY",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryAIAndMachineLearning, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryAIAndMachineLearning,
+		ScoreRuleType: 4,
 	}
 }

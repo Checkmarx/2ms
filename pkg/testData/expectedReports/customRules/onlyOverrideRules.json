@@ -37,7 +37,7 @@
         "validationStatus": "Unknown",
         "ruleDescription": "Custom Generic Api Key override, should override the default one (very specific regex just for testing purposes)",
         "severity": "Medium",
-        "cvssScore": 8.2
+        "cvssScore": 4.6
       }
     ],
     "993b789425c810d4956c5ed8c84f02f90b0531ee": [
@@ -94,7 +94,7 @@
         "validationStatus": "Unknown",
         "ruleDescription": "Custom Generic Api Key override, should override the default one (very specific regex just for testing purposes)",
         "severity": "Medium",
-        "cvssScore": 8.2
+        "cvssScore": 4.6
       }
     ]
   }

@@ -12,8 +12,9 @@ func PlanetScaleOAuthToken() *Rule {
 		Keywords: []string{
 			"pscale_oauth_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryDatabaseAsAService, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryDatabaseAsAService,
+		ScoreRuleType: 4,
 	}
 }

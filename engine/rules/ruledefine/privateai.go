@@ -14,8 +14,9 @@ func PrivateAIToken() *Rule {
 			"private_ai",
 			"private-ai",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryAIAndMachineLearning, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryAIAndMachineLearning,
+		ScoreRuleType: 4,
 	}
 }

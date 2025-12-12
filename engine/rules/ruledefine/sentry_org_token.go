@@ -23,11 +23,12 @@ func SentryOrgToken() *Rule {
 		RuleName: "Sentry-Org-Token",
 		Description: "Found a Sentry.io Organization Token," +
 			" risking unauthorized access to error tracking services and sensitive application data.",
-		Regex:           sentryOrgTokenRegex,
-		Entropy:         4.5,
-		Keywords:        []string{"sntrys_eyJpYXQiO"},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
+		Regex:         sentryOrgTokenRegex,
+		Entropy:       4.5,
+		Keywords:      []string{"sntrys_eyJpYXQiO"},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryApplicationMonitoring,
+		ScoreRuleType: 4,
 	}
 }

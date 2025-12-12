@@ -19,8 +19,9 @@ func AzureActiveDirectoryClientSecret() *Rule {
 		Keywords: []string{
 			"Q~",
 		},
-		Severity:        "High",
-		Tags:            []string{TagClientSecret},
-		ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagClientSecret},
+		Category:      CategoryAuthenticationAndAuthorization,
+		ScoreRuleType: 4,
 	}
 }

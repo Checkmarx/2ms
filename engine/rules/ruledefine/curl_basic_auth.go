@@ -27,8 +27,9 @@ func CurlBasicAuth() *Rule {
 				},
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryNetworking, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryNetworking,
+		ScoreRuleType: 4,
 	}
 }

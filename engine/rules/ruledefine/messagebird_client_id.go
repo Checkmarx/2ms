@@ -14,8 +14,9 @@ func MessageBirdClientID() *Rule {
 			"message-bird",
 			"message_bird",
 		},
-		Severity:        "High",
-		Tags:            []string{TagClientId},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 1},
+		Severity:      "High",
+		Tags:          []string{TagClientId},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 1,
 	}
 }

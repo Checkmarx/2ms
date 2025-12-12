@@ -8,7 +8,7 @@
         "source": "testData/secrets/generic-api-keys.txt",
         "ruleId": "16be2682-51ee-44f5-82dc-695f4d1eda45",
         "ruleName": "Mock-Custom-Rule",
-        "ruleCategory": "General",
+        "ruleCategory": "",
         "startLine": 1,
         "endLine": 1,
         "lineContent": "mock_secret:=very_secret_value",
@@ -18,7 +18,7 @@
         "validationStatus": "Unknown",
         "ruleDescription": "Rule that checks for a very specific string",
         "severity": "Low",
-        "cvssScore": 8.2
+        "cvssScore": 1
       }
     ],
     "5c27b555f2e14a8f4f9fdeda124f7332dd9835d9": [

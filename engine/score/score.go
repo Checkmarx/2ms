@@ -71,7 +71,7 @@ func NewScorer(selectedRules []*ruledefine.Rule, withValidation bool) *scorer {
 	for _, rule := range selectedRules {
 		twomsRulesToBeApplied[rule.RuleID] = *rule
 		gitleaksRulesToBeApplied[rule.RuleID] = *ruledefine.TwomsToGitleaksRule(rule)
-		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
+		rulesBaseRiskScore[rule.RuleID] = GetBaseRiskScore(rule.Category, rule.ScoreRuleType)
 		for _, keyword := range rule.Keywords {
 			keywords[strings.ToLower(keyword)] = struct{}{}
 		}
@@ -105,7 +105,11 @@ func getValidityScore(baseRiskScore float64, validationStatus secrets.Validation
 }
 
 func GetBaseRiskScore(category ruledefine.RuleCategory, ruleType uint8) float64 {
-	categoryScore := CategoryScoreMap[category]
+	categoryScore, ok := CategoryScoreMap[category]
+	// default to the lowest score if category not found, should only happen on custom rules with undefined category
+	if !ok {
+		categoryScore = 1
+	}
 	return float64(categoryScore)*0.6 + float64(ruleType)*0.4
 }
 

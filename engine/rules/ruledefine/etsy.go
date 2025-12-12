@@ -13,8 +13,9 @@ func EtsyAccessToken() *Rule {
 		Keywords: []string{
 			"etsy",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryECommercePlatform, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryECommercePlatform,
+		ScoreRuleType: 4,
 	}
 }

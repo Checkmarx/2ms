@@ -19,8 +19,9 @@ func AuthenticatedURL() *Rule {
 				StopWords: []string{"password", "pass"},
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagSensitiveUrl},
-		ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagSensitiveUrl},
+		Category:      CategoryGeneralOrUnknown,
+		ScoreRuleType: 4,
 	}
 }

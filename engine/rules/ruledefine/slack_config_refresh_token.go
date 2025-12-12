@@ -12,11 +12,12 @@ func SlackConfigurationRefreshToken() *Rule {
 		RuleName: "Slack-Config-Refresh-Token",
 		Description: "Discovered a Slack Configuration refresh token," +
 			" potentially allowing prolonged unauthorized access to configuration settings.",
-		Regex:           slackConfigurationRefreshTokenRegex,
-		Entropy:         2,
-		Keywords:        []string{"xoxe-"},
-		Severity:        "High",
-		Tags:            []string{TagRefreshToken},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		Regex:         slackConfigurationRefreshTokenRegex,
+		Entropy:       2,
+		Keywords:      []string{"xoxe-"},
+		Severity:      "High",
+		Tags:          []string{TagRefreshToken},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

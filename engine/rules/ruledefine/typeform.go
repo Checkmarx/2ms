@@ -12,8 +12,9 @@ func Typeform() *Rule {
 		Keywords: []string{
 			"tfp_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryOnlineSurveyPlatform, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryOnlineSurveyPlatform,
+		ScoreRuleType: 4,
 	}
 }

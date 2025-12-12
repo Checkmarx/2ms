@@ -14,8 +14,9 @@ func MessageBirdAPIToken() *Rule {
 			"message-bird",
 			"message_bird",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

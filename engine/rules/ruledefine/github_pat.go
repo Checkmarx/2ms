@@ -24,7 +24,8 @@ func GitHubPat() *Rule {
 				},
 			},
 		},
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryDevelopmentPlatform, RuleType: 4},
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryDevelopmentPlatform,
+		ScoreRuleType: 4,
 	}
 }

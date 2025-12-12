@@ -1,0 +1,16 @@
+[
+  {
+    "ruleId": "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+    "ruleName": "mock-rule",
+    "description": "Match passwords",
+    "regex": "[A-Za-z0-9]{32}",
+    "keywords": ["password", "pwd"],
+    "entropy": 3.5,
+    "path": "secrets/passwords.txt",
+    "secretGroup": 1,
+    "severity": "High",
+    "tags": ["security", "credentials"],
+    "category": "General",
+    "scoreRuleType": -2
+  }
+]

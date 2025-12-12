@@ -12,8 +12,9 @@ func PlanetScaleAPIToken() *Rule {
 		Keywords: []string{
 			"pscale_tkn_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryDatabaseAsAService, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryDatabaseAsAService,
+		ScoreRuleType: 4,
 	}
 }

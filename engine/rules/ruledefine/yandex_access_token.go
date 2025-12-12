@@ -12,8 +12,9 @@ func YandexAccessToken() *Rule {
 		Keywords: []string{
 			"yandex",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryCloudPlatform,
+		ScoreRuleType: 4,
 	}
 }

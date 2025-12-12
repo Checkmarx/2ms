@@ -15,8 +15,9 @@ func NytimesAccessToken() *Rule {
 			"new-york-times",
 			"newyorktimes",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryNewsAndMedia, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryNewsAndMedia,
+		ScoreRuleType: 4,
 	}
 }

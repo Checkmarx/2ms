@@ -12,8 +12,9 @@ func NetlifyAccessToken() *Rule {
 		Keywords: []string{
 			"netlify",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryWebHostingAndDeployment, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryWebHostingAndDeployment,
+		ScoreRuleType: 4,
 	}
 }

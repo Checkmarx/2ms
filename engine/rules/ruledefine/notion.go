@@ -5,14 +5,15 @@ var notionAPITokenRegex = generateUniqueTokenRegex(
 
 func Notion() *Rule {
 	return &Rule{
-		RuleID:          "c8e8d78f-1273-4cd3-a6b5-99735a73ad0f",
-		Description:     "Notion API token",
-		RuleName:        "Notion-Api-Token",
-		Regex:           notionAPITokenRegex,
-		Entropy:         4,
-		Keywords:        []string{"ntn_"},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 4},
+		RuleID:        "c8e8d78f-1273-4cd3-a6b5-99735a73ad0f",
+		Description:   "Notion API token",
+		RuleName:      "Notion-Api-Token",
+		Regex:         notionAPITokenRegex,
+		Entropy:       4,
+		Keywords:      []string{"ntn_"},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategorySaaS,
+		ScoreRuleType: 4,
 	}
 }

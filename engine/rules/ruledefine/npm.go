@@ -12,8 +12,9 @@ func NPM() *Rule {
 		Keywords: []string{
 			"npm_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryPackageManagement,
+		ScoreRuleType: 4,
 	}
 }

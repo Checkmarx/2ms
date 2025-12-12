@@ -12,8 +12,9 @@ func PlaidAccessToken() *Rule {
 		Keywords: []string{
 			"plaid",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryFinancialServices,
+		ScoreRuleType: 4,
 	}
 }

@@ -9,11 +9,12 @@ func AlibabaSecretKey() *Rule {
 		RuleName: "Alibaba-Secret-Key",
 		Description: "Discovered a potential Alibaba Cloud Secret Key," +
 			" potentially allowing unauthorized operations and data access within Alibaba Cloud.",
-		Regex:           alibabaSecretKeyRegex,
-		Entropy:         2,
-		Keywords:        []string{"alibaba"},
-		Severity:        "High",
-		Tags:            []string{TagSecretKey},
-		ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
+		Regex:         alibabaSecretKeyRegex,
+		Entropy:       2,
+		Keywords:      []string{"alibaba"},
+		Severity:      "High",
+		Tags:          []string{TagSecretKey},
+		Category:      CategoryCloudPlatform,
+		ScoreRuleType: 4,
 	}
 }

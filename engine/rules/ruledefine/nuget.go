@@ -27,8 +27,9 @@ func NugetConfigPassword() *Rule {
 				},
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagPassword},
-		ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagPassword},
+		Category:      CategoryPackageManagement,
+		ScoreRuleType: 4,
 	}
 }

@@ -9,11 +9,12 @@ func AdobeClientSecret() *Rule {
 		RuleName: "Adobe-Client-Secret",
 		Description: "Discovered a potential Adobe Client Secret, which," +
 			" if exposed, could allow unauthorized Adobe service access and data manipulation.",
-		Regex:           adobeClientSecretRegex,
-		Entropy:         2,
-		Keywords:        []string{"p8e-"},
-		Severity:        "High",
-		Tags:            []string{TagClientSecret},
-		ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 4},
+		Regex:         adobeClientSecretRegex,
+		Entropy:       2,
+		Keywords:      []string{"p8e-"},
+		Severity:      "High",
+		Tags:          []string{TagClientSecret},
+		Category:      CategorySaaS,
+		ScoreRuleType: 4,
 	}
 }

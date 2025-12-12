@@ -22,8 +22,9 @@ func VaultServiceToken() *Rule {
 				},
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryAuthenticationAndAuthorization,
+		ScoreRuleType: 4,
 	}
 }

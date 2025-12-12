@@ -13,11 +13,12 @@ func AgeSecretKey() *Rule {
 		RuleID: "5137d287-beb3-4ac4-844a-952618a69c47",
 		Description: "Discovered a potential Age encryption tool secret key," +
 			" risking data decryption and unauthorized access to sensitive information.",
-		RuleName:        "Age-Secret-Key",
-		Regex:           ageSecretKeyRegex,
-		Keywords:        []string{"AGE-SECRET-KEY-1"},
-		Severity:        "High",
-		Tags:            []string{TagSecretKey},
-		ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
+		RuleName:      "Age-Secret-Key",
+		Regex:         ageSecretKeyRegex,
+		Keywords:      []string{"AGE-SECRET-KEY-1"},
+		Severity:      "High",
+		Tags:          []string{TagSecretKey},
+		Category:      CategoryGeneralOrUnknown,
+		ScoreRuleType: 4,
 	}
 }

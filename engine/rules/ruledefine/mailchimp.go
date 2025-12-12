@@ -12,8 +12,9 @@ func MailChimp() *Rule {
 		Keywords: []string{
 			"mailchimp",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryEmailDeliveryService, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiKey},
+		Category:      CategoryEmailDeliveryService,
+		ScoreRuleType: 4,
 	}
 }

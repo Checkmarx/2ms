@@ -12,8 +12,9 @@ func OpenAI() *Rule {
 		Keywords: []string{
 			"T3BlbkFJ",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryAIAndMachineLearning, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiKey},
+		Category:      CategoryAIAndMachineLearning,
+		ScoreRuleType: 4,
 	}
 }

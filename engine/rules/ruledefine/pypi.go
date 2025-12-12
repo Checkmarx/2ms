@@ -16,8 +16,9 @@ func PyPiUploadToken() *Rule {
 		Keywords: []string{
 			"pypi-AgEIcHlwaS5vcmc",
 		},
-		Severity:        "High",
-		Tags:            []string{TagUploadToken},
-		ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagUploadToken},
+		Category:      CategoryPackageManagement,
+		ScoreRuleType: 4,
 	}
 }

@@ -12,8 +12,9 @@ func PlanetScalePassword() *Rule {
 		Keywords: []string{
 			"pscale_pw_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagPassword},
-		ScoreParameters: ScoreParameters{Category: CategoryDatabaseAsAService, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagPassword},
+		Category:      CategoryDatabaseAsAService,
+		ScoreRuleType: 4,
 	}
 }

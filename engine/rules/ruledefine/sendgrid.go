@@ -12,8 +12,9 @@ func SendGridAPIToken() *Rule {
 		Keywords: []string{
 			"SG.",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryEmailDeliveryService, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryEmailDeliveryService,
+		ScoreRuleType: 4,
 	}
 }

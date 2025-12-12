@@ -12,8 +12,9 @@ func FlickrAccessToken() *Rule {
 		Keywords: []string{
 			"flickr",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryPhotoSharing, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryPhotoSharing,
+		ScoreRuleType: 4,
 	}
 }

@@ -12,11 +12,12 @@ func SlackAppLevelToken() *Rule {
 		RuleName:    "Slack-App-Token",
 		Description: "Detected a Slack App-level token, risking unauthorized access to Slack applications and workspace data.",
 		// This regex is based on a limited number of examples and may not be 100% accurate.
-		Regex:           slackAppLevelTokenRegex,
-		Entropy:         2,
-		Keywords:        []string{"xapp"},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		Regex:         slackAppLevelTokenRegex,
+		Entropy:       2,
+		Keywords:      []string{"xapp"},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

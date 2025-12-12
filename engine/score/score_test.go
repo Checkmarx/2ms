@@ -234,7 +234,7 @@ func TestScore(t *testing.T) {
 
 		for _, rule := range allRules {
 			expectedRuleScores := expectedCvssScores[rule.RuleID]
-			baseRiskScore := GetBaseRiskScore(rule.ScoreParameters.Category, rule.ScoreParameters.RuleType)
+			baseRiskScore := GetBaseRiskScore(rule.Category, rule.ScoreRuleType)
 			ruleBaseRiskScore := scorer.GetRulesBaseRiskScore(rule.RuleID)
 			assert.Equal(t, ruleBaseRiskScore, baseRiskScore, "rule: %s", rule.RuleName)
 			assert.Equal(t, expectedRuleScores[0], getCvssScore(baseRiskScore, secrets.ValidResult), "rule: %s", rule.RuleName)

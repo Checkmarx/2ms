@@ -11,8 +11,9 @@ func SendbirdAccessID() *Rule {
 		Keywords: []string{
 			"sendbird",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessId},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 1},
+		Severity:      "High",
+		Tags:          []string{TagAccessId},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 1,
 	}
 }

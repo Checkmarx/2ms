@@ -12,8 +12,9 @@ func CodecovAccessToken() *Rule {
 		Keywords: []string{
 			"codecov",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategorySecurity, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategorySecurity,
+		ScoreRuleType: 4,
 	}
 }

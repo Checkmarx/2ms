@@ -9,11 +9,12 @@ func AdobeClientID() *Rule {
 		RuleName: "Adobe-Client-Id",
 		Description: "Detected a pattern that resembles an Adobe OAuth Web Client ID," +
 			" posing a risk of compromised Adobe integrations and data breaches.",
-		Regex:           adobeClientIDRegex,
-		Entropy:         2,
-		Keywords:        []string{"adobe"},
-		Severity:        "High",
-		Tags:            []string{TagClientId},
-		ScoreParameters: ScoreParameters{Category: CategorySaaS, RuleType: 1},
+		Regex:         adobeClientIDRegex,
+		Entropy:       2,
+		Keywords:      []string{"adobe"},
+		Severity:      "High",
+		Tags:          []string{TagClientId},
+		Category:      CategorySaaS,
+		ScoreRuleType: 1,
 	}
 }

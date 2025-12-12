@@ -8,11 +8,12 @@ func FastlyAPIToken() *Rule {
 		RuleID: "698e8f80-f409-4a03-99d1-cf4891ce7479",
 		Description: "Uncovered a Fastly API key," +
 			" which may compromise CDN and edge cloud services, leading to content delivery and security issues.",
-		RuleName:        "Fastly-Api-Token",
-		Regex:           fastlyAPITokenRegex,
-		Keywords:        []string{"fastly"},
-		Severity:        "High",
-		Tags:            []string{TagApiToken, TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryCDN, RuleType: 4},
+		RuleName:      "Fastly-Api-Token",
+		Regex:         fastlyAPITokenRegex,
+		Keywords:      []string{"fastly"},
+		Severity:      "High",
+		Tags:          []string{TagApiToken, TagApiKey},
+		Category:      CategoryCDN,
+		ScoreRuleType: 4,
 	}
 }

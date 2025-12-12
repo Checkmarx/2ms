@@ -11,8 +11,9 @@ func DroneciAccessToken() *Rule {
 		Keywords: []string{
 			"droneci",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryCICD, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryCICD,
+		ScoreRuleType: 4,
 	}
 }

@@ -10,9 +10,10 @@ func DefinedNetworkingAPIToken() *Rule {
 		RuleName:    "Defined-Networking-Api-Token",
 		Regex:       definedNetworkingApiTokenRegex,
 
-		Keywords:        []string{"dnkey"},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryNetworking, RuleType: 4},
+		Keywords:      []string{"dnkey"},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryNetworking,
+		ScoreRuleType: 4,
 	}
 }

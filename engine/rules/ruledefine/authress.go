@@ -9,12 +9,13 @@ func Authress() *Rule {
 		RuleID: "f69c8e7b-e73c-45a6-8707-2fa1a807da27",
 		Description: "Uncovered a possible Authress Service Client Access Key," +
 			" which may compromise access control services and sensitive data.",
-		RuleName:        "Authress-Service-Client-Access-Key",
-		Regex:           authressServiceClientAccessKeyRegex,
-		Entropy:         2,
-		Keywords:        []string{"sc_", "ext_", "scauth_", "authress_"},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryAuthenticationAndAuthorization, RuleType: 4},
+		RuleName:      "Authress-Service-Client-Access-Key",
+		Regex:         authressServiceClientAccessKeyRegex,
+		Entropy:       2,
+		Keywords:      []string{"sc_", "ext_", "scauth_", "authress_"},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryAuthenticationAndAuthorization,
+		ScoreRuleType: 4,
 	}
 }

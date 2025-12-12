@@ -11,8 +11,9 @@ func TwitchAPIToken() *Rule {
 		Keywords: []string{
 			"twitch",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryNewsAndMedia, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryNewsAndMedia,
+		ScoreRuleType: 4,
 	}
 }

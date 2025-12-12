@@ -9,11 +9,12 @@ func AlibabaAccessKey() *Rule {
 		RuleName: "Alibaba-Access-Key-Id",
 		Description: "Detected an Alibaba Cloud AccessKey ID," +
 			" posing a risk of unauthorized cloud resource access and potential data compromise.",
-		Regex:           alibabaAccessKeyRegex,
-		Entropy:         2,
-		Keywords:        []string{"LTAI"},
-		Severity:        "High",
-		Tags:            []string{TagAccessKey, TagAccessId},
-		ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 1},
+		Regex:         alibabaAccessKeyRegex,
+		Entropy:       2,
+		Keywords:      []string{"LTAI"},
+		Severity:      "High",
+		Tags:          []string{TagAccessKey, TagAccessId},
+		Category:      CategoryCloudPlatform,
+		ScoreRuleType: 1,
 	}
 }

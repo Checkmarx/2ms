@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -297,11 +298,9 @@ func TestCustomRulesFlag(t *testing.T) {
 					StopWords:      []string{"example", "sample"},
 				},
 			},
-			Tags: []string{"security", "credentials"},
-			ScoreParameters: ruledefine.ScoreParameters{
-				Category: "General",
-				RuleType: 2,
-			},
+			Tags:              []string{"security", "credentials"},
+			Category:          "General",
+			ScoreRuleType:     2,
 			DisableValidation: true,
 			Deprecated:        true,
 		},
@@ -346,6 +345,12 @@ func TestCustomRulesFlag(t *testing.T) {
 			customRulesFile: "testData/customRulesInvalidFormat.toml",
 			expectedRules:   nil,
 			expectErrors:    []error{errInvalidCustomRulesExtension},
+		},
+		{
+			name:            "Invalid rule type",
+			customRulesFile: "testData/customRulesInvalidRuleType.json",
+			expectedRules:   nil,
+			expectErrors:    []error{fmt.Errorf("cannot unmarshal number -2 into Go struct field Rule.scoreRuleType of type uint8")},
 		},
 	}
 

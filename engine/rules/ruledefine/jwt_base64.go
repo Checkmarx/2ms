@@ -13,11 +13,12 @@ func JWTBase64() *Rule {
 		RuleName: "Jwt-Base64",
 		Description: "Detected a Base64-encoded JSON Web Token," +
 			" posing a risk of exposing encoded authentication and data exchange information.",
-		Regex:           jWTBase64Regex,
-		Entropy:         2,
-		Keywords:        []string{"zxlk"},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
+		Regex:         jWTBase64Regex,
+		Entropy:       2,
+		Keywords:      []string{"zxlk"},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryGeneralOrUnknown,
+		ScoreRuleType: 4,
 	}
 }
