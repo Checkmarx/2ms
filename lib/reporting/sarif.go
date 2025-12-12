@@ -97,8 +97,8 @@ func getResults(report *Report) []Results {
 			}
 
 			if secret.ExtraDetails != nil {
-				if v, ok := secret.ExtraDetails["confluence.pageId"]; ok {
-					props["confluence.pageId"] = v
+				if pageID, ok := secret.ExtraDetails["confluence.pageId"]; ok {
+					props["confluence.pageId"] = pageID
 				}
 			}
 
