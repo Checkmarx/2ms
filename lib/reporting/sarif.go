@@ -94,6 +94,7 @@ func getResults(report *Report) []Results {
 			props := Properties{
 				"validationStatus": secret.ValidationStatus,
 				"cvssScore":        secret.CvssScore,
+				"resultId":         secret.ID,
 			}
 
 			if secret.ExtraDetails != nil {
