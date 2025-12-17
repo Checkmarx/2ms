@@ -136,6 +136,7 @@ var (
 		Properties: Properties{
 			"validationStatus": string(result1.ValidationStatus),
 			"cvssScore":        result1.CvssScore,
+			"resultId":         result1.ID,
 		},
 	}
 	result2Sarif = Results{
@@ -167,6 +168,7 @@ var (
 		Properties: Properties{
 			"validationStatus": string(result2.ValidationStatus),
 			"cvssScore":        result2.CvssScore,
+			"resultId":         result2.ID,
 		},
 	}
 	result3Sarif = Results{
@@ -198,6 +200,7 @@ var (
 		Properties: Properties{
 			"validationStatus": string(result3.ValidationStatus),
 			"cvssScore":        result3.CvssScore,
+			"resultId":         result3.ID,
 		},
 	}
 	result4Sarif = Results{
@@ -230,6 +233,7 @@ var (
 			"validationStatus":  string(result4.ValidationStatus),
 			"cvssScore":         result4.CvssScore,
 			"confluence.pageId": result4.ExtraDetails["confluence.pageId"],
+			"resultId":          result4.ID,
 		},
 	}
 )
