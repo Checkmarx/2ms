@@ -19,18 +19,20 @@ const (
 	outputFormatRegexpPattern = `^(ya?ml|json|sarif)$`
 	configFileFlag            = "config"
 
-	logLevelFlagName           = "log-level"
-	reportPathFlagName         = "report-path"
-	stdoutFormatFlagName       = "stdout-format"
-	customRegexRuleFlagName    = "regex"
-	ruleFlagName               = "rule"
-	ignoreRuleFlagName         = "ignore-rule"
-	ignoreFlagName             = "ignore-result"
-	allowedValuesFlagName      = "allowed-values"
-	specialRulesFlagName       = "add-special-rule"
-	ignoreOnExitFlagName       = "ignore-on-exit"
-	maxTargetMegabytesFlagName = "max-target-megabytes"
-	validate                   = "validate"
+	logLevelFlagName              = "log-level"
+	reportPathFlagName            = "report-path"
+	stdoutFormatFlagName          = "stdout-format"
+	customRegexRuleFlagName       = "regex"
+	ruleFlagName                  = "rule"
+	ignoreRuleFlagName            = "ignore-rule"
+	ignoreFlagName                = "ignore-result"
+	allowedValuesFlagName         = "allowed-values"
+	specialRulesFlagName          = "add-special-rule"
+	ignoreOnExitFlagName          = "ignore-on-exit"
+	maxTargetMegabytesFlagName    = "max-target-megabytes"
+	maxFindingsFlagName               = "max-findings"
+	maxRuleMatchesPerFragmentFlagName = "max-rule-matches-per-fragment"
+	validate                          = "validate"
 )
 
 var (

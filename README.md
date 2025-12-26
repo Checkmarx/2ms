@@ -244,15 +244,17 @@ Global flags work with every subcommand. Combine them with configuration files a
 
 ### Global Flags
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--config` | string | | Path to a YAML or JSON configuration file. |
-| `--log-level` | string | `info` | Logging level: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `none`. |
-| `--stdout-format` | string | `yaml` | `yaml`, `json`, or `sarif` output on stdout. |
-| `--report-path` | string slice | | Write findings to one or more files; format is inferred from the extension. |
-| `--ignore-on-exit` | enum | `none` | Control exit codes: `all`, `results`, `errors`, or `none`. |
-| `--max-target-megabytes` | int | `0` | Skip files larger than the threshold (0 disables the check). |
-| `--validate` | bool | `false` | Enrich results by verifying secrets when supported. |
+| Flag                              | Type         | Default | Description                                                                                                     |
+|-----------------------------------|--------------|---------|-----------------------------------------------------------------------------------------------------------------|
+| `--config`                        | string       |         | Path to a YAML or JSON configuration file.                                                                      |
+| `--log-level`                     | string       | `info`  | Logging level: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `none`.                                   |
+| `--stdout-format`                 | string       | `yaml`  | `yaml`, `json`, or `sarif` output on stdout.                                                                    |
+| `--report-path`                   | string slice |         | Write findings to one or more files; format is inferred from the extension.                                     |
+| `--ignore-on-exit`                | enum         | `none`  | Control exit codes: `all`, `results`, `errors`, or `none`.                                                      |
+| `--max-target-megabytes`          | int          | `0`     | Skip files larger than the threshold (0 disables the check).                                                    |
+| `--max-findings`                  | int          | `0`     | Caps the total number of results. Scan stops early if limit is reached. Omit or set to 0 to disable.            |
+| `--max-rule-matches-per-fragment` | int          | `0`     | Caps the number of results per rule per fragment (e.g., file, chunked file, page). Omit or set to 0 to disable. |
+| `--validate`                      | bool         | `false` | Enrich results by verifying secrets when supported.                                                             |
 
 ### Configuration Files & Environment Variables
 

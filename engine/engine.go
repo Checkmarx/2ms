@@ -14,9 +14,11 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v4/engine/detect"
 	"github.com/checkmarx/2ms/v4/engine/extra"
 	"github.com/checkmarx/2ms/v4/engine/linecontent"
 	"github.com/checkmarx/2ms/v4/engine/rules"
@@ -32,7 +34,6 @@ import (
 	"github.com/sourcegraph/conc"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -50,6 +51,8 @@ type DetectorConfig struct {
 	CustomRegexPatterns   []string
 	AdditionalIgnoreRules []string
 	MaxTargetMegabytes    int
+	MaxFindings               int
+	MaxRuleMatchesPerFragment int
 }
 
 type Engine struct {
@@ -79,6 +82,9 @@ type Engine struct {
 	ScanConfig resources.ScanConfig
 
 	wg conc.WaitGroup
+
+	// Atomic counter to track findings across concurrent workers immediately
+	findingsCounter atomic.Uint64
 }
 
 type IEngine interface {
@@ -119,7 +125,9 @@ type EngineConfig struct {
 	IgnoreList   []string
 	SpecialList  []string
 
-	MaxTargetMegabytes int
+	MaxTargetMegabytes        int
+	MaxFindings               int
+	MaxRuleMatchesPerFragment int
 
 	IgnoredIds    []string
 	AllowedValues []string
@@ -166,10 +174,12 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 
 	engine := &Engine{
 		detectorConfig: DetectorConfig{
-			SelectedRules:         finalRules,
-			CustomRegexPatterns:   engineConfig.CustomRegexPatterns,
-			AdditionalIgnoreRules: engineConfig.AdditionalIgnoreRules,
-			MaxTargetMegabytes:    engineConfig.MaxTargetMegabytes,
+			SelectedRules:             finalRules,
+			CustomRegexPatterns:       engineConfig.CustomRegexPatterns,
+			AdditionalIgnoreRules:     engineConfig.AdditionalIgnoreRules,
+			MaxTargetMegabytes:        engineConfig.MaxTargetMegabytes,
+			MaxFindings:               engineConfig.MaxFindings,
+			MaxRuleMatchesPerFragment: engineConfig.MaxRuleMatchesPerFragment,
 		},
 
 		validator:    *validation.NewValidator(),
@@ -220,6 +230,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 	// Create detector with final config
 	detector := detect.NewDetector(*cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
+	detector.MaxRuleMatchesPerFragment = engineConfig.MaxRuleMatchesPerFragment
 	engine.detector = detector
 
 	return engine, nil
@@ -334,6 +345,10 @@ func (e *Engine) detectSecrets(
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
+	if e.detectorConfig.MaxFindings > 0 && e.findingsCounter.Load() >= uint64(e.detectorConfig.MaxFindings) {
+		return nil
+	}
+
 	fragment.Raw += CxFileEndMarker + "\n"
 
 	values := e.detector.Detect(*fragment)
@@ -343,6 +358,12 @@ func (e *Engine) detectSecrets(
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
 		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
+			if e.detectorConfig.MaxFindings > 0 {
+				newCount := e.findingsCounter.Add(1)
+				if newCount > uint64(e.detectorConfig.MaxFindings) {
+					break
+				}
+			}
 			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)

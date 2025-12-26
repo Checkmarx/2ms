@@ -57,6 +57,9 @@ type Detector struct {
 	// files larger than this will be skipped
 	MaxTargetMegaBytes int
 
+	// caps the number of regex matches per rule per fragment
+	MaxRuleMatchesPerFragment int
+
 	// followSymlinks is a flag to enable scanning symlink files
 	FollowSymlinks bool
 
@@ -104,8 +107,6 @@ type Detector struct {
 	Reporter   report.Reporter
 
 	TotalBytes atomic.Uint64
-
-	MaxFindingsPerRuleInvocation int
 }
 
 // Fragment is an alias for sources.Fragment for backwards compatibility
@@ -418,7 +419,11 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 		}
 	}
 
-	matches := r.Regex.FindAllStringIndex(currentRaw, -1)
+	matchLimit := -1
+	if d.MaxRuleMatchesPerFragment > 0 {
+		matchLimit = d.MaxRuleMatchesPerFragment
+	}
+	matches := r.Regex.FindAllStringIndex(currentRaw, matchLimit)
 	if len(matches) == 0 {
 		return findings
 	}
@@ -428,7 +433,7 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 
 	// use currentRaw instead of fragment.Raw since this represents the current
 	// decoding pass on the text
-	for _, matchIndex := range r.Regex.FindAllStringIndex(currentRaw, -1) {
+	for _, matchIndex := range matches {
 		// Extract secret from match
 		secret := strings.Trim(currentRaw[matchIndex[0]:matchIndex[1]], "\n")
 
