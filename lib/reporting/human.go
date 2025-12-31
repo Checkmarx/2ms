@@ -10,11 +10,10 @@ import (
 )
 
 const (
-	scanTriggered  = " 2ms by Checkmarx scanning..."
-	iconTask       = "▸"
-	iconSuccess    = "✔"
-	iconContext    = "→"
-	defaultVersion = "0.0.0"
+	scanTriggered = " 2ms by Checkmarx scanning..."
+	iconTask      = "▸"
+	iconSuccess   = "✔"
+	iconContext   = "→"
 )
 
 func writeHuman(report *Report, version string) (string, error) {
@@ -33,15 +32,8 @@ func writeHuman(report *Report, version string) (string, error) {
 }
 
 func writeHeader(builder *strings.Builder, version string) {
-	versionInfo := strings.TrimSpace(version)
-
 	builder.WriteString(iconTask)
 	builder.WriteString(scanTriggered)
-	if versionInfo != "" && versionInfo != defaultVersion {
-		builder.WriteString(" (version ")
-		builder.WriteString(versionInfo)
-		builder.WriteString(")")
-	}
 	builder.WriteString("\n\n")
 }
 

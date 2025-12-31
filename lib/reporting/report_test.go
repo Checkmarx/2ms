@@ -551,7 +551,6 @@ func TestGetOutputHuman(t *testing.T) {
 		clean := stripANSI(output)
 
 		assert.Contains(t, clean, "2ms by Checkmarx scanning...")
-		assert.Contains(t, clean, "(version 1.0.0)")
 		assert.Contains(t, clean, "Findings: none")
 		assert.Contains(t, clean, "Items scanned: 3")
 		assert.Contains(t, clean, "Secrets found: 0")
