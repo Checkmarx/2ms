@@ -22,6 +22,7 @@ import (
 var (
 	ruleID1 = "ruleID1"
 	ruleID2 = "ruleID2"
+	ruleID4 = "ruleID4"
 	result1 = &secrets.Secret{
 		ID:               "ID1",
 		Source:           "file1",
@@ -66,6 +67,24 @@ var (
 		CvssScore:        0.0,
 		RuleDescription:  "Rule Description",
 	}
+	// result for confluence.pageId validation
+	result4 = &secrets.Secret{
+		ID:               "ID4",
+		Source:           "file4",
+		RuleID:           "ruleID4",
+		StartLine:        0,
+		EndLine:          0,
+		LineContent:      "line content4",
+		StartColumn:      11,
+		EndColumn:        130,
+		Value:            "value 4",
+		ValidationStatus: secrets.UnknownResult,
+		CvssScore:        0.0,
+		RuleDescription:  "Rule Description",
+		ExtraDetails: map[string]interface{}{
+			"confluence.pageId": "1234567890",
+		},
+	}
 )
 
 // test expected outputs
@@ -81,6 +100,12 @@ var (
 		ID: ruleID2,
 		FullDescription: &Message{
 			Text: result2.RuleDescription,
+		},
+	}
+	rule4Sarif = &SarifRule{
+		ID: ruleID4,
+		FullDescription: &Message{
+			Text: result4.RuleDescription,
 		},
 	}
 	// sarif results
@@ -113,6 +138,7 @@ var (
 		Properties: Properties{
 			"validationStatus": string(result1.ValidationStatus),
 			"cvssScore":        result1.CvssScore,
+			"resultId":         result1.ID,
 		},
 	}
 	result2Sarif = Results{
@@ -144,6 +170,7 @@ var (
 		Properties: Properties{
 			"validationStatus": string(result2.ValidationStatus),
 			"cvssScore":        result2.CvssScore,
+			"resultId":         result2.ID,
 		},
 	}
 	result3Sarif = Results{
@@ -175,6 +202,40 @@ var (
 		Properties: Properties{
 			"validationStatus": string(result3.ValidationStatus),
 			"cvssScore":        result3.CvssScore,
+			"resultId":         result3.ID,
+		},
+	}
+	result4Sarif = Results{
+		Message: Message{
+			Text: createMessageText(result4.RuleID, result4.Source),
+		},
+		RuleId: ruleID4,
+		Locations: []Locations{
+			{
+				PhysicalLocation: PhysicalLocation{
+					ArtifactLocation: ArtifactLocation{
+						URI: result4.Source,
+					},
+					Region: Region{
+						StartLine:   result4.StartLine,
+						StartColumn: result4.StartColumn,
+						EndLine:     result4.EndLine,
+						EndColumn:   result4.EndColumn,
+						Snippet: Snippet{
+							Text: result4.Value,
+							Properties: Properties{
+								"lineContent": strings.TrimSpace(result4.LineContent),
+							},
+						},
+					},
+				},
+			},
+		},
+		Properties: Properties{
+			"validationStatus":  string(result4.ValidationStatus),
+			"cvssScore":         result4.CvssScore,
+			"confluence.pageId": result4.ExtraDetails["confluence.pageId"],
+			"resultId":          result4.ID,
 		},
 	}
 )
@@ -291,6 +352,33 @@ func TestGetOutputSarif(t *testing.T) {
 					Results: []Results{
 						result1Sarif,
 						result2Sarif,
+					},
+				},
+			},
+		},
+		{
+			name: "includes confluence.pageId in sarif result properties",
+			arg: &Report{
+				TotalItemsScanned: 1,
+				TotalSecretsFound: 1,
+				Results: map[string][]*secrets.Secret{
+					"secret1": {result4},
+				},
+			},
+			wantErr: false,
+			want: []Runs{
+				{
+					Tool: Tool{
+						Driver: Driver{
+							Name:            "report",
+							SemanticVersion: "1",
+							Rules: []*SarifRule{
+								rule4Sarif,
+							},
+						},
+					},
+					Results: []Results{
+						result4Sarif,
 					},
 				},
 			},

@@ -1223,3 +1223,36 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildSecret(t *testing.T) {
+	t.Run("confluence plugin sets page id in extra details", func(t *testing.T) {
+		rawPlugin := plugins.NewConfluencePlugin()
+		confluencePlugin, ok := rawPlugin.(*plugins.ConfluencePlugin)
+		pageID := "6995346180"
+		version := 9
+		itemID := confluencePlugin.NewConfluenceItemID(pageID, version)
+		pluginName := confluencePlugin.GetName()
+		sourceURL := "https://example.atlassian.net/wiki/spaces/SCS/pages/" + pageID
+		content := "dummy"
+		it := &item{
+			id:      itemID,
+			source:  sourceURL,
+			content: &content,
+		}
+		finding := report.Finding{
+			RuleID:      "github-pat",
+			StartLine:   1,
+			EndLine:     1,
+			Line:        "token=SECRET",
+			Secret:      "SECRET",
+			Description: "test finding",
+		}
+		secret, err := buildSecret(context.Background(), it, finding, pluginName)
+		require.NoError(t, err)
+		require.NotNil(t, secret)
+		require.NotNil(t, secret.ExtraDetails, "ExtraDetails should not be nil for confluence plugin")
+		value, ok := secret.ExtraDetails["confluence.pageId"]
+		assert.True(t, ok, "ExtraDetails should contain key %q", "confluence.pageId")
+		assert.Equal(t, pageID, value)
+	})
+}

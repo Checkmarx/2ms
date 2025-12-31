@@ -1699,6 +1699,23 @@ func TestTrimNonEmpty(t *testing.T) {
 	}
 }
 
+func TestNewConfluenceItemID(t *testing.T) {
+	p := &ConfluencePlugin{}
+	pageID := "6995346180"
+	version := 9
+	expectedID := "confluence-6995346180-9"
+	actual := p.NewConfluenceItemID(pageID, version)
+	assert.Equal(t, expectedID, actual)
+}
+
+func TestParseConfluenceItemID(t *testing.T) {
+	p := &ConfluencePlugin{}
+	id := p.NewConfluenceItemID("123456", 3)
+	actualPageID, ok := ParseConfluenceItemID(id)
+	assert.True(t, ok)
+	assert.Equal(t, "123456", actualPageID)
+}
+
 func newPluginWithMock(t *testing.T) (*ConfluencePlugin, *gomock.Controller, *MockConfluenceClient, *chunk.MockIChunk) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
