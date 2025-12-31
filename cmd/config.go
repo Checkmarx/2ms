@@ -17,6 +17,8 @@ var (
 	errInvalidReportExtension = fmt.Errorf("invalid report extension")
 )
 
+const humanStdoutFormat = "human"
+
 func processFlags(rootCmd *cobra.Command) error {
 	configFilePath, err := rootCmd.PersistentFlags().GetString(configFileFlag)
 	if err != nil {
@@ -32,6 +34,11 @@ func processFlags(rootCmd *cobra.Command) error {
 	}
 
 	// Apply all flag mappings immediately
+	if logLevelFlag := rootCmd.PersistentFlags().Lookup(logLevelFlagName); logLevelFlag != nil {
+		logLevelUserDefined = logLevelFlag.Changed
+	}
+	applyDefaultLogLevelForHumanFormat()
+
 	engineConfigVar.ScanConfig.WithValidation = validateVar
 	if len(customRegexRuleVar) > 0 {
 		engineConfigVar.CustomRegexPatterns = customRegexRuleVar
@@ -64,6 +71,12 @@ func setupLogging() {
 	log.Logger = log.Logger.Level(logLevel)
 }
 
+func applyDefaultLogLevelForHumanFormat() {
+	if strings.EqualFold(stdoutFormatVar, humanStdoutFormat) && !logLevelUserDefined {
+		logLevelVar = "warn"
+	}
+}
+
 func validateFormat(stdout string, reportPath []string) error {
 	stdoutRegex := regexp.MustCompile(stdoutFormatRegexpPattern)
 	if !stdoutRegex.MatchString(stdout) {
@@ -93,7 +106,7 @@ func setupFlags(rootCmd *cobra.Command) {
 			"path to generate report files. The output format will be determined by the file extension (.json, .yaml, .sarif)")
 
 	rootCmd.PersistentFlags().
-		StringVar(&stdoutFormatVar, stdoutFormatFlagName, "human", "stdout output format, available formats are: json, yaml, sarif, human")
+		StringVar(&stdoutFormatVar, stdoutFormatFlagName, "yaml", "stdout output format, available formats are: json, yaml, sarif, human")
 
 	rootCmd.PersistentFlags().
 		StringArrayVar(&customRegexRuleVar, customRegexRuleFlagName, []string{}, "custom regexes to apply to the scan, must be valid Go regex")

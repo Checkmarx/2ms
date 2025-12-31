@@ -35,13 +35,14 @@ const (
 )
 
 var (
-	logLevelVar        string
-	reportPathVar      []string
-	stdoutFormatVar    string
-	customRegexRuleVar []string
-	ignoreOnExitVar    = ignoreOnExitNone
-	engineConfigVar    engine.EngineConfig
-	validateVar        bool
+	logLevelVar         string
+	reportPathVar       []string
+	stdoutFormatVar     string
+	customRegexRuleVar  []string
+	ignoreOnExitVar     = ignoreOnExitNone
+	engineConfigVar     engine.EngineConfig
+	validateVar         bool
+	logLevelUserDefined bool
 )
 
 const envPrefix = "2MS"

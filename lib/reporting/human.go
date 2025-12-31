@@ -63,12 +63,19 @@ func writeFindings(builder *strings.Builder, totalSecrets int, secretsBySource m
 
 	sources := sortedSources(secretsBySource)
 	for _, source := range sources {
+		commit, path, isGit := parseGitSource(source)
 		displaySource := source
+		if isGit {
+			displaySource = path
+		}
 		if displaySource == "" {
 			displaySource = "(source not provided)"
 		}
 
 		fmt.Fprintf(builder, "  - File: %s\n", displaySource)
+		if isGit {
+			fmt.Fprintf(builder, "    Commit: %s\n", commit)
+		}
 
 		secrets := secretsBySource[source]
 		sortSecrets(secrets)
@@ -235,4 +242,25 @@ func formatDuration(duration time.Duration) string {
 	}
 
 	return duration.Round(10 * time.Millisecond).String()
+}
+
+func parseGitSource(source string) (commit string, path string, isGit bool) {
+	const prefix = "git show "
+	if !strings.HasPrefix(source, prefix) {
+		return "", "", false
+	}
+
+	remainder := strings.TrimPrefix(source, prefix)
+	parts := strings.SplitN(remainder, ":", 2)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+
+	commit = strings.TrimSpace(parts[0])
+	path = parts[1]
+	if commit == "" || path == "" {
+		return "", "", false
+	}
+
+	return commit, path, true
 }

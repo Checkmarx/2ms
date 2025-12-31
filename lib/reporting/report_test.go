@@ -611,6 +611,37 @@ func TestGetOutputHuman(t *testing.T) {
 		assert.NotContains(t, clean, "Metadata:")
 		assert.Contains(t, clean, "Done in 1.23s.")
 	})
+
+	t.Run("git source shows commit", func(t *testing.T) {
+		gitSource := "git show deadbeefdeadbeefdeadbeefdeadbeefdeadbeef:path/to/file.txt"
+		report := &Report{
+			TotalItemsScanned: 1,
+			TotalSecretsFound: 1,
+			Results: map[string][]*secrets.Secret{
+				gitSource: {
+					{
+						ID:          "git-secret-1",
+						Source:      gitSource,
+						RuleID:      "git-rule",
+						StartLine:   5,
+						EndLine:     5,
+						StartColumn: 1,
+						EndColumn:   4,
+						LineContent: "test=1",
+					},
+				},
+			},
+		}
+
+		output, err := report.GetOutput("human", &config.Config{Name: "report", Version: "1"})
+		assert.NoError(t, err)
+
+		clean := stripANSI(output)
+
+		assert.Contains(t, clean, "File: path/to/file.txt")
+		assert.Contains(t, clean, "Commit: deadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
+		assert.Contains(t, clean, "Rule: git-rule")
+	})
 }
 
 var ansiRegexp = regexp.MustCompile(`\x1b\[[0-9;]*m`)
