@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"text/tabwriter"
+	"time"
 
 	"github.com/checkmarx/2ms/v4/engine/chunk"
 	"github.com/checkmarx/2ms/v4/engine/extra"
@@ -77,6 +78,8 @@ type Engine struct {
 	Report reporting.IReport
 
 	ScanConfig resources.ScanConfig
+
+	startTime time.Time
 
 	wg conc.WaitGroup
 }
@@ -734,6 +737,7 @@ func (e *Engine) GetCvssScoreWithoutValidationCh() chan *secrets.Secret {
 }
 
 func (e *Engine) Scan(pluginName string) {
+	e.startTime = time.Now()
 	e.wg.Go(func() {
 		e.processItems(pluginName)
 	})
@@ -750,6 +754,9 @@ func (e *Engine) Scan(pluginName string) {
 
 func (e *Engine) Wait() {
 	e.wg.Wait()
+	if !e.startTime.IsZero() {
+		e.Report.SetScanDuration(time.Since(e.startTime))
+	}
 }
 
 // isSecretFromConfluenceResourceIdentifier reports whether a regex match found in a line

@@ -248,7 +248,7 @@ Global flags work with every subcommand. Combine them with configuration files a
 |------|------|---------|-------------|
 | `--config` | string | | Path to a YAML or JSON configuration file. |
 | `--log-level` | string | `info` | Logging level: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `none`. |
-| `--stdout-format` | string | `yaml` | `yaml`, `json`, or `sarif` output on stdout. |
+| `--stdout-format` | string | `yaml` | `yaml`, `json`, `sarif`, or `human` output on stdout. |
 | `--report-path` | string slice | | Write findings to one or more files; format is inferred from the extension. |
 | `--ignore-on-exit` | enum | `none` | Control exit codes: `all`, `results`, `errors`, or `none`. |
 | `--max-target-megabytes` | int | `0` | Skip files larger than the threshold (0 disables the check). |
@@ -291,6 +291,8 @@ You can still override values via CLI flags; the CLI always wins over config val
   --stdout-format json \
   --report-path build/2ms.sarif \
   --report-path build/2ms.yaml
+
+Set `--stdout-format human` for a terse, human-friendly summary on the console (great for local runs), while still writing machine-readable reports via `--report-path`.
 ```
 
 SARIF reports plug directly into GitHub Advanced Security or other code-scanning dashboards. All outputs include rule metadata, severity scores, file locations, and (when enabled) validation status.

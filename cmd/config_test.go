@@ -38,6 +38,12 @@ func TestValidateFormat(t *testing.T) {
 			expectedErr:     nil,
 		},
 		{
+			name:            "valid output format human",
+			stdoutFormatVar: "human",
+			reportPath:      []string{"report.yaml"},
+			expectedErr:     nil,
+		},
+		{
 			name:            "invalid output format",
 			stdoutFormatVar: "invalid",
 			reportPath:      []string{"report.json"},
@@ -46,7 +52,7 @@ func TestValidateFormat(t *testing.T) {
 		{
 			name:            "invalid report extension",
 			stdoutFormatVar: "json",
-			reportPath:      []string{"report.invalid"},
+			reportPath:      []string{"report.human"},
 			expectedErr:     errInvalidReportExtension,
 		},
 	}
