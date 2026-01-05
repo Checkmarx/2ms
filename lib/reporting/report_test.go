@@ -20,7 +20,7 @@ import (
 var (
 	ruleID1       = "ruleID1"
 	ruleID2       = "ruleID2"
-	ruleID4 = "ruleID4"
+	ruleID4       = "ruleID4"
 	RuleName1     = "ruleName1"
 	RuleName2     = "ruleName2"
 	RuleName4     = "ruleName4"
@@ -128,7 +128,7 @@ var (
 		},
 	}
 	rule4Sarif = &SarifRule{
-		ID: ruleID4,
+		ID:   ruleID4,
 		Name: RuleName4,
 		FullDescription: &Message{
 			Text: result4.RuleDescription,
@@ -242,7 +242,7 @@ var (
 	}
 	result4Sarif = Results{
 		Message: Message{
-			Text: createMessageText(result4.RuleID, result4.Source),
+			Text: createMessageText(result4.RuleName, result4.Source),
 		},
 		RuleId: ruleID4,
 		Locations: []Locations{
@@ -271,8 +271,8 @@ var (
 			"cvssScore":         result4.CvssScore,
 			"confluence.pageId": result4.ExtraDetails["confluence.pageId"],
 			"resultId":          result4.ID,
-			"severity":         result4.Severity,
-			"ruleName":         RuleName4,
+			"severity":          result4.Severity,
+			"ruleName":          RuleName4,
 		},
 	}
 )
