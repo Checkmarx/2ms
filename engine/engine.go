@@ -508,7 +508,7 @@ func buildSecret(
 	pluginName string,
 ) (*secrets.Secret, error) {
 	gitInfo := item.GetGitInfo()
-	itemId, err := getFindingId(item, &value)
+	findingID, err := getFindingId(item, &value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get finding ID: %w", err)
 	}
@@ -539,7 +539,7 @@ func buildSecret(
 	}
 
 	secret := &secrets.Secret{
-		ID:              itemId,
+		ID:              findingID,
 		Source:          item.GetSource(),
 		RuleID:          value.RuleID,
 		StartLine:       startLine,
@@ -549,6 +549,15 @@ func buildSecret(
 		Value:           value.Secret,
 		LineContent:     lineContent,
 		RuleDescription: value.Description,
+	}
+
+	if pluginName == "confluence" {
+		if pageID, ok := plugins.ParseConfluenceItemID(item.GetID()); ok {
+			if secret.ExtraDetails == nil {
+				secret.ExtraDetails = make(map[string]interface{})
+			}
+			secret.ExtraDetails["confluence.pageId"] = pageID
+		}
 	}
 	return secret, nil
 }

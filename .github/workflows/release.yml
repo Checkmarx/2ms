@@ -74,6 +74,16 @@ jobs:
           go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
           zip -j dist/linux-amd64.zip dist/2ms
           rm dist/2ms
+      - name: Compile for Linux arm64
+        env:
+          VERSION: ${{ needs.test.outputs.version }}
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: arm64
+        run: |
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          zip -j dist/linux-arm64.zip dist/2ms
+          rm dist/2ms
 
       - name: Compile for MacOS amd64
         env:
