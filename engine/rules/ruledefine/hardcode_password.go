@@ -40,8 +40,9 @@ func HardcodedPassword() *Rule {
 				StopWords: DefaultStopWords,
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagPassword},
-		ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagPassword},
+		Category:      CategoryGeneralOrUnknown,
+		ScoreRuleType: 4,
 	}
 }

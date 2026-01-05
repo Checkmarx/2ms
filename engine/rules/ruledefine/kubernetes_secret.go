@@ -45,8 +45,9 @@ func KubernetesSecret() *Rule {
 				},
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagSecretKey},
-		ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagSecretKey},
+		Category:      CategoryCloudPlatform,
+		ScoreRuleType: 4,
 	}
 }

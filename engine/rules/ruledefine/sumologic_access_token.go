@@ -13,8 +13,9 @@ func SumoLogicAccessToken() *Rule {
 		Keywords: []string{
 			"sumo",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryApplicationMonitoring,
+		ScoreRuleType: 4,
 	}
 }

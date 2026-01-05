@@ -12,8 +12,9 @@ func RubyGemsAPIToken() *Rule {
 		Keywords: []string{
 			"rubygems_",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryPackageManagement, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryPackageManagement,
+		ScoreRuleType: 4,
 	}
 }

@@ -5,13 +5,14 @@ var twitterAccessTokenRegex = generateSemiGenericRegex(
 
 func TwitterAccessToken() *Rule {
 	return &Rule{
-		RuleID:          "70c63637-e82d-44f1-8743-4de98d603d22",
-		Description:     "Detected a Twitter Access Token, posing a risk of unauthorized account operations and social media data exposure.",
-		RuleName:        "Twitter-Access-Token",
-		Regex:           twitterAccessTokenRegex,
-		Keywords:        []string{"twitter"},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		RuleID:        "70c63637-e82d-44f1-8743-4de98d603d22",
+		Description:   "Detected a Twitter Access Token, posing a risk of unauthorized account operations and social media data exposure.",
+		RuleName:      "Twitter-Access-Token",
+		Regex:         twitterAccessTokenRegex,
+		Keywords:      []string{"twitter"},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

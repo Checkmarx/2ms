@@ -15,8 +15,9 @@ func NewRelicUserID() *Rule {
 		Keywords: []string{
 			"NRAK",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 1},
+		Severity:      "High",
+		Tags:          []string{TagApiKey},
+		Category:      CategoryApplicationMonitoring,
+		ScoreRuleType: 1,
 	}
 }

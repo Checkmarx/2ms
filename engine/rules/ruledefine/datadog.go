@@ -13,8 +13,9 @@ func DatadogtokenAccessToken() *Rule {
 		Keywords: []string{
 			"datadog",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken, TagClientId},
-		ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken, TagClientId},
+		Category:      CategoryApplicationMonitoring,
+		ScoreRuleType: 4,
 	}
 }

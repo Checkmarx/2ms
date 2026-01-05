@@ -123,8 +123,9 @@ func GenericCredential() *Rule {
 				},
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryGeneralOrUnknown, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiKey},
+		Category:      CategoryGeneralOrUnknown,
+		ScoreRuleType: 4,
 	}
 }

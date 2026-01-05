@@ -13,8 +13,9 @@ func SettlemintApplicationAccessToken() *Rule {
 		Keywords: []string{
 			"sm_aat",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategorySoftwareDevelopment, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategorySoftwareDevelopment,
+		ScoreRuleType: 4,
 	}
 }

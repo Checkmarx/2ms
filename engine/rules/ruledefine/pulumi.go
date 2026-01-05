@@ -12,8 +12,9 @@ func PulumiAPIToken() *Rule {
 		Keywords: []string{
 			"pul-",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryCloudPlatform,
+		ScoreRuleType: 4,
 	}
 }

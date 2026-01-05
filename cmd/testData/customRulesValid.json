@@ -21,10 +21,8 @@
       }
     ],
     "tags": ["security", "credentials"],
-    "scoreParameters": {
-      "category": "General",
-      "ruleType": 2
-    },
+    "category": "General",
+    "scoreRuleType": 2,
     "disableValidation": true,
     "deprecated": true
   },

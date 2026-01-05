@@ -16,8 +16,9 @@ func NewRelicBrowserAPIKey() *Rule {
 		Keywords: []string{
 			"NRJS-",
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiToken},
-		ScoreParameters: ScoreParameters{Category: CategoryApplicationMonitoring, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryApplicationMonitoring,
+		ScoreRuleType: 4,
 	}
 }

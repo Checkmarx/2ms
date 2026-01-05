@@ -297,7 +297,7 @@ func FilterRules(selectedList, ignoreList, specialList []string,
 
 	// Fill in missing fields in custom rules if they match default rules.
 	// Needs to run before selection/ignoring so that if rule names are used in selected/ignored, overrides will be selected/ignored properly
-	completeOverridesWithDefaultFields(customRules, selectedRules)
+	completeQueriesFields(customRules, selectedRules)
 
 	if len(selectedList) > 0 {
 		selectedRules = selectRules(selectedRules, selectedList)
@@ -351,21 +351,22 @@ func addCustomRules(selectedRules, customRules []*ruledefine.Rule) []*ruledefine
 	return selectedRules
 }
 
-// completeOverridesWithDefaultFields fills in some missing fields in custom rules if they match default rules by ruleID
-func completeOverridesWithDefaultFields(customRules, defaultRules []*ruledefine.Rule) {
+// completeQueriesFields fills some missing fields, including in case of overrides
+func completeQueriesFields(customRules, defaultRules []*ruledefine.Rule) {
 	for _, customRule := range customRules {
+		// always consider scoreRuleType 1 if left empty (0) in custom rule
+		if customRule.ScoreRuleType == 0 {
+			customRule.ScoreRuleType = 1
+		}
+		// fill missing fields from default rules if custom rule is an override
 		for _, defaultRule := range defaultRules {
 			if defaultRule.RuleID == customRule.RuleID {
 				if customRule.RuleName == "" {
 					customRule.RuleName = defaultRule.RuleName
 				}
 
-				if customRule.ScoreParameters.Category == "" {
-					customRule.ScoreParameters.Category = defaultRule.ScoreParameters.Category
-					// only replace with default ruleType if category wasn't defined, otherwise assume user set RuleType at 0 intentionally
-					if customRule.ScoreParameters.RuleType == 0 {
-						customRule.ScoreParameters.RuleType = defaultRule.ScoreParameters.RuleType
-					}
+				if customRule.Category == "" {
+					customRule.Category = defaultRule.Category
 				}
 				break
 			}

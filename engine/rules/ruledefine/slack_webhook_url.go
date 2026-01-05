@@ -17,8 +17,9 @@ func SlackWebHookUrl() *Rule {
 		Keywords: []string{
 			"hooks.slack.com",
 		},
-		Severity:        "High",
-		Tags:            []string{TagWebhook},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagWebhook},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

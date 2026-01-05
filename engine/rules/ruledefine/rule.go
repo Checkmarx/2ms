@@ -76,27 +76,23 @@ const (
 
 var SeverityOrder = []Severity{Critical, High, Medium, Low, Info}
 
-type ScoreParameters struct {
-	Category RuleCategory `json:"category" yaml:"category"`
-	RuleType uint8        `json:"ruleType" yaml:"ruleType"`
-}
-
 type Rule struct {
-	RuleID            string          `json:"ruleId" yaml:"ruleId"` // uuid4, should be consistent across changes in rule
-	RuleName          string          `json:"ruleName" yaml:"ruleName"`
-	Description       string          `json:"description" yaml:"description"`
-	Regex             string          `json:"regex" yaml:"regex"` // regex pattern as string
-	Keywords          []string        `json:"keywords" yaml:"keywords"`
-	Entropy           float64         `json:"entropy" yaml:"entropy"`
-	Path              string          `json:"path" yaml:"path"`               // present in some gitleaks secrets (regex)
-	SecretGroup       int             `json:"secretGroup" yaml:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	Severity          Severity        `json:"severity" yaml:"severity"`
-	OldSeverity       string          `json:"oldSeverity" yaml:"oldSeverity"` //nolint:lll // fallback for when critical is not enabled, has no effect on open source
-	AllowLists        []*AllowList    `json:"allowLists" yaml:"allowLists"`
-	Tags              []string        `json:"tags" yaml:"tags"`
-	ScoreParameters   ScoreParameters `json:"scoreParameters" yaml:"scoreParameters"`     // used for ASPM
-	DisableValidation bool            `json:"disableValidation" yaml:"disableValidation"` ////nolint:lll // if true, validation checks will be skipped for this rule if any validation is possible
-	Deprecated        bool            `json:"deprecated" yaml:"deprecated"`
+	RuleID            string       `json:"ruleId" yaml:"ruleId"` // uuid4, should be consistent across changes in rule
+	RuleName          string       `json:"ruleName" yaml:"ruleName"`
+	Description       string       `json:"description" yaml:"description"`
+	Regex             string       `json:"regex" yaml:"regex"` // regex pattern as string
+	Keywords          []string     `json:"keywords" yaml:"keywords"`
+	Entropy           float64      `json:"entropy" yaml:"entropy"`
+	Path              string       `json:"path" yaml:"path"`               // present in some gitleaks secrets (regex)
+	SecretGroup       int          `json:"secretGroup" yaml:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Severity          Severity     `json:"severity" yaml:"severity"`
+	OldSeverity       string       `json:"oldSeverity" yaml:"oldSeverity"` //nolint:lll // fallback for when critical is not enabled, has no effect on open source
+	AllowLists        []*AllowList `json:"allowLists" yaml:"allowLists"`
+	Tags              []string     `json:"tags" yaml:"tags"`
+	Category          RuleCategory `json:"category" yaml:"category"`                   // used for cvssScore
+	ScoreRuleType     uint8        `json:"scoreRuleType" yaml:"scoreRuleType"`         // used for cvssScore
+	DisableValidation bool         `json:"disableValidation" yaml:"disableValidation"` ////nolint:lll // if true, validation checks will be skipped for this rule if any validation is possible
+	Deprecated        bool         `json:"deprecated" yaml:"deprecated"`
 }
 
 type AllowList struct { // For patterns that are allowed to be ignored

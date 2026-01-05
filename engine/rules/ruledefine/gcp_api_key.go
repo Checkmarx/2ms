@@ -37,8 +37,9 @@ func GCPAPIKey() *Rule {
 				},
 			},
 		},
-		Severity:        "High",
-		Tags:            []string{TagApiKey},
-		ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagApiKey},
+		Category:      CategoryCloudPlatform,
+		ScoreRuleType: 4,
 	}
 }

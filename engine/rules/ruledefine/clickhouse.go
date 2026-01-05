@@ -17,8 +17,9 @@ func ClickHouseCloud() *Rule {
 		Keywords: []string{
 			"4b1d",
 		},
-		Severity:        "High",
-		Tags:            []string{TagSecretKey},
-		ScoreParameters: ScoreParameters{Category: CategoryCloudPlatform, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagSecretKey},
+		Category:      CategoryCloudPlatform,
+		ScoreRuleType: 4,
 	}
 }

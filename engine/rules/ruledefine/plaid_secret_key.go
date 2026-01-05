@@ -12,8 +12,9 @@ func PlaidSecretKey() *Rule {
 		Keywords: []string{
 			"plaid",
 		},
-		Severity:        "High",
-		Tags:            []string{TagSecretKey},
-		ScoreParameters: ScoreParameters{Category: CategoryFinancialServices, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagSecretKey},
+		Category:      CategoryFinancialServices,
+		ScoreRuleType: 4,
 	}
 }

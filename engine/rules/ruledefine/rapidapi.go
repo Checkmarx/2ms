@@ -12,8 +12,9 @@ func RapidAPIAccessToken() *Rule {
 		Keywords: []string{
 			"rapidapi",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategoryAPIAccess, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryAPIAccess,
+		ScoreRuleType: 4,
 	}
 }

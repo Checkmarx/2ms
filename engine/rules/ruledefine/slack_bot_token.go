@@ -16,8 +16,9 @@ func SlackBotToken() *Rule {
 		Keywords: []string{
 			"xoxb",
 		},
-		Severity:        "High",
-		Tags:            []string{TagAccessToken},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 4},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 4,
 	}
 }

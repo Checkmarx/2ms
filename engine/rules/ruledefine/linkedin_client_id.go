@@ -15,8 +15,9 @@ func LinkedinClientID() *Rule {
 			"linked_in",
 			"linked-in",
 		},
-		Severity:        "High",
-		Tags:            []string{TagClientId},
-		ScoreParameters: ScoreParameters{Category: CategorySocialMedia, RuleType: 1},
+		Severity:      "High",
+		Tags:          []string{TagClientId},
+		Category:      CategorySocialMedia,
+		ScoreRuleType: 1,
 	}
 }
