@@ -56,16 +56,12 @@ jobs:
             "removeHistory" : "'"${REMOVE_HISTORY}"'"
           }' > "$METADATA_PATH"
 
-      - name: Zip 2ms Folder
-        run: |
-          cd $GITHUB_WORKSPACE
-          zip -qr 2ms.zip 2ms/
-
       - name: Save 2ms
         uses: actions/upload-artifact@v4
         with:
           name: 2ms
-          path: ${{ github.workspace }}/2ms.zip
+          path: |
+            2ms/dist/
           retention-days: 1
 
       - name: Pr parameters
