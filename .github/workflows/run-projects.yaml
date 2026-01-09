@@ -55,11 +55,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: 2ms
-          path: .
-
-      - name: Unzip 2ms
-        run: |
-          unzip -q 2ms.zip
+          path: 2ms/
 
       - name: Download Json
         uses: actions/download-artifact@v4
@@ -101,8 +97,9 @@ jobs:
       - name: Run Engines Executor
         run: |
           mkdir -p $GITHUB_WORKSPACE/results
+          chmod +x $GITHUB_WORKSPACE/2ms/2ms
           ./cli/executor run 2ms \
-          -b $GITHUB_WORKSPACE/2ms/dist/2ms \
+          -b $GITHUB_WORKSPACE/2ms/2ms \
           -s $GITHUB_WORKSPACE/zips/ \
           -r $GITHUB_WORKSPACE/results \
           -j $GITHUB_WORKSPACE/pr-metadata.json \
