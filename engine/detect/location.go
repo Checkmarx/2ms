@@ -34,6 +34,15 @@ func location(newlineIndices [][]int, raw string, matchIndex []int) Location {
 		}
 	}
 
+	// If the file doesn't end with a newline, add a virtual newline at the end
+	// to ensure secrets on the last line are properly detected.
+	// This fixes the issue where secrets on the last line without a trailing
+	// newline would not have their location properly set.
+	lastNewlineIndex := newlineIndices[len(newlineIndices)-1][0]
+	if lastNewlineIndex < len(raw) {
+		newlineIndices = append(newlineIndices, []int{len(raw), len(raw) + 1})
+	}
+
 	for lineNum, pair := range newlineIndices {
 		_lineNum = lineNum
 		newLineByteIndex := pair[0]

@@ -29,8 +29,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
+
+	"github.com/checkmarx/2ms/v4/engine/detect"
 )
 
 // Removed global fsPlugin to avoid test interference

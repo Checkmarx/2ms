@@ -124,8 +124,7 @@ type IScorer interface {
 type ctxKey string
 
 const (
-	customRegexRuleIdFormat        = "custom-regex-%d"
-	CxFileEndMarker                = ";cx-file-end"
+	customRegexRuleIdFormat = "custom-regex-%d"
 	totalLinesKey           ctxKey = "totalLines"
 	linesInChunkKey         ctxKey = "linesInChunk"
 )
@@ -375,8 +374,6 @@ func (e *Engine) detectSecrets(
 		return nil
 	}
 
-	fragment.Raw += CxFileEndMarker + "\n"
-
 	values := e.detector.Detect(*fragment)
 
 	// Filter generic secrets if a better finding exists
@@ -546,7 +543,6 @@ func buildSecret(
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
-	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
 	hasNewline := strings.HasPrefix(value.Line, "\n")
 
 	if hasNewline {
