@@ -16,7 +16,8 @@ import (
 var Version = "0.0.0"
 
 const (
-	outputFormatRegexpPattern = `^(ya?ml|json|sarif)$`
+	stdoutFormatRegexpPattern = `^(ya?ml|json|sarif|human)$`
+	reportFormatRegexpPattern = `^(ya?ml|json|sarif)$`
 	configFileFlag            = "config"
 
 	logLevelFlagName           = "log-level"
@@ -34,13 +35,14 @@ const (
 )
 
 var (
-	logLevelVar        string
-	reportPathVar      []string
-	stdoutFormatVar    string
-	customRegexRuleVar []string
-	ignoreOnExitVar    = ignoreOnExitNone
-	engineConfigVar    engine.EngineConfig
-	validateVar        bool
+	logLevelVar         string
+	reportPathVar       []string
+	stdoutFormatVar     string
+	customRegexRuleVar  []string
+	ignoreOnExitVar     = ignoreOnExitNone
+	engineConfigVar     engine.EngineConfig
+	validateVar         bool
+	logLevelUserDefined bool
 )
 
 const envPrefix = "2MS"

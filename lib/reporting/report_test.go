@@ -5,9 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/checkmarx/2ms/v4/lib/config"
 	"github.com/checkmarx/2ms/v4/lib/secrets"
@@ -531,4 +533,118 @@ func TestGetOutputYAML(t *testing.T) {
 			assert.Equal(t, tc.report.Results, report.Results)
 		})
 	}
+}
+
+func TestGetOutputHuman(t *testing.T) {
+	t.Run("no secrets", func(t *testing.T) {
+		report := &Report{
+			TotalItemsScanned: 3,
+			TotalSecretsFound: 0,
+			Results:           map[string][]*secrets.Secret{},
+		}
+
+		report.SetScanDuration(1500 * time.Millisecond)
+
+		output, err := report.GetOutput("human", &config.Config{Name: "report", Version: "1.0.0"})
+		assert.NoError(t, err)
+
+		clean := stripANSI(output)
+
+		assert.Contains(t, clean, "2ms by Checkmarx scanning...")
+		assert.Contains(t, clean, "Findings: none")
+		assert.Contains(t, clean, "Items scanned: 3")
+		assert.Contains(t, clean, "Secrets found: 0")
+		assert.Contains(t, clean, "Totals")
+	})
+
+	t.Run("secret details", func(t *testing.T) {
+		report := &Report{
+			TotalItemsScanned: 2,
+			TotalSecretsFound: 1,
+			Results: map[string][]*secrets.Secret{
+				"secret-1": {
+					{
+						ID:               "secret-1",
+						Source:           "path/to/file.txt",
+						RuleID:           "rule-123",
+						StartLine:        42,
+						EndLine:          42,
+						StartColumn:      3,
+						EndColumn:        10,
+						LineContent:      "   api_key = \"value\"   ",
+						ValidationStatus: secrets.ValidResult,
+						CvssScore:        7.5,
+						RuleDescription:  "Rotate the key and scrub it from history.",
+						ExtraDetails: map[string]interface{}{
+							"secretDetails": map[string]interface{}{
+								"name": "john",
+								"sub":  "12345",
+							},
+							"environment": "production",
+						},
+					},
+				},
+			},
+		}
+
+		report.SetScanDuration(1234 * time.Millisecond)
+
+		output, err := report.GetOutput("human", &config.Config{Name: "report", Version: "1"})
+		assert.NoError(t, err)
+
+		clean := stripANSI(output)
+
+		assert.Contains(t, clean, "Findings: 1 secret in 1 file")
+		assert.Contains(t, clean, "File: path/to/file.txt")
+		assert.Contains(t, clean, "Rule: rule-123")
+		assert.Contains(t, clean, "Secret ID: secret-1")
+		assert.Contains(t, clean, "Location: line 42, columns 3-10")
+		assert.Contains(t, clean, "Validity: Valid")
+		assert.Contains(t, clean, "CVSS score: 7.5")
+		assert.Contains(t, clean, `Snippet: api_key = "value"`)
+		assert.Contains(t, clean, "Description: Rotate the key and scrub it from history.")
+		assert.Contains(t, clean, "Items scanned: 2")
+		assert.Contains(t, clean, "Secrets found: 1")
+		assert.Contains(t, clean, "Files with secrets: 1")
+		assert.Contains(t, clean, "Triggered rules: 1")
+		assert.NotContains(t, clean, "Metadata:")
+		assert.Contains(t, clean, "Done in 1.23s.")
+	})
+
+	t.Run("git source shows commit", func(t *testing.T) {
+		gitSource := "git show deadbeefdeadbeefdeadbeefdeadbeefdeadbeef:path/to/file.txt"
+		report := &Report{
+			TotalItemsScanned: 1,
+			TotalSecretsFound: 1,
+			Results: map[string][]*secrets.Secret{
+				gitSource: {
+					{
+						ID:          "git-secret-1",
+						Source:      gitSource,
+						RuleID:      "git-rule",
+						StartLine:   5,
+						EndLine:     5,
+						StartColumn: 1,
+						EndColumn:   4,
+						LineContent: "test=1",
+					},
+				},
+			},
+		}
+
+		output, err := report.GetOutput("human", &config.Config{Name: "report", Version: "1"})
+		assert.NoError(t, err)
+
+		clean := stripANSI(output)
+
+		assert.Contains(t, clean, "File: path/to/file.txt")
+		assert.Contains(t, clean, "Commit: deadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
+		assert.Contains(t, clean, "Rule: git-rule")
+	})
+}
+
+var ansiRegexp = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+func stripANSI(value string) string {
+	return ansiRegexp.ReplaceAllString(value, "")
 }
