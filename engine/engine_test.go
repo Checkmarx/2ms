@@ -350,7 +350,7 @@ func TestDetectFile(t *testing.T) {
 			cfg := newConfig()
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = make(map[string]struct{})
-			detector := detect.NewDetector(*cfg)
+			detector := detect.NewDetector(cfg)
 			detector.MaxTargetMegaBytes = tc.maxMegabytes
 			engine := &Engine{
 				rules: nil,
@@ -451,7 +451,7 @@ func TestDetectChunks(t *testing.T) {
 			cfg := newConfig()
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = make(map[string]struct{})
-			detector := detect.NewDetector(*cfg)
+			detector := detect.NewDetector(cfg)
 			engine := &Engine{
 				rules: nil,
 

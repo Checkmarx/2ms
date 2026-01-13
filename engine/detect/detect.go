@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 	"sync"
@@ -58,11 +59,11 @@ type Detector struct {
 	MaxTargetMegaBytes int
 
 	// caps the number of regex matches per rule per fragment
-	MaxRuleMatchesPerFragment int
+	MaxRuleMatchesPerFragment uint64
 
 	// MaxSecretSize is the maximum allowed secret size in bytes.
 	// Secrets larger than this will be ignored. 0 means no limit.
-	MaxSecretSize int
+	MaxSecretSize uint64
 
 	// followSymlinks is a flag to enable scanning symlink files
 	FollowSymlinks bool
@@ -119,14 +120,14 @@ type Detector struct {
 type Fragment sources.Fragment
 
 // NewDetector creates a new detector with the given config
-func NewDetector(cfg config.Config) *Detector {
+func NewDetector(cfg *config.Config) *Detector {
 	return &Detector{
 		commitMap:      make(map[string]bool),
 		gitleaksIgnore: make(map[string]struct{}),
 		findingMutex:   &sync.Mutex{},
 		commitMutex:    &sync.Mutex{},
 		findings:       make([]report.Finding, 0),
-		Config:         cfg,
+		Config:         *cfg,
 		prefilter:      *ahocorasick.NewTrieBuilder().AddStrings(maps.Keys(cfg.Keywords)).Build(),
 		Sema:           semgroup.NewGroup(context.Background(), 40),
 	}
@@ -148,7 +149,7 @@ func NewDetectorDefaultConfig() (*Detector, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewDetector(cfg), nil
+	return NewDetector(&cfg), nil
 }
 
 func (d *Detector) AddGitleaksIgnore(gitleaksIgnorePath string) error {
@@ -200,7 +201,7 @@ func (d *Detector) DetectBytes(content []byte) []report.Finding {
 
 // DetectString scans the given string and returns a list of findings
 func (d *Detector) DetectString(content string) []report.Finding {
-	return d.Detect(Fragment{
+	return d.Detect(&Fragment{
 		Raw: content,
 	})
 }
@@ -210,14 +211,14 @@ func (d *Detector) DetectSource(ctx context.Context, source sources.Source) ([]r
 	err := source.Fragments(ctx, func(fragment sources.Fragment, err error) error {
 		logContext := logging.With()
 
-		if len(fragment.FilePath) > 0 {
+		if fragment.FilePath != "" {
 			logContext = logContext.Str("path", fragment.FilePath)
 		}
 
 		if len(fragment.CommitSHA) > 6 {
 			logContext = logContext.Str("commit", fragment.CommitSHA[:7])
 			d.addCommit(fragment.CommitSHA)
-		} else if len(fragment.CommitSHA) > 0 {
+		} else if fragment.CommitSHA != "" {
 			logContext = logContext.Str("commit", fragment.CommitSHA)
 			d.addCommit(fragment.CommitSHA)
 			logger := logContext.Logger()
@@ -234,7 +235,7 @@ func (d *Detector) DetectSource(ctx context.Context, source sources.Source) ([]r
 
 		// both the fragment's content and path should be empty for it to be
 		// considered empty at this point because of path based matches
-		if len(fragment.Raw) == 0 && len(fragment.FilePath) == 0 {
+		if fragment.Raw == "" && fragment.FilePath == "" {
 			logger.Trace().Msg("skipping empty fragment")
 			return nil
 		}
@@ -247,8 +248,10 @@ func (d *Detector) DetectSource(ctx context.Context, source sources.Source) ([]r
 			})
 		}
 
-		for _, finding := range d.Detect(Fragment(fragment)) {
-			d.AddFinding(finding)
+		f := Fragment(fragment)
+		findings := d.Detect(&f)
+		for i := range findings {
+			d.AddFinding(&findings[i])
 		}
 
 		// Stop the timer if it was created
@@ -268,7 +271,9 @@ func (d *Detector) DetectSource(ctx context.Context, source sources.Source) ([]r
 }
 
 // Detect scans the given fragment and returns a list of findings
-func (d *Detector) Detect(fragment Fragment) []report.Finding {
+//
+//nolint:gocyclo // TODO: refactor this function to reduce cyclomatic complexity
+func (d *Detector) Detect(fragment *Fragment) []report.Finding {
 	if fragment.Bytes == nil {
 		d.TotalBytes.Add(uint64(len(fragment.Raw)))
 	}
@@ -314,18 +319,19 @@ func (d *Detector) Detect(fragment Fragment) []report.Finding {
 			keywords[normalizedRaw[m.Pos():int(m.Pos())+len(m.Match())]] = true
 		}
 
-		for _, rule := range d.Config.Rules {
+		for ruleIdx := range d.Config.Rules {
+			rule := d.Config.Rules[ruleIdx]
 			if len(rule.Keywords) == 0 {
 				// if no keywords are associated with the rule always scan the
 				// fragment using the rule
-				findings = append(findings, d.detectRule(fragment, currentRaw, rule, encodedSegments)...)
+				findings = append(findings, d.detectRule(fragment, currentRaw, &rule, encodedSegments)...)
 				continue
 			}
 
 			// check if keywords are in the fragment
 			for _, k := range rule.Keywords {
 				if _, ok := keywords[strings.ToLower(k)]; ok {
-					findings = append(findings, d.detectRule(fragment, currentRaw, rule, encodedSegments)...)
+					findings = append(findings, d.detectRule(fragment, currentRaw, &rule, encodedSegments)...)
 					break
 				}
 			}
@@ -352,7 +358,11 @@ func (d *Detector) Detect(fragment Fragment) []report.Finding {
 }
 
 // detectRule scans the given fragment for the given rule and returns a list of findings
-func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rule, encodedSegments []*codec.EncodedSegment) []report.Finding {
+//
+//nolint:gocyclo,funlen // TODO: refactor this function to reduce cyclomatic complexity and statements
+func (d *Detector) detectRule(
+	fragment *Fragment, currentRaw string, r *config.Rule, encodedSegments []*codec.EncodedSegment,
+) []report.Finding {
 	var (
 		findings []report.Finding
 		logger   = func() zerolog.Logger {
@@ -364,7 +374,7 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 		}()
 	)
 
-	if r.SkipReport == true && !fragment.InheritedFromFinding {
+	if r.SkipReport && !fragment.InheritedFromFinding {
 		return findings
 	}
 
@@ -391,7 +401,7 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 					finding.Author = fragment.CommitInfo.AuthorName
 					finding.Date = fragment.CommitInfo.Date
 					finding.Email = fragment.CommitInfo.AuthorEmail
-					finding.Link = createScmLink(fragment.CommitInfo.Remote, finding)
+					finding.Link = createScmLink(fragment.CommitInfo.Remote, &finding)
 					finding.Message = fragment.CommitInfo.Message
 				}
 				return append(findings, finding)
@@ -400,7 +410,9 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 			// if path is set _and_ a regex is set, then we need to check both
 			// so if the path does not match, then we should return early and not
 			// consider the regex
-			if !(r.Path.MatchString(fragment.FilePath) || (fragment.WindowsFilePath != "" && r.Path.MatchString(fragment.WindowsFilePath))) {
+			pathMatches := r.Path.MatchString(fragment.FilePath)
+			windowsPathMatches := fragment.WindowsFilePath != "" && r.Path.MatchString(fragment.WindowsFilePath)
+			if !pathMatches && !windowsPathMatches {
 				return findings
 			}
 		}
@@ -424,8 +436,8 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 	}
 
 	matchLimit := -1
-	if d.MaxRuleMatchesPerFragment > 0 {
-		matchLimit = d.MaxRuleMatchesPerFragment
+	if d.MaxRuleMatchesPerFragment > 0 && d.MaxRuleMatchesPerFragment <= uint64(math.MaxInt) {
+		matchLimit = int(d.MaxRuleMatchesPerFragment)
 	}
 	matches := r.Regex.FindAllStringIndex(currentRaw, matchLimit)
 	if len(matches) == 0 {
@@ -492,7 +504,7 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 			finding.Author = fragment.CommitInfo.AuthorName
 			finding.Date = fragment.CommitInfo.Date
 			finding.Email = fragment.CommitInfo.AuthorEmail
-			finding.Link = createScmLink(fragment.CommitInfo.Remote, finding)
+			finding.Link = createScmLink(fragment.CommitInfo.Remote, &finding)
 			finding.Message = fragment.CommitInfo.Message
 		}
 		if !d.IgnoreGitleaksAllow && strings.Contains(finding.Line, gitleaksAllowSignature) {
@@ -519,7 +531,7 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 			} else {
 				// If |secretGroup| is not set, we will use the first suitable capture group.
 				for _, s := range groups[1:] {
-					if len(s) > 0 {
+					if s != "" {
 						finding.Secret = s
 						break
 					}
@@ -528,10 +540,10 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 		}
 
 		// check if secret size (in bytes) exceeds the maximum allowed size
-		if d.MaxSecretSize > 0 && len(finding.Secret) > d.MaxSecretSize {
+		if d.MaxSecretSize > 0 && uint64(len(finding.Secret)) > d.MaxSecretSize {
 			logger.Trace().
 				Int("secret_size_bytes", len(finding.Secret)).
-				Int("max_secret_size_bytes", d.MaxSecretSize).
+				Uint64("max_secret_size_bytes", d.MaxSecretSize).
 				Str("rule_id", r.RuleID).
 				Msg("skipping finding: exceeds max secret size")
 			continue
@@ -552,13 +564,13 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 		}
 
 		// check if the result matches any of the global allowlists.
-		if isAllowed, event := checkFindingAllowed(logger, finding, fragment, currentLine, d.Config.Allowlists); isAllowed {
+		if isAllowed, event := checkFindingAllowed(logger, &finding, fragment, currentLine, d.Config.Allowlists); isAllowed {
 			event.Msg("skipping finding: global allowlist")
 			continue
 		}
 
 		// check if the result matches any of the rule allowlists.
-		if isAllowed, event := checkFindingAllowed(logger, finding, fragment, currentLine, r.Allowlists); isAllowed {
+		if isAllowed, event := checkFindingAllowed(logger, &finding, fragment, currentLine, r.Allowlists); isAllowed {
 			event.Msg("skipping finding: rule allowlist")
 			continue
 		}
@@ -575,7 +587,14 @@ func (d *Detector) detectRule(fragment Fragment, currentRaw string, r config.Rul
 }
 
 // processRequiredRules handles the logic for multi-part rules with auxiliary findings
-func (d *Detector) processRequiredRules(fragment Fragment, currentRaw string, r config.Rule, encodedSegments []*codec.EncodedSegment, primaryFindings []report.Finding, logger zerolog.Logger) []report.Finding {
+func (d *Detector) processRequiredRules(
+	fragment *Fragment,
+	currentRaw string,
+	r *config.Rule,
+	encodedSegments []*codec.EncodedSegment,
+	primaryFindings []report.Finding,
+	logger zerolog.Logger,
+) []report.Finding {
 	if len(primaryFindings) == 0 {
 		logger.Debug().Msg("no primary findings to process for required rules")
 		return primaryFindings
@@ -592,11 +611,11 @@ func (d *Detector) processRequiredRules(fragment Fragment, currentRaw string, r 
 		}
 
 		// Mark fragment as inherited to prevent infinite recursion
-		inheritedFragment := fragment
+		inheritedFragment := *fragment
 		inheritedFragment.InheritedFromFinding = true
 
 		// Call detectRule once for each required rule
-		requiredFindings := d.detectRule(inheritedFragment, currentRaw, rule, encodedSegments)
+		requiredFindings := d.detectRule(&inheritedFragment, currentRaw, &rule, encodedSegments)
 		allRequiredFindings[requiredRule.RuleID] = requiredFindings
 
 		logger.Debug().
@@ -608,7 +627,8 @@ func (d *Detector) processRequiredRules(fragment Fragment, currentRaw string, r 
 	var finalFindings []report.Finding
 
 	// Now process each primary finding against the pre-collected required findings
-	for _, primaryFinding := range primaryFindings {
+	for i := range primaryFindings {
+		primaryFinding := &primaryFindings[i]
 		var requiredFindings []*report.RequiredFinding
 
 		for _, requiredRule := range r.RequiredRules {
@@ -618,7 +638,8 @@ func (d *Detector) processRequiredRules(fragment Fragment, currentRaw string, r 
 			}
 
 			// Filter findings that are within proximity of the primary finding
-			for _, requiredFinding := range foundRequiredFindings {
+			for j := range foundRequiredFindings {
+				requiredFinding := &foundRequiredFindings[j]
 				if d.withinProximity(primaryFinding, requiredFinding, requiredRule) {
 					req := &report.RequiredFinding{
 						RuleID:      requiredFinding.RuleID,
@@ -638,7 +659,7 @@ func (d *Detector) processRequiredRules(fragment Fragment, currentRaw string, r 
 		// Check if we have at least one auxiliary finding for each required rule
 		if len(requiredFindings) > 0 && d.hasAllRequiredRules(requiredFindings, r.RequiredRules) {
 			// Create a finding with auxiliary findings
-			newFinding := primaryFinding // Copy the primary finding
+			newFinding := *primaryFinding // Copy the primary finding
 			newFinding.AddRequiredFindings(requiredFindings)
 			finalFindings = append(finalFindings, newFinding)
 
@@ -670,8 +691,7 @@ func (d *Detector) hasAllRequiredRules(auxiliaryFindings []*report.RequiredFindi
 	return true
 }
 
-func (d *Detector) withinProximity(primary, required report.Finding, requiredRule *config.Required) bool {
-	// fmt.Println(requiredRule.WithinLines)
+func (d *Detector) withinProximity(primary, required *report.Finding, requiredRule *config.Required) bool {
 	// If neither within_lines nor within_columns is set, findings just need to be in the same fragment
 	if requiredRule.WithinLines == nil && requiredRule.WithinColumns == nil {
 		return true
@@ -706,7 +726,7 @@ func abs(x int) int {
 }
 
 // AddFinding synchronously adds a finding to the findings slice
-func (d *Detector) AddFinding(finding report.Finding) {
+func (d *Detector) AddFinding(finding *report.Finding) {
 	globalFingerprint := fmt.Sprintf("%s:%s:%d", finding.File, finding.RuleID, finding.StartLine)
 	if finding.Commit != "" {
 		finding.Fingerprint = fmt.Sprintf("%s:%s:%s:%d", finding.Commit, finding.File, finding.RuleID, finding.StartLine)
@@ -739,7 +759,7 @@ func (d *Detector) AddFinding(finding report.Finding) {
 	}
 
 	d.findingMutex.Lock()
-	d.findings = append(d.findings, finding)
+	d.findings = append(d.findings, *finding)
 	if d.Verbose {
 		printFinding(finding, d.NoColor)
 	}
@@ -764,7 +784,7 @@ func (d *Detector) addCommit(commit string) {
 // Otherwise, if regexes or stopwords are defined this will fail.
 func checkCommitOrPathAllowed(
 	logger zerolog.Logger,
-	fragment Fragment,
+	fragment *Fragment,
 	allowlists []*config.Allowlist,
 ) (bool, *zerolog.Event) {
 	if fragment.FilePath == "" && fragment.CommitSHA == "" {
@@ -818,10 +838,12 @@ func checkCommitOrPathAllowed(
 // Otherwise, all conditions are checked.
 //
 // TODO: The method signature is awkward. I can't think of a better way to log helpful info.
+//
+//nolint:gocyclo // TODO: refactor this function to reduce cyclomatic complexity
 func checkFindingAllowed(
 	logger zerolog.Logger,
-	finding report.Finding,
-	fragment Fragment,
+	finding *report.Finding,
+	fragment *Fragment,
 	currentLine string,
 	allowlists []*config.Allowlist,
 ) (bool, *zerolog.Event) {

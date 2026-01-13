@@ -207,7 +207,7 @@ func Test_createScmLink(t *testing.T) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			actual := createScmLink(tt.remote, tt.finding)
+			actual := createScmLink(tt.remote, &tt.finding)
 			assert.Equal(t, tt.want, actual)
 		})
 	}

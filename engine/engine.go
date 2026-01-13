@@ -56,13 +56,13 @@ var (
 )
 
 type DetectorConfig struct {
-	SelectedRules         []*ruledefine.Rule
-	CustomRegexPatterns   []string
-	AdditionalIgnoreRules []string
-	MaxTargetMegabytes    int
-	MaxFindings               int                // Total findings limit across entire scan
-	MaxRuleMatchesPerFragment int                // Regex matches limit per rule per fragment
-	MaxSecretSize             int                // Maximum secret size in bytes (0 = no limit)
+	SelectedRules             []*ruledefine.Rule
+	CustomRegexPatterns       []string
+	AdditionalIgnoreRules     []string
+	MaxTargetMegabytes        int
+	MaxFindings               uint64 // Total findings limit across entire scan
+	MaxRuleMatchesPerFragment uint64 // Regex matches limit per rule per fragment
+	MaxSecretSize             uint64 // Maximum secret size in bytes (0 = no limit)
 }
 
 type Engine struct {
@@ -124,7 +124,7 @@ type IScorer interface {
 type ctxKey string
 
 const (
-	customRegexRuleIdFormat = "custom-regex-%d"
+	customRegexRuleIdFormat        = "custom-regex-%d"
 	totalLinesKey           ctxKey = "totalLines"
 	linesInChunkKey         ctxKey = "linesInChunk"
 )
@@ -135,9 +135,9 @@ type EngineConfig struct {
 	SpecialList  []string
 
 	MaxTargetMegabytes        int
-	MaxFindings               int // Total findings limit across entire scan
-	MaxRuleMatchesPerFragment int // Regex matches limit per rule per fragment
-	MaxSecretSize             int // Maximum secret size in bytes (0 = no limit)
+	MaxFindings               uint64 // Total findings limit across entire scan
+	MaxRuleMatchesPerFragment uint64 // Regex matches limit per rule per fragment
+	MaxSecretSize             uint64 // Maximum secret size in bytes (0 = no limit)
 
 	IgnoredIds    []string
 	AllowedValues []string
@@ -252,7 +252,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 	}
 
 	// Create detector with final config
-	detector := detect.NewDetector(*cfg)
+	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
 	detector.MaxRuleMatchesPerFragment = engineConfig.MaxRuleMatchesPerFragment
 	detector.MaxSecretSize = engineConfig.MaxSecretSize
@@ -370,11 +370,12 @@ func (e *Engine) detectSecrets(
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
-	if e.detectorConfig.MaxFindings > 0 && e.findingsCounter.Load() >= uint64(e.detectorConfig.MaxFindings) {
+	maxFindings := e.detectorConfig.MaxFindings
+	if maxFindings > 0 && e.findingsCounter.Load() >= maxFindings {
 		return nil
 	}
 
-	values := e.detector.Detect(*fragment)
+	values := e.detector.Detect(fragment)
 
 	// Filter generic secrets if a better finding exists
 	filteredValues := filterGenericDuplicateFindings(values)
@@ -385,11 +386,11 @@ func (e *Engine) detectSecrets(
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
 		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
-			if e.detectorConfig.MaxFindings > 0 {
+			if maxFindings > 0 {
 				newCount := e.findingsCounter.Add(1)
-				if newCount > uint64(e.detectorConfig.MaxFindings) {
+				if newCount > maxFindings {
 					log.Warn().
-						Int("max_findings", e.detectorConfig.MaxFindings).
+						Uint64("max_findings", maxFindings).
 						Msg("Maximum findings limit reached. Scan will stop early and report results up to this limit.")
 					break
 				}

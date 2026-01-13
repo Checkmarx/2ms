@@ -25,10 +25,12 @@ func (d *Detector) DetectReader(r io.Reader, bufSize int) ([]report.Finding, err
 			return err
 		}
 
-		for _, finding := range d.Detect(Fragment(fragment)) {
-			findings = append(findings, finding)
+		f := Fragment(fragment)
+		detected := d.Detect(&f)
+		for i := range detected {
+			findings = append(findings, detected[i])
 			if d.Verbose {
-				printFinding(finding, d.NoColor)
+				printFinding(&detected[i], d.NoColor)
 			}
 		}
 
@@ -92,16 +94,17 @@ func (d *Detector) StreamDetectReader(r io.Reader, bufSize int) (<-chan report.F
 				return err
 			}
 
-			for _, finding := range d.Detect(Fragment(fragment)) {
-				findingsCh <- finding
+			f := Fragment(fragment)
+			detected := d.Detect(&f)
+			for i := range detected {
+				findingsCh <- detected[i]
 				if d.Verbose {
-					printFinding(finding, d.NoColor)
+					printFinding(&detected[i], d.NoColor)
 				}
 			}
 
 			return nil
 		})
-
 	}()
 
 	return findingsCh, errCh

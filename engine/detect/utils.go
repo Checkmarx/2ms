@@ -1,7 +1,6 @@
 package detect
 
 import (
-	// "encoding/json"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -20,7 +19,8 @@ var linkCleaner = strings.NewReplacer(
 	"%", "%25",
 )
 
-func createScmLink(remote *sources.RemoteInfo, finding report.Finding) string {
+//nolint:gocyclo,funlen // TODO: refactor this function to reduce cyclomatic complexity and statements
+func createScmLink(remote *sources.RemoteInfo, finding *report.Finding) string {
 	if remote.Platform == scm.UnknownPlatform ||
 		remote.Platform == scm.NoPlatform ||
 		finding.Commit == "" {
@@ -136,16 +136,17 @@ func shannonEntropy(data string) (entropy float64) {
 // filter will dedupe and redact findings
 func filter(findings []report.Finding, redact uint) []report.Finding {
 	var retFindings []report.Finding
-	for _, f := range findings {
+	for i := range findings {
+		f := &findings[i]
 		include := true
 		if strings.Contains(strings.ToLower(f.RuleID), "generic") {
-			for _, fPrime := range findings {
+			for j := range findings {
+				fPrime := &findings[j]
 				if f.StartLine == fPrime.StartLine &&
 					f.Commit == fPrime.Commit &&
 					f.RuleID != fPrime.RuleID &&
 					strings.Contains(fPrime.Secret, f.Secret) &&
 					!strings.Contains(strings.ToLower(fPrime.RuleID), "generic") {
-
 					genericMatch := strings.ReplaceAll(f.Match, f.Secret, "REDACTED")
 					betterMatch := strings.ReplaceAll(fPrime.Match, fPrime.Secret, "REDACTED")
 					logging.Trace().Msgf("skipping %s finding (%s), %s rule takes precedence (%s)", f.RuleID, genericMatch, fPrime.RuleID, betterMatch)
@@ -159,13 +160,14 @@ func filter(findings []report.Finding, redact uint) []report.Finding {
 			f.Redact(redact)
 		}
 		if include {
-			retFindings = append(retFindings, f)
+			retFindings = append(retFindings, *f)
 		}
 	}
 	return retFindings
 }
 
-func printFinding(f report.Finding, noColor bool) {
+//nolint:funlen // TODO: refactor this function to reduce statements
+func printFinding(f *report.Finding, noColor bool) {
 	// trim all whitespace and tabs
 	f.Line = strings.TrimSpace(f.Line)
 	f.Secret = strings.TrimSpace(f.Secret)

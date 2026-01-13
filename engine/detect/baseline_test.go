@@ -148,7 +148,7 @@ func TestIsNew(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, test.expect, IsNew(test.findings, test.redact, test.baseline))
+			assert.Equal(t, test.expect, IsNew(&test.findings, test.redact, test.baseline))
 		})
 	}
 }
@@ -224,8 +224,8 @@ func TestIgnoreIssuesInBaseline(t *testing.T) {
 		d, err := NewDetectorDefaultConfig()
 		require.NoError(t, err)
 		d.baseline = test.baseline
-		for _, finding := range test.findings {
-			d.AddFinding(finding)
+		for i := range test.findings {
+			d.AddFinding(&test.findings[i])
 		}
 		assert.Len(t, d.findings, test.expectCount)
 	}

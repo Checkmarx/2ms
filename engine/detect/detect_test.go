@@ -797,11 +797,11 @@ const token = "mockSecret";
 			cfg, err := vc.Translate()
 			cfg.Path = filepath.Join(configPath, tt.cfgName+".toml")
 			assert.Equal(t, tt.wantError, err)
-			d := NewDetector(cfg)
+			d := NewDetector(&cfg)
 			d.MaxDecodeDepth = maxDecodeDepth
 			d.baselinePath = tt.baselinePath
 
-			findings := d.Detect(tt.fragment)
+			findings := d.Detect(&tt.fragment)
 
 			compare(t, findings, tt.expectedFindings)
 
@@ -1295,7 +1295,7 @@ func TestFromGit(t *testing.T) {
 			require.NoError(t, err)
 			cfg, err := vc.Translate()
 			require.NoError(t, err)
-			detector := NewDetector(cfg)
+			detector := NewDetector(&cfg)
 			detector.MaxArchiveDepth = 8
 
 			var ignorePath string
@@ -1380,7 +1380,7 @@ func TestFromGitStaged(t *testing.T) {
 		require.NoError(t, err)
 		cfg, err := vc.Translate()
 		require.NoError(t, err)
-		detector := NewDetector(cfg)
+		detector := NewDetector(&cfg)
 		err = detector.AddGitleaksIgnore(filepath.Join(tt.source, ".gitleaksignore"))
 		require.NoError(t, err)
 		gitCmd, err := sources.NewGitDiffCmd(tt.source, true)
@@ -1487,7 +1487,7 @@ func TestFromFiles(t *testing.T) {
 			require.NoError(t, err)
 
 			cfg, _ := vc.Translate()
-			detector := NewDetector(cfg)
+			detector := NewDetector(&cfg)
 
 			info, err := os.Stat(tt.source)
 			require.NoError(t, err)
@@ -2074,7 +2074,7 @@ func TestDetectWithArchives(t *testing.T) {
 			require.NoError(t, err)
 
 			cfg, _ := vc.Translate()
-			detector := NewDetector(cfg)
+			detector := NewDetector(&cfg)
 			detector.MaxArchiveDepth = 8
 
 			findings, err := detector.DetectSource(
@@ -2155,7 +2155,7 @@ func TestDetectWithSymlinks(t *testing.T) {
 		require.NoError(t, err)
 
 		cfg, _ := vc.Translate()
-		detector := NewDetector(cfg)
+		detector := NewDetector(&cfg)
 		detector.FollowSymlinks = true
 		paths, err := sources.DirectoryTargets(tt.source, detector.Sema, true, cfg.Allowlists)
 		require.NoError(t, err)
@@ -2406,7 +2406,7 @@ let password = 'Summer2024!';`
 			f := tc.fragment
 			f.Raw = raw
 
-			actual := d.detectRule(f, raw, rule, []*codec.EncodedSegment{})
+			actual := d.detectRule(&f, raw, rule, []*codec.EncodedSegment{})
 			compare(t, tc.expected, actual)
 		})
 	}
@@ -2565,7 +2565,7 @@ func TestWindowsFileSeparator_RulePath(t *testing.T) {
 	require.NoError(t, err)
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			actual := d.detectRule(test.fragment, test.fragment.Raw, test.rule, []*codec.EncodedSegment{})
+			actual := d.detectRule(&test.fragment, test.fragment.Raw, test.rule, []*codec.EncodedSegment{})
 			compare(t, test.expected, actual)
 		})
 	}
@@ -2749,7 +2749,7 @@ func TestWindowsFileSeparator_RuleAllowlistPaths(t *testing.T) {
 	require.NoError(t, err)
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			actual := d.detectRule(test.fragment, test.fragment.Raw, test.rule, []*codec.EncodedSegment{})
+			actual := d.detectRule(&test.fragment, test.fragment.Raw, test.rule, []*codec.EncodedSegment{})
 			compare(t, test.expected, actual)
 		})
 	}

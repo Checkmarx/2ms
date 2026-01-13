@@ -133,15 +133,15 @@ func setupFlags(rootCmd *cobra.Command) {
 			"files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
 
 	rootCmd.PersistentFlags().
-		IntVar(&engineConfigVar.MaxFindings, maxFindingsFlagName, 0,
+		Uint64Var(&engineConfigVar.MaxFindings, maxFindingsFlagName, 0,
 			"caps the total number of results. Scan stops early if limit is reached.\nOmit or set to 0 to disable this check.")
 
 	rootCmd.PersistentFlags().
-		IntVar(&engineConfigVar.MaxRuleMatchesPerFragment, maxRuleMatchesPerFragmentFlagName, 0,
+		Uint64Var(&engineConfigVar.MaxRuleMatchesPerFragment, maxRuleMatchesPerFragmentFlagName, 0,
 			"caps the number of results per rule per fragment (e.g., file, chunked file, page).\nOmit or set to 0 to disable this check.")
 
 	rootCmd.PersistentFlags().
-		IntVar(&engineConfigVar.MaxSecretSize, maxSecretSizeFlagName, 0,
+		Uint64Var(&engineConfigVar.MaxSecretSize, maxSecretSizeFlagName, 0,
 			"secrets larger than this size (in bytes) will be ignored.\nOmit or set to 0 to disable this check.")
 
 	rootCmd.PersistentFlags().
