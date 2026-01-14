@@ -707,6 +707,10 @@ func abs(x int) int {
 
 // AddFinding synchronously adds a finding to the findings slice
 func (d *Detector) AddFinding(finding *report.Finding) {
+	if len(finding.Secret) == 0 {
+		return
+	}
+
 	globalFingerprint := fmt.Sprintf("%s:%s:%d", finding.File, finding.RuleID, finding.StartLine)
 	if finding.Commit != "" {
 		finding.Fingerprint = fmt.Sprintf("%s:%s:%s:%d", finding.Commit, finding.File, finding.RuleID, finding.StartLine)
