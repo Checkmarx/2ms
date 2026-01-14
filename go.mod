@@ -14,7 +14,6 @@ require (
 	github.com/charmbracelet/lipgloss v0.7.1
 	github.com/fatih/semgroup v1.2.0
 	github.com/gitleaks/go-gitdiff v0.9.1
-	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/h2non/filetype v1.1.3
 	github.com/iancoleman/strcase v0.3.0
