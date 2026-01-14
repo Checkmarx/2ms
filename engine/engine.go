@@ -94,6 +94,9 @@ type Engine struct {
 
 	// Atomic counter to track findings across concurrent workers immediately
 	findingsCounter atomic.Uint64
+
+	// Ensures max findings warning is only logged once
+	maxFindingsWarnOnce sync.Once
 }
 
 type IEngine interface {
@@ -382,15 +385,15 @@ func (e *Engine) detectSecrets(
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
 		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
-			if maxFindings > 0 {
-				newCount := e.findingsCounter.Add(1)
-				if newCount > maxFindings {
+			if maxFindings > 0 && e.findingsCounter.Load() >= maxFindings {
+				e.maxFindingsWarnOnce.Do(func() {
 					log.Warn().
 						Uint64("max_findings", maxFindings).
 						Msg("Maximum findings limit reached. Scan will stop early and report results up to this limit.")
-					break
-				}
+				})
+				break
 			}
+			e.findingsCounter.Add(1)
 			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
