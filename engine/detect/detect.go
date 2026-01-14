@@ -36,7 +36,7 @@ var (
 )
 
 // Detector is the main detector struct
-type Detector struct { // TODO refactor file to remove fields and logic that only apply to gitleaks
+type Detector struct { // TODO refactor package to remove fields and logic that only apply to gitleaks
 	// Config is the configuration for the detector
 	Config config.Config
 
