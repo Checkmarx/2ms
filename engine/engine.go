@@ -385,7 +385,9 @@ func (e *Engine) detectSecrets(
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
 		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
-			if maxFindings > 0 && e.findingsCounter.Load() >= maxFindings {
+			// Atomically increment and check to avoid race condition
+			newCount := e.findingsCounter.Add(1)
+			if maxFindings > 0 && newCount > maxFindings {
 				e.maxFindingsWarnOnce.Do(func() {
 					log.Warn().
 						Uint64("max_findings", maxFindings).
@@ -393,7 +395,6 @@ func (e *Engine) detectSecrets(
 				})
 				break
 			}
-			e.findingsCounter.Add(1)
 			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
