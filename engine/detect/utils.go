@@ -133,11 +133,15 @@ func shannonEntropy(data string) (entropy float64) {
 	return entropy
 }
 
-// filter will dedupe and redact findings
+// filter will dedupe, redact, and remove empty secret findings
 func filter(findings []report.Finding, redact uint) []report.Finding {
 	var retFindings []report.Finding
 	for i := range findings {
 		f := &findings[i]
+		// Skip findings with empty secrets
+		if f.Secret == "" {
+			continue
+		}
 		include := true
 		if strings.Contains(strings.ToLower(f.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") { // generic rule ID
 			for j := range findings {

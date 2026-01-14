@@ -432,9 +432,6 @@ func (d *Detector) detectRule(
 	for _, matchIndex := range matches {
 		// Extract secret from match
 		secret := strings.Trim(currentRaw[matchIndex[0]:matchIndex[1]], "\n")
-		if secret == "" {
-			continue
-		}
 
 		// For any meta data from decoding
 		var metaTags []string
