@@ -139,14 +139,14 @@ func filter(findings []report.Finding, redact uint) []report.Finding {
 	for i := range findings {
 		f := &findings[i]
 		include := true
-		if strings.Contains(strings.ToLower(f.RuleID), "generic") {
+		if strings.Contains(strings.ToLower(f.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") { // generic rule ID
 			for j := range findings {
 				fPrime := &findings[j]
 				if f.StartLine == fPrime.StartLine &&
 					f.Commit == fPrime.Commit &&
 					f.RuleID != fPrime.RuleID &&
 					strings.Contains(fPrime.Secret, f.Secret) &&
-					!strings.Contains(strings.ToLower(fPrime.RuleID), "generic") {
+					!strings.Contains(strings.ToLower(fPrime.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") {
 					genericMatch := strings.ReplaceAll(f.Match, f.Secret, "REDACTED")
 					betterMatch := strings.ReplaceAll(fPrime.Match, fPrime.Secret, "REDACTED")
 					logging.Trace().Msgf("skipping %s finding (%s), %s rule takes precedence (%s)", f.RuleID, genericMatch, fPrime.RuleID, betterMatch)

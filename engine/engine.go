@@ -36,7 +36,6 @@ import (
 	"github.com/sourcegraph/conc"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/logging"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -377,10 +376,7 @@ func (e *Engine) detectSecrets(
 
 	values := e.detector.Detect(fragment)
 
-	// Filter generic secrets if a better finding exists
-	filteredValues := filterGenericDuplicateFindings(values)
-
-	for _, value := range filteredValues { //nolint:gocritic // rangeValCopy: value is used immediately
+	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
 		secret, buildErr := buildSecret(ctx, item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
@@ -822,35 +818,6 @@ func (e *Engine) Scan(pluginName string) {
 
 func (e *Engine) Wait() {
 	e.wg.Wait()
-}
-
-func filterGenericDuplicateFindings(findings []report.Finding) []report.Finding {
-	var retFindings []report.Finding
-	for i := range findings {
-		f := &findings[i]
-		include := true
-		if strings.Contains(strings.ToLower(f.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") { // generic rule ID
-			for j := range findings {
-				fPrime := &findings[j]
-				if f.StartLine == fPrime.StartLine &&
-					f.Commit == fPrime.Commit &&
-					f.RuleID != fPrime.RuleID &&
-					strings.Contains(fPrime.Secret, f.Secret) &&
-					!strings.Contains(strings.ToLower(fPrime.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") {
-					genericMatch := strings.ReplaceAll(f.Match, f.Secret, "REDACTED")
-					betterMatch := strings.ReplaceAll(fPrime.Match, fPrime.Secret, "REDACTED")
-					logging.Trace().Msgf("skipping %s finding (%s), %s rule takes precedence (%s)", f.RuleID, genericMatch, fPrime.RuleID, betterMatch)
-					include = false
-					break
-				}
-			}
-		}
-
-		if include {
-			retFindings = append(retFindings, *f)
-		}
-	}
-	return retFindings
 }
 
 // isSecretFromConfluenceResourceIdentifier reports whether a regex match found in a line

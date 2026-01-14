@@ -21,7 +21,6 @@ import (
 	ahocorasick "github.com/BobuSumisu/aho-corasick"
 	"github.com/fatih/semgroup"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 	"golang.org/x/exp/maps"
 )
 
@@ -37,7 +36,7 @@ var (
 )
 
 // Detector is the main detector struct
-type Detector struct {
+type Detector struct { // TODO refactor file to remove fields and logic that only apply to gitleaks
 	// Config is the configuration for the detector
 	Config config.Config
 
@@ -131,25 +130,6 @@ func NewDetector(cfg *config.Config) *Detector {
 		prefilter:      *ahocorasick.NewTrieBuilder().AddStrings(maps.Keys(cfg.Keywords)).Build(),
 		Sema:           semgroup.NewGroup(context.Background(), 40),
 	}
-}
-
-// NewDetectorDefaultConfig creates a new detector with the default config
-func NewDetectorDefaultConfig() (*Detector, error) {
-	viper.SetConfigType("toml")
-	err := viper.ReadConfig(strings.NewReader(config.DefaultConfig))
-	if err != nil {
-		return nil, err
-	}
-	var vc config.ViperConfig
-	err = viper.Unmarshal(&vc)
-	if err != nil {
-		return nil, err
-	}
-	cfg, err := vc.Translate()
-	if err != nil {
-		return nil, err
-	}
-	return NewDetector(&cfg), nil
 }
 
 func (d *Detector) AddGitleaksIgnore(gitleaksIgnorePath string) error {
@@ -751,7 +731,7 @@ func (d *Detector) AddFinding(finding *report.Finding) {
 		}
 	}
 
-	if d.baseline != nil && !IsNew(finding, d.Redact, d.baseline) {
+	if d.baseline != nil && !IsNew(*finding, d.Redact, d.baseline) {
 		logger.Debug().
 			Str("fingerprint", finding.Fingerprint).
 			Msgf("skipping finding: baseline")

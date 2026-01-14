@@ -9,12 +9,10 @@ import (
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
-//nolint:gocyclo // TODO: refactor this function to reduce cyclomatic complexity
-func IsNew(finding *report.Finding, redact uint, baseline []report.Finding) bool {
+func IsNew(finding report.Finding, redact uint, baseline []report.Finding) bool {
 	// Explicitly testing each property as it gives significantly better performance in comparison to cmp.Equal(). Drawback is that
 	// the code requires maintenance if/when the Finding struct changes
-	for i := range baseline {
-		b := &baseline[i]
+	for _, b := range baseline {
 		if finding.RuleID == b.RuleID &&
 			finding.Description == b.Description &&
 			finding.StartLine == b.StartLine &&
@@ -28,7 +26,7 @@ func IsNew(finding *report.Finding, redact uint, baseline []report.Finding) bool
 			finding.Email == b.Email &&
 			finding.Date == b.Date &&
 			finding.Message == b.Message &&
-			// Omit checking finding.Fingerprint - if the format of the fingerprint changes, the users will see unexpected behavior
+			// Omit checking finding.Fingerprint - if the format of the fingerprint changes, the users will see unexpected behaviour
 			finding.Entropy == b.Entropy {
 			return false
 		}
@@ -51,7 +49,7 @@ func LoadBaseline(baselinePath string) ([]report.Finding, error) {
 	return previousFindings, nil
 }
 
-func (d *Detector) AddBaseline(baselinePath, source string) error {
+func (d *Detector) AddBaseline(baselinePath string, source string) error {
 	if baselinePath != "" {
 		absoluteSource, err := filepath.Abs(source)
 		if err != nil {
@@ -75,6 +73,7 @@ func (d *Detector) AddBaseline(baselinePath, source string) error {
 
 		d.baseline = baseline
 		baselinePath = relativeBaseline
+
 	}
 
 	d.baselinePath = baselinePath
