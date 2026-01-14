@@ -1320,3 +1320,198 @@ func TestBuildSecret(t *testing.T) {
 		assert.Equal(t, pageID, value)
 	})
 }
+
+func TestMaxRuleMatchesPerFragmentFlag(t *testing.T) {
+	// Content with multiple secrets that would match the same rule
+	multipleSecrets := `
+token1: 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
+token2: ghp_1234567890abcdefghijklmnopqrstuvwxyz
+token3: ghp_abcdefghijklmnopqrstuvwxyz1234567890
+token4: ghp_9876543210zyxwvutsrqponmlkjihgfedcba
+token5: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
+`
+
+	testCases := []struct {
+		name          string
+		limit         uint64
+		expectedCount int
+	}{
+		{
+			name:          "no limit - finds all matches",
+			limit:         0,
+			expectedCount: 5,
+		},
+		{
+			name:          "limit of 2 - finds only 2 matches",
+			limit:         2,
+			expectedCount: 2,
+		},
+		{
+			name:          "limit of 1 - finds only 1 match",
+			limit:         1,
+			expectedCount: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			eng, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize:    1,
+				MaxRuleMatchesPerFragment: tc.limit,
+			})
+			require.NoError(t, err)
+			defer eng.Shutdown()
+
+			secretsChan := make(chan *secrets.Secret, 10)
+			fsPlugin := &plugins.FileSystemPlugin{}
+			err = eng.DetectFragment(item{content: &multipleSecrets}, secretsChan, fsPlugin.GetName())
+			require.NoError(t, err)
+			close(secretsChan)
+
+			count := 0
+			for range secretsChan {
+				count++
+			}
+			assert.Equal(t, tc.expectedCount, count)
+		})
+	}
+}
+
+func TestMaxSecretSizeFlag(t *testing.T) {
+	// Valid GitHub PAT format - 40 chars
+	secret := "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"
+
+	testCases := []struct {
+		name        string
+		limit       uint64
+		shouldFind  bool
+	}{
+		{
+			name:        "no limit - finds secret",
+			limit:       0,
+			shouldFind:  true,
+		},
+		{
+			name:        "limit larger than secret - finds secret",
+			limit:       200,
+			shouldFind:  true,
+		},
+		{
+			name:        "limit smaller than secret - ignores secret",
+			limit:       10,
+			shouldFind:  false,
+		},
+		{
+			name:        "limit exactly at secret size boundary - finds secret",
+			limit:       40,
+			shouldFind:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			eng, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize: 1,
+				MaxSecretSize:          tc.limit,
+			})
+			require.NoError(t, err)
+			defer eng.Shutdown()
+
+			secretsChan := make(chan *secrets.Secret, 1)
+			fsPlugin := &plugins.FileSystemPlugin{}
+			err = eng.DetectFragment(item{content: &secret}, secretsChan, fsPlugin.GetName())
+			require.NoError(t, err)
+			close(secretsChan)
+
+			s := <-secretsChan
+			if tc.shouldFind {
+				assert.NotNil(t, s)
+			} else {
+				assert.Nil(t, s)
+			}
+		})
+	}
+}
+
+func TestMaxFindingsFlag(t *testing.T) {
+	// Content with multiple secrets in single fragment
+	multipleSecrets := `
+github_token: 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
+another_token: ghp_1234567890abcdefghijklmnopqrstuvwxyz
+third_token: ghp_abcdefghijklmnopqrstuvwxyz1234567890
+`
+
+	testCases := []struct {
+		name          string
+		limit         uint64
+		fragments     []string
+		expectedCount int
+	}{
+		{
+			name:          "no limit - finds all secrets",
+			limit:         0,
+			fragments:     []string{multipleSecrets},
+			expectedCount: 3,
+		},
+		{
+			name:          "limit of 2 - stops after 2 findings",
+			limit:         2,
+			fragments:     []string{multipleSecrets},
+			expectedCount: 2,
+		},
+		{
+			name:          "limit of 1 - stops after 1 finding",
+			limit:         1,
+			fragments:     []string{multipleSecrets},
+			expectedCount: 1,
+		},
+		{
+			name:  "limit of 2 across 3 fragments",
+			limit: 2,
+			fragments: []string{
+				"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",
+				"ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+				"ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+			},
+			expectedCount: 2,
+		},
+		{
+			name:  "limit of 1 across 3 fragments",
+			limit: 1,
+			fragments: []string{
+				"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",
+				"ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+				"ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+			},
+			expectedCount: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			eng, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize: 1,
+				MaxFindings:            tc.limit,
+			})
+			require.NoError(t, err)
+			defer eng.Shutdown()
+
+			secretsChan := make(chan *secrets.Secret, 10)
+			fsPlugin := &plugins.FileSystemPlugin{}
+
+			for _, fragment := range tc.fragments {
+				f := fragment // capture for closure
+				err = eng.DetectFragment(item{content: &f}, secretsChan, fsPlugin.GetName())
+				require.NoError(t, err)
+			}
+
+			close(secretsChan)
+
+			count := 0
+			for range secretsChan {
+				count++
+			}
+			assert.Equal(t, tc.expectedCount, count)
+		})
+	}
+}
