@@ -16,7 +16,7 @@ var genericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
 	"token",
 }, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
 
-const GenericCredentialRuleID = "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70"
+const GenericCredentialRuleID = "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70" //nolint:gosec // This is a rule ID, not a credential
 
 func GenericCredential() *Rule {
 	return &Rule{
