@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/checkmarx/2ms/v4/engine/detect"
 	"github.com/stretchr/testify/assert"
-	"github.com/zricethezav/gitleaks/v8/detect"
 )
 
 func TestHashicorpField(t *testing.T) {
@@ -38,14 +38,14 @@ func TestHashicorpField(t *testing.T) {
 			// validate true positives if any specified
 			for path, truePositive := range tt.truePositivesWPaths {
 				fragment := detect.Fragment{Raw: truePositive, FilePath: path}
-				findings := d.Detect(fragment)
+				findings := d.Detect(&fragment)
 				assert.Equal(t, len(findings), 1, fmt.Sprintf("failed to detect true positive: %s", truePositive))
 			}
 
 			// validate false positives if any specified
 			for path, falsePositive := range tt.falsePositivesWPaths {
 				fragment := detect.Fragment{Raw: falsePositive, FilePath: path}
-				findings := d.Detect(fragment)
+				findings := d.Detect(&fragment)
 				assert.Equal(t, 0, len(findings), fmt.Sprintf("unexpectedly found false positive: %s", falsePositive))
 			}
 		})

@@ -766,4 +766,114 @@ api_key: test-key-456`
 			}
 		}
 	})
+
+	t.Run("--max-findings flag: caps total number of findings", func(t *testing.T) {
+		projectDir := t.TempDir()
+
+		// Create multiple files with secrets to ensure we have more than the limit
+		for i := 1; i <= 5; i++ {
+			content := fmt.Sprintf("secret%d: ghp_%dabcdefghijklmnopqrstuvwxyz12345678", i, i)
+			err := os.WriteFile(path.Join(projectDir, fmt.Sprintf("secret%d.txt", i)), []byte(content), 0644)
+			require.NoError(t, err, "failed to create test file")
+		}
+
+		// Run scan with --max-findings set to 2
+		err = executable.run("filesystem", "--path", projectDir, "--max-findings", "2", "--ignore-on-exit", "results")
+		assert.NoError(t, err, "scan should succeed with max-findings flag")
+
+		report, err := executable.getReport()
+		require.NoError(t, err, "failed to get report")
+
+		totalSecrets := report.GetTotalSecretsFound()
+		t.Logf("Total secrets found with --max-findings=2: %d", totalSecrets)
+		assert.LessOrEqual(t, totalSecrets, 2, "should find at most 2 secrets when --max-findings=2")
+	})
+
+	t.Run("--max-rule-matches-per-fragment flag: limits matches per rule per fragment", func(t *testing.T) {
+		projectDir := t.TempDir()
+
+		// Create a single file with multiple secrets that match the same rule
+		content := `Multiple GitHub PATs in one file:
+token1: ghp_1234567890abcdefghijklmnopqrstuvwxyz
+token2: ghp_abcdefghijklmnopqrstuvwxyz1234567890
+token3: ghp_9876543210zyxwvutsrqponmlkjihgfedcba
+token4: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
+token5: 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`
+
+		err := os.WriteFile(path.Join(projectDir, "multi_secrets.txt"), []byte(content), 0644)
+		require.NoError(t, err, "failed to create test file")
+
+		// Run scan with --max-rule-matches-per-fragment set to 2
+		err = executable.run("filesystem", "--path", projectDir, "--max-rule-matches-per-fragment", "2", "--ignore-on-exit", "results")
+		assert.NoError(t, err, "scan should succeed with max-rule-matches-per-fragment flag")
+
+		report, err := executable.getReport()
+		require.NoError(t, err, "failed to get report")
+
+		totalSecrets := report.GetTotalSecretsFound()
+		t.Logf("Total secrets found with --max-rule-matches-per-fragment=2: %d", totalSecrets)
+		assert.LessOrEqual(t, totalSecrets, 2, "should find at most 2 secrets per rule per fragment")
+	})
+
+	t.Run("--max-secret-size flag: ignores secrets larger than specified size", func(t *testing.T) {
+		projectDir := t.TempDir()
+
+		// Create a file with a normal-sized secret
+		normalSecret := "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" // 40 chars
+		err := os.WriteFile(path.Join(projectDir, "normal.txt"), []byte(normalSecret), 0644)
+		require.NoError(t, err, "failed to create test file")
+
+		// Run scan with --max-secret-size set to a value smaller than the secret
+		err = executable.run("filesystem", "--path", projectDir, "--max-secret-size", "10", "--ignore-on-exit", "results")
+		assert.NoError(t, err, "scan should succeed with max-secret-size flag")
+
+		report, err := executable.getReport()
+		require.NoError(t, err, "failed to get report")
+
+		totalSecrets := report.GetTotalSecretsFound()
+		t.Logf("Total secrets found with --max-secret-size=10: %d", totalSecrets)
+		assert.Equal(t, 0, totalSecrets, "should find no secrets when max-secret-size is smaller than secret")
+
+		// Run scan with --max-secret-size set to a value larger than the secret
+		err = executable.run("filesystem", "--path", projectDir, "--max-secret-size", "100", "--ignore-on-exit", "results")
+		assert.NoError(t, err, "scan should succeed with max-secret-size flag")
+
+		report, err = executable.getReport()
+		require.NoError(t, err, "failed to get report")
+
+		totalSecrets = report.GetTotalSecretsFound()
+		t.Logf("Total secrets found with --max-secret-size=100: %d", totalSecrets)
+		assert.GreaterOrEqual(t, totalSecrets, 1, "should find secrets when max-secret-size is larger than secret")
+	})
+
+	t.Run("Combined limit flags: multiple limit flags together", func(t *testing.T) {
+		projectDir := t.TempDir()
+
+		// Create multiple files with multiple secrets each
+		for i := 1; i <= 5; i++ {
+			content := fmt.Sprintf(`File %d secrets:
+token1: ghp_%d234567890abcdefghijklmnopqrstuvwxy
+token2: ghp_%dabcdefghijklmnopqrstuvwxyz123456789`, i, i, i)
+			err := os.WriteFile(path.Join(projectDir, fmt.Sprintf("file%d.txt", i)), []byte(content), 0644)
+			require.NoError(t, err, "failed to create test file")
+		}
+
+		// Run scan with multiple limit flags
+		err = executable.run("filesystem",
+			"--path", projectDir,
+			"--max-findings", "3",
+			"--max-rule-matches-per-fragment", "1",
+			"--max-secret-size", "100",
+			"--ignore-on-exit", "results")
+		assert.NoError(t, err, "scan should succeed with combined limit flags")
+
+		report, err := executable.getReport()
+		require.NoError(t, err, "failed to get report")
+
+		totalSecrets := report.GetTotalSecretsFound()
+		t.Logf("Total secrets found with combined limit flags: %d", totalSecrets)
+		// With max-rule-matches-per-fragment=1, we get at most 1 per file (3 files)
+		// With max-findings=3, we get at most 3 total
+		assert.LessOrEqual(t, totalSecrets, 3, "should respect combined limit flags")
+	})
 }

@@ -15,9 +15,11 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"text/tabwriter"
 
 	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v4/engine/detect"
 	"github.com/checkmarx/2ms/v4/engine/extra"
 	"github.com/checkmarx/2ms/v4/engine/linecontent"
 	"github.com/checkmarx/2ms/v4/engine/rules"
@@ -34,8 +36,6 @@ import (
 	"github.com/sourcegraph/conc"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
-	"github.com/zricethezav/gitleaks/v8/logging"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -55,10 +55,13 @@ var (
 )
 
 type DetectorConfig struct {
-	SelectedRules         []*ruledefine.Rule
-	CustomRegexPatterns   []string
-	AdditionalIgnoreRules []string
-	MaxTargetMegabytes    int
+	SelectedRules             []*ruledefine.Rule
+	CustomRegexPatterns       []string
+	AdditionalIgnoreRules     []string
+	MaxTargetMegabytes        int
+	MaxFindings               uint64 // Total findings limit across entire scan
+	MaxRuleMatchesPerFragment uint64 // Regex matches limit per rule per fragment
+	MaxSecretSize             uint64 // Maximum secret size in bytes (0 = no limit)
 }
 
 type Engine struct {
@@ -88,6 +91,12 @@ type Engine struct {
 	ScanConfig resources.ScanConfig
 
 	wg conc.WaitGroup
+
+	// Atomic counter to track findings across concurrent workers immediately
+	findingsCounter atomic.Uint64
+
+	// Ensures max findings warning is only logged once
+	maxFindingsWarnOnce sync.Once
 }
 
 type IEngine interface {
@@ -118,7 +127,6 @@ type ctxKey string
 
 const (
 	customRegexRuleIdFormat        = "custom-regex-%d"
-	CxFileEndMarker                = ";cx-file-end"
 	totalLinesKey           ctxKey = "totalLines"
 	linesInChunkKey         ctxKey = "linesInChunk"
 )
@@ -128,7 +136,10 @@ type EngineConfig struct {
 	IgnoreList   []string
 	SpecialList  []string
 
-	MaxTargetMegabytes int
+	MaxTargetMegabytes        int
+	MaxFindings               uint64 // Total findings limit across entire scan
+	MaxRuleMatchesPerFragment uint64 // Regex matches limit per rule per fragment
+	MaxSecretSize             uint64 // Maximum secret size in bytes (0 = no limit)
 
 	IgnoredIds    []string
 	AllowedValues []string
@@ -188,10 +199,13 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 
 	engine := &Engine{
 		detectorConfig: DetectorConfig{
-			SelectedRules:         finalRules,
-			CustomRegexPatterns:   engineConfig.CustomRegexPatterns,
-			AdditionalIgnoreRules: engineConfig.AdditionalIgnoreRules,
-			MaxTargetMegabytes:    engineConfig.MaxTargetMegabytes,
+			SelectedRules:             finalRules,
+			CustomRegexPatterns:       engineConfig.CustomRegexPatterns,
+			AdditionalIgnoreRules:     engineConfig.AdditionalIgnoreRules,
+			MaxTargetMegabytes:        engineConfig.MaxTargetMegabytes,
+			MaxFindings:               engineConfig.MaxFindings,
+			MaxRuleMatchesPerFragment: engineConfig.MaxRuleMatchesPerFragment,
+			MaxSecretSize:             engineConfig.MaxSecretSize,
 		},
 
 		validator:    *validation.NewValidator(),
@@ -240,8 +254,10 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 	}
 
 	// Create detector with final config
-	detector := detect.NewDetector(*cfg)
+	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
+	detector.MaxRuleMatchesPerFragment = engineConfig.MaxRuleMatchesPerFragment
+	detector.MaxSecretSize = engineConfig.MaxSecretSize
 	engine.detector = detector
 
 	return engine, nil
@@ -356,19 +372,29 @@ func (e *Engine) detectSecrets(
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
-	fragment.Raw += CxFileEndMarker + "\n"
+	maxFindings := e.detectorConfig.MaxFindings
+	if maxFindings > 0 && e.findingsCounter.Load() >= maxFindings {
+		return nil
+	}
 
-	values := e.detector.Detect(*fragment)
+	values := e.detector.Detect(fragment)
 
-	// Filter generic secrets if a better finding exists
-	filteredValues := filterGenericDuplicateFindings(values)
-
-	for _, value := range filteredValues { //nolint:gocritic // rangeValCopy: value is used immediately
+	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
 		secret, buildErr := buildSecret(ctx, item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
 		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
+			// Atomically increment and check to avoid race condition
+			newCount := e.findingsCounter.Add(1)
+			if maxFindings > 0 && newCount > maxFindings {
+				e.maxFindingsWarnOnce.Do(func() {
+					log.Warn().
+						Uint64("max_findings", maxFindings).
+						Msg("Maximum findings limit reached. Scan will stop early and report results up to this limit.")
+				})
+				break
+			}
 			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -518,7 +544,6 @@ func buildSecret(
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
-	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
 	hasNewline := strings.HasPrefix(value.Line, "\n")
 
 	if hasNewline {
@@ -797,35 +822,6 @@ func (e *Engine) Scan(pluginName string) {
 
 func (e *Engine) Wait() {
 	e.wg.Wait()
-}
-
-func filterGenericDuplicateFindings(findings []report.Finding) []report.Finding {
-	var retFindings []report.Finding
-	for i := range findings {
-		f := &findings[i]
-		include := true
-		if strings.Contains(strings.ToLower(f.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") { // generic rule ID
-			for j := range findings {
-				fPrime := &findings[j]
-				if f.StartLine == fPrime.StartLine &&
-					f.Commit == fPrime.Commit &&
-					f.RuleID != fPrime.RuleID &&
-					strings.Contains(fPrime.Secret, f.Secret) &&
-					!strings.Contains(strings.ToLower(fPrime.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") {
-					genericMatch := strings.ReplaceAll(f.Match, f.Secret, "REDACTED")
-					betterMatch := strings.ReplaceAll(fPrime.Match, fPrime.Secret, "REDACTED")
-					logging.Trace().Msgf("skipping %s finding (%s), %s rule takes precedence (%s)", f.RuleID, genericMatch, fPrime.RuleID, betterMatch)
-					include = false
-					break
-				}
-			}
-		}
-
-		if include {
-			retFindings = append(retFindings, *f)
-		}
-	}
-	return retFindings
 }
 
 // isSecretFromConfluenceResourceIdentifier reports whether a regex match found in a line
