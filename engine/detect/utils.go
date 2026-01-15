@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/zricethezav/gitleaks/v8/cmd/scm"
 	"github.com/zricethezav/gitleaks/v8/logging"
 	"github.com/zricethezav/gitleaks/v8/report"
@@ -143,14 +144,14 @@ func filter(findings []report.Finding, redact uint) []report.Finding {
 			continue
 		}
 		include := true
-		if strings.Contains(strings.ToLower(f.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") { // generic rule ID
+		if strings.Contains(strings.ToLower(f.RuleID), ruledefine.GenericCredentialRuleID) { // generic rule ID
 			for j := range findings {
 				fPrime := &findings[j]
 				if f.StartLine == fPrime.StartLine &&
 					f.Commit == fPrime.Commit &&
 					f.RuleID != fPrime.RuleID &&
 					strings.Contains(fPrime.Secret, f.Secret) &&
-					!strings.Contains(strings.ToLower(fPrime.RuleID), "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70") {
+					!strings.Contains(strings.ToLower(fPrime.RuleID), ruledefine.GenericCredentialRuleID) {
 					genericMatch := strings.ReplaceAll(f.Match, f.Secret, "REDACTED")
 					betterMatch := strings.ReplaceAll(fPrime.Match, fPrime.Secret, "REDACTED")
 					logging.Trace().Msgf("skipping %s finding (%s), %s rule takes precedence (%s)", f.RuleID, genericMatch, fPrime.RuleID, betterMatch)
