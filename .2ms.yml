@@ -2979,3 +2979,10 @@ ignore-result:
 - f8ad50fd98cae17bfe5ca72ba61ff3a5633af7c7 # unit test from detect_test.go
 - f8df8140da50183a21805c2bde7d8628c9e67250 # unit test from detect_test.go
 - fd8aec977582f220d0c416be5c3ad0a77a5e4e88 # unit test from detect_test.go
+- 1fe065327471fe5245572e5406b3647d27887d58 # test/development data from generic_credential.go
+- 41cca7cb54b14f9a6343f51a56dee951a3249a16 # test/development data from generic_credential.go
+- 5d3c644b96a41c68a4bf3c6ecca6359557bb5c90 # test/development data from generic_credential.go
+- 6c09a8e8d52d37152e38a4f64c96db16abd964ab # test/development data from generic_credential.go
+- 7ccee5d40367960f69709da28dcf197c7c5c06f8 # test/development data from generic_credential.go
+- ba40bd0cfa331c71899179dbb35b2a6eb452a482 # secret found in ruleids.go
+- eeaf67842fc9be3123b8e2aea470608c2f362033 # test/development data from generic_credential.go
