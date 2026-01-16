@@ -1532,7 +1532,6 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 		fragments          []string
 		expectedCount      int
 		shouldLogWarning   bool
-		expectedLogMessage string
 	}{
 		{
 			name:               "no limit - no warning",
@@ -1540,7 +1539,6 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 			fragments:          []string{multipleSecrets},
 			expectedCount:      5,
 			shouldLogWarning:   false,
-			expectedLogMessage: "",
 		},
 		{
 			name:               "limit of 3 - warning logged when limit reached",
@@ -1548,7 +1546,6 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 			fragments:          []string{multipleSecrets},
 			expectedCount:      3,
 			shouldLogWarning:   true,
-			expectedLogMessage: "Maximum findings limit reached",
 		},
 		{
 			name:  "limit of 2 across multiple fragments - warning logged",
@@ -1560,7 +1557,6 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 			},
 			expectedCount:      2,
 			shouldLogWarning:   true,
-			expectedLogMessage: "Maximum findings limit reached",
 		},
 		{
 			name:               "limit of 1 - warning logged immediately",
@@ -1568,7 +1564,6 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 			fragments:          []string{multipleSecrets},
 			expectedCount:      1,
 			shouldLogWarning:   true,
-			expectedLogMessage: "Maximum findings limit reached",
 		},
 		{
 			name:             "limit higher than findings - no warning",
@@ -1600,8 +1595,7 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 			fsPlugin := &plugins.FileSystemPlugin{}
 
 			for _, fragment := range tc.fragments {
-				f := fragment // capture for closure
-				err = eng.DetectFragment(item{content: &f}, secretsChan, fsPlugin.GetName())
+				err = eng.DetectFragment(item{content: &fragment}, secretsChan, fsPlugin.GetName())
 				require.NoError(t, err)
 			}
 
@@ -1618,7 +1612,7 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 			// Verify warning message
 			loggedMessage := logsBuffer.String()
 			if tc.shouldLogWarning {
-				assert.Contains(t, loggedMessage, tc.expectedLogMessage,
+				assert.Contains(t, loggedMessage, "Maximum findings limit reached",
 					"Expected warning message to be logged when limit is reached")
 				assert.Contains(t, loggedMessage, fmt.Sprintf("max_findings=%d", tc.limit),
 					"Expected max_findings value in log message")

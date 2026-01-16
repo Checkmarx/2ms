@@ -390,7 +390,9 @@ func (e *Engine) detectSecrets(
 						Uint64("max_findings", maxFindings).
 						Msg("Maximum findings limit reached. Scan will stop early and report results up to this limit.")
 				})
-				break
+				if newCount > maxFindings {
+					break
+				}
 			}
 			secrets <- secret
 		} else {
