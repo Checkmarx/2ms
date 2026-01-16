@@ -359,7 +359,7 @@ Other fields are optional and can be seen in the example bellow of a file with a
   keywords: # Keywords are used for pre-regex check filtering. Rules that contain keywords will perform a quick string compare check to make sure the keyword(s) are in the content being scanned.
     - access
     - api
-  entropy: 3.5 # shannon entropy, measures how random a string is. The value will be higher the more random a string is. Default rules that use entropy have values between 2.0 and 4.5. Leave empty to consider matches regardless of entropy
+  entropy: 3.5 # minimum shannon entropy, which measures how random a string is. The more unique characters a string has, the higher the entropy. The value of entropy will tend to become log2(unique chars), so long as all unique are equally present in the string ('abcd' string has entropy of log2(4)=2, but so does 'aabbccdd'). To test entropy values, use https://textcompare.io/shannon-entropy-calculator. Default rules that use entropy have values between 2.0 and 4.5, though these minimums can sometimes be 1-2 lower than the entropy of a true positive. Leave entropy empty to consider matches regardless of entropy
   secretGroup: 1 # defines which capture group of regex match is considered the secret. Is also used as the group that will have its entropy checked if `entropy` is set. Can be left empty, in which case the first capture group to match will be considered the secret
   path: "(?i)\\.(?:tf|hcl)$" # regex to limit the rule to specific file paths, for example, only .tf and .hcl files. For regexes, if enclosed in "", make sure to escape backslashes (\\, \\b, etc.)
   severity: High # severity, can only be one of [Critical, High, Medium, Low, Info]
