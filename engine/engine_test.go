@@ -1515,3 +1515,117 @@ third_token: ghp_abcdefghijklmnopqrstuvwxyz1234567890
 		})
 	}
 }
+
+func TestMaxFindingsWarning(t *testing.T) {
+	// Content with multiple secrets in single fragment
+	multipleSecrets := `
+github_token: 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
+another_token: ghp_1234567890abcdefghijklmnopqrstuvwxyz
+third_token: ghp_abcdefghijklmnopqrstuvwxyz1234567890
+fourth_token: ghp_9876543210zyxwvutsrqponmlkjihgfedcba
+fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
+`
+
+	testCases := []struct {
+		name               string
+		limit              uint64
+		fragments          []string
+		expectedCount      int
+		shouldLogWarning   bool
+		expectedLogMessage string
+	}{
+		{
+			name:               "no limit - no warning",
+			limit:              0,
+			fragments:          []string{multipleSecrets},
+			expectedCount:      5,
+			shouldLogWarning:   false,
+			expectedLogMessage: "",
+		},
+		{
+			name:               "limit of 3 - warning logged when limit reached",
+			limit:              3,
+			fragments:          []string{multipleSecrets},
+			expectedCount:      3,
+			shouldLogWarning:   true,
+			expectedLogMessage: "Maximum findings limit reached",
+		},
+		{
+			name:  "limit of 2 across multiple fragments - warning logged",
+			limit: 2,
+			fragments: []string{
+				"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",
+				"ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+				"ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+			},
+			expectedCount:      2,
+			shouldLogWarning:   true,
+			expectedLogMessage: "Maximum findings limit reached",
+		},
+		{
+			name:               "limit of 1 - warning logged immediately",
+			limit:              1,
+			fragments:          []string{multipleSecrets},
+			expectedCount:      1,
+			shouldLogWarning:   true,
+			expectedLogMessage: "Maximum findings limit reached",
+		},
+		{
+			name:             "limit higher than findings - no warning",
+			limit:            10,
+			fragments:        []string{multipleSecrets},
+			expectedCount:    5,
+			shouldLogWarning: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Capture log output
+			var logsBuffer bytes.Buffer
+			log.Logger = log.Output(zerolog.ConsoleWriter{
+				Out:        &logsBuffer,
+				NoColor:    true,
+				TimeFormat: "",
+			}).Level(zerolog.WarnLevel)
+
+			eng, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize: 1,
+				MaxFindings:            tc.limit,
+			})
+			require.NoError(t, err)
+			defer eng.Shutdown()
+
+			secretsChan := make(chan *secrets.Secret, 10)
+			fsPlugin := &plugins.FileSystemPlugin{}
+
+			for _, fragment := range tc.fragments {
+				f := fragment // capture for closure
+				err = eng.DetectFragment(item{content: &f}, secretsChan, fsPlugin.GetName())
+				require.NoError(t, err)
+			}
+
+			close(secretsChan)
+
+			count := 0
+			for range secretsChan {
+				count++
+			}
+
+			// Verify findings count
+			assert.Equal(t, tc.expectedCount, count)
+
+			// Verify warning message
+			loggedMessage := logsBuffer.String()
+			if tc.shouldLogWarning {
+				assert.Contains(t, loggedMessage, tc.expectedLogMessage,
+					"Expected warning message to be logged when limit is reached")
+				assert.Contains(t, loggedMessage, fmt.Sprintf("max_findings=%d", tc.limit),
+					"Expected max_findings value in log message")
+			} else {
+				assert.NotContains(t, loggedMessage, "Maximum findings limit reached",
+					"Warning message should not be logged when limit is not reached")
+			}
+		})
+	}
+}

@@ -387,13 +387,15 @@ func (e *Engine) detectSecrets(
 		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
 			// Atomically increment and check to avoid race condition
 			newCount := e.findingsCounter.Add(1)
-			if maxFindings > 0 && newCount > maxFindings {
+			if maxFindings > 0 && newCount >= maxFindings {
 				e.maxFindingsWarnOnce.Do(func() {
 					log.Warn().
 						Uint64("max_findings", maxFindings).
 						Msg("Maximum findings limit reached. Scan will stop early and report results up to this limit.")
 				})
-				break
+				if newCount > maxFindings {
+					break
+				}
 			}
 			secrets <- secret
 		} else {
