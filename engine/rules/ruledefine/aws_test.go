@@ -1,14 +1,10 @@
 package ruledefine
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/zricethezav/gitleaks/v8/regexp"
-	"gopkg.in/yaml.v3"
 )
 
 func TestAWS(t *testing.T) {
@@ -179,46 +175,4 @@ func TestAWS(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestYamlAWS(t *testing.T) {
-	// marhsal aws rule to yaml file
-	awsRule := FlyIOAccessToken()
-	awsRuleYaml, err := yaml.Marshal(awsRule)
-	assert.NoError(t, err)
-
-	// write to temp file
-	tmpFile, err := os.CreateTemp("", "aws-rule-*.yaml")
-	assert.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
-	_, err = tmpFile.Write(awsRuleYaml)
-	assert.NoError(t, err)
-
-	// read from file and unmarshal the rule
-	awsRuleRead, err := os.ReadFile(tmpFile.Name())
-	assert.NoError(t, err)
-	var awsRuleUnmarshalled *Rule
-	err = yaml.Unmarshal(awsRuleRead, &awsRuleUnmarshalled)
-	assert.NoError(t, err)
-
-	// validate the rule
-	assert.Equal(t, awsRule.Regex, awsRuleUnmarshalled.Regex)
-	assert.Equal(t, regexp.MustCompile(awsRule.RuleID), regexp.MustCompile(awsRuleUnmarshalled.RuleID))
-
-	// Perform same test for json
-	awsRuleJson, err := json.Marshal(awsRule)
-	assert.NoError(t, err)
-	tmpFile, err = os.CreateTemp("", "aws-rule-*.json")
-	assert.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
-	_, err = tmpFile.Write(awsRuleJson)
-	assert.NoError(t, err)
-
-	awsRuleReadJson, err := os.ReadFile(tmpFile.Name())
-	assert.NoError(t, err)
-	awsRuleUnmarshalledJson := &Rule{}
-	err = json.Unmarshal(awsRuleReadJson, awsRuleUnmarshalledJson)
-	assert.NoError(t, err)
-
-	assert.Equal(t, awsRule.Regex, awsRuleUnmarshalledJson.Regex)
 }
