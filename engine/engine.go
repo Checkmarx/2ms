@@ -373,6 +373,9 @@ func (e *Engine) detectSecrets(
 	pluginName string,
 ) error {
 	maxFindings := e.detectorConfig.MaxFindings
+	if maxFindings > 0 && e.findingsCounter.Load() >= maxFindings {
+		return nil
+	}
 
 	values := e.detector.Detect(fragment)
 
