@@ -373,9 +373,6 @@ func (e *Engine) detectSecrets(
 	pluginName string,
 ) error {
 	maxFindings := e.detectorConfig.MaxFindings
-	if maxFindings > 0 && e.findingsCounter.Load() >= maxFindings {
-		return nil
-	}
 
 	values := e.detector.Detect(fragment)
 
@@ -393,9 +390,7 @@ func (e *Engine) detectSecrets(
 						Uint64("max_findings", maxFindings).
 						Msg("Maximum findings limit reached. Scan will stop early and report results up to this limit.")
 				})
-				if newCount > maxFindings {
-					break
-				}
+				break
 			}
 			secrets <- secret
 		} else {
