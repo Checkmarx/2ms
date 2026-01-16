@@ -3,6 +3,8 @@ package rules
 import (
 	"strings"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
 	"github.com/google/uuid"
@@ -44,8 +46,7 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 		parts := strings.Split(rule.RuleName, "-")
 		for j, part := range parts {
 			if len(part) > 0 {
-				firstChar := string(part[0])
-				assert.Equal(t, strings.ToUpper(firstChar), firstChar,
+				assert.Equal(t, capitalizeFirstCharacter(part), part,
 					"rule %d: RuleName '%s' does not follow Title-Case-With-Hyphens pattern (part %d: '%s' should start with uppercase)",
 					i, rule.RuleName, j, part)
 			}
@@ -805,4 +806,9 @@ func cloneRule(r *ruledefine.Rule) *ruledefine.Rule {
 	var ruleCopy ruledefine.Rule
 	_ = copier.CopyWithOption(&ruleCopy, r, copier.Option{DeepCopy: true})
 	return &ruleCopy
+}
+
+func capitalizeFirstCharacter(s string) string {
+	r, size := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[size:]
 }
