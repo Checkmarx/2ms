@@ -354,14 +354,14 @@ Other fields are optional and can be seen in the example bellow of a file with a
 ```yaml
 - ruleId: 01ab7659-d25a-4a1c-9f98-dee9d0cf2e70 # REQUIRED: unique id, must match default rule id to override that default rule. Rule ids can be used as values in --rule and --ignore-rule flags
   ruleName: Custom-Api-Key # should be human-readable name. If left empty for new rule, ruleName will take the value of ruleId. If left empty for override, default rule name will be considered. Rule names can be used as values in --rule and --ignore-rule flags 
-  description: Custom rule 
-  regex: (?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']? # REQUIRED: golang regular expression used to find secrets. If capture group is present in regex, it used to find the secret, otherwise whole regex is used. which group is considered the secret can be defined with secretGroup
+  description: Custom rule
+  regex: (?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']? # REQUIRED: golang regular expression used to find secrets. For regexes, if enclosed in "", make sure to escape backslashes (\\, \\b, etc.). If capture group is present in regex, it's used to find the secret, otherwise whole regex is used. Which group is considered the secret can be defined with secretGroup
   keywords: # Keywords are used for pre-regex check filtering. Rules that contain keywords will perform a quick string compare check to make sure the keyword(s) are in the content being scanned.
     - access
     - api
   entropy: 3.5 # shannon entropy, measures how random a string is. The value will be higher the more random a string is. Default rules that use entropy have values between 2.0 and 4.5. Leave empty to consider matches regardless of entropy
   secretGroup: 1 # defines which capture group of regex match is considered the secret. Is also used as the group that will have its entropy checked if `entropy` is set. Can be left empty, in which case the first capture group to match will be considered the secret
-  path: (?i)\.(?:tf|hcl)$ # regex to limit the rule to specific file paths. For example, only .tf and .hcl files
+  path: "(?i)\\.(?:tf|hcl)$" # regex to limit the rule to specific file paths, for example, only .tf and .hcl files. For regexes, if enclosed in "", make sure to escape backslashes (\\, \\b, etc.)
   severity: High # severity, can only be one of [Critical, High, Medium, Low, Info]
   tags: # identifiers for the rule, tags can be used as values of --rule and --ignore-rule flags
     - api-key
@@ -371,8 +371,8 @@ Other fields are optional and can be seen in the example bellow of a file with a
   deprecated: false # if true, the rule will not be used in the scan, regardless of --rule flag
   allowLists: # allowed values to ignore if matched
     - description: Allowlist for Custom Rule
-      matchCondition: OR # determines whether all criteria in the allowList must match. Can be AND or OR. Defaults to OR if not specified
-      regexTarget: match - # determines whether the regexes in allowList are tested against the rule.Regex match or the full line being scanned. Can be 'match' or 'line'. Defaults to 'match' if not specified
+      matchCondition: OR # Can be AND or OR. determines whether all criteria in the allowList must match. Defaults to OR if not specified
+      regexTarget: match - # Can be match or line. Determines whether the regexes in allowList are tested against the rule.Regex match or the full line being scanned. Defaults to "match" if not specified
       regexes: # allowed regex patterns
         - (?i)(?:access(?:ibility|or)|access[_.-]?id|random[_.-]?access|api[_.-]?(?:id|name|version)|rapid|capital|[a-z0-9-]*?api[a-z0-9-]*?:jar:|author|X-MS-Exchange-Organization-Auth|Authentication-Results|(?:credentials?[_.-]?id|withCredentials)|(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}|(?:bucket|foreign|hot|idx|natural|primary|pub(?:lic)?|schema|sequence)[_.-]?key|(?:turkey)|key[_.-]?(?:alias|board|code|frame|id|length|mesh|name|pair|press(?:ed)?|ring|selector|signature|size|stone|storetype|word|up|down|left|right)|KeyVault(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?|key[_.-]?vault[_.-]?(?:id|name)|keyVaultToStoreSecrets|key(?:store|tab)[_.-]?(?:file|path)|issuerkeyhash|(?-i:[DdMm]onkey|[DM]ONKEY)|keying|(?:secret)[_.-]?(?:length|name|size)|UserSecretsId|(?:csrf)[_.-]?token|(?:io\.jsonwebtoken[
           \t]?:[

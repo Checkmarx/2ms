@@ -40,6 +40,17 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 		assert.NotEqual(t, ruledefine.RuleCategory(""), rule.Category, "rule %d: Category is not defined for rule %s", i, rule.RuleName)
 		assert.NotEqual(t, uint8(0), rule.ScoreRuleType, "rule %d: ScoreRuleType is not defined for rule %s", i, rule.RuleName)
 
+		// Verify rule name follows the casing pattern
+		parts := strings.Split(rule.RuleName, "-")
+		for j, part := range parts {
+			if len(part) > 0 {
+				firstChar := string(part[0])
+				assert.Equal(t, strings.ToUpper(firstChar), firstChar,
+					"rule %d: RuleName '%s' does not follow Title-Case-With-Hyphens pattern (part %d: '%s' should start with uppercase)",
+					i, rule.RuleName, j, part)
+			}
+		}
+
 		// Verify duplicate rule names
 		if _, ok := ruleIDMap[rule.RuleName]; ok {
 			t.Errorf("duplicate rule name found: %s", rule.RuleName)
