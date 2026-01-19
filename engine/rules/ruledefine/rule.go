@@ -97,7 +97,7 @@ type Rule struct {
 
 type AllowList struct { // For patterns that are allowed to be ignored
 	Description    string   `json:"description,omitempty" yaml:"description,omitempty"`
-	MatchCondition string   `json:"matchCondition,omitempty" yaml:"matchCondition,omitempty"` // determines whether all criteria must match. OR or AND
+	MatchCondition string   `json:"matchCondition,omitempty" yaml:"matchCondition,omitempty"` //nolint:lll // determines whether all criteria must match. OR or AND
 	Paths          []string `json:"paths,omitempty" yaml:"paths,omitempty"`                   // regex
 	RegexTarget    string   `json:"regexTarget,omitempty" yaml:"regexTarget,omitempty"`       // match or line. Default match
 	Regexes        []string `json:"regexes,omitempty" yaml:"regexes,omitempty"`
