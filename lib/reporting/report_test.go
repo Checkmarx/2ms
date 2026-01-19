@@ -516,7 +516,7 @@ func TestGetOutputYAML(t *testing.T) {
 						{
 							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
 							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
-							RuleName:         "jwt",
+							RuleName:         "Jwt",
 							RuleID:           "0fc98133-a57b-4e08-9990-60952d4a82df",
 							RuleCategory:     "General",
 							StartLine:        1,
@@ -539,7 +539,7 @@ func TestGetOutputYAML(t *testing.T) {
 						{
 							ID:               "12fd8706491196cbfbdddd2fdcd650ed842dd963",
 							Source:           "..\\2ms\\pkg\\testData\\secrets\\jwt.txt",
-							RuleName:         "jwt",
+							RuleName:         "Jwt",
 							RuleID:           "0fc98133-a57b-4e08-9990-60952d4a82df",
 							RuleCategory:     "General",
 							StartLine:        2,
