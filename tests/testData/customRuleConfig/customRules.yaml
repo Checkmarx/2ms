@@ -10,8 +10,15 @@
   category: General
   ruleType: 4
 
-- regex: "(?i)\\b\\w*secret\\w*\\b\\s*:?=\\s*[\"']?([A-Za-z0-9/_+=-]{8,150})[\"']?"
-  scoreRuleType: 4
+- ruleId: b47a1995-6572-41bb-b01d-d215b43ab089
+  ruleName: Generic-Api-Key-Completely-New
+  description: >-
+    Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run
+  regex: "(?i)\\b\\w*secret\\w*\\b\\s*:?=\\s*[\"']?([A-Za-z0-9/_+=-]{8,150})[\"']?"
+  severity: Low
+  tags:
+    - custom
+  category: General
 
 - ruleId: b47a1995-6572-41bb-b01d-d215b43ab089
   ruleName: Deprecated-Generic-Api-Key-Completely-New
