@@ -115,7 +115,7 @@ Here is a complete list of all the rules that are currently implemented.
 | Intra42-Client-Secret | Found a Intra42 client secret, which could lead to unauthorized access to the 42School API and sensitive data. | client-secret |  |
 | Jfrog-Api-Key | Found a JFrog API Key, posing a risk of unauthorized access to software artifact repositories and build pipelines. | api-key |  |
 | Jfrog-Identity-Token | Discovered a JFrog Identity Token, potentially compromising access to JFrog services and sensitive software artifacts. | access-token |  |
-| jwt | Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data. | access-token |  |
+| Jwt | Uncovered a JSON Web Token, which may lead to unauthorized access to web applications and sensitive user data. | access-token |  |
 | Jwt-Base64 | Detected a Base64-encoded JSON Web Token, posing a risk of exposing encoded authentication and data exchange information. | access-token |  |
 | Kraken-Access-Token | Identified a Kraken Access Token, potentially compromising cryptocurrency trading accounts and financial security. | access-token |  |
 | Kubernetes-Secret-Yaml | Possible Kubernetes Secret detected, posing a risk of leaking credentials/tokens from your deployments | secret-key |  |

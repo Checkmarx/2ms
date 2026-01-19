@@ -19,6 +19,7 @@
   tags:
     - custom
   category: General
+  scoreRuleType: 4
 
 - ruleId: b47a1995-6572-41bb-b01d-d215b43ab089
   ruleName: Deprecated-Generic-Api-Key-Completely-New
