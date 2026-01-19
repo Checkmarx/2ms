@@ -115,6 +115,7 @@ func createScmLink(remote *sources.RemoteInfo, finding *report.Finding) string {
 // Another way to think about what this is doing is calculating the number of bits
 // needed to on average encode the data. So, the higher the entropy, the more random the data, the
 // more bits needed to encode that data.
+// For a quick calculator, see https://textcompare.io/shannon-entropy-calculator
 func shannonEntropy(data string) (entropy float64) {
 	if data == "" {
 		return 0
