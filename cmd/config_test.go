@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -223,14 +225,14 @@ max-target-megabytes: 10`
 	})
 }
 
-func TestConfigGile(t *testing.T) {
+func TestConfigFile(t *testing.T) {
 	t.Run("ValidConfigFile", func(t *testing.T) {
 		tempDir := t.TempDir()
 		configFile := filepath.Join(tempDir, ".2ms.yml")
 
 		configContent := `log-level: debug
-report-path: 
-  - test-report.json
+report-path:
+ - test-report.json
 stdout-format: json
 max-target-megabytes: 100`
 
@@ -271,4 +273,101 @@ stdout-format: json`
 		err = v.ReadInConfig()
 		assert.Error(t, err)
 	})
+}
+
+func TestCustomRulesFlag(t *testing.T) {
+	expectedRules := []*ruledefine.Rule{
+		{
+			RuleID:      "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+			RuleName:    "mock-rule",
+			Description: "Match passwords",
+			Regex:       "[A-Za-z0-9]{32}",
+			Keywords:    []string{"password", "pwd"},
+			Entropy:     3.5,
+			Path:        "secrets/passwords.txt",
+			SecretGroup: 1,
+			Severity:    "High",
+			OldSeverity: "Critical",
+			AllowLists: []*ruledefine.AllowList{
+				{
+					Description:    "Ignore test files",
+					MatchCondition: "OR",
+					Paths:          []string{"test/.*"},
+					RegexTarget:    "match",
+					Regexes:        []string{"test-password", "dummy-secret"},
+					StopWords:      []string{"example", "sample"},
+				},
+			},
+			Tags:              []string{"security", "credentials"},
+			Category:          "General",
+			ScoreRuleType:     2,
+			DisableValidation: true,
+			Deprecated:        true,
+		},
+		{
+			RuleID:            "b47a1995-6572-41bb-b01d-d215b43ab089",
+			RuleName:          "mock-rule2",
+			Description:       "Match API keys",
+			Regex:             "[A-Za-z0-9]{40}",
+			Keywords:          []string{"api", "key"},
+			Entropy:           4.0,
+			Path:              "config/api_keys.yaml",
+			SecretGroup:       0,
+			Severity:          "Medium",
+			OldSeverity:       "High",
+			AllowLists:        []*ruledefine.AllowList{},
+			Tags:              []string{"api", "custom"},
+			DisableValidation: false,
+			Deprecated:        false,
+		},
+	}
+
+	tests := []struct {
+		name            string
+		customRulesFile string
+		expectedRules   []*ruledefine.Rule
+		expectErrors    []error
+	}{
+		{
+			name:            "Valid json custom rules file",
+			customRulesFile: "testData/customRulesValid.json",
+			expectedRules:   expectedRules,
+			expectErrors:    nil,
+		},
+		{
+			name:            "Valid yaml custom rules file",
+			customRulesFile: "testData/customRulesValid.yaml",
+			expectedRules:   expectedRules,
+			expectErrors:    nil,
+		},
+		{
+			name:            "Invalid custom rules file",
+			customRulesFile: "testData/customRulesInvalidFormat.toml",
+			expectedRules:   nil,
+			expectErrors:    []error{errInvalidCustomRulesExtension},
+		},
+		{
+			name:            "Invalid rule type",
+			customRulesFile: "testData/customRulesInvalidRuleType.json",
+			expectedRules:   nil,
+			expectErrors:    []error{fmt.Errorf("cannot unmarshal number -2 into Go struct field Rule.scoreRuleType of type uint8")},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			customRegexRuleVar = []string{}
+			engineConfigVar.CustomRules = nil
+
+			rootCmd := &cobra.Command{Use: "test"}
+			rootCmd.PersistentFlags().StringVar(&configFilePath, configFileFlag, "", "")
+			rootCmd.PersistentFlags().StringVar(&customRulesPathVar, customRulesFileFlagName, tt.customRulesFile, "")
+
+			err := processFlags(rootCmd)
+			for _, expectErr := range tt.expectErrors {
+				assert.ErrorContains(t, err, expectErr.Error())
+			}
+			assert.Equal(t, tt.expectedRules, engineConfigVar.CustomRules)
+		})
+	}
 }

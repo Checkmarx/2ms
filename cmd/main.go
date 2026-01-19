@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/checkmarx/2ms/v4/engine"
-	"github.com/checkmarx/2ms/v4/lib/config"
-	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/checkmarx/2ms/v5/engine"
+	"github.com/checkmarx/2ms/v5/lib/config"
+	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -19,18 +19,22 @@ const (
 	outputFormatRegexpPattern = `^(ya?ml|json|sarif)$`
 	configFileFlag            = "config"
 
-	logLevelFlagName           = "log-level"
-	reportPathFlagName         = "report-path"
-	stdoutFormatFlagName       = "stdout-format"
-	customRegexRuleFlagName    = "regex"
-	ruleFlagName               = "rule"
-	ignoreRuleFlagName         = "ignore-rule"
-	ignoreFlagName             = "ignore-result"
-	allowedValuesFlagName      = "allowed-values"
-	specialRulesFlagName       = "add-special-rule"
-	ignoreOnExitFlagName       = "ignore-on-exit"
-	maxTargetMegabytesFlagName = "max-target-megabytes"
-	validate                   = "validate"
+	logLevelFlagName                  = "log-level"
+	reportPathFlagName                = "report-path"
+	stdoutFormatFlagName              = "stdout-format"
+	customRegexRuleFlagName           = "regex"
+	ruleFlagName                      = "rule"
+	ignoreRuleFlagName                = "ignore-rule"
+	ignoreFlagName                    = "ignore-result"
+	allowedValuesFlagName             = "allowed-values"
+	specialRulesFlagName              = "add-special-rule"
+	ignoreOnExitFlagName              = "ignore-on-exit"
+	maxTargetMegabytesFlagName        = "max-target-megabytes"
+	maxFindingsFlagName               = "max-findings"
+	maxRuleMatchesPerFragmentFlagName = "max-rule-matches-per-fragment"
+	maxSecretSizeFlagName             = "max-secret-size"
+	validate                          = "validate"
+	customRulesFileFlagName           = "custom-rules-path"
 )
 
 var (
@@ -41,6 +45,7 @@ var (
 	ignoreOnExitVar    = ignoreOnExitNone
 	engineConfigVar    engine.EngineConfig
 	validateVar        bool
+	customRulesPathVar string
 )
 
 const envPrefix = "2MS"

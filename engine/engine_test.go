@@ -1,6 +1,6 @@
 package engine
 
-//go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v4/plugins ISourceItem
+//go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v5/plugins ISourceItem
 
 import (
 	"bytes"
@@ -15,21 +15,23 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"go.uber.org/mock/gomock"
 
-	"github.com/checkmarx/2ms/v4/engine/chunk"
-	"github.com/checkmarx/2ms/v4/engine/rules"
-	"github.com/checkmarx/2ms/v4/engine/semaphore"
-	"github.com/checkmarx/2ms/v4/internal/resources"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
-	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/checkmarx/2ms/v5/engine/chunk"
+	"github.com/checkmarx/2ms/v5/engine/rules"
+	"github.com/checkmarx/2ms/v5/engine/semaphore"
+	"github.com/checkmarx/2ms/v5/internal/resources"
+	"github.com/checkmarx/2ms/v5/lib/secrets"
+	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
+
+	"github.com/checkmarx/2ms/v5/engine/detect"
 )
 
 // Removed global fsPlugin to avoid test interference
@@ -47,8 +49,8 @@ func newMock(ctrl *gomock.Controller) *mock {
 }
 
 func Test_Init(t *testing.T) {
-	allRules := rules.FilterRules([]string{}, []string{}, []string{})
-	specialRule := rules.HardcodedPassword()
+	allRules := rules.FilterRules([]string{}, []string{}, []string{}, nil)
+	specialRule := ruledefine.HardcodedPassword()
 
 	tests := []struct {
 		name         string
@@ -58,8 +60,8 @@ func Test_Init(t *testing.T) {
 		{
 			name: "selected and ignore flags used together for the same rule",
 			engineConfig: EngineConfig{
-				SelectedList: []string{allRules[0].Rule.RuleID},
-				IgnoreList:   []string{allRules[0].Rule.RuleID},
+				SelectedList: []string{allRules[0].RuleName},
+				IgnoreList:   []string{allRules[0].RuleName},
 				SpecialList:  []string{},
 			},
 			expectedErr: ErrNoRulesSelected,
@@ -74,11 +76,11 @@ func Test_Init(t *testing.T) {
 			expectedErr: ErrNoRulesSelected,
 		},
 		{
-			name: "exiting special rule",
+			name: "existing special rule",
 			engineConfig: EngineConfig{
 				SelectedList: []string{"non-existent-tag-name"},
 				IgnoreList:   []string{},
-				SpecialList:  []string{specialRule.RuleID},
+				SpecialList:  []string{specialRule.RuleName},
 			},
 			expectedErr: nil,
 		},
@@ -128,9 +130,10 @@ func TestDetector(t *testing.T) {
 
 func TestSecrets(t *testing.T) {
 	secretsCases := []struct {
-		Content    string
-		Name       string
-		ShouldFind bool
+		Content     string
+		Name        string
+		CustomRules []*ruledefine.Rule
+		ShouldFind  bool
 	}{
 		{
 			Content:    "",
@@ -175,14 +178,16 @@ func TestSecrets(t *testing.T) {
 			ShouldFind: true,
 		},
 		{
-			Content:    "\"a_b_key\": \"x-someval-127.0.0.1\",",
-			Name:       "Generic Api Key",
-			ShouldFind: false,
-		},
-		{
-			Content:    "KeyVaultSecretsUser: '62168719-64c5-453d-b4ef-b51d8b1ad44d'",
-			Name:       "Generic Api Key",
-			ShouldFind: false,
+			Content: "mock_secret:=very_secret_value",
+			Name:    "Secret only found with custom rule",
+			CustomRules: []*ruledefine.Rule{
+				{
+					RuleID:   "b47a1995-6572-41bb-b01d-d215b43ab089",
+					RuleName: "Generic-Api-Key-Completely-New",
+					Regex:    "(?i)\\b\\w*secret\\w*\\b\\s*:?=\\s*[\"']?([A-Za-z0-9/_+=-]{8,150})[\"']?",
+				},
+			},
+			ShouldFind: true,
 		},
 		{
 			Content:    "SecretKey: \n\t\t\t              'NzFEUDg0Y0Jtc25sbko4VU96Q3VxM184bGkxV2xEb0twajY3ZFVybEtrcj0=',",
@@ -191,23 +196,26 @@ func TestSecrets(t *testing.T) {
 		},
 	}
 
-	detector, err := initEngine(&EngineConfig{
-		DetectorWorkerPoolSize: 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, secretCase := range secretsCases {
+		t.Run(secretCase.Name, func(t *testing.T) {
 
-	for _, secret := range secretsCases {
-		name := secret.Name
-		if name == "" {
-			name = secret.Content
-		}
-		t.Run(name, func(t *testing.T) {
+			detector, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize: 1,
+				CustomRules:            secretCase.CustomRules,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			name := secretCase.Name
+			if name == "" {
+				name = secretCase.Content
+			}
+
 			fmt.Printf("Start test %s", name)
-			secretsChan := make(chan *secrets.Secret, 1)
+			secretsChan := make(chan *secrets.Secret, 1) // channel with size 1, if more than one secret found per sample, test fails with panic
 			fsPlugin := &plugins.FileSystemPlugin{}
-			err = detector.DetectFragment(item{content: &secret.Content}, secretsChan, fsPlugin.GetName())
+			err = detector.DetectFragment(item{content: &secretCase.Content}, secretsChan, fsPlugin.GetName())
 			if err != nil {
 				return
 			}
@@ -215,8 +223,8 @@ func TestSecrets(t *testing.T) {
 
 			s := <-secretsChan
 
-			if secret.ShouldFind {
-				assert.Equal(t, s.LineContent, secret.Content)
+			if secretCase.ShouldFind {
+				assert.Equal(t, s.LineContent, secretCase.Content)
 			} else {
 				assert.Nil(t, s)
 			}
@@ -342,7 +350,7 @@ func TestDetectFile(t *testing.T) {
 			cfg := newConfig()
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = make(map[string]struct{})
-			detector := detect.NewDetector(*cfg)
+			detector := detect.NewDetector(cfg)
 			detector.MaxTargetMegaBytes = tc.maxMegabytes
 			engine := &Engine{
 				rules: nil,
@@ -443,7 +451,7 @@ func TestDetectChunks(t *testing.T) {
 			cfg := newConfig()
 			cfg.Rules = make(map[string]config.Rule)
 			cfg.Keywords = make(map[string]struct{})
-			detector := detect.NewDetector(*cfg)
+			detector := detect.NewDetector(cfg)
 			engine := &Engine{
 				rules: nil,
 
@@ -742,49 +750,49 @@ func TestIsSecretFromConfluenceResourceIdentifier(t *testing.T) {
 	}{
 		{
 			name:   "matches ri:secret attribute with quoted value",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment ri:secret="12345" />`,
 			match:  `secret="12345"`,
 			want:   true,
 		},
 		{
 			name:   "matches with extra whitespace and self-closing tag",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment     ri:secret="12345"/>`,
 			match:  `secret="12345"`,
 			want:   true,
 		},
 		{
 			name:   "no match when value format differs (expects exact literal)",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment ri:secret="12345" />`,
 			match:  `secret=12345`,
 			want:   false,
 		},
 		{
 			name:   "no match when value appears in a different attribute",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment ri:filename="secret=12345" />`,
 			match:  `secret=12345`,
 			want:   false,
 		},
 		{
 			name:   "no match when ri: prefixes the element name (not an attribute)",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:secret value="x">`,
 			match:  `secret`,
 			want:   false,
 		},
 		{
 			name:   "no match when text is outside any tag",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `ri:secret=12345`,
 			match:  `secret=12345`,
 			want:   false,
 		},
 		{
 			name:   "no match for xri: prefixed attribute",
-			ruleID: rules.GenericApiKeyID,
+			ruleID: ruledefine.GenericCredential().RuleID,
 			line:   `<ri:attachment xri:secret="12345" />`,
 			match:  `secret="12345"`,
 			want:   false,
@@ -915,7 +923,7 @@ func TestProcessItems(t *testing.T) {
 	}()
 
 	ctrl := gomock.NewController(t)
-	for i := range totalItemsToProcess {
+	for i := 0; i < totalItemsToProcess; i++ {
 		mockData := strconv.Itoa(i)
 		mockItem := NewMockISourceItem(ctrl)
 		mockItem.EXPECT().GetContent().Return(&mockData).AnyTimes()
@@ -1051,20 +1059,27 @@ func TestProcessSecretsExtras(t *testing.T) {
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: "jwt",
+					RuleID: ruledefine.JWT().RuleID,
 					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
 				},
 				{
 					ID:     "mockId2",
-					RuleID: "jwt",
+					RuleID: ruledefine.JWT().RuleID,
 					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+				},
+				{
+					ID:     "mockId3",
+					RuleID: ruledefine.HubSpot().RuleID,
+					Value:  "mockValue",
 				},
 			},
 			expectedSecrets: []*secrets.Secret{
 				{
-					ID:     "mockId",
-					RuleID: "jwt",
-					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
+					ID:           "mockId",
+					RuleID:       ruledefine.JWT().RuleID,
+					RuleName:     ruledefine.JWT().RuleName,
+					RuleCategory: string(ruledefine.JWT().Category),
+					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMSIsIm5hbWUiOiJtb2NrTmFtZTEifQ.dummysignature1",
 					ExtraDetails: map[string]interface{}{
 						"secretDetails": map[string]interface{}{
 							"sub":  "mockSub1",
@@ -1073,15 +1088,24 @@ func TestProcessSecretsExtras(t *testing.T) {
 					},
 				},
 				{
-					ID:     "mockId2",
-					RuleID: "jwt",
-					Value:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
+					ID:           "mockId2",
+					RuleID:       ruledefine.JWT().RuleID,
+					RuleName:     ruledefine.JWT().RuleName,
+					RuleCategory: string(ruledefine.JWT().Category),
+					Value:        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb2NrU3ViMiIsIm5hbWUiOiJtb2NrTmFtZTIifQ.dummysignature2",
 					ExtraDetails: map[string]interface{}{
 						"secretDetails": map[string]interface{}{
 							"sub":  "mockSub2",
 							"name": "mockName2",
 						},
 					},
+				},
+				{
+					ID:           "mockId3",
+					RuleID:       ruledefine.HubSpot().RuleID,
+					RuleName:     ruledefine.HubSpot().RuleName,
+					RuleCategory: string(ruledefine.HubSpot().Category),
+					Value:        "mockValue",
 				},
 			},
 		},
@@ -1106,40 +1130,74 @@ func TestProcessSecretsExtras(t *testing.T) {
 	}
 }
 
-func TestProcessValidationAndScoreWithValidation(t *testing.T) {
+func TestProcessEvaluationWithValidation(t *testing.T) {
 	tests := []struct {
 		name            string
 		inputSecrets    []*secrets.Secret
+		customRules     []*ruledefine.Rule
 		expectedSecrets []*secrets.Secret
 	}{
 		{
-			name: "Should update validationStatus and CvssScore of secrets",
+			name: "Should update validationStatus, CvssScore and Severity of secrets",
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: "github-pat",
+					RuleID: ruledefine.GitHubPat().RuleID,
 					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
 				},
 				{
 					ID:     "mockId2",
-					RuleID: "github-pat",
-					Value:  "ghp_mockmockmockmockmockmockmockmockmocj",
+					RuleID: ruledefine.HubSpot().RuleID,
+					Value:  "mock value",
 				},
 			},
 			expectedSecrets: []*secrets.Secret{
 				{
 					ID:               "mockId",
-					RuleID:           "github-pat",
+					RuleID:           ruledefine.GitHubPat().RuleID,
 					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
 					ValidationStatus: "Invalid",
+					Severity:         "Medium",
 					CvssScore:        5.2,
 				},
 				{
 					ID:               "mockId2",
-					RuleID:           "github-pat",
-					Value:            "ghp_mockmockmockmockmockmockmockmockmocj",
-					ValidationStatus: "Invalid",
-					CvssScore:        5.2,
+					RuleID:           ruledefine.HubSpot().RuleID,
+					Value:            "mock value",
+					ValidationStatus: "Unknown",
+					Severity:         "High",
+					CvssScore:        4.6,
+				},
+			},
+		},
+		{
+			name: "Github-Pat with DisableValidation set to true should skip validation, severity and Cvss score should be set accordingly",
+			inputSecrets: []*secrets.Secret{
+				{
+					ID:     "mockId",
+					RuleID: ruledefine.GitHubPat().RuleID,
+					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
+				},
+			},
+			customRules: []*ruledefine.Rule{
+				{
+					RuleID:            ruledefine.GitHubPat().RuleID,
+					RuleName:          ruledefine.GitHubPat().RuleName,
+					Regex:             ruledefine.GitHubPat().Regex,
+					Severity:          ruledefine.GitHubPat().Severity,
+					Category:          ruledefine.GitHubPat().Category,
+					ScoreRuleType:     ruledefine.GitHubPat().ScoreRuleType,
+					DisableValidation: true,
+				},
+			},
+			expectedSecrets: []*secrets.Secret{
+				{
+					ID:               "mockId",
+					RuleID:           ruledefine.GitHubPat().RuleID,
+					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
+					ValidationStatus: "Unknown",
+					Severity:         "High",
+					CvssScore:        8.2,
 				},
 			},
 		},
@@ -1147,7 +1205,11 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			instance, err := initEngine(&EngineConfig{ScanConfig: resources.ScanConfig{WithValidation: true}})
+			instance, err := initEngine(
+				&EngineConfig{
+					ScanConfig:  resources.ScanConfig{WithValidation: true},
+					CustomRules: tt.customRules},
+			)
 			assert.NoError(t, err)
 			validationChan := instance.GetValidationCh()
 			for _, secret := range tt.inputSecrets {
@@ -1155,7 +1217,7 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 			}
 			close(validationChan)
 
-			instance.processScore()
+			instance.processSecretsEvaluation()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
@@ -1164,40 +1226,42 @@ func TestProcessValidationAndScoreWithValidation(t *testing.T) {
 	}
 }
 
-func TestProcessScoreWithoutValidation(t *testing.T) {
+func TestProcessEvaluationWithoutValidation(t *testing.T) {
 	tests := []struct {
 		name            string
 		inputSecrets    []*secrets.Secret
 		expectedSecrets []*secrets.Secret
 	}{
 		{
-			name: "Should update CvssScore of secrets",
+			name: "Should update CvssScore and Severity of secrets",
 			inputSecrets: []*secrets.Secret{
 				{
 					ID:     "mockId",
-					RuleID: "github-pat",
+					RuleID: ruledefine.GitHubPat().RuleID,
 					Value:  "ghp_mockmockmockmockmockmockmockmockmock",
 				},
 				{
 					ID:     "mockId2",
-					RuleID: "github-pat",
-					Value:  "ghp_mockmockmockmockmockmockmockmockmocj",
+					RuleID: ruledefine.HubSpot().RuleID,
+					Value:  "mock value",
 				},
 			},
 			expectedSecrets: []*secrets.Secret{
 				{
 					ID:               "mockId",
-					RuleID:           "github-pat",
+					RuleID:           ruledefine.GitHubPat().RuleID,
 					Value:            "ghp_mockmockmockmockmockmockmockmockmock",
 					ValidationStatus: "",
+					Severity:         "High",
 					CvssScore:        8.2,
 				},
 				{
 					ID:               "mockId2",
-					RuleID:           "github-pat",
-					Value:            "ghp_mockmockmockmockmockmockmockmockmocj",
+					RuleID:           ruledefine.HubSpot().RuleID,
+					Value:            "mock value",
 					ValidationStatus: "",
-					CvssScore:        8.2,
+					Severity:         "High",
+					CvssScore:        4.6,
 				},
 			},
 		},
@@ -1215,7 +1279,7 @@ func TestProcessScoreWithoutValidation(t *testing.T) {
 			}
 			close(cvssScoreWithoutValidationChan)
 
-			instance.processScore()
+			instance.processSecretsEvaluation()
 
 			for i, expected := range tt.expectedSecrets {
 				assert.Equal(t, expected, tt.inputSecrets[i])
@@ -1255,4 +1319,224 @@ func TestBuildSecret(t *testing.T) {
 		assert.True(t, ok, "ExtraDetails should contain key %q", "confluence.pageId")
 		assert.Equal(t, pageID, value)
 	})
+}
+
+func TestMaxRuleMatchesPerFragmentFlag(t *testing.T) {
+	// Content with multiple secrets that would match the same rule
+	multipleSecrets := `
+token1: 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
+token2: ghp_1234567890abcdefghijklmnopqrstuvwxyz
+token3: ghp_abcdefghijklmnopqrstuvwxyz1234567890
+token4: ghp_9876543210zyxwvutsrqponmlkjihgfedcba
+token5: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
+`
+
+	testCases := []struct {
+		name          string
+		limit         uint64
+		expectedCount int
+	}{
+		{
+			name:          "no limit - finds all matches",
+			limit:         0,
+			expectedCount: 5,
+		},
+		{
+			name:          "limit of 2 - finds only 2 matches",
+			limit:         2,
+			expectedCount: 2,
+		},
+		{
+			name:          "limit of 1 - finds only 1 match",
+			limit:         1,
+			expectedCount: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			eng, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize:    1,
+				MaxRuleMatchesPerFragment: tc.limit,
+			})
+			require.NoError(t, err)
+			defer eng.Shutdown()
+
+			secretsChan := make(chan *secrets.Secret, 10)
+			fsPlugin := &plugins.FileSystemPlugin{}
+			err = eng.DetectFragment(item{content: &multipleSecrets}, secretsChan, fsPlugin.GetName())
+			require.NoError(t, err)
+			close(secretsChan)
+
+			count := 0
+			for range secretsChan {
+				count++
+			}
+			assert.Equal(t, tc.expectedCount, count)
+		})
+	}
+}
+
+func TestMaxSecretSizeFlag(t *testing.T) {
+	// Valid GitHub PAT format - 40 chars
+	secret := "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"
+
+	testCases := []struct {
+		name       string
+		limit      uint64
+		shouldFind bool
+	}{
+		{
+			name:       "no limit - finds secret",
+			limit:      0,
+			shouldFind: true,
+		},
+		{
+			name:       "limit larger than secret - finds secret",
+			limit:      200,
+			shouldFind: true,
+		},
+		{
+			name:       "limit smaller than secret - ignores secret",
+			limit:      10,
+			shouldFind: false,
+		},
+		{
+			name:       "limit exactly at secret size boundary - finds secret",
+			limit:      40,
+			shouldFind: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			eng, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize: 1,
+				MaxSecretSize:          tc.limit,
+			})
+			require.NoError(t, err)
+			defer eng.Shutdown()
+
+			secretsChan := make(chan *secrets.Secret, 1)
+			fsPlugin := &plugins.FileSystemPlugin{}
+			err = eng.DetectFragment(item{content: &secret}, secretsChan, fsPlugin.GetName())
+			require.NoError(t, err)
+			close(secretsChan)
+
+			s := <-secretsChan
+			if tc.shouldFind {
+				assert.NotNil(t, s)
+			} else {
+				assert.Nil(t, s)
+			}
+		})
+	}
+}
+
+func TestMaxFindingsFlag(t *testing.T) {
+	// Content with multiple secrets in single fragment
+	multipleSecrets := `
+github_token: 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
+another_token: ghp_1234567890abcdefghijklmnopqrstuvwxyz
+third_token: ghp_abcdefghijklmnopqrstuvwxyz1234567890
+fourth_token: ghp_9876543210zyxwvutsrqponmlkjihgfedcba
+fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
+`
+
+	testCases := []struct {
+		name             string
+		limit            uint64
+		fragments        []string
+		expectedCount    int
+		shouldLogWarning bool
+	}{
+		{
+			name:             "no limit - no warning",
+			limit:            0,
+			fragments:        []string{multipleSecrets},
+			expectedCount:    5,
+			shouldLogWarning: false,
+		},
+		{
+			name:             "limit of 3 - warning logged when limit reached",
+			limit:            3,
+			fragments:        []string{multipleSecrets},
+			expectedCount:    3,
+			shouldLogWarning: true,
+		},
+		{
+			name:  "limit of 2 across multiple fragments - warning logged",
+			limit: 2,
+			fragments: []string{
+				"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",
+				"ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+				"ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+			},
+			expectedCount:    2,
+			shouldLogWarning: true,
+		},
+		{
+			name:             "limit of 1 - warning logged immediately",
+			limit:            1,
+			fragments:        []string{multipleSecrets},
+			expectedCount:    1,
+			shouldLogWarning: true,
+		},
+		{
+			name:             "limit higher than findings - no warning",
+			limit:            10,
+			fragments:        []string{multipleSecrets},
+			expectedCount:    5,
+			shouldLogWarning: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Capture log output
+			var logsBuffer bytes.Buffer
+			log.Logger = log.Output(zerolog.ConsoleWriter{
+				Out:        &logsBuffer,
+				NoColor:    true,
+				TimeFormat: "",
+			}).Level(zerolog.WarnLevel)
+
+			eng, err := initEngine(&EngineConfig{
+				DetectorWorkerPoolSize: 1,
+				MaxFindings:            tc.limit,
+			})
+			require.NoError(t, err)
+			defer eng.Shutdown()
+
+			secretsChan := make(chan *secrets.Secret, 10)
+			fsPlugin := &plugins.FileSystemPlugin{}
+
+			for _, fragment := range tc.fragments {
+				err = eng.DetectFragment(item{content: &fragment}, secretsChan, fsPlugin.GetName())
+				require.NoError(t, err)
+			}
+
+			close(secretsChan)
+
+			count := 0
+			for range secretsChan {
+				count++
+			}
+
+			// Verify findings count
+			assert.Equal(t, tc.expectedCount, count)
+
+			// Verify warning message
+			loggedMessage := logsBuffer.String()
+			if tc.shouldLogWarning {
+				assert.Contains(t, loggedMessage, "Maximum findings limit reached",
+					"Expected warning message to be logged when limit is reached")
+				assert.Contains(t, loggedMessage, fmt.Sprintf("max_findings=%d", tc.limit),
+					"Expected max_findings value in log message")
+			} else {
+				assert.NotContains(t, loggedMessage, "Maximum findings limit reached",
+					"Warning message should not be logged when limit is not reached")
+			}
+		})
+	}
 }

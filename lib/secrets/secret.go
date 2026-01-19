@@ -36,6 +36,8 @@ type Secret struct {
 	ID               string                 `json:"id"`
 	Source           string                 `json:"source"`
 	RuleID           string                 `json:"ruleId"`
+	RuleName         string                 `json:"ruleName"`
+	RuleCategory     string                 `json:"ruleCategory"`
 	StartLine        int                    `json:"startLine"`
 	EndLine          int                    `json:"endLine"`
 	LineContent      string                 `json:"lineContent"`
@@ -45,5 +47,6 @@ type Secret struct {
 	ValidationStatus ValidationResult       `json:"validationStatus,omitempty"`
 	RuleDescription  string                 `json:"ruleDescription,omitempty"`
 	ExtraDetails     map[string]interface{} `json:"extraDetails,omitempty"`
+	Severity         string                 `json:"severity"`
 	CvssScore        float64                `json:"cvssScore,omitempty"`
 }

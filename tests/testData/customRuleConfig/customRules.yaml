@@ -1,0 +1,54 @@
+- ruleId: 01ab7659-d25a-4a1c-9f98-dee9d0cf2e70
+  ruleName: Generic-Api-Key
+  description: >-
+    Custom Generic Api Key override, should override the default one (very specific regex just for testing purposes, shouldn't match with aws-access-token
+  regex: "(?i)\\b\\w*secret\\w*\\b\\s*:?=\\s*[\"']?([A-Za-z0-9/_+=-]{8,150})[\"']?"
+  severity: Medium
+  tags:
+    - custom
+    - override
+  category: General
+  ruleType: 4
+
+- ruleId: b47a1995-6572-41bb-b01d-d215b43ab089
+  ruleName: Generic-Api-Key-Completely-New
+  description: >-
+    Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run
+  regex: "(?i)\\b\\w*secret\\w*\\b\\s*:?=\\s*[\"']?([A-Za-z0-9/_+=-]{8,150})[\"']?"
+  severity: Low
+  tags:
+    - custom
+  category: General
+  scoreRuleType: 4
+
+- ruleId: b47a1995-6572-41bb-b01d-d215b43ab089
+  ruleName: Deprecated-Generic-Api-Key-Completely-New
+  description: Deprecated Custom Generic Api key with different ruleId, should be ignored
+  regex: "(?i)\\b\\w*secret\\w*\\b\\s*:?=\\s*[\"']?([A-Za-z0-9/_+=-]{8,150})[\"']?"
+  severity: Low
+  tags:
+    - custom
+  category: General
+  scoreRuleType: 4
+  deprecated: true
+
+- ruleId: 16be2682-51ee-44f5-82dc-695f4d1eda45
+  ruleName: Mock-Custom-Rule
+  description: Rule that checks for a very specific string
+  regex: "very_secret_value"
+  severity: Low
+  tags:
+    - custom
+
+- ruleId: 9f24ac30-9e04-4dc2-bc32-26da201f87e5
+  ruleName: Github-Pat-Custom
+  description: >-
+    Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid
+  regex: "ghp_[0-9a-zA-Z]{36}"
+  severity: Low
+  tags:
+    - custom
+    - override
+  category: Package Management
+  scoreRuleType: 3
+  disableValidation: true

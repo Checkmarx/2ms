@@ -1,0 +1,21 @@
+package ruledefine
+
+var sumoLogicAccessTokenRegex = generateSemiGenericRegex(
+	[]string{"(?-i:[Ss]umo|SUMO)"}, AlphaNumeric("64"), true).String()
+
+func SumoLogicAccessToken() *Rule {
+	return &Rule{
+		RuleID:      "85b0efa8-7e80-41d9-b855-86720a35a39f",
+		RuleName:    "Sumologic-Access-Token",
+		Description: "Uncovered a SumoLogic Access Token, which could lead to unauthorized access to log data and analytics insights.",
+		Regex:       sumoLogicAccessTokenRegex,
+		Entropy:     3,
+		Keywords: []string{
+			"sumo",
+		},
+		Severity:      "High",
+		Tags:          []string{TagAccessToken},
+		Category:      CategoryApplicationMonitoring,
+		ScoreRuleType: 4,
+	}
+}

@@ -1,0 +1,21 @@
+package ruledefine
+
+var cohereApiTokenRegex = generateSemiGenericRegex([]string{"cohere", "CO_API_KEY"}, `[a-zA-Z0-9]{40}`, false)
+
+func CohereAPIToken() *Rule {
+	return &Rule{
+		RuleID:      "8f7f550e-8c76-423f-996c-e655662a42ac",
+		Description: "Identified a Cohere Token, posing a risk of unauthorized access to AI services and data manipulation.",
+		RuleName:    "Cohere-Api-Token",
+		Regex:       cohereApiTokenRegex.String(),
+		Entropy:     4,
+		Keywords: []string{
+			"cohere",
+			"CO_API_KEY",
+		},
+		Severity:      "High",
+		Tags:          []string{TagApiToken},
+		Category:      CategoryAIAndMachineLearning,
+		ScoreRuleType: 4,
+	}
+}

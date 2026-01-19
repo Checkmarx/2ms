@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/checkmarx/2ms/v4/internal/resources"
-	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/checkmarx/2ms/v5/internal/resources"
+	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog/log"
 	"github.com/sourcegraph/conc"
 
-	"github.com/checkmarx/2ms/v4/lib/reporting"
+	"github.com/checkmarx/2ms/v5/lib/reporting"
 
-	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v5/engine"
 )
 
 type scanner struct {
@@ -38,9 +38,11 @@ func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOp
 	defer s.mu.Unlock()
 
 	engineInstance, err := engine.Init(&engine.EngineConfig{
-		IgnoredIds: scanConfig.IgnoreResultIds,
-		IgnoreList: scanConfig.IgnoreRules,
-		ScanConfig: scanConfig,
+		IgnoredIds:   scanConfig.IgnoreResultIds,
+		SelectedList: scanConfig.SelectRules,
+		CustomRules:  scanConfig.CustomRules,
+		IgnoreList:   scanConfig.IgnoreRules,
+		ScanConfig:   scanConfig,
 	}, opts...)
 	if err != nil {
 		return fmt.Errorf("error initializing engine: %w", err)
@@ -54,7 +56,6 @@ func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOp
 
 func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
 	var wg conc.WaitGroup
-
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error resetting engine: %w", err)
@@ -109,7 +110,6 @@ func (s *scanner) ScanDynamic(
 	opts ...engine.EngineOption,
 ) (reporting.IReport, error) {
 	var wg conc.WaitGroup
-
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
 		return reporting.New().(*reporting.Report), fmt.Errorf("error resetting engine: %w", err)

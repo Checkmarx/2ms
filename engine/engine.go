@@ -6,6 +6,7 @@ import (
 	"crypto/hkdf"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,25 +15,27 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"text/tabwriter"
 
-	"github.com/checkmarx/2ms/v4/engine/chunk"
-	"github.com/checkmarx/2ms/v4/engine/extra"
-	"github.com/checkmarx/2ms/v4/engine/linecontent"
-	"github.com/checkmarx/2ms/v4/engine/rules"
-	"github.com/checkmarx/2ms/v4/engine/score"
-	"github.com/checkmarx/2ms/v4/engine/semaphore"
-	"github.com/checkmarx/2ms/v4/engine/validation"
-	"github.com/checkmarx/2ms/v4/internal/resources"
-	"github.com/checkmarx/2ms/v4/internal/workerpool"
-	"github.com/checkmarx/2ms/v4/lib/reporting"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
-	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/checkmarx/2ms/v5/engine/chunk"
+	"github.com/checkmarx/2ms/v5/engine/detect"
+	"github.com/checkmarx/2ms/v5/engine/extra"
+	"github.com/checkmarx/2ms/v5/engine/linecontent"
+	"github.com/checkmarx/2ms/v5/engine/rules"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/engine/score"
+	"github.com/checkmarx/2ms/v5/engine/semaphore"
+	"github.com/checkmarx/2ms/v5/engine/validation"
+	"github.com/checkmarx/2ms/v5/internal/resources"
+	"github.com/checkmarx/2ms/v5/internal/workerpool"
+	"github.com/checkmarx/2ms/v5/lib/reporting"
+	"github.com/checkmarx/2ms/v5/lib/secrets"
+	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog/log"
 	"github.com/sourcegraph/conc"
 	"github.com/spf13/cobra"
 	"github.com/zricethezav/gitleaks/v8/config"
-	"github.com/zricethezav/gitleaks/v8/detect"
 	"github.com/zricethezav/gitleaks/v8/report"
 )
 
@@ -43,17 +46,26 @@ var (
 
 	ErrNoRulesSelected          = fmt.Errorf("no rules were selected")
 	ErrFailedToCompileRegexRule = fmt.Errorf("failed to compile regex rule")
+	errMissingRuleID            = fmt.Errorf("missing ruleID")
+	errMissingRegex             = fmt.Errorf("missing regex")
+	errInvalidRegex             = fmt.Errorf("invalid regex")
+	errInvalidSeverity          = fmt.Errorf("invalid severity")
+	errInvalidCategory          = fmt.Errorf("invalid category")
+	errInvalidRuleType          = fmt.Errorf("invalid rule type")
 )
 
 type DetectorConfig struct {
-	SelectedRules         []*rules.Rule
-	CustomRegexPatterns   []string
-	AdditionalIgnoreRules []string
-	MaxTargetMegabytes    int
+	SelectedRules             []*ruledefine.Rule
+	CustomRegexPatterns       []string
+	AdditionalIgnoreRules     []string
+	MaxTargetMegabytes        int
+	MaxFindings               uint64 // Total findings limit across entire scan
+	MaxRuleMatchesPerFragment uint64 // Regex matches limit per rule per fragment
+	MaxSecretSize             uint64 // Maximum secret size in bytes (0 = no limit)
 }
 
 type Engine struct {
-	rules map[string]*config.Rule
+	rules map[string]*ruledefine.Rule
 
 	detector       *detect.Detector
 	detectorConfig DetectorConfig
@@ -79,6 +91,12 @@ type Engine struct {
 	ScanConfig resources.ScanConfig
 
 	wg conc.WaitGroup
+
+	// Atomic counter to track findings across concurrent workers immediately
+	findingsCounter atomic.Uint64
+
+	// Ensures max findings warning is only logged once
+	maxFindingsWarnOnce sync.Once
 }
 
 type IEngine interface {
@@ -99,7 +117,7 @@ type IEngine interface {
 }
 
 type IScorer interface {
-	Score(secret *secrets.Secret)
+	AssignScoreAndSeverity(secret *secrets.Secret)
 	GetRulesBaseRiskScore(ruleId string) float64
 	GetKeywords() map[string]struct{}
 	GetRulesToBeApplied() map[string]config.Rule
@@ -109,7 +127,6 @@ type ctxKey string
 
 const (
 	customRegexRuleIdFormat        = "custom-regex-%d"
-	CxFileEndMarker                = ";cx-file-end"
 	totalLinesKey           ctxKey = "totalLines"
 	linesInChunkKey         ctxKey = "linesInChunk"
 )
@@ -119,7 +136,10 @@ type EngineConfig struct {
 	IgnoreList   []string
 	SpecialList  []string
 
-	MaxTargetMegabytes int
+	MaxTargetMegabytes        int
+	MaxFindings               uint64 // Total findings limit across entire scan
+	MaxRuleMatchesPerFragment uint64 // Regex matches limit per rule per fragment
+	MaxSecretSize             uint64 // Maximum secret size in bytes (0 = no limit)
 
 	IgnoredIds    []string
 	AllowedValues []string
@@ -128,6 +148,8 @@ type EngineConfig struct {
 
 	CustomRegexPatterns   []string
 	AdditionalIgnoreRules []string
+
+	CustomRules []*ruledefine.Rule
 
 	ScanConfig resources.ScanConfig
 }
@@ -145,7 +167,13 @@ func Init(engineConfig *EngineConfig, opts ...EngineOption) (IEngine, error) {
 }
 
 func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, error) {
-	selectedRules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
+	err := CheckRulesRequiredFields(engineConfig.CustomRules)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load custom rules: %w", err)
+	}
+
+	selectedRules := rules.FilterRules(engineConfig.SelectedList,
+		engineConfig.IgnoreList, engineConfig.SpecialList, engineConfig.CustomRules)
 
 	// Apply additional ignore rules to get final rules
 	finalRules := selectedRules
@@ -164,12 +192,20 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		fileWalkerWorkerPoolSize = engineConfig.DetectorWorkerPoolSize
 	}
 
+	engineRules := make(map[string]*ruledefine.Rule)
+	for _, rule := range finalRules {
+		engineRules[rule.RuleID] = rule
+	}
+
 	engine := &Engine{
 		detectorConfig: DetectorConfig{
-			SelectedRules:         finalRules,
-			CustomRegexPatterns:   engineConfig.CustomRegexPatterns,
-			AdditionalIgnoreRules: engineConfig.AdditionalIgnoreRules,
-			MaxTargetMegabytes:    engineConfig.MaxTargetMegabytes,
+			SelectedRules:             finalRules,
+			CustomRegexPatterns:       engineConfig.CustomRegexPatterns,
+			AdditionalIgnoreRules:     engineConfig.AdditionalIgnoreRules,
+			MaxTargetMegabytes:        engineConfig.MaxTargetMegabytes,
+			MaxFindings:               engineConfig.MaxFindings,
+			MaxRuleMatchesPerFragment: engineConfig.MaxRuleMatchesPerFragment,
+			MaxSecretSize:             engineConfig.MaxSecretSize,
 		},
 
 		validator:    *validation.NewValidator(),
@@ -191,7 +227,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		pluginChannels: plugins.NewChannels(),
 		Report:         reporting.New(),
 
-		rules: make(map[string]*config.Rule),
+		rules: engineRules,
 	}
 
 	for _, opt := range opts {
@@ -212,14 +248,16 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		}
 		for ruleID, customRule := range customRules {
 			log.Debug().Str("rule_id", ruleID).Msg("Adding custom regex rule")
-			cfg.Rules[ruleID] = *customRule
+			cfg.Rules[ruleID] = *ruledefine.TwomsToGitleaksRule(customRule)
 			engine.rules[ruleID] = customRule
 		}
 	}
 
 	// Create detector with final config
-	detector := detect.NewDetector(*cfg)
+	detector := detect.NewDetector(cfg)
 	detector.MaxTargetMegaBytes = engineConfig.MaxTargetMegabytes
+	detector.MaxRuleMatchesPerFragment = engineConfig.MaxRuleMatchesPerFragment
+	detector.MaxSecretSize = engineConfig.MaxSecretSize
 	engine.detector = detector
 
 	return engine, nil
@@ -334,15 +372,31 @@ func (e *Engine) detectSecrets(
 	secrets chan *secrets.Secret,
 	pluginName string,
 ) error {
-	fragment.Raw += CxFileEndMarker + "\n"
+	maxFindings := e.detectorConfig.MaxFindings
+	if maxFindings > 0 && e.findingsCounter.Load() >= maxFindings {
+		return nil
+	}
 
-	values := e.detector.Detect(*fragment)
+	values := e.detector.Detect(fragment)
+
 	for _, value := range values { //nolint:gocritic // rangeValCopy: value is used immediately
 		secret, buildErr := buildSecret(ctx, item, value, pluginName)
 		if buildErr != nil {
 			return fmt.Errorf("failed to build secret: %w", buildErr)
 		}
 		if !isSecretIgnored(secret, e.ignoredIds, e.allowedValues, value.Line, value.Match, pluginName) {
+			// Atomically increment and check to avoid race condition
+			newCount := e.findingsCounter.Add(1)
+			if maxFindings > 0 && newCount >= maxFindings {
+				e.maxFindingsWarnOnce.Do(func() {
+					log.Warn().
+						Uint64("max_findings", maxFindings).
+						Msg("Maximum findings limit reached. Scan will stop early and report results up to this limit.")
+				})
+				if newCount > maxFindings {
+					break
+				}
+			}
 			secrets <- secret
 		} else {
 			log.Debug().Msgf("Secret %s was ignored", secret.ID)
@@ -361,17 +415,19 @@ func (e *Engine) isFileSizeExceedingLimit(fileSize int64) bool {
 }
 
 // createCustomRegexRules creates a map of custom regex rules from the provided patterns
-func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) {
-	customRules := make(map[string]*config.Rule)
+func createCustomRegexRules(patterns []string) (map[string]*ruledefine.Rule, error) {
+	customRules := make(map[string]*ruledefine.Rule)
 	for idx, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrFailedToCompileRegexRule, pattern)
 		}
-		rule := config.Rule{
+		ruleID := fmt.Sprintf(customRegexRuleIdFormat, idx+1)
+		rule := ruledefine.Rule{
 			Description: "Custom Regex Rule From User",
-			RuleID:      fmt.Sprintf(customRegexRuleIdFormat, idx+1),
-			Regex:       regex,
+			RuleID:      ruleID,
+			RuleName:    ruleID,
+			Regex:       regex.String(),
 			Keywords:    []string{},
 		}
 		customRules[rule.RuleID] = &rule
@@ -380,18 +436,18 @@ func createCustomRegexRules(patterns []string) (map[string]*config.Rule, error) 
 }
 
 // filterIgnoredRules filters out rules that should be ignored
-func filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Rule {
+func filterIgnoredRules(allRules []*ruledefine.Rule, ignoreList []string) []*ruledefine.Rule {
 	if len(ignoreList) == 0 {
 		return allRules
 	}
 
-	filtered := make([]*rules.Rule, 0, len(allRules))
+	filtered := make([]*ruledefine.Rule, 0, len(allRules))
 	for _, rule := range allRules {
 		shouldIgnore := false
 
 		// Check if this rule should be ignored (by ID or tag)
 		for _, ignoreItem := range ignoreList {
-			if strings.EqualFold(rule.Rule.RuleID, ignoreItem) {
+			if strings.EqualFold(strings.ToLower(rule.RuleName), strings.ToLower(ignoreItem)) {
 				shouldIgnore = true
 				break
 			}
@@ -416,7 +472,8 @@ func filterIgnoredRules(allRules []*rules.Rule, ignoreList []string) []*rules.Ru
 }
 
 func (e *Engine) registerForValidation(secret *secrets.Secret) {
-	e.validator.RegisterForValidation(secret)
+	disableValidation := e.rules[secret.RuleID].DisableValidation
+	e.validator.RegisterForValidation(secret, disableValidation)
 }
 
 func (e *Engine) GetDetectorWorkerPool() workerpool.Pool {
@@ -445,20 +502,21 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 		Short: "List all rules",
 		Long:  `List all rules`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rules := rules.FilterRules(engineConfig.SelectedList, engineConfig.IgnoreList, engineConfig.SpecialList)
+			filteredRules := rules.FilterRules(engineConfig.SelectedList,
+				engineConfig.IgnoreList, engineConfig.SpecialList, engineConfig.CustomRules)
 
 			tab := tabwriter.NewWriter(os.Stdout, 1, 2, 2, ' ', 0)
 
 			fmt.Fprintln(tab, "Name\tDescription\tTags\tValidity Check")
 			fmt.Fprintln(tab, "----\t----\t----\t----")
-			for _, rule := range rules {
+			for _, rule := range filteredRules {
 				fmt.Fprintf(
 					tab,
 					"%s\t%s\t%s\t%s\n",
-					rule.Rule.RuleID,
-					rule.Rule.Description,
+					rule.RuleName,
+					rule.Description,
 					strings.Join(rule.Tags, ","),
-					canValidateDisplay[validation.IsCanValidateRule(rule.Rule.RuleID)],
+					canValidateDisplay[validation.IsCanValidateRule(rule.RuleID)],
 				)
 			}
 			if err := tab.Flush(); err != nil {
@@ -488,7 +546,6 @@ func buildSecret(
 		return nil, fmt.Errorf("failed to get start and end lines for source %s: %w", item.GetSource(), err)
 	}
 
-	value.Line = strings.TrimSuffix(value.Line, CxFileEndMarker)
 	hasNewline := strings.HasPrefix(value.Line, "\n")
 
 	if hasNewline {
@@ -679,29 +736,46 @@ func (e *Engine) processSecretsWithValidation() {
 
 func (e *Engine) processSecretsExtras() {
 	for secret := range e.secretsExtrasChan {
-		extra.AddExtraToSecret(secret)
+		e.addExtrasToSecret(secret)
 	}
 }
 
-func (e *Engine) processValidationAndScoreWithValidation() {
+func (e *Engine) processEvaluationWithValidation() {
 	for secret := range e.validationChan {
 		e.registerForValidation(secret)
-		e.scorer.Score(secret)
+		e.scorer.AssignScoreAndSeverity(secret)
 	}
 	e.validator.Validate()
 }
 
-func (e *Engine) processScoreWithoutValidation() {
+func (e *Engine) processEvaluationWithoutValidation() {
 	for secret := range e.cvssScoreWithoutValidationChan {
-		e.scorer.Score(secret)
+		e.scorer.AssignScoreAndSeverity(secret)
 	}
 }
 
-func (e *Engine) processScore() {
+// processSecretsEvaluation evaluates the secret's validationStatus, Severity and CVSS score
+func (e *Engine) processSecretsEvaluation() {
 	if e.ScanConfig.WithValidation {
-		e.processValidationAndScoreWithValidation()
+		e.processEvaluationWithValidation()
 	} else {
-		e.processScoreWithoutValidation()
+		e.processEvaluationWithoutValidation()
+	}
+}
+
+func (e *Engine) addExtrasToSecret(secret *secrets.Secret) {
+	// add general extra data
+	extra.Mtxs.Lock(secret.ID)
+	secret.RuleName = e.rules[secret.RuleID].RuleName
+	secret.RuleCategory = string(e.rules[secret.RuleID].Category)
+	extra.Mtxs.Unlock(secret.ID)
+
+	// add rule specific extra data
+	if addExtra, ok := extra.RuleIDToFunction[secret.RuleID]; ok {
+		extraData := addExtra(secret)
+		if extraData != nil && extraData != "" {
+			extra.UpdateExtraField(secret, "secretDetails", extraData)
+		}
 	}
 }
 
@@ -741,7 +815,7 @@ func (e *Engine) Scan(pluginName string) {
 		e.processSecrets()
 	})
 	e.wg.Go(func() {
-		e.processScore()
+		e.processSecretsEvaluation()
 	})
 	e.wg.Go(func() {
 		e.processSecretsExtras()
@@ -757,7 +831,7 @@ func (e *Engine) Wait() {
 // real user content. This lets us ignore false-positives that cannot be suppressed via the
 // generic-api-key rule allow-list.
 func isSecretFromConfluenceResourceIdentifier(secretRuleID, secretLine, secretMatch string) bool {
-	if secretRuleID != rules.GenericApiKeyID || secretLine == "" || secretMatch == "" {
+	if secretRuleID != ruledefine.GenericCredential().RuleID || secretLine == "" || secretMatch == "" {
 		return false
 	}
 
@@ -766,4 +840,61 @@ func isSecretFromConfluenceResourceIdentifier(secretRuleID, secretLine, secretMa
 	pat := `<[^>]*\sri:` + q + `[^>]*>`
 	re := regexp.MustCompile(pat)
 	return re.MatchString(secretLine)
+}
+
+// CheckRulesRequiredFields checks that required fields are present in the Rule.
+// This is meant for user defined rules, default rules have more strict checks in unit tests
+func CheckRulesRequiredFields(rulesToCheck []*ruledefine.Rule) error {
+	var err error
+	for i, rule := range rulesToCheck {
+		if rule.RuleID == "" {
+			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRuleID))
+		}
+
+		if rule.Regex == "" {
+			err = errors.Join(err, buildCustomRuleError(i, rule, errMissingRegex))
+		} else {
+			if _, errRegex := regexp.Compile(rule.Regex); errRegex != nil {
+				invalidRegexError := fmt.Errorf("%w: %v", errInvalidRegex, errRegex)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidRegexError))
+			}
+		}
+
+		if rule.Severity != "" {
+			if !slices.Contains(ruledefine.SeverityOrder, rule.Severity) {
+				invalidSeverityError := fmt.Errorf("%w: %s not one of (%s)", errInvalidSeverity, rule.Severity, ruledefine.SeverityOrder)
+				err = errors.Join(err, buildCustomRuleError(i, rule, invalidSeverityError))
+			}
+		}
+
+		_, validCategory := score.CategoryScoreMap[rule.Category]
+		if rule.Category != "" && !validCategory {
+			invalidCategoryError := fmt.Errorf("%w: %s not an acceptable category of type RuleCategory",
+				errInvalidCategory, rule.Category)
+			err = errors.Join(err, buildCustomRuleError(i, rule, invalidCategoryError))
+		}
+
+		if rule.ScoreRuleType != 0 && rule.ScoreRuleType > score.RuleTypeMaxValue {
+			invalidRuleTypeError := fmt.Errorf("%w: %d not an acceptable uint8 value, should be between 1 and 4",
+				errInvalidRuleType, rule.ScoreRuleType)
+			err = errors.Join(err, buildCustomRuleError(i, rule, invalidRuleTypeError))
+		}
+	}
+
+	// Add a newline at start of error if it's not nil, for better presentation in output
+	if err != nil {
+		err = fmt.Errorf("\n%w", err)
+	}
+
+	return err
+}
+
+func buildCustomRuleError(ruleIndex int, rule *ruledefine.Rule, issue error) error {
+	if rule.RuleID == "" {
+		if rule.RuleName == "" {
+			return fmt.Errorf("rule#%d: %w", ruleIndex, issue)
+		}
+		return fmt.Errorf("rule#%d;RuleName-%s: %w", ruleIndex, rule.RuleName, issue)
+	}
+	return fmt.Errorf("rule#%d;RuleID-%s: %w", ruleIndex, rule.RuleID, issue)
 }

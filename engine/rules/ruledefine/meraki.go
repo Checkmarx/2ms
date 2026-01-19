@@ -1,0 +1,20 @@
+package ruledefine
+
+var ciscoMerakiAPIKeyRegex = generateSemiGenericRegex(
+	[]string{`(?-i:[Mm]eraki|MERAKI)`}, `[0-9a-f]{40}`, false).String()
+
+func Meraki() *Rule {
+	return &Rule{
+		RuleID: "bf05ece5-600c-4012-b115-70a9c5bead23",
+		Description: "Cisco Meraki is a cloud-managed IT solution that provides networking," +
+			" security, and device management through an easy-to-use interface.",
+		RuleName:      "Cisco-Meraki-Api-Key",
+		Regex:         ciscoMerakiAPIKeyRegex,
+		Entropy:       3,
+		Keywords:      []string{"meraki"},
+		Severity:      "High",
+		Tags:          []string{TagApiKey},
+		Category:      CategoryNetworking,
+		ScoreRuleType: 4,
+	}
+}

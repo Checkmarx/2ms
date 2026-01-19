@@ -7,27 +7,87 @@ import (
 	"os"
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/engine"
-	"github.com/checkmarx/2ms/v4/engine/rules"
-	"github.com/checkmarx/2ms/v4/internal/resources"
-	"github.com/checkmarx/2ms/v4/lib/reporting"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
-	"github.com/checkmarx/2ms/v4/lib/utils"
-	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/checkmarx/2ms/v5/engine"
+	"github.com/checkmarx/2ms/v5/engine/rules"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/internal/resources"
+	"github.com/checkmarx/2ms/v5/lib/reporting"
+	"github.com/checkmarx/2ms/v5/lib/secrets"
+	"github.com/checkmarx/2ms/v5/lib/utils"
+	"github.com/checkmarx/2ms/v5/plugins"
+	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	githubPatPath                           = "testData/secrets/github-pat.txt"
-	jwtPath                                 = "testData/secrets/jwt.txt"
-	expectedReportPath                      = "testData/expectedReport.json"
-	expectedReportWithValidationPath        = "testData/expectedReportWithValidation.json"
-	expectedReportResultsIgnoredResultsPath = "testData/expectedReportWithIgnoredResults.json"
-	expectedReportResultsIgnoredRulePath    = "testData/expectedReportWithIgnoredRule.json"
+	githubPatPath                              = "testData/secrets/github-pat.txt"
+	jwtPath                                    = "testData/secrets/jwt.txt"
+	genericKeysPath                            = "testData/secrets/generic-api-keys.txt"
+	expectedReportPath                         = "testData/expectedReports/expectedReport.json"
+	expectedReportWithValidationPath           = "testData/expectedReports/expectedReportWithValidation.json"
+	expectedReportResultsIgnoredResultsPath    = "testData/expectedReports/expectedReportWithIgnoredResults.json"
+	expectedReportResultsIgnoredRulePath       = "testData/expectedReports/expectedReportWithIgnoredRule.json"
+	expectedReportDefaultPlusAllCustomRules    = "testData/expectedReports/customRules/defaultPlusAllCustomRules.json"
+	expectedReportOnlyCustomRules              = "testData/expectedReports/customRules/onlyCustomRules.json"
+	expectedReportOnlyOverrideRules            = "testData/expectedReports/customRules/onlyOverrideRules.json"
+	expectedReportDefaultPlusNonOverridesRules = "testData/expectedReports/customRules/defaultPlusNonOverrideRules.json"
+	expectedReportOnlyCustomNoOverrideRules    = "testData/expectedReports/customRules/onlyCustomNoOverrideRules.json"
+	expectedReportOnlyDefaultIgnoreCustomRules = "testData/expectedReports/customRules/onlyDefaultIgnoreCustomRules.json"
 )
 
 // Flag to update expected output files instead of comparing against them
 var updateExpected = flag.Bool("update-test-data", false, "Update expected test output files instead of comparing against them")
+
+// Rules to be used to test custom rules. Rules will be selected and ignored depending on the test case
+var customRules = []*ruledefine.Rule{
+	{
+		// this rule is missing name and score parameters to test if they are correctly inherited from the default rule
+		RuleID:      "01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
+		Description: "Custom Generic Api Key override, should override the default one (very specific regex just for testing purposes)",
+		Regex:       `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
+		Severity:    "Medium",
+		Tags:        []string{"custom", "override"},
+	},
+	{
+		RuleID:        "b47a1995-6572-41bb-b01d-d215b43ab089",
+		RuleName:      "Generic-Api-Key-Completely-New",
+		Description:   "Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run",
+		Regex:         `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
+		Severity:      "Low",
+		Tags:          []string{"custom"},
+		Category:      "General",
+		ScoreRuleType: 4,
+	},
+	{
+		RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+		RuleName:    "Deprecated-Generic-Api-Key-Completely-New",
+		Description: "Deprecated Custom Generic Api key with different ruleId, should be ignored regardless of --rule and --ignore-rule flags",
+		Regex:       `(?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']?`,
+		Severity:    "Low",
+		Tags:        []string{"custom"},
+		Deprecated:  true,
+	},
+	// missing category and scoreRuleType, which should be defaulted to 1
+	{
+		RuleID:      "16be2682-51ee-44f5-82dc-695f4d1eda45",
+		RuleName:    "Mock-Custom-Rule",
+		Description: "Rule that checks for a very specific string",
+		Regex:       `very_secret_value`,
+		Severity:    "Low",
+		Tags:        []string{"custom"},
+	},
+	{
+		RuleID:            "9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+		RuleName:          "Github-Pat-Custom", // different from default to test if override works
+		Description:       "Github-Pat with DisableValidation set to true to test if validation is correctly disabled, resulting in Unknown validity instead of Invalid",
+		Regex:             `ghp_[0-9a-zA-Z]{36}`,
+		Severity:          "Low",
+		Tags:              []string{"custom", "override"},
+		DisableValidation: true,
+		Category:          "Package Management", // different from default to test if override works
+		ScoreRuleType:     3,                    // different from default to test if override works
+	},
+}
 
 func TestScan(t *testing.T) {
 	t.Run("Successful Scan with Multiple Items", func(t *testing.T) {
@@ -100,8 +160,8 @@ func TestScan(t *testing.T) {
 		testScanner := NewScanner()
 		actualReport, err := testScanner.Scan(scanItems, resources.ScanConfig{
 			IgnoreResultIds: []string{
-				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
-				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
+				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
+				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -299,8 +359,8 @@ func TestScan(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.Scan(scanItems, resources.ScanConfig{
 			IgnoreResultIds: []string{
-				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
-				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
+				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
+				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -324,6 +384,277 @@ func TestScan(t *testing.T) {
 
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 	})
+}
+
+func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
+	githubPatBytes, err := os.ReadFile(githubPatPath)
+	assert.NoError(t, err, "failed to read github-pat file")
+	githubPatContent := string(githubPatBytes)
+
+	jwtBytes, err := os.ReadFile(jwtPath)
+	assert.NoError(t, err, "failed to read jwt file")
+	jwtContent := string(jwtBytes)
+
+	genericKeyBytes, err := os.ReadFile(genericKeysPath)
+	assert.NoError(t, err, "failed to read generic-api-key file")
+	genericKeysContent := string(genericKeyBytes)
+
+	emptyContent := ""
+	emptyMockPath := "mockPath"
+
+	scanItems := []ScanItem{
+		{
+			Content: &githubPatContent,
+			ID:      fmt.Sprintf("mock-%s", githubPatPath),
+			Source:  githubPatPath,
+		},
+		{
+			Content: &emptyContent,
+			ID:      fmt.Sprintf("mock-%s", emptyMockPath),
+			Source:  emptyMockPath,
+		},
+		{
+			Content: &jwtContent,
+			ID:      fmt.Sprintf("mock-%s", jwtPath),
+			Source:  jwtPath,
+		},
+		{
+			Content: &genericKeysContent,
+			ID:      fmt.Sprintf("mock-%s", genericKeysPath),
+			Source:  genericKeysPath,
+		},
+	}
+
+	tests := []struct {
+		Name               string
+		ScanConfig         resources.ScanConfig
+		ScanItems          []ScanItem
+		ExpectedReportPath string
+		expectErrors       []error
+	}{
+		{
+			Name: "Run all default + custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportDefaultPlusAllCustomRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom override rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+				SelectRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run default + non override rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+				IgnoreRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportDefaultPlusNonOverridesRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules and ignore overrides",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules:    []string{"override"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only default rules by ignoring custom rules",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+				IgnoreRules:    []string{"custom"},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyDefaultIgnoreCustomRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules by ignoring custom rules by id",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules: []string{
+					"01ab7659-d25a-4a1c-9f98-dee9d0cf2e70",
+					"9f24ac30-9e04-4dc2-bc32-26da201f87e5",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules by ignoring custom rules by name",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreRules: []string{
+					"Generic-Api-Key",
+					"Github-Pat-Custom",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Run only custom rules by ignoring override result Ids",
+			ScanConfig: resources.ScanConfig{
+				CustomRules:    cloneRules(customRules),
+				WithValidation: true,
+				SelectRules:    []string{"custom"},
+				IgnoreResultIds: []string{
+					"c31705d99e835e4ac7bc3f688bd9558309e056ed",
+					"993b789425c810d4956c5ed8c84f02f90b0531ee",
+					"63139b45c38f502bbbe15115a7995003d76b2a81",
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: expectedReportOnlyCustomNoOverrideRules,
+			expectErrors:       nil,
+		},
+		{
+			Name: "Rule name, id, regex missing",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						Description: "Match passwords",
+					},
+					{
+						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0: missing ruleID"),
+				fmt.Errorf("rule#0: missing regex"),
+			},
+		},
+		{
+			Name: "Regex, severity and score parameters invalid",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						RuleID:        "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
+						RuleName:      "mock-rule",
+						Description:   "Match passwords",
+						Regex:         "[A-Za-z0-9]{32})",
+						Severity:      "mockSeverity",
+						Category:      "mockCategory",
+						ScoreRuleType: 10,
+					},
+					{
+						RuleID:      "b47a1995-6572-41bb-b01d-d215b43ab089",
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid regex"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid severity:" +
+					" mockSeverity not one of ([Critical High Medium Low Info])"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid category:" +
+					" mockCategory not an acceptable category of type RuleCategory"),
+				fmt.Errorf("rule#0;RuleID-db18ccf1-4fbf-49f6-aec1-939a2e5464c0: invalid rule type: 10 not an acceptable uint8 value, should be between 1 and 4"),
+			},
+		},
+		{
+			Name: "Rule id missing",
+			ScanConfig: resources.ScanConfig{
+				CustomRules: []*ruledefine.Rule{
+					{
+						RuleName:    "mock-rule",
+						Description: "Match passwords",
+						Regex:       "[A-Za-z0-9]{32})",
+					},
+					{
+						RuleName:    "mock-rule2",
+						Description: "Match API keys",
+						Regex:       "[A-Za-z0-9]{40}",
+					},
+				},
+			},
+			ScanItems:          scanItems,
+			ExpectedReportPath: "",
+			expectErrors: []error{
+				fmt.Errorf("rule#0;RuleName-mock-rule: missing ruleID"),
+				fmt.Errorf("rule#1;RuleName-mock-rule2: missing ruleID"),
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			testScanner := NewScanner()
+
+			// Test scan
+			actualReport, err := testScanner.Scan(tc.ScanItems, tc.ScanConfig)
+
+			for _, expectErr := range tc.expectErrors {
+				assert.ErrorContains(t, err, expectErr.Error())
+			}
+
+			if tc.ExpectedReportPath != "" {
+				compareOrUpdateTestData(t, actualReport, tc.ExpectedReportPath)
+			}
+
+			// Test scanDynamic
+			itemsIn := make(chan ScanItem, len(tc.ScanItems))
+			for _, item := range tc.ScanItems {
+				itemsIn <- item
+			}
+			close(itemsIn)
+
+			dynamicActualReport, err := testScanner.ScanDynamic(itemsIn, tc.ScanConfig)
+
+			for _, expectErr := range tc.expectErrors {
+				assert.ErrorContains(t, err, expectErr.Error())
+			}
+
+			if tc.ExpectedReportPath != "" {
+				compareOrUpdateTestData(t, dynamicActualReport, tc.ExpectedReportPath)
+			}
+		})
+	}
 }
 
 func TestScanDynamic(t *testing.T) {
@@ -414,8 +745,8 @@ func TestScanDynamic(t *testing.T) {
 
 		actualReport, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{
 			IgnoreResultIds: []string{
-				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
-				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
+				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
+				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -481,10 +812,10 @@ func TestScanDynamic(t *testing.T) {
 		close(itemsIn)
 
 		// get rules to filter all and force an error
-		defaultRules := rules.GetDefaultRules()
+		defaultRules := rules.GetDefaultRules(false)
 		var idOfRules []string
 		for _, rule := range defaultRules {
-			idOfRules = append(idOfRules, rule.Rule.RuleID)
+			idOfRules = append(idOfRules, rule.RuleName)
 		}
 
 		testScanner := NewScanner()
@@ -567,8 +898,8 @@ func TestScanDynamic(t *testing.T) {
 		// scan 2
 		actualReport, err = testScanner.ScanDynamic(itemsIn2, resources.ScanConfig{
 			IgnoreResultIds: []string{
-				"335370e9c538452b10e69967f90ca64a1a9cf0c9",
-				"a234461b998b6c9b9340f2543729ea9fc0ccdb4c",
+				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
+				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
 			},
 		})
 		assert.NoError(t, err, "scanner encountered an error")
@@ -696,4 +1027,19 @@ func compareOrUpdateTestData(t *testing.T, actualReport reporting.IReport, expec
 	assert.NoError(t, err, "Failed to normalize expected report")
 
 	assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
+}
+
+func cloneRules(rulesToClone []*ruledefine.Rule) []*ruledefine.Rule {
+	clonedRules := make([]*ruledefine.Rule, 0, len(rulesToClone))
+	for _, rule := range rulesToClone {
+		clonedRule := cloneRule(rule)
+		clonedRules = append(clonedRules, clonedRule)
+	}
+	return clonedRules
+}
+
+func cloneRule(r *ruledefine.Rule) *ruledefine.Rule {
+	var ruleCopy ruledefine.Rule
+	_ = copier.CopyWithOption(&ruleCopy, r, copier.Option{DeepCopy: true})
+	return &ruleCopy
 }

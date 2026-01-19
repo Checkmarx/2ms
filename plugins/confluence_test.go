@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v5/engine/chunk"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
 
-//go:generate mockgen -destination=confluence_client_mock_test.go -package=plugins github.com/checkmarx/2ms/v4/plugins ConfluenceClient
+//go:generate mockgen -destination=confluence_client_mock_test.go -package=plugins github.com/checkmarx/2ms/v5/plugins ConfluenceClient
 
 const mockGetFileThresholdReturn = 1_000_000
 

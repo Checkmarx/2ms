@@ -1,0 +1,63 @@
+{
+  "totalItemsScanned": 4,
+  "totalSecretsFound": 3,
+  "results": {
+    "46b5d33e444dbaa9053eceec4f3a91a1798d1d75": [
+      {
+        "id": "46b5d33e444dbaa9053eceec4f3a91a1798d1d75",
+        "source": "testData/secrets/generic-api-keys.txt",
+        "ruleId": "16be2682-51ee-44f5-82dc-695f4d1eda45",
+        "ruleName": "Mock-Custom-Rule",
+        "ruleCategory": "",
+        "startLine": 1,
+        "endLine": 1,
+        "lineContent": "mock_secret:=very_secret_value",
+        "startColumn": 14,
+        "endColumn": 30,
+        "value": "very_secret_value",
+        "validationStatus": "Unknown",
+        "ruleDescription": "Rule that checks for a very specific string",
+        "severity": "Low",
+        "cvssScore": 1
+      }
+    ],
+    "5c27b555f2e14a8f4f9fdeda124f7332dd9835d9": [
+      {
+        "id": "5c27b555f2e14a8f4f9fdeda124f7332dd9835d9",
+        "source": "testData/secrets/generic-api-keys.txt",
+        "ruleId": "b47a1995-6572-41bb-b01d-d215b43ab089",
+        "ruleName": "Generic-Api-Key-Completely-New",
+        "ruleCategory": "General",
+        "startLine": 1,
+        "endLine": 1,
+        "lineContent": "mock_secret:=very_secret_value",
+        "startColumn": 1,
+        "endColumn": 30,
+        "value": "very_secret_value",
+        "validationStatus": "Unknown",
+        "ruleDescription": "Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run",
+        "severity": "Low",
+        "cvssScore": 8.2
+      }
+    ],
+    "ab72977b91e213ab4d91eaa2dc89e0b5d54856d5": [
+      {
+        "id": "ab72977b91e213ab4d91eaa2dc89e0b5d54856d5",
+        "source": "testData/secrets/generic-api-keys.txt",
+        "ruleId": "b47a1995-6572-41bb-b01d-d215b43ab089",
+        "ruleName": "Generic-Api-Key-Completely-New",
+        "ruleCategory": "General",
+        "startLine": 0,
+        "endLine": 0,
+        "lineContent": "client_secret=6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",
+        "startColumn": 1,
+        "endColumn": 78,
+        "value": "6da89121079f83b2eb6acccf8219ea982c3d79bccc3e9c6a85856480661f8fde",
+        "validationStatus": "Unknown",
+        "ruleDescription": "Custom Generic Api key with different ruleId, should be considered different from the default one and should take priority if both rules run",
+        "severity": "Low",
+        "cvssScore": 8.2
+      }
+    ]
+  }
+}

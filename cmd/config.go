@@ -1,20 +1,25 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/checkmarx/2ms/v4/lib/utils"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var (
-	errInvalidOutputFormat    = fmt.Errorf("invalid output format")
-	errInvalidReportExtension = fmt.Errorf("invalid report extension")
+	errInvalidOutputFormat         = fmt.Errorf("invalid output format")
+	errInvalidReportExtension      = fmt.Errorf("invalid report extension")
+	errInvalidCustomRulesExtension = fmt.Errorf("unknown file extension, expected JSON or YAML")
 )
 
 func processFlags(rootCmd *cobra.Command) error {
@@ -35,6 +40,14 @@ func processFlags(rootCmd *cobra.Command) error {
 	engineConfigVar.ScanConfig.WithValidation = validateVar
 	if len(customRegexRuleVar) > 0 {
 		engineConfigVar.CustomRegexPatterns = customRegexRuleVar
+	}
+
+	if customRulesPathVar != "" {
+		rules, err := loadRulesFile(customRulesPathVar)
+		if err != nil {
+			return fmt.Errorf("failed to load custom rules file: %w", err)
+		}
+		engineConfigVar.CustomRules = rules
 	}
 
 	setupLogging()
@@ -120,5 +133,45 @@ func setupFlags(rootCmd *cobra.Command) {
 			"files larger than this will be skipped.\nOmit or set to 0 to disable this check.")
 
 	rootCmd.PersistentFlags().
+		Uint64Var(&engineConfigVar.MaxFindings, maxFindingsFlagName, 0,
+			"caps the total number of results. Scan stops early if limit is reached.\nOmit or set to 0 to disable this check.")
+
+	rootCmd.PersistentFlags().
+		Uint64Var(&engineConfigVar.MaxRuleMatchesPerFragment, maxRuleMatchesPerFragmentFlagName, 0,
+			"caps the number of results per rule per fragment (e.g., file, chunked file, page).\nOmit or set to 0 to disable this check.")
+
+	rootCmd.PersistentFlags().
+		Uint64Var(&engineConfigVar.MaxSecretSize, maxSecretSizeFlagName, 0,
+			"secrets larger than this size (in bytes) will be ignored.\nOmit or set to 0 to disable this check.")
+
+	rootCmd.PersistentFlags().
 		BoolVar(&validateVar, validate, false, "trigger additional validation to check if discovered secrets are valid or invalid")
+
+	rootCmd.PersistentFlags().
+		StringVar(&customRulesPathVar, customRulesFileFlagName, "", "Path to a custom rules file (JSON or YAML)."+
+			" Rules should be a list of ruledefine.Rule objects. --rule, --ignore-rule still apply to custom rules")
+}
+
+func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	ext := filepath.Ext(path)
+	var customRules []*ruledefine.Rule
+
+	switch ext {
+	case ".json":
+		err = json.Unmarshal(data, &customRules)
+	case ".yaml", ".yml":
+		err = yaml.Unmarshal(data, &customRules)
+	default:
+		return nil, errInvalidCustomRulesExtension
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return customRules, nil
 }

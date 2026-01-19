@@ -57,7 +57,7 @@ Scan recent Git history instead:
 - Unified scanning for local directories, Git history, Slack, Discord, Confluence Cloud, and Paligo — each exposed as a dedicated subcommand.
 - Hundreds of tuned detection rules curated by Checkmarx on top of gitleaks, enriched with CVSS-based scoring in every finding.
 - Optional live secret validation (`--validate`) to confirm whether discovered credentials are still active.
-- Flexible filtering and noise reduction: `--rule`, `--ignore-rule`, `--add-special-rule`, `--ignore-result`, `--regex`, `--allowed-values`, and `--max-target-megabytes`.
+- Flexible filtering and noise reduction: `--rule`, `--ignore-rule`, `--add-special-rule`, `--ignore-result`, `--regex`, `--allowed-values`, `--max-target-megabytes`, `--max-findings`, `--max-rule-matches-per-fragment`, and `--max-secret-size`.
 - Rich reporting for developers and pipelines with JSON, YAML, and SARIF outputs, multiple `--report-path` destinations, and CI-aware exit handling via `--ignore-on-exit`.
 - Automation ready: configuration files, `2MS_*` environment variables, Docker images, and GitHub Actions templates.
 - Extensible plugin architecture — contributions for new data sources are welcome.
@@ -244,15 +244,18 @@ Global flags work with every subcommand. Combine them with configuration files a
 
 ### Global Flags
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--config` | string | | Path to a YAML or JSON configuration file. |
-| `--log-level` | string | `info` | Logging level: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `none`. |
-| `--stdout-format` | string | `yaml` | `yaml`, `json`, or `sarif` output on stdout. |
-| `--report-path` | string slice | | Write findings to one or more files; format is inferred from the extension. |
-| `--ignore-on-exit` | enum | `none` | Control exit codes: `all`, `results`, `errors`, or `none`. |
-| `--max-target-megabytes` | int | `0` | Skip files larger than the threshold (0 disables the check). |
-| `--validate` | bool | `false` | Enrich results by verifying secrets when supported. |
+| Flag                              | Type         | Default | Description                                                                                                     |
+|-----------------------------------|--------------|---------|-----------------------------------------------------------------------------------------------------------------|
+| `--config`                        | string       |         | Path to a YAML or JSON configuration file.                                                                      |
+| `--log-level`                     | string       | `info`  | Logging level: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, or `none`.                                   |
+| `--stdout-format`                 | string       | `yaml`  | `yaml`, `json`, or `sarif` output on stdout.                                                                    |
+| `--report-path`                   | string slice |         | Write findings to one or more files; format is inferred from the extension.                                     |
+| `--ignore-on-exit`                | enum         | `none`  | Control exit codes: `all`, `results`, `errors`, or `none`.                                                      |
+| `--max-target-megabytes`          | int          | `0`     | Skip files larger than the threshold (0 disables the check).                                                    |
+| `--max-findings`                  | int          | `0`     | Caps the total number of results. Scan stops early if limit is reached. Omit or set to 0 to disable.            |
+| `--max-rule-matches-per-fragment` | int          | `0`     | Caps the number of results per rule per fragment (e.g., file, chunked file, page). Omit or set to 0 to disable. |
+| `--max-secret-size`               | int          | `0`     | Secrets larger than this size (in bytes) will be ignored. Omit or set to 0 to disable this check.               |
+| `--validate`                      | bool         | `false` | Enrich results by verifying secrets when supported.                                                             |
 
 ### Configuration Files & Environment Variables
 
@@ -326,6 +329,69 @@ jobs:
 ```
 
 Use `--ignore-on-exit results` to keep pipelines green when only findings (not errors) are present, or leave it at the default `none` to fail on detected secrets.
+
+## Custom Rules File
+
+We support custom rules, which are user defined rules that can be passed via a custom rules file using the `--custom-rules-path` flag. The custom rules file format and extension can be YAML or JSON.
+
+Custom rules can be:
+
+- **Overrides** - if a rule present in the file shares the same ruleId as a default rule of 2ms, the rule present in the file will replace (override) the default rule in the scan.
+  - Note: If a rule is overridden, it will simply take all fields from the rule as defined in the file. You must include all fields that you want to be defined, otherwise they will be nil/empty.
+
+- **New rules** - if a rule does not share ruleId with a default rule, it will be appended to the list of rules used in the scan.
+
+Custom rules work properly with --rule and --ignore-rule flags. Rules can be selected/ignored by ruleId, ruleName and tag
+
+Regardless of being an override or new rule, a custom rule has the following required fields:
+- ruleId - unique identifier of the rule
+- ruleName - human readable name of the rule
+- regex - regex pattern used to identify the secret
+
+Other fields are optional and can be seen in the example bellow of a file with a custom rule
+
+**YAML Example:**
+```yaml
+- ruleId: 01ab7659-d25a-4a1c-9f98-dee9d0cf2e70 # REQUIRED: unique id, must match default rule id to override that default rule. Rule ids can be used as values in --rule and --ignore-rule flags
+  ruleName: Custom-Api-Key # should be human-readable name. If left empty for new rule, ruleName will take the value of ruleId. If left empty for override, default rule name will be considered. Rule names can be used as values in --rule and --ignore-rule flags 
+  description: Custom rule
+  regex: (?i)\b\w*secret\w*\b\s*:?=\s*["']?([A-Za-z0-9/_+=-]{8,150})["']? # REQUIRED: golang regular expression used to find secrets. For regexes, if enclosed in "", make sure to escape backslashes (\\, \\b, etc.). If capture group is present in regex, it's used to find the secret, otherwise whole regex is used. Which group is considered the secret can be defined with secretGroup
+  keywords: # Keywords are used for pre-regex check filtering. Rules that contain keywords will perform a quick string compare check to make sure the keyword(s) are in the content being scanned.
+    - access
+    - api
+  entropy: 3.5 # minimum shannon entropy, which measures how random a string is. The more unique characters a string has, the higher the entropy. The value of entropy will tend to become log2(unique chars), so long as all unique are equally present in the string ('abcd' string has entropy of log2(4)=2, but so does 'aabbccdd'). To test entropy values, use https://textcompare.io/shannon-entropy-calculator. Default rules that use entropy have values between 2.0 and 4.5, though these minimums can sometimes be 1-2 lower than the entropy of a true positive. Leave entropy empty to consider matches regardless of entropy
+  secretGroup: 1 # defines which capture group of regex match is considered the secret. Is also used as the group that will have its entropy checked if `entropy` is set. Can be left empty, in which case the first capture group to match will be considered the secret
+  path: "(?i)\\.(?:tf|hcl)$" # regex to limit the rule to specific file paths, for example, only .tf and .hcl files. For regexes, if enclosed in "", make sure to escape backslashes (\\, \\b, etc.)
+  severity: High # severity, can only be one of [Critical, High, Medium, Low, Info]
+  tags: # identifiers for the rule, tags can be used as values of --rule and --ignore-rule flags
+    - api-key
+  category: General # category of the rule, should be a string of type ruledefine.RuleCategory. Can be omitted in custom rule, but if omitted and ruleId matches a default rule, the category will take the value of the category of that defaultRule. Impacts cvss score
+  scoreRuleType: 4 # can go from 1 to 4, 4 being most severe. If omitted in rule it will take the value of 1. Impacts cvss score
+  disableValidation: false # if true, disables validity check for this rule, regardless of --validate flag
+  deprecated: false # if true, the rule will not be used in the scan, regardless of --rule flag
+  allowLists: # allowed values to ignore if matched
+    - description: Allowlist for Custom Rule
+      matchCondition: OR # Can be AND or OR. determines whether all criteria in the allowList must match. Defaults to OR if not specified
+      regexTarget: match - # Can be match or line. Determines whether the regexes in allowList are tested against the rule.Regex match or the full line being scanned. Defaults to "match" if not specified
+      regexes: # allowed regex patterns
+        - (?i)(?:access(?:ibility|or)|access[_.-]?id|random[_.-]?access|api[_.-]?(?:id|name|version)|rapid|capital|[a-z0-9-]*?api[a-z0-9-]*?:jar:|author|X-MS-Exchange-Organization-Auth|Authentication-Results|(?:credentials?[_.-]?id|withCredentials)|(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}|(?:bucket|foreign|hot|idx|natural|primary|pub(?:lic)?|schema|sequence)[_.-]?key|(?:turkey)|key[_.-]?(?:alias|board|code|frame|id|length|mesh|name|pair|press(?:ed)?|ring|selector|signature|size|stone|storetype|word|up|down|left|right)|KeyVault(?:[A-Za-z]*?(?:Administrator|Reader|Contributor|Owner|Operator|User|Officer))\s*[:=]\s*['"]?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}['"]?|key[_.-]?vault[_.-]?(?:id|name)|keyVaultToStoreSecrets|key(?:store|tab)[_.-]?(?:file|path)|issuerkeyhash|(?-i:[DdMm]onkey|[DM]ONKEY)|keying|(?:secret)[_.-]?(?:length|name|size)|UserSecretsId|(?:csrf)[_.-]?token|(?:io\.jsonwebtoken[
+          \t]?:[
+          \t]?[\w-]+)|(?:api|credentials|token)[_.-]?(?:endpoint|ur[il])|public[_.-]?token|(?:key|token)[_.-]?file|(?-i:(?:[A-Z_]+=\n[A-Z_]+=|[a-z_]+=\n[a-z_]+=)(?:\n|\z))|(?-i:(?:[A-Z.]+=\n[A-Z.]+=|[a-z.]+=\n[a-z.]+=)(?:\n|\z)))
+      stopWords:  # stop words that if found in the secret, will discard the finding. Stop words are searched on the secret, which can be either the full regex match or the capture group if any is defined in the rule regex
+        - 000000,
+        - 6fe4476ee5a1832882e326b506d14126
+      paths: # paths that can be ignored for this allowList
+        - \.bb$
+        - \.bbappend$
+        - \.bbclass$
+        - \.inc$
+    - matchCondition: AND
+      regexTarget: line
+      regexes:
+        - LICENSE[^=]*=\s*"[^"]+
+        - LIC_FILES_CHKSUM[^=]*=\s*"[^"]+
+        - SRC[^=]*=\s*"[a-zA-Z0-9]+
+```
 
 ## Contributing
 

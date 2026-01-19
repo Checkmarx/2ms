@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/checkmarx/2ms/v4/engine/chunk"
+	"github.com/checkmarx/2ms/v5/engine/chunk"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )

@@ -1,17 +1,18 @@
 package validation
 
 import (
-	"github.com/checkmarx/2ms/v4/engine/extra"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v5/engine/extra"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/lib/secrets"
 )
 
 type validationFunc = func(*secrets.Secret) (secrets.ValidationResult, string)
 
 var ruleIDToFunction = map[string]validationFunc{
-	"github-fine-grained-pat": validateGithub,
-	"github-pat":              validateGithub,
-	"gitlab-pat":              validateGitlab,
-	"gcp-api-key":             validateGCP,
+	ruledefine.GitHubFineGrainedPat().RuleID: validateGithub,
+	ruledefine.GitHubPat().RuleID:            validateGithub,
+	ruledefine.GitlabPat().RuleID:            validateGitlab,
+	ruledefine.GCPAPIKey().RuleID:            validateGCP,
 }
 
 type Validator struct {
@@ -22,8 +23,8 @@ func NewValidator() *Validator {
 	return &Validator{pairsCollector: newPairsCollector()}
 }
 
-func (v *Validator) RegisterForValidation(secret *secrets.Secret) {
-	if validate, ok := ruleIDToFunction[secret.RuleID]; ok {
+func (v *Validator) RegisterForValidation(secret *secrets.Secret, disableValidation bool) {
+	if validate, ok := ruleIDToFunction[secret.RuleID]; ok && !disableValidation {
 		status, extra := validate(secret)
 		secret.ValidationStatus = status
 		addExtraToSecret(secret, extra)
