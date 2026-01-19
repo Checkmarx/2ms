@@ -77,31 +77,31 @@ const (
 var SeverityOrder = []Severity{Critical, High, Medium, Low, Info}
 
 type Rule struct {
-	RuleID            string       `json:"ruleId" yaml:"ruleId"` // uuid4, should be consistent across changes in rule
-	RuleName          string       `json:"ruleName" yaml:"ruleName"`
-	Description       string       `json:"description" yaml:"description"`
-	Regex             string       `json:"regex" yaml:"regex"` // regex pattern as string
-	Keywords          []string     `json:"keywords" yaml:"keywords"`
-	Entropy           float64      `json:"entropy" yaml:"entropy"`
-	Path              string       `json:"path" yaml:"path"`               // present in some gitleaks secrets (regex)
-	SecretGroup       int          `json:"secretGroup" yaml:"secretGroup"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
-	Severity          Severity     `json:"severity" yaml:"severity"`
-	OldSeverity       string       `json:"oldSeverity" yaml:"oldSeverity"` //nolint:lll // fallback for when critical is not enabled, has no effect on open source
-	AllowLists        []*AllowList `json:"allowLists" yaml:"allowLists"`
-	Tags              []string     `json:"tags" yaml:"tags"`
-	Category          RuleCategory `json:"category" yaml:"category"`                   // used for cvssScore
-	ScoreRuleType     uint8        `json:"scoreRuleType" yaml:"scoreRuleType"`         // used for cvssScore
-	DisableValidation bool         `json:"disableValidation" yaml:"disableValidation"` ////nolint:lll // if true, validation checks will be skipped for this rule if any validation is possible
-	Deprecated        bool         `json:"deprecated" yaml:"deprecated"`
+	RuleID            string       `json:"ruleId,omitempty" yaml:"ruleId,omitempty"` // uuid4, should be consistent across changes in rule
+	RuleName          string       `json:"ruleName,omitempty" yaml:"ruleName,omitempty"`
+	Description       string       `json:"description,omitempty" yaml:"description,omitempty"`
+	Regex             string       `json:"regex,omitempty" yaml:"regex,omitempty"` // regex pattern as string
+	Keywords          []string     `json:"keywords,omitempty" yaml:"keywords,omitempty"`
+	Entropy           float64      `json:"entropy,omitempty" yaml:"entropy,omitempty"`
+	Path              string       `json:"path,omitempty" yaml:"path,omitempty"`               // present in some gitleaks secrets (regex)
+	SecretGroup       int          `json:"secretGroup,omitempty" yaml:"secretGroup,omitempty"` //nolint:lll // SecretGroup is used to extract secret from regex match and used as the group that will have its entropy checked if `entropy` is set.
+	Severity          Severity     `json:"severity,omitempty" yaml:"severity,omitempty"`
+	OldSeverity       string       `json:"oldSeverity,omitempty" yaml:"oldSeverity,omitempty"` //nolint:lll // fallback for when critical is not enabled, has no effect on open source
+	AllowLists        []*AllowList `json:"allowLists,omitempty" yaml:"allowLists,omitempty"`
+	Tags              []string     `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Category          RuleCategory `json:"category,omitempty" yaml:"category,omitempty"`                   // used for cvssScore
+	ScoreRuleType     uint8        `json:"scoreRuleType,omitempty" yaml:"scoreRuleType,omitempty"`         // used for cvssScore
+	DisableValidation bool         `json:"disableValidation,omitempty" yaml:"disableValidation,omitempty"` ////nolint:lll // if true, validation checks will be skipped for this rule if any validation is possible
+	Deprecated        bool         `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 }
 
 type AllowList struct { // For patterns that are allowed to be ignored
-	Description    string   `json:"description" yaml:"description"`
-	MatchCondition string   `json:"matchCondition" yaml:"matchCondition"` // determines whether all criteria must match. OR or AND
-	Paths          []string `json:"paths" yaml:"paths"`                   // regex
-	RegexTarget    string   `json:"regexTarget" yaml:"regexTarget"`       // match or line. Default match
-	Regexes        []string `json:"regexes" yaml:"regexes"`
-	StopWords      []string `json:"stopWords" yaml:"stopWords"` // stop words that are allowed to be ignored
+	Description    string   `json:"description,omitempty" yaml:"description,omitempty"`
+	MatchCondition string   `json:"matchCondition,omitempty" yaml:"matchCondition,omitempty"` // determines whether all criteria must match. OR or AND
+	Paths          []string `json:"paths,omitempty" yaml:"paths,omitempty"`                   // regex
+	RegexTarget    string   `json:"regexTarget,omitempty" yaml:"regexTarget,omitempty"`       // match or line. Default match
+	Regexes        []string `json:"regexes,omitempty" yaml:"regexes,omitempty"`
+	StopWords      []string `json:"stopWords,omitempty" yaml:"stopWords,omitempty"` // stop words that are allowed to be ignored
 }
 
 func (r *Rule) CreateRuleNameFromRuleID() {
