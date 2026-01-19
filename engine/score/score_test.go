@@ -3,9 +3,9 @@ package score
 import (
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/engine/rules"
-	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v5/engine/rules"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/lib/secrets"
 	"github.com/stretchr/testify/assert"
 )
 

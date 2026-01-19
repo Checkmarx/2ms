@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/checkmarx/2ms/v4/lib/utils"
+	"github.com/checkmarx/2ms/v5/lib/utils"
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"

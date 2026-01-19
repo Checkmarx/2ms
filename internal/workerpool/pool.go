@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/alitto/pond/v2"
-	"github.com/checkmarx/2ms/v4/lib/utils"
+	"github.com/checkmarx/2ms/v5/lib/utils"
 	"github.com/rs/zerolog"
 )
 

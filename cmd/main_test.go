@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/checkmarx/2ms/v4/engine"
-	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
-	"github.com/checkmarx/2ms/v4/internal/resources"
+	"github.com/checkmarx/2ms/v5/engine"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/internal/resources"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )

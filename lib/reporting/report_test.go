@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/lib/config"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
+	"github.com/checkmarx/2ms/v5/lib/config"
+	"github.com/checkmarx/2ms/v5/lib/secrets"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"

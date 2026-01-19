@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/engine/detect"
+	"github.com/checkmarx/2ms/v5/engine/detect"
 	"github.com/stretchr/testify/assert"
 )
 

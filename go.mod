@@ -1,4 +1,4 @@
-module github.com/checkmarx/2ms/v4
+module github.com/checkmarx/2ms/v5
 
 go 1.25.5
 

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/checkmarx/2ms/v4/internal/resources"
-	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/checkmarx/2ms/v5/internal/resources"
+	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog/log"
 	"github.com/sourcegraph/conc"
 
-	"github.com/checkmarx/2ms/v4/lib/reporting"
+	"github.com/checkmarx/2ms/v5/lib/reporting"
 
-	"github.com/checkmarx/2ms/v4/engine"
+	"github.com/checkmarx/2ms/v5/engine"
 )
 
 type scanner struct {

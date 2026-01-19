@@ -6,7 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
