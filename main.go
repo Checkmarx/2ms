@@ -4,8 +4,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/checkmarx/2ms/v4/cmd"
-	"github.com/checkmarx/2ms/v4/lib/utils"
+	"github.com/checkmarx/2ms/v5/cmd"
+	"github.com/checkmarx/2ms/v5/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

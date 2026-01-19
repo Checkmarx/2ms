@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/lib/utils"
+	"github.com/checkmarx/2ms/v5/lib/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"

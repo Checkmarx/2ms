@@ -3,8 +3,10 @@ package rules
 import (
 	"strings"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 
-	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
 	"github.com/stretchr/testify/assert"
@@ -39,6 +41,16 @@ func TestLoadAllRulesCheckFields(t *testing.T) {
 		// Check for Score parameters
 		assert.NotEqual(t, ruledefine.RuleCategory(""), rule.Category, "rule %d: Category is not defined for rule %s", i, rule.RuleName)
 		assert.NotEqual(t, uint8(0), rule.ScoreRuleType, "rule %d: ScoreRuleType is not defined for rule %s", i, rule.RuleName)
+
+		// Verify rule name follows the casing pattern
+		parts := strings.Split(rule.RuleName, "-")
+		for j, part := range parts {
+			if len(part) > 0 {
+				assert.Equal(t, capitalizeFirstCharacter(part), part,
+					"rule %d: RuleName '%s' does not follow Title-Case-With-Hyphens pattern (part %d: '%s' should start with uppercase)",
+					i, rule.RuleName, j, part)
+			}
+		}
 
 		// Verify duplicate rule names
 		if _, ok := ruleIDMap[rule.RuleName]; ok {
@@ -794,4 +806,9 @@ func cloneRule(r *ruledefine.Rule) *ruledefine.Rule {
 	var ruleCopy ruledefine.Rule
 	_ = copier.CopyWithOption(&ruleCopy, r, copier.Option{DeepCopy: true})
 	return &ruleCopy
+}
+
+func capitalizeFirstCharacter(s string) string {
+	r, size := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[size:]
 }

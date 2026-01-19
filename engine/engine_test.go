@@ -1,6 +1,6 @@
 package engine
 
-//go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v4/plugins ISourceItem
+//go:generate mockgen -destination=plugins_mock_test.go -package=${GOPACKAGE} github.com/checkmarx/2ms/v5/plugins ISourceItem
 
 import (
 	"bytes"
@@ -15,15 +15,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"go.uber.org/mock/gomock"
 
-	"github.com/checkmarx/2ms/v4/engine/chunk"
-	"github.com/checkmarx/2ms/v4/engine/rules"
-	"github.com/checkmarx/2ms/v4/engine/semaphore"
-	"github.com/checkmarx/2ms/v4/internal/resources"
-	"github.com/checkmarx/2ms/v4/lib/secrets"
-	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/checkmarx/2ms/v5/engine/chunk"
+	"github.com/checkmarx/2ms/v5/engine/rules"
+	"github.com/checkmarx/2ms/v5/engine/semaphore"
+	"github.com/checkmarx/2ms/v5/internal/resources"
+	"github.com/checkmarx/2ms/v5/lib/secrets"
+	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +31,7 @@ import (
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/report"
 
-	"github.com/checkmarx/2ms/v4/engine/detect"
+	"github.com/checkmarx/2ms/v5/engine/detect"
 )
 
 // Removed global fsPlugin to avoid test interference
@@ -1382,29 +1382,29 @@ func TestMaxSecretSizeFlag(t *testing.T) {
 	secret := "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"
 
 	testCases := []struct {
-		name        string
-		limit       uint64
-		shouldFind  bool
+		name       string
+		limit      uint64
+		shouldFind bool
 	}{
 		{
-			name:        "no limit - finds secret",
-			limit:       0,
-			shouldFind:  true,
+			name:       "no limit - finds secret",
+			limit:      0,
+			shouldFind: true,
 		},
 		{
-			name:        "limit larger than secret - finds secret",
-			limit:       200,
-			shouldFind:  true,
+			name:       "limit larger than secret - finds secret",
+			limit:      200,
+			shouldFind: true,
 		},
 		{
-			name:        "limit smaller than secret - ignores secret",
-			limit:       10,
-			shouldFind:  false,
+			name:       "limit smaller than secret - ignores secret",
+			limit:      10,
+			shouldFind: false,
 		},
 		{
-			name:        "limit exactly at secret size boundary - finds secret",
-			limit:       40,
-			shouldFind:  true,
+			name:       "limit exactly at secret size boundary - finds secret",
+			limit:      40,
+			shouldFind: true,
 		},
 	}
 
@@ -1527,25 +1527,25 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 `
 
 	testCases := []struct {
-		name               string
-		limit              uint64
-		fragments          []string
-		expectedCount      int
-		shouldLogWarning   bool
+		name             string
+		limit            uint64
+		fragments        []string
+		expectedCount    int
+		shouldLogWarning bool
 	}{
 		{
-			name:               "no limit - no warning",
-			limit:              0,
-			fragments:          []string{multipleSecrets},
-			expectedCount:      5,
-			shouldLogWarning:   false,
+			name:             "no limit - no warning",
+			limit:            0,
+			fragments:        []string{multipleSecrets},
+			expectedCount:    5,
+			shouldLogWarning: false,
 		},
 		{
-			name:               "limit of 3 - warning logged when limit reached",
-			limit:              3,
-			fragments:          []string{multipleSecrets},
-			expectedCount:      3,
-			shouldLogWarning:   true,
+			name:             "limit of 3 - warning logged when limit reached",
+			limit:            3,
+			fragments:        []string{multipleSecrets},
+			expectedCount:    3,
+			shouldLogWarning: true,
 		},
 		{
 			name:  "limit of 2 across multiple fragments - warning logged",
@@ -1555,15 +1555,15 @@ fifth_token: ghp_aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4
 				"ghp_1234567890abcdefghijklmnopqrstuvwxyz",
 				"ghp_abcdefghijklmnopqrstuvwxyz1234567890",
 			},
-			expectedCount:      2,
-			shouldLogWarning:   true,
+			expectedCount:    2,
+			shouldLogWarning: true,
 		},
 		{
-			name:               "limit of 1 - warning logged immediately",
-			limit:              1,
-			fragments:          []string{multipleSecrets},
-			expectedCount:      1,
-			shouldLogWarning:   true,
+			name:             "limit of 1 - warning logged immediately",
+			limit:            1,
+			fragments:        []string{multipleSecrets},
+			expectedCount:    1,
+			shouldLogWarning: true,
 		},
 		{
 			name:             "limit higher than findings - no warning",

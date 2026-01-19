@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
-	"github.com/checkmarx/2ms/v4/lib/utils"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/lib/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/checkmarx/2ms/v4/engine/rules"
+	"github.com/checkmarx/2ms/v5/engine/rules"
 )
 
 // This script was used to generate remediations for rules based on their names

@@ -3,7 +3,7 @@ package ruledefine
 import (
 	"strings"
 
-	"github.com/checkmarx/2ms/v4/engine/detect"
+	"github.com/checkmarx/2ms/v5/engine/detect"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/base"
 	gitleaksrule "github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/logging"

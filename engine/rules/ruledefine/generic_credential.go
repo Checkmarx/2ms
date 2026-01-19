@@ -3,7 +3,7 @@ package ruledefine
 import (
 	"regexp"
 
-	"github.com/checkmarx/2ms/v4/engine/constants"
+	"github.com/checkmarx/2ms/v5/engine/constants"
 )
 
 var genericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{

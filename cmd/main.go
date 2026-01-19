@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/checkmarx/2ms/v4/engine"
-	"github.com/checkmarx/2ms/v4/lib/config"
-	"github.com/checkmarx/2ms/v4/plugins"
+	"github.com/checkmarx/2ms/v5/engine"
+	"github.com/checkmarx/2ms/v5/lib/config"
+	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"

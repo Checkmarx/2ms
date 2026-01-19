@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/checkmarx/2ms/v4/engine/rules/ruledefine"
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
