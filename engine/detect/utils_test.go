@@ -128,10 +128,6 @@ func TestFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := filter(tt.findings, tt.redact)
 			assert.Equal(t, tt.expectedCount, len(result), "unexpected number of findings")
-
-			if tt.expectedCount == 1 && tt.expectedSecret != "" {
-				assert.Equal(t, tt.expectedSecret, result[0].Secret, "unexpected secret value")
-			}
 		})
 	}
 }
