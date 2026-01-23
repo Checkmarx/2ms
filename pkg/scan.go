@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/checkmarx/2ms/v5/internal/resources"
 	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog/log"
 	"github.com/sourcegraph/conc"
@@ -17,7 +16,7 @@ import (
 
 type scanner struct {
 	engineInstance engine.IEngine
-	scanConfig     resources.ScanConfig
+	scanConfig     ScanConfig
 	mu             sync.RWMutex
 }
 
@@ -33,7 +32,7 @@ func NewScanner() Scanner {
 	return &scanner{}
 }
 
-func (s *scanner) Reset(scanConfig *resources.ScanConfig, opts ...engine.EngineOption) error {
+func (s *scanner) Reset(scanConfig *ScanConfig, opts ...engine.EngineOption) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -45,7 +44,7 @@ func (s *scanner) Reset(scanConfig *resources.ScanConfig, opts ...engine.EngineO
 		MaxFindings:               scanConfig.MaxFindings,
 		MaxRuleMatchesPerFragment: scanConfig.MaxRuleMatchesPerFragment,
 		MaxSecretSize:             scanConfig.MaxSecretSize,
-		ScanConfig:                *scanConfig,
+		WithValidation:            scanConfig.WithValidation,
 	}, opts...)
 	if err != nil {
 		return fmt.Errorf("error initializing engine: %w", err)
@@ -57,7 +56,7 @@ func (s *scanner) Reset(scanConfig *resources.ScanConfig, opts ...engine.EngineO
 	return nil
 }
 
-func (s *scanner) Scan(scanItems []ScanItem, scanConfig *resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
+func (s *scanner) Scan(scanItems []ScanItem, scanConfig *ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
 	var wg conc.WaitGroup
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
@@ -109,7 +108,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig *resources.ScanConfig, o
 
 func (s *scanner) ScanDynamic(
 	itemsIn <-chan ScanItem,
-	scanConfig *resources.ScanConfig,
+	scanConfig *ScanConfig,
 	opts ...engine.EngineOption,
 ) (reporting.IReport, error) {
 	var wg conc.WaitGroup

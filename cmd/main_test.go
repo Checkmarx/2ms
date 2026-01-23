@@ -8,7 +8,6 @@ import (
 
 	"github.com/checkmarx/2ms/v5/engine"
 	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
-	"github.com/checkmarx/2ms/v5/internal/resources"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
@@ -44,9 +43,7 @@ func TestPreRun(t *testing.T) {
 			stdoutFormatVar: "json",
 			reportPath:      []string{"mock.json"},
 			engineConfigVar: engine.EngineConfig{
-				ScanConfig: resources.ScanConfig{
-					WithValidation: true,
-				},
+				WithValidation: true,
 			},
 			expectedPreRunErr: nil,
 		},

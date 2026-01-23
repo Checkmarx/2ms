@@ -27,7 +27,6 @@ import (
 	"github.com/checkmarx/2ms/v5/engine/score"
 	"github.com/checkmarx/2ms/v5/engine/semaphore"
 	"github.com/checkmarx/2ms/v5/engine/validation"
-	"github.com/checkmarx/2ms/v5/internal/resources"
 	"github.com/checkmarx/2ms/v5/internal/workerpool"
 	"github.com/checkmarx/2ms/v5/lib/reporting"
 	"github.com/checkmarx/2ms/v5/lib/secrets"
@@ -88,7 +87,7 @@ type Engine struct {
 
 	Report reporting.IReport
 
-	ScanConfig resources.ScanConfig
+	WithValidation bool
 
 	wg conc.WaitGroup
 
@@ -151,7 +150,7 @@ type EngineConfig struct {
 
 	CustomRules []*ruledefine.Rule
 
-	ScanConfig resources.ScanConfig
+	WithValidation bool
 }
 
 type EngineOption func(*Engine)
@@ -185,7 +184,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		return nil, ErrNoRulesSelected
 	}
 
-	scorer := score.NewScorer(finalRules, engineConfig.ScanConfig.WithValidation)
+	scorer := score.NewScorer(finalRules, engineConfig.WithValidation)
 
 	fileWalkerWorkerPoolSize := defaultDetectorWorkerPoolSize
 	if engineConfig.DetectorWorkerPoolSize > 0 {
@@ -217,7 +216,7 @@ func initEngine(engineConfig *EngineConfig, opts ...EngineOption) (*Engine, erro
 		ignoredIds:    &engineConfig.IgnoredIds,
 		allowedValues: &engineConfig.AllowedValues,
 
-		ScanConfig: engineConfig.ScanConfig,
+		WithValidation: engineConfig.WithValidation,
 
 		secretsChan:                    make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
 		secretsExtrasChan:              make(chan *secrets.Secret, runtime.GOMAXPROCS(0)),
@@ -703,7 +702,7 @@ func (e *Engine) consumeItems(pluginName string) {
 }
 
 func (e *Engine) processSecrets() {
-	if e.ScanConfig.WithValidation {
+	if e.WithValidation {
 		e.processSecretsWithValidation()
 	} else {
 		e.processSecretsWithoutValidation()
@@ -756,7 +755,7 @@ func (e *Engine) processEvaluationWithoutValidation() {
 
 // processSecretsEvaluation evaluates the secret's validationStatus, Severity and CVSS score
 func (e *Engine) processSecretsEvaluation() {
-	if e.ScanConfig.WithValidation {
+	if e.WithValidation {
 		e.processEvaluationWithValidation()
 	} else {
 		e.processEvaluationWithoutValidation()
