@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -56,7 +57,7 @@ func (s *scanner) Reset(scanConfig *ScanConfig, opts ...engine.EngineOption) err
 	return nil
 }
 
-func (s *scanner) Scan(scanItems []ScanItem, scanConfig *ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
+func (s *scanner) Scan(ctx context.Context, scanItems []ScanItem, scanConfig *ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
 	var wg conc.WaitGroup
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
@@ -83,7 +84,11 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig *ScanConfig, opts ...eng
 		defer close(s.engineInstance.GetPluginChannels().GetItemsCh())
 
 		for _, item := range scanItems {
-			s.engineInstance.GetPluginChannels().GetItemsCh() <- item
+			select {
+			case <-ctx.Done():
+				return
+			case s.engineInstance.GetPluginChannels().GetItemsCh() <- item:
+			}
 		}
 	})
 
@@ -94,6 +99,10 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig *ScanConfig, opts ...eng
 	wg.Wait()
 
 	close(s.engineInstance.GetErrorsCh())
+
+	if ctx.Err() != nil {
+		return s.engineInstance.GetReport(), ctx.Err()
+	}
 
 	var errs []error
 	for err = range bufferedErrors {
@@ -107,6 +116,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig *ScanConfig, opts ...eng
 }
 
 func (s *scanner) ScanDynamic(
+	ctx context.Context,
 	itemsIn <-chan ScanItem,
 	scanConfig *ScanConfig,
 	opts ...engine.EngineOption,
@@ -123,11 +133,22 @@ func (s *scanner) ScanDynamic(
 	wg.Go(func() {
 		defer close(channels.GetItemsCh())
 
-		for item := range itemsIn {
-			channels.GetItemsCh() <- item
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case item, ok := <-itemsIn:
+				if !ok {
+					log.Info().Msg("scan dynamic finished sending items to engine")
+					return
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case channels.GetItemsCh() <- item:
+				}
+			}
 		}
-
-		log.Info().Msg("scan dynamic finished sending items to engine")
 	})
 
 	bufferedErrors := make(chan error, 2)
@@ -147,6 +168,10 @@ func (s *scanner) ScanDynamic(
 	wg.Wait()
 
 	close(s.engineInstance.GetErrorsCh())
+
+	if ctx.Err() != nil {
+		return s.engineInstance.GetReport(), ctx.Err()
+	}
 
 	var errs []error
 	for err = range bufferedErrors {
