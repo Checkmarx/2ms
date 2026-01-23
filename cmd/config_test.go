@@ -126,7 +126,7 @@ func TestProcessFlags(t *testing.T) {
 	t.Run("ValidateVarMapping", func(t *testing.T) {
 		// Reset global variables
 		validateVar = false
-		engineConfigVar.ScanConfig.WithValidation = false
+		engineConfigVar.WithValidation = false
 
 		// Set test value
 		validateVar = true
@@ -137,7 +137,7 @@ func TestProcessFlags(t *testing.T) {
 		processFlags(rootCmd)
 
 		// Verify mapping
-		assert.Equal(t, validateVar, engineConfigVar.ScanConfig.WithValidation, "validateVar should be mapped to engineConfigVar.ScanConfig.WithValidation")
+		assert.Equal(t, validateVar, engineConfigVar.WithValidation, "validateVar should be mapped to engineConfigVar.WithValidation")
 	})
 
 	t.Run("IgnoreListProcessing", func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestProcessFlags(t *testing.T) {
 
 		// Verify all mappings
 		assert.Equal(t, customRegexRuleVar, engineConfigVar.CustomRegexPatterns, "Custom regex patterns should be mapped")
-		assert.Equal(t, validateVar, engineConfigVar.ScanConfig.WithValidation, "Validation flag should be mapped")
+		assert.Equal(t, validateVar, engineConfigVar.WithValidation, "Validation flag should be mapped")
 		assert.Equal(t, []string{"ignored-rule"}, engineConfigVar.IgnoreList, "IgnoreList should be preserved")
 		assert.Equal(t, 50, engineConfigVar.MaxTargetMegabytes, "MaxTargetMegabytes should be preserved")
 	})
@@ -181,7 +181,7 @@ func TestProcessFlags(t *testing.T) {
 		validateVar = false
 		engineConfigVar.IgnoreList = []string{}
 		engineConfigVar.CustomRegexPatterns = []string{}
-		engineConfigVar.ScanConfig.WithValidation = false
+		engineConfigVar.WithValidation = false
 
 		// Process flags
 		rootCmd := &cobra.Command{Use: "test"}
@@ -190,7 +190,7 @@ func TestProcessFlags(t *testing.T) {
 
 		// Verify empty values are handled correctly
 		assert.Empty(t, engineConfigVar.CustomRegexPatterns, "Empty custom regex patterns should remain empty")
-		assert.False(t, engineConfigVar.ScanConfig.WithValidation, "Validation should be false by default")
+		assert.False(t, engineConfigVar.WithValidation, "Validation should be false by default")
 		assert.Empty(t, engineConfigVar.IgnoreList, "Empty ignore list should remain empty")
 	})
 }
@@ -220,7 +220,7 @@ max-target-megabytes: 10`
 		processFlags(rootCmd)
 
 		// Verify CLI values take precedence
-		assert.True(t, engineConfigVar.ScanConfig.WithValidation, "CLI validate flag should override config file")
+		assert.True(t, engineConfigVar.WithValidation, "CLI validate flag should override config file")
 		assert.Equal(t, zerolog.DebugLevel, log.Logger.GetLevel(), "CLI log level should override config file")
 	})
 }
