@@ -33,7 +33,7 @@ func NewScanner() Scanner {
 	return &scanner{}
 }
 
-func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOption) error {
+func (s *scanner) Reset(scanConfig *resources.ScanConfig, opts ...engine.EngineOption) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -45,19 +45,19 @@ func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOp
 		MaxFindings:               scanConfig.MaxFindings,
 		MaxRuleMatchesPerFragment: scanConfig.MaxRuleMatchesPerFragment,
 		MaxSecretSize:             scanConfig.MaxSecretSize,
-		ScanConfig:                scanConfig,
+		ScanConfig:                *scanConfig,
 	}, opts...)
 	if err != nil {
 		return fmt.Errorf("error initializing engine: %w", err)
 	}
 
 	s.engineInstance = engineInstance
-	s.scanConfig = scanConfig
+	s.scanConfig = *scanConfig
 
 	return nil
 }
 
-func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
+func (s *scanner) Scan(scanItems []ScanItem, scanConfig *resources.ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
 	var wg conc.WaitGroup
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
@@ -109,7 +109,7 @@ func (s *scanner) Scan(scanItems []ScanItem, scanConfig resources.ScanConfig, op
 
 func (s *scanner) ScanDynamic(
 	itemsIn <-chan ScanItem,
-	scanConfig resources.ScanConfig,
+	scanConfig *resources.ScanConfig,
 	opts ...engine.EngineOption,
 ) (reporting.IReport, error) {
 	var wg conc.WaitGroup
