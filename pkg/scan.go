@@ -38,11 +38,14 @@ func (s *scanner) Reset(scanConfig resources.ScanConfig, opts ...engine.EngineOp
 	defer s.mu.Unlock()
 
 	engineInstance, err := engine.Init(&engine.EngineConfig{
-		IgnoredIds:   scanConfig.IgnoreResultIds,
-		SelectedList: scanConfig.SelectRules,
-		CustomRules:  scanConfig.CustomRules,
-		IgnoreList:   scanConfig.IgnoreRules,
-		ScanConfig:   scanConfig,
+		IgnoredIds:                scanConfig.IgnoreResultIds,
+		SelectedList:              scanConfig.SelectRules,
+		CustomRules:               scanConfig.CustomRules,
+		IgnoreList:                scanConfig.IgnoreRules,
+		MaxFindings:               scanConfig.MaxFindings,
+		MaxRuleMatchesPerFragment: scanConfig.MaxRuleMatchesPerFragment,
+		MaxSecretSize:             scanConfig.MaxSecretSize,
+		ScanConfig:                scanConfig,
 	}, opts...)
 	if err != nil {
 		return fmt.Errorf("error initializing engine: %w", err)

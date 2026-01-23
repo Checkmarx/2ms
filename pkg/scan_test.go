@@ -1029,6 +1029,212 @@ func compareOrUpdateTestData(t *testing.T, actualReport reporting.IReport, expec
 	assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 }
 
+func TestScan_LimitSettings(t *testing.T) {
+	// Load test data once for all subtests
+	githubPatBytes, err := os.ReadFile(githubPatPath)
+	assert.NoError(t, err, "failed to read github-pat file")
+	githubPatContent := string(githubPatBytes)
+
+	jwtBytes, err := os.ReadFile(jwtPath)
+	assert.NoError(t, err, "failed to read jwt file")
+	jwtContent := string(jwtBytes)
+
+	genericKeysBytes, err := os.ReadFile(genericKeysPath)
+	assert.NoError(t, err, "failed to read generic-api-keys file")
+	genericKeysContent := string(genericKeysBytes)
+
+	tests := []struct {
+		name                      string
+		filePaths                 []string
+		maxFindings               uint64
+		maxRuleMatchesPerFragment uint64
+		maxSecretSize             uint64
+		expectedMaxFindings       int
+		expectedMaxSecretSize     int
+	}{
+		{
+			name:                      "MaxFindings limits total secrets found",
+			filePaths:                 []string{githubPatPath, jwtPath, genericKeysPath},
+			maxFindings:               2,
+			maxRuleMatchesPerFragment: 0,
+			maxSecretSize:             0,
+			expectedMaxFindings:       2,
+			expectedMaxSecretSize:     1000,
+		},
+		{
+			name:                      "MaxRuleMatchesPerFragment limits matches per rule per fragment",
+			filePaths:                 []string{githubPatPath},
+			maxFindings:               0,
+			maxRuleMatchesPerFragment: 1,
+			maxSecretSize:             0,
+			expectedMaxFindings:       2,
+			expectedMaxSecretSize:     1000,
+		},
+		{
+			name:                      "MaxSecretSize filters out large secrets",
+			filePaths:                 []string{jwtPath, githubPatPath},
+			maxFindings:               0,
+			maxRuleMatchesPerFragment: 0,
+			maxSecretSize:             50,
+			expectedMaxFindings:       100,
+			expectedMaxSecretSize:     50,
+		},
+		{
+			name:                      "All limit settings work together",
+			filePaths:                 []string{githubPatPath, jwtPath, genericKeysPath},
+			maxFindings:               3,
+			maxRuleMatchesPerFragment: 1,
+			maxSecretSize:             100,
+			expectedMaxFindings:       3,
+			expectedMaxSecretSize:     100,
+		},
+	}
+
+	// Map file paths to content
+	contentMap := map[string]*string{
+		githubPatPath:   &githubPatContent,
+		jwtPath:         &jwtContent,
+		genericKeysPath: &genericKeysContent,
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scanItems := make([]ScanItem, 0, len(tt.filePaths))
+			for _, path := range tt.filePaths {
+				scanItems = append(scanItems, ScanItem{
+					Content: contentMap[path],
+					ID:      fmt.Sprintf("mock-%s", path),
+					Source:  path,
+				})
+			}
+
+			testScanner := NewScanner()
+			actualReport, err := testScanner.Scan(scanItems, resources.ScanConfig{
+				MaxFindings:               tt.maxFindings,
+				MaxRuleMatchesPerFragment: tt.maxRuleMatchesPerFragment,
+				MaxSecretSize:             tt.maxSecretSize,
+			})
+			assert.NoError(t, err, "scanner encountered an error")
+
+			totalSecrets := actualReport.GetTotalSecretsFound()
+			assert.LessOrEqual(t, totalSecrets, tt.expectedMaxFindings, "total secrets should respect max findings limit")
+
+			results := actualReport.GetResults()
+			for _, secretsList := range results {
+				for _, secret := range secretsList {
+					assert.LessOrEqual(t, len(secret.Value), tt.expectedMaxSecretSize, "secret value exceeds max size")
+				}
+			}
+		})
+	}
+}
+
+func TestScanDynamic_LimitSettings(t *testing.T) {
+	// Load test data once for all subtests
+	githubPatBytes, err := os.ReadFile(githubPatPath)
+	assert.NoError(t, err, "failed to read github-pat file")
+	githubPatContent := string(githubPatBytes)
+
+	jwtBytes, err := os.ReadFile(jwtPath)
+	assert.NoError(t, err, "failed to read jwt file")
+	jwtContent := string(jwtBytes)
+
+	genericKeysBytes, err := os.ReadFile(genericKeysPath)
+	assert.NoError(t, err, "failed to read generic-api-keys file")
+	genericKeysContent := string(genericKeysBytes)
+
+	tests := []struct {
+		name                      string
+		filePaths                 []string
+		maxFindings               uint64
+		maxRuleMatchesPerFragment uint64
+		maxSecretSize             uint64
+		expectedMaxFindings       int
+		expectedMaxSecretSize     int
+	}{
+		{
+			name:                      "MaxFindings limits total secrets found",
+			filePaths:                 []string{githubPatPath, jwtPath, genericKeysPath},
+			maxFindings:               2,
+			maxRuleMatchesPerFragment: 0,
+			maxSecretSize:             0,
+			expectedMaxFindings:       2,
+			expectedMaxSecretSize:     1000,
+		},
+		{
+			name:                      "MaxRuleMatchesPerFragment limits matches per rule per fragment",
+			filePaths:                 []string{githubPatPath},
+			maxFindings:               0,
+			maxRuleMatchesPerFragment: 1,
+			maxSecretSize:             0,
+			expectedMaxFindings:       2,
+			expectedMaxSecretSize:     1000,
+		},
+		{
+			name:                      "MaxSecretSize filters out large secrets",
+			filePaths:                 []string{jwtPath, githubPatPath},
+			maxFindings:               0,
+			maxRuleMatchesPerFragment: 0,
+			maxSecretSize:             50,
+			expectedMaxFindings:       100,
+			expectedMaxSecretSize:     50,
+		},
+		{
+			name:                      "All limit settings work together",
+			filePaths:                 []string{githubPatPath, jwtPath, genericKeysPath},
+			maxFindings:               3,
+			maxRuleMatchesPerFragment: 1,
+			maxSecretSize:             100,
+			expectedMaxFindings:       3,
+			expectedMaxSecretSize:     100,
+		},
+	}
+
+	// Map file paths to content
+	contentMap := map[string]*string{
+		githubPatPath:   &githubPatContent,
+		jwtPath:         &jwtContent,
+		genericKeysPath: &genericKeysContent,
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scanItems := make([]ScanItem, 0, len(tt.filePaths))
+			for _, path := range tt.filePaths {
+				scanItems = append(scanItems, ScanItem{
+					Content: contentMap[path],
+					ID:      fmt.Sprintf("mock-%s", path),
+					Source:  path,
+				})
+			}
+
+			itemsIn := make(chan ScanItem, len(scanItems))
+			for _, item := range scanItems {
+				itemsIn <- item
+			}
+			close(itemsIn)
+
+			testScanner := NewScanner()
+			actualReport, err := testScanner.ScanDynamic(itemsIn, resources.ScanConfig{
+				MaxFindings:               tt.maxFindings,
+				MaxRuleMatchesPerFragment: tt.maxRuleMatchesPerFragment,
+				MaxSecretSize:             tt.maxSecretSize,
+			})
+			assert.NoError(t, err, "scanner encountered an error")
+
+			totalSecrets := actualReport.GetTotalSecretsFound()
+			assert.LessOrEqual(t, totalSecrets, tt.expectedMaxFindings, "total secrets should respect max findings limit")
+
+			results := actualReport.GetResults()
+			for _, secretsList := range results {
+				for _, secret := range secretsList {
+					assert.LessOrEqual(t, len(secret.Value), tt.expectedMaxSecretSize, "secret value exceeds max size")
+				}
+			}
+		})
+	}
+}
+
 func cloneRules(rulesToClone []*ruledefine.Rule) []*ruledefine.Rule {
 	clonedRules := make([]*ruledefine.Rule, 0, len(rulesToClone))
 	for _, rule := range rulesToClone {
