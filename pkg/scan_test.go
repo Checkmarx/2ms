@@ -1049,7 +1049,7 @@ func TestScan_LimitSettings(t *testing.T) {
 		maxFindings               uint64
 		maxRuleMatchesPerFragment uint64
 		maxSecretSize             uint64
-		expectedMaxFindings       int
+		expectedFindings          int
 		expectedMaxSecretSize     int
 	}{
 		{
@@ -1058,7 +1058,7 @@ func TestScan_LimitSettings(t *testing.T) {
 			maxFindings:               2,
 			maxRuleMatchesPerFragment: 0,
 			maxSecretSize:             0,
-			expectedMaxFindings:       2,
+			expectedFindings:          2,
 			expectedMaxSecretSize:     1000,
 		},
 		{
@@ -1067,7 +1067,7 @@ func TestScan_LimitSettings(t *testing.T) {
 			maxFindings:               0,
 			maxRuleMatchesPerFragment: 1,
 			maxSecretSize:             0,
-			expectedMaxFindings:       2,
+			expectedFindings:          1,
 			expectedMaxSecretSize:     1000,
 		},
 		{
@@ -1076,7 +1076,7 @@ func TestScan_LimitSettings(t *testing.T) {
 			maxFindings:               0,
 			maxRuleMatchesPerFragment: 0,
 			maxSecretSize:             50,
-			expectedMaxFindings:       100,
+			expectedFindings:          3,
 			expectedMaxSecretSize:     50,
 		},
 		{
@@ -1085,7 +1085,7 @@ func TestScan_LimitSettings(t *testing.T) {
 			maxFindings:               3,
 			maxRuleMatchesPerFragment: 1,
 			maxSecretSize:             100,
-			expectedMaxFindings:       3,
+			expectedFindings:          2,
 			expectedMaxSecretSize:     100,
 		},
 	}
@@ -1117,7 +1117,7 @@ func TestScan_LimitSettings(t *testing.T) {
 			assert.NoError(t, err, "scanner encountered an error")
 
 			totalSecrets := actualReport.GetTotalSecretsFound()
-			assert.LessOrEqual(t, totalSecrets, tt.expectedMaxFindings, "total secrets should respect max findings limit")
+			assert.Equal(t, tt.expectedFindings, totalSecrets, "total secrets should match expected findings")
 
 			results := actualReport.GetResults()
 			for _, secretsList := range results {
@@ -1149,7 +1149,7 @@ func TestScanDynamic_LimitSettings(t *testing.T) {
 		maxFindings               uint64
 		maxRuleMatchesPerFragment uint64
 		maxSecretSize             uint64
-		expectedMaxFindings       int
+		expectedFindings          int
 		expectedMaxSecretSize     int
 	}{
 		{
@@ -1158,7 +1158,7 @@ func TestScanDynamic_LimitSettings(t *testing.T) {
 			maxFindings:               2,
 			maxRuleMatchesPerFragment: 0,
 			maxSecretSize:             0,
-			expectedMaxFindings:       2,
+			expectedFindings:          2,
 			expectedMaxSecretSize:     1000,
 		},
 		{
@@ -1167,7 +1167,7 @@ func TestScanDynamic_LimitSettings(t *testing.T) {
 			maxFindings:               0,
 			maxRuleMatchesPerFragment: 1,
 			maxSecretSize:             0,
-			expectedMaxFindings:       2,
+			expectedFindings:          1,
 			expectedMaxSecretSize:     1000,
 		},
 		{
@@ -1176,7 +1176,7 @@ func TestScanDynamic_LimitSettings(t *testing.T) {
 			maxFindings:               0,
 			maxRuleMatchesPerFragment: 0,
 			maxSecretSize:             50,
-			expectedMaxFindings:       100,
+			expectedFindings:          3,
 			expectedMaxSecretSize:     50,
 		},
 		{
@@ -1185,7 +1185,7 @@ func TestScanDynamic_LimitSettings(t *testing.T) {
 			maxFindings:               3,
 			maxRuleMatchesPerFragment: 1,
 			maxSecretSize:             100,
-			expectedMaxFindings:       3,
+			expectedFindings:          2,
 			expectedMaxSecretSize:     100,
 		},
 	}
@@ -1223,7 +1223,7 @@ func TestScanDynamic_LimitSettings(t *testing.T) {
 			assert.NoError(t, err, "scanner encountered an error")
 
 			totalSecrets := actualReport.GetTotalSecretsFound()
-			assert.LessOrEqual(t, totalSecrets, tt.expectedMaxFindings, "total secrets should respect max findings limit")
+			assert.Equal(t, tt.expectedFindings, totalSecrets, "total secrets should match expected findings")
 
 			results := actualReport.GetResults()
 			for _, secretsList := range results {
