@@ -135,13 +135,13 @@ func shannonEntropy(data string) (entropy float64) {
 	return entropy
 }
 
-// filter will dedupe, redact, and remove empty secret findings
+// filter will dedupe, redact, and remove empty secret/line findings
 func filter(findings []report.Finding, redact uint) []report.Finding {
 	var retFindings []report.Finding
 	for i := range findings {
 		f := &findings[i]
-		// Skip findings with empty secrets
-		if f.Secret == "" {
+		// Skip findings with empty/whitespace-only secrets or lines
+		if strings.TrimSpace(f.Secret) == "" || strings.TrimSpace(f.Line) == "" {
 			continue
 		}
 		include := true

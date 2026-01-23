@@ -1,6 +1,8 @@
 package scanner
 
 import (
+	"context"
+
 	"github.com/checkmarx/2ms/v5/engine"
 	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v5/lib/reporting"
@@ -50,7 +52,7 @@ func (i ScanItem) GetGitInfo() *plugins.GitInfo {
 
 type Scanner interface {
 	Reset(scanConfig *ScanConfig, opts ...engine.EngineOption) error
-	Scan(scanItems []ScanItem, scanConfig *ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error)
+	Scan(ctx context.Context, scanItems []ScanItem, scanConfig *ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error)
 	// ScanDynamic performs a scans with custom input of items and optional custom plugin channels.
 	//
 	// To provide custom plugin channels, use engine.WithPluginChannels:
@@ -58,6 +60,6 @@ type Scanner interface {
 	//	pluginChannels := plugins.NewChannels(func(c *plugins.Channels) {
 	//		c.Items = make(chan plugins.ISourceItem, 100)
 	//	})
-	//	s.ScanDynamic(ScanConfig{}, engine.WithPluginChannels(pluginChannels))
-	ScanDynamic(itemsIn <-chan ScanItem, scanConfig *ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error)
+	//	s.ScanDynamic(ctx, ScanConfig{}, engine.WithPluginChannels(pluginChannels))
+	ScanDynamic(ctx context.Context, itemsIn <-chan ScanItem, scanConfig *ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error)
 }
