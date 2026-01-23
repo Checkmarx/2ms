@@ -10,7 +10,6 @@ import (
 	"github.com/checkmarx/2ms/v5/engine"
 	"github.com/checkmarx/2ms/v5/engine/rules"
 	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
-	"github.com/checkmarx/2ms/v5/internal/resources"
 	"github.com/checkmarx/2ms/v5/lib/reporting"
 	"github.com/checkmarx/2ms/v5/lib/secrets"
 	"github.com/checkmarx/2ms/v5/lib/utils"
@@ -121,7 +120,7 @@ func TestScan(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, &resources.ScanConfig{})
+		actualReport, err := testScanner.Scan(scanItems, &ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		// Use helper function to either update expected file or compare results
@@ -158,7 +157,7 @@ func TestScan(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, &resources.ScanConfig{
+		actualReport, err := testScanner.Scan(scanItems, &ScanConfig{
 			IgnoreResultIds: []string{
 				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
 				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
@@ -218,7 +217,7 @@ func TestScan(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, &resources.ScanConfig{
+		actualReport, err := testScanner.Scan(scanItems, &ScanConfig{
 			IgnoreRules: []string{
 				"github-pat",
 			},
@@ -271,7 +270,7 @@ func TestScan(t *testing.T) {
 			errorsCh <- fmt.Errorf("mock processing error 1")
 			errorsCh <- fmt.Errorf("mock processing error 2")
 		}()
-		report, err := testScanner.Scan(scanItems, &resources.ScanConfig{}, engine.WithPluginChannels(pluginChannels))
+		report, err := testScanner.Scan(scanItems, &ScanConfig{}, engine.WithPluginChannels(pluginChannels))
 
 		assert.Equal(t, 0, report.GetTotalItemsScanned())
 		assert.Equal(t, 0, report.GetTotalSecretsFound())
@@ -282,7 +281,7 @@ func TestScan(t *testing.T) {
 	})
 	t.Run("scan with scanItems empty", func(t *testing.T) {
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan([]ScanItem{}, &resources.ScanConfig{})
+		actualReport, err := testScanner.Scan([]ScanItem{}, &ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 		assert.Equal(t, 0, actualReport.GetTotalItemsScanned())
 		assert.Equal(t, 0, actualReport.GetTotalSecretsFound())
@@ -291,7 +290,7 @@ func TestScan(t *testing.T) {
 	})
 	t.Run("scan with scanItems nil", func(t *testing.T) {
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(nil, &resources.ScanConfig{})
+		actualReport, err := testScanner.Scan(nil, &ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 		assert.Equal(t, 0, actualReport.GetTotalItemsScanned())
 		assert.Equal(t, 0, actualReport.GetTotalSecretsFound())
@@ -329,7 +328,7 @@ func TestScan(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, &resources.ScanConfig{})
+		actualReport, err := testScanner.Scan(scanItems, &ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		// scan 1
@@ -357,7 +356,7 @@ func TestScan(t *testing.T) {
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 
 		// scan 2
-		actualReport, err = testScanner.Scan(scanItems, &resources.ScanConfig{
+		actualReport, err = testScanner.Scan(scanItems, &ScanConfig{
 			IgnoreResultIds: []string{
 				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
 				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
@@ -427,14 +426,14 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 
 	tests := []struct {
 		Name               string
-		ScanConfig         *resources.ScanConfig
+		ScanConfig         *ScanConfig
 		ScanItems          []ScanItem
 		ExpectedReportPath string
 		expectErrors       []error
 	}{
 		{
 			Name: "Run all default + custom rules",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 			},
@@ -444,7 +443,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Run only custom rules",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
@@ -455,7 +454,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Run only custom override rules",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"override"},
@@ -466,7 +465,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Run default + non override rules",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				IgnoreRules:    []string{"override"},
@@ -477,7 +476,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Run only custom rules and ignore overrides",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
@@ -489,7 +488,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Run only default rules by ignoring custom rules",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				IgnoreRules:    []string{"custom"},
@@ -500,7 +499,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Run only custom rules by ignoring custom rules by id",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
@@ -515,7 +514,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Run only custom rules by ignoring custom rules by name",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
@@ -530,7 +529,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Run only custom rules by ignoring override result Ids",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules:    cloneRules(customRules),
 				WithValidation: true,
 				SelectRules:    []string{"custom"},
@@ -546,7 +545,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Rule name, id, regex missing",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules: []*ruledefine.Rule{
 					{
 						Description: "Match passwords",
@@ -568,7 +567,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Regex, severity and score parameters invalid",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules: []*ruledefine.Rule{
 					{
 						RuleID:        "db18ccf1-4fbf-49f6-aec1-939a2e5464c0",
@@ -600,7 +599,7 @@ func TestScanAndScanDynamicWithCustomRules(t *testing.T) {
 		},
 		{
 			Name: "Rule id missing",
-			ScanConfig: &resources.ScanConfig{
+			ScanConfig: &ScanConfig{
 				CustomRules: []*ruledefine.Rule{
 					{
 						RuleName:    "mock-rule",
@@ -699,7 +698,7 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 		assert.NoError(t, err, "failed to create scanner")
 
-		actualReport, err := testScanner.ScanDynamic(itemsIn, &resources.ScanConfig{})
+		actualReport, err := testScanner.ScanDynamic(itemsIn, &ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		compareOrUpdateTestData(t, actualReport, expectedReportPath)
@@ -743,7 +742,7 @@ func TestScanDynamic(t *testing.T) {
 
 		testScanner := NewScanner()
 
-		actualReport, err := testScanner.ScanDynamic(itemsIn, &resources.ScanConfig{
+		actualReport, err := testScanner.ScanDynamic(itemsIn, &ScanConfig{
 			IgnoreResultIds: []string{
 				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
 				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
@@ -792,7 +791,7 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 		assert.NoError(t, err, "failed to create scanner")
 
-		actualReport, err := testScanner.ScanDynamic(itemsIn, &resources.ScanConfig{
+		actualReport, err := testScanner.ScanDynamic(itemsIn, &ScanConfig{
 			IgnoreRules: []string{
 				"github-pat",
 			},
@@ -820,7 +819,7 @@ func TestScanDynamic(t *testing.T) {
 
 		testScanner := NewScanner()
 
-		report, err := testScanner.ScanDynamic(itemsIn, &resources.ScanConfig{IgnoreRules: idOfRules})
+		report, err := testScanner.ScanDynamic(itemsIn, &ScanConfig{IgnoreRules: idOfRules})
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, engine.ErrNoRulesSelected)
@@ -870,7 +869,7 @@ func TestScanDynamic(t *testing.T) {
 		testScanner := NewScanner()
 
 		// scan 2
-		actualReport, err := testScanner.ScanDynamic(itemsIn1, &resources.ScanConfig{})
+		actualReport, err := testScanner.ScanDynamic(itemsIn1, &ScanConfig{})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		expectedReportBytes, err := os.ReadFile(expectedReportPath)
@@ -896,7 +895,7 @@ func TestScanDynamic(t *testing.T) {
 		assert.EqualValues(t, normalizedExpectedReport, normalizedActualReport)
 
 		// scan 2
-		actualReport, err = testScanner.ScanDynamic(itemsIn2, &resources.ScanConfig{
+		actualReport, err = testScanner.ScanDynamic(itemsIn2, &ScanConfig{
 			IgnoreResultIds: []string{
 				"efc9a9ee89f1d732c7321067eb701b9656e91f15",
 				"c31705d99e835e4ac7bc3f688bd9558309e056ed",
@@ -958,7 +957,7 @@ func TestScanWithValidation(t *testing.T) {
 		}
 
 		testScanner := NewScanner()
-		actualReport, err := testScanner.Scan(scanItems, &resources.ScanConfig{WithValidation: true})
+		actualReport, err := testScanner.Scan(scanItems, &ScanConfig{WithValidation: true})
 		assert.NoError(t, err, "scanner encountered an error")
 
 		expectedReportBytes, err := os.ReadFile(expectedReportWithValidationPath)
@@ -1109,7 +1108,7 @@ func TestScan_LimitSettings(t *testing.T) {
 			}
 
 			testScanner := NewScanner()
-			actualReport, err := testScanner.Scan(scanItems, &resources.ScanConfig{
+			actualReport, err := testScanner.Scan(scanItems, &ScanConfig{
 				MaxFindings:               tt.maxFindings,
 				MaxRuleMatchesPerFragment: tt.maxRuleMatchesPerFragment,
 				MaxSecretSize:             tt.maxSecretSize,
@@ -1215,7 +1214,7 @@ func TestScanDynamic_LimitSettings(t *testing.T) {
 			close(itemsIn)
 
 			testScanner := NewScanner()
-			actualReport, err := testScanner.ScanDynamic(itemsIn, &resources.ScanConfig{
+			actualReport, err := testScanner.ScanDynamic(itemsIn, &ScanConfig{
 				MaxFindings:               tt.maxFindings,
 				MaxRuleMatchesPerFragment: tt.maxRuleMatchesPerFragment,
 				MaxSecretSize:             tt.maxSecretSize,

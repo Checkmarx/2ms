@@ -37,7 +37,7 @@ func processFlags(rootCmd *cobra.Command) error {
 	}
 
 	// Apply all flag mappings immediately
-	engineConfigVar.ScanConfig.WithValidation = validateVar
+	engineConfigVar.WithValidation = validateVar
 	if len(customRegexRuleVar) > 0 {
 		engineConfigVar.CustomRegexPatterns = customRegexRuleVar
 	}

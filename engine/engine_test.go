@@ -21,7 +21,6 @@ import (
 	"github.com/checkmarx/2ms/v5/engine/chunk"
 	"github.com/checkmarx/2ms/v5/engine/rules"
 	"github.com/checkmarx/2ms/v5/engine/semaphore"
-	"github.com/checkmarx/2ms/v5/internal/resources"
 	"github.com/checkmarx/2ms/v5/lib/secrets"
 	"github.com/checkmarx/2ms/v5/plugins"
 	"github.com/rs/zerolog"
@@ -939,9 +938,7 @@ func TestProcessItems(t *testing.T) {
 func TestProcessSecrets(t *testing.T) {
 	t.Run("Validate flag is enabled", func(t *testing.T) {
 		instance, err := initEngine(&EngineConfig{
-			ScanConfig: resources.ScanConfig{
-				WithValidation: true,
-			},
+			WithValidation: true,
 		})
 		assert.NoError(t, err)
 		secretsChan := instance.secretsChan
@@ -993,9 +990,7 @@ func TestProcessSecrets(t *testing.T) {
 	})
 	t.Run("Validate flag is disabled", func(t *testing.T) {
 		instance, err := initEngine(&EngineConfig{
-			ScanConfig: resources.ScanConfig{
-				WithValidation: false,
-			},
+			WithValidation: false,
 		})
 		assert.NoError(t, err)
 		secretsChan := instance.secretsChan
@@ -1207,8 +1202,8 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			instance, err := initEngine(
 				&EngineConfig{
-					ScanConfig:  resources.ScanConfig{WithValidation: true},
-					CustomRules: tt.customRules},
+					WithValidation: true,
+					CustomRules:    tt.customRules},
 			)
 			assert.NoError(t, err)
 			validationChan := instance.GetValidationCh()
