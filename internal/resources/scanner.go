@@ -9,4 +9,9 @@ type ScanConfig struct {
 	CustomRules     []*ruledefine.Rule
 	WithValidation  bool
 	PluginName      string
+
+	// Limit settings
+	MaxFindings               uint64 // Total findings limit across entire scan (0 = no limit)
+	MaxRuleMatchesPerFragment uint64 // Regex matches limit per rule per fragment (0 = no limit)
+	MaxSecretSize             uint64 // Maximum secret size in bytes (0 = no limit)
 }
