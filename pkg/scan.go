@@ -57,7 +57,12 @@ func (s *scanner) Reset(scanConfig *ScanConfig, opts ...engine.EngineOption) err
 	return nil
 }
 
-func (s *scanner) Scan(ctx context.Context, scanItems []ScanItem, scanConfig *ScanConfig, opts ...engine.EngineOption) (reporting.IReport, error) {
+func (s *scanner) Scan(
+	ctx context.Context,
+	scanItems []ScanItem,
+	scanConfig *ScanConfig,
+	opts ...engine.EngineOption,
+) (reporting.IReport, error) {
 	var wg conc.WaitGroup
 	err := s.Reset(scanConfig, opts...)
 	if err != nil {
