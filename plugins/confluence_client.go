@@ -190,6 +190,7 @@ func (c *httpConfluenceClient) discoverCloudID(ctx context.Context) (string, err
 	if err != nil {
 		return "", fmt.Errorf("build tenant_info request: %w", err)
 	}
+	// #nosec G704 -- URL is intentionally user-provided for plugin API calls to external services
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", ErrBaseURLInvalidOrUnreachable
@@ -475,6 +476,7 @@ func (c *httpConfluenceClient) getJSON(ctx context.Context, reqURL string) ([]by
 	}
 	req.Header.Set("Accept", "application/json")
 
+	// #nosec G704 -- URL is intentionally user-provided for plugin API calls to external services
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("http get: %w", err)
