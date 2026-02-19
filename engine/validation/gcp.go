@@ -31,9 +31,8 @@ func validateGCP(s *secrets.Secret) (secrets.ValidationResult, string) {
 		log.Warn().Err(err).Msg("Failed to validate secret")
 		return secrets.UnknownResult, ""
 	}
-
-	// #nosec G704 -- URL is hardcoded to GCP API, only query params contain credentials being validated
 	client := &http.Client{}
+	// #nosec G704 -- URL is hardcoded to GCP API, only query params contain credentials being validated
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to validate secret")
