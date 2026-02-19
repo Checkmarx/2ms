@@ -40,7 +40,7 @@ func HttpRequest(method, url string, authorization IAuthorizationHeader, retry R
 
 	// TODO: do not recreate this client for each request
 	client := &http.Client{}
-	// #nosec G107 -- URL is intentionally user-provided for plugin API calls to external services
+	// #nosec G704 -- URL is intentionally user-provided for plugin API calls to external services
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, response, fmt.Errorf("unable to send http request %w", err)

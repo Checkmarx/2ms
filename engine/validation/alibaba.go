@@ -69,6 +69,7 @@ func alibabaRequest(accessKey, secretKey string) (secrets.ValidationResult, erro
 	req.URL.RawQuery = params.Encode()
 
 	client := &http.Client{}
+	// #nosec G704 -- URL is hardcoded to Alibaba API, only query params contain credentials being validated
 	resp, err := client.Do(req)
 	if err != nil {
 		return secrets.UnknownResult, err

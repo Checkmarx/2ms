@@ -527,7 +527,7 @@ func (c *httpConfluenceClient) getJSONStream(ctx context.Context, reqURL string)
 		req.SetBasicAuth(c.username, c.token)
 	}
 	req.Header.Set("Accept", "application/json")
-
+	// #nosec G704 -- URL is intentionally user-provided for plugin API calls to external services
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("http get: %w", err)
