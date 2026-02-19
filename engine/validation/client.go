@@ -14,6 +14,7 @@ func sendValidationRequest(endpoint, authorization string) (*http.Response, erro
 
 	// TODO: do not recreate this client for each request
 	client := &http.Client{}
+	// #nosec G704 -- URL is hardcoded in both github and gitlab uses, only query params contain credentials being validated
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

@@ -32,6 +32,7 @@ func validateGCP(s *secrets.Secret) (secrets.ValidationResult, string) {
 		return secrets.UnknownResult, ""
 	}
 
+	// #nosec G704 -- URL is hardcoded to GCP API, only query params contain credentials being validated
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
