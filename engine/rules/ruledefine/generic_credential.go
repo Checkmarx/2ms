@@ -16,7 +16,7 @@ var genericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
 	"passw(?:or)?d",
 	"secret",
 	"token",
-}, `[\w.=\-~?!@]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
+}, `[\w.=\-~?!:@]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
 
 func GenericCredential() *Rule {
 	return &Rule{
@@ -42,7 +42,7 @@ func GenericCredential() *Rule {
 				// NOTE: this is a goofy hack to get around the fact there golang's regex engine does not support positive lookaheads.
 				// Ideally we would want to ensure the secret contains both numbers and alphabetical characters, not just alphabetical characters.
 				Regexes: []string{
-					regexp.MustCompile(`^[a-zA-Z_.-]+$`).String(),
+					regexp.MustCompile(`^[a-zA-Z_.-]+:?$`).String(),
 				},
 			},
 			{
