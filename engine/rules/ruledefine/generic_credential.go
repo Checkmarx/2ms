@@ -16,7 +16,7 @@ var genericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
 	"passw(?:or)?d",
 	"secret",
 	"token",
-}, `[\w.=\-~?!:@]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
+}, `[\w.=\-~?!@]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
 
 func GenericCredential() *Rule {
 	return &Rule{
