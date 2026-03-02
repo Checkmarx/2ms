@@ -16,7 +16,7 @@ var genericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
 	"passw(?:or)?d",
 	"secret",
 	"token",
-}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
+}, `[\w.=\-~?!:@]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
 
 func GenericCredential() *Rule {
 	return &Rule{
@@ -60,7 +60,7 @@ func GenericCredential() *Rule {
 						`|rapid|capital` + // common words containing "api"
 						`|[a-z0-9-]*?api[a-z0-9-]*?:jar:` + // Maven META-INF dependencies that contain "api" in the name.
 						// Auth
-						`|author` +
+						`|\bauthor\b` +
 						`|X-MS-Exchange-Organization-Auth` + // email header
 						`|Authentication-Results` + // email header
 						// Credentials
