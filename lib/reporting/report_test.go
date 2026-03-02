@@ -81,6 +81,24 @@ var (
 		CvssScore:        0.0,
 		RuleDescription:  "Rule Description",
 	}
+	// result for git source normalization
+	result5 = &secrets.Secret{
+		ID:               "ID5",
+		Source:           "git show abc1234567:pkg/foo.go",
+		RuleID:           ruleID1,
+		RuleName:         RuleName1,
+		RuleCategory:     ruleCategory1,
+		StartLine:        5,
+		EndLine:          5,
+		LineContent:      "line content5",
+		StartColumn:      1,
+		EndColumn:        50,
+		Value:            "value 5",
+		ValidationStatus: secrets.ValidResult,
+		CvssScore:        8.0,
+		Severity:         "High",
+		RuleDescription:  "Rule Description",
+	}
 	// result for confluence.pageId validation
 	result4 = &secrets.Secret{
 		ID:               "ID4",
@@ -275,6 +293,41 @@ var (
 			"ruleName":          RuleName4,
 		},
 	}
+	result5Sarif = Results{
+		Message: Message{
+			Text: createMessageText(result5.RuleName, result5.Source),
+		},
+		RuleId: ruleID1,
+		Locations: []Locations{
+			{
+				PhysicalLocation: PhysicalLocation{
+					ArtifactLocation: ArtifactLocation{
+						URI:       "pkg/foo.go",
+						URIBaseID: "%SRCROOT%",
+					},
+					Region: Region{
+						StartLine:   result5.StartLine,
+						StartColumn: result5.StartColumn,
+						EndLine:     result5.EndLine,
+						EndColumn:   result5.EndColumn,
+						Snippet: Snippet{
+							Text: result5.Value,
+							Properties: Properties{
+								"lineContent": strings.TrimSpace(result5.LineContent),
+							},
+						},
+					},
+				},
+			},
+		},
+		Properties: Properties{
+			"validationStatus": string(result5.ValidationStatus),
+			"cvssScore":        result5.CvssScore,
+			"resultId":         result5.ID,
+			"severity":         result5.Severity,
+			"ruleName":         RuleName1,
+		},
+	}
 )
 
 func TestAddSecretToFile(t *testing.T) {
@@ -416,6 +469,33 @@ func TestGetOutputSarif(t *testing.T) {
 					},
 					Results: []Results{
 						result4Sarif,
+					},
+				},
+			},
+		},
+		{
+			name: "git_source_normalized_to_filepath_with_srcroot",
+			arg: &Report{
+				TotalItemsScanned: 1,
+				TotalSecretsFound: 1,
+				Results: map[string][]*secrets.Secret{
+					"secret5": {result5},
+				},
+			},
+			wantErr: false,
+			want: []Runs{
+				{
+					Tool: Tool{
+						Driver: Driver{
+							Name:            "report",
+							SemanticVersion: "1",
+							Rules: []*SarifRule{
+								rule1Sarif,
+							},
+						},
+					},
+					Results: []Results{
+						result5Sarif,
 					},
 				},
 			},

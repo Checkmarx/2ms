@@ -123,13 +123,24 @@ func getResults(report *Report) []Results {
 	return results
 }
 
+func getArtifactLocation(source string) ArtifactLocation {
+	if strings.HasPrefix(source, "git show ") {
+		parts := strings.SplitN(source, ":", 2)
+		if len(parts) == 2 {
+			return ArtifactLocation{
+				URI:       parts[1],
+				URIBaseID: "%SRCROOT%",
+			}
+		}
+	}
+	return ArtifactLocation{URI: source}
+}
+
 func getLocation(secret *secrets.Secret) []Locations {
 	return []Locations{
 		{
 			PhysicalLocation: PhysicalLocation{
-				ArtifactLocation: ArtifactLocation{
-					URI: secret.Source,
-				},
+				ArtifactLocation: getArtifactLocation(secret.Source),
 				Region: Region{
 					StartLine:   secret.StartLine,
 					EndLine:     secret.EndLine,
@@ -178,7 +189,8 @@ type Message struct {
 }
 
 type ArtifactLocation struct {
-	URI string `json:"uri"`
+	URI       string `json:"uri"`
+	URIBaseID string `json:"uriBaseId,omitempty"`
 }
 
 type Region struct {
