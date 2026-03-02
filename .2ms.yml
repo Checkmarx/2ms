@@ -1383,3 +1383,4 @@ ignore-result:
 - fcaf9a97bbcf85b33f88738b1e817e098e9c37e1 # unit test from e2e_test.go
 - fe08c7c6c7f8bb715022aa4cd16ae1c69906ebba # test data from expectedReportWithValidation.json
 - 5858849b35c4d0c6061a61c28c39e28b98844333 # unit test from rule_test.go
+- 93a8246bc5d82a9d47d8b683b4343b51dc3bb918 # unit test from generic_credential_test.go
