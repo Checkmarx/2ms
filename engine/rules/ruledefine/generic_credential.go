@@ -96,7 +96,7 @@ func GenericCredential() *Rule {
 						`|(?-i:(?:[A-Z.]+=\n[A-Z.]+=|[a-z.]+=\n[a-z.]+=)(?:\n|\z))` +
 						// Code constant references (e.g. AnnotationWithConstants::INTEGER).
 						`|(?-i:\w+::[A-Z][A-Z0-9_]*)` +
-						// Encrypted key: ignore only when value also starts with "encrypted" (encrypted_xxx = encrypted_yyy), not when value is a real secret. Underscore after "encrypted" optional.
+						// Ignore only when value also starts with "encrypted" (encrypted_xxx = encrypted_yyy), not when value is a real secret.
 						`|encrypted_?[a-f0-9]+_(?:key|iv)\s*=\s*encrypted_?` +
 						// Any secret in valid date/datetime format (e.g. ISO 8601: 2018-04-22T10:28:49.876Z) — not a credential
 						`|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?` +
