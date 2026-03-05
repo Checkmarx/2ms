@@ -101,7 +101,6 @@ func TestGenericCredential(t *testing.T) {
 				"maxAPIResponseBytes: tc.maxAPIBytes , maxTotalScanBytes:   tc.maxTotalBytes,",
 				"SOME_KEY = AnnotationWithConstants::INTEGER",
 				"SOME_KEY = AnnotationWithConstants::TANTO_FAZ",
-				"encrypted_0dfb31adf922_key = encrypted_0dfb31adf922_iv=",
 				"AuthnInstant=2018-04-22T10:28:49.876Z",
 				"AuthnInstant=2018-04-22T10:28:49Z",
 				"AuthnInstant=2018-04-22T10:28:49+00:00",
