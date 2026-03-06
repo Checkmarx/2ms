@@ -16,7 +16,7 @@ var genericCredentialRegex = generateSemiGenericRegexIncludingXml([]string{
 	"passw(?:or)?d",
 	"secret",
 	"token",
-}, `[\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
+}, `[\w.=\-~?!:@]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3}`, true).String()
 
 func GenericCredential() *Rule {
 	return &Rule{
@@ -42,7 +42,7 @@ func GenericCredential() *Rule {
 				// NOTE: this is a goofy hack to get around the fact there golang's regex engine does not support positive lookaheads.
 				// Ideally we would want to ensure the secret contains both numbers and alphabetical characters, not just alphabetical characters.
 				Regexes: []string{
-					regexp.MustCompile(`^[a-zA-Z_.-]+$`).String(),
+					regexp.MustCompile(`^[a-zA-Z_.-]+:?$`).String(),
 				},
 			},
 			{
@@ -60,7 +60,7 @@ func GenericCredential() *Rule {
 						`|rapid|capital` + // common words containing "api"
 						`|[a-z0-9-]*?api[a-z0-9-]*?:jar:` + // Maven META-INF dependencies that contain "api" in the name.
 						// Auth
-						`|author` +
+						`|\bauthor\b` +
 						`|X-MS-Exchange-Organization-Auth` + // email header
 						`|Authentication-Results` + // email header
 						// Credentials
@@ -94,6 +94,10 @@ func GenericCredential() *Rule {
 						// Empty variables capturing the next line (e.g., .env files)
 						`|(?-i:(?:[A-Z_]+=\n[A-Z_]+=|[a-z_]+=\n[a-z_]+=)(?:\n|\z))` +
 						`|(?-i:(?:[A-Z.]+=\n[A-Z.]+=|[a-z.]+=\n[a-z.]+=)(?:\n|\z))` +
+						// Code constant references (e.g. AnnotationWithConstants::INTEGER).
+						`|(?-i:\w+::[A-Z][A-Z0-9_]*)` +
+						// Any secret in valid date/datetime format (e.g. ISO 8601: 2018-04-22T10:28:49.876Z) — not a credential
+						`|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?` +
 						`)`).String(),
 				},
 				StopWords: append(DefaultStopWords,

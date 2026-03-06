@@ -85,6 +85,8 @@ func TestGenericCredential(t *testing.T) {
 				" utils.GetEnvOrDefault(\"api_token\", \"dafa7817-e246-48f3-91a7-e87653d587b8\")",
 				// xml cases
 				"<key>API_KEY</key>\n<string>AIzaSyATDL7Wz3Ze6BU31Yv3fVVth30Skyib29g</string>",
+				"Authorization.ClientSecret: e55wsdasfsgs-sdsdas_2sdasjVM~ggadASaADASsad",
+				"Authorization.ClientSecret: e55wsdasfsgs-sds::das_2sdasjVM~ggad?ASaAD!ASs@ad",
 			},
 			falsePositives: []string{
 				"issuerKeyHash=npmXsmT2_C1iJZ-SD7RuL8exZ=6ucd",
@@ -96,6 +98,13 @@ func TestGenericCredential(t *testing.T) {
 				"<key>GOOGLE_APP_ID</key>\n<string>1:407966239993:ios:0d7534f14f8cfe19</string>",
 				"\"a_b_key\": \"x-someval-127.0.0.1\",",
 				"KeyVaultSecretsUser: '62168719-64c5-453d-b4ef-b51d8b1ad44d'",
+				"maxAPIResponseBytes: tc.maxAPIBytes , maxTotalScanBytes:   tc.maxTotalBytes,",
+				"SOME_KEY = AnnotationWithConstants::INTEGER",
+				"SOME_KEY = AnnotationWithConstants::TANTO_FAZ",
+				"AuthnInstant=2018-04-22T10:28:49.876Z",
+				"AuthnInstant=2018-04-22T10:28:49Z",
+				"AuthnInstant=2018-04-22T10:28:49+00:00",
+				"PasswordStorage::SECTION_DELIMITER",
 			},
 		},
 	}
