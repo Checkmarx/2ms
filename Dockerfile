@@ -3,7 +3,7 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM checkmarx/go:1.25.7-r0-b270bc965b34b4@sha256:b270bc965b34b4ffec624413bc1f1830c58c0abb142580ca76d42116b3b06764 AS builder
+FROM checkmarx/go:1.26.1-r0-ce13f12ff5c411@sha256:ce13f12ff5c4114de1df95b2442911adab6c5a3ee580945176213f78c94ca0c6 AS builder
 
 WORKDIR /app
 
