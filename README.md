@@ -10,6 +10,7 @@
 > Modern secrets discovery CLI for code, content, and collaboration platforms.
 
 2ms is an open-source CLI from Checkmarx that helps teams surface credentials, API keys, tokens, and other sensitive data before it leaks. It builds on the gitleaks detection engine, adds Checkmarx expertise, CVSS-based scoring, and optional secret validation so you can triage the riskiest findings first.
+.
 
 ## Table of Contents
 - [Quick Start](#quick-start)
