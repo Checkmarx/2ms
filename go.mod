@@ -1,6 +1,6 @@
 module github.com/checkmarx/2ms/v5
 
-go 1.25.7
+go 1.26.1
 
 replace (
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.30.0
