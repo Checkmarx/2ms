@@ -24,7 +24,7 @@ const (
 	operator = `(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)`
 
 	// operatorOrXmlValue requires either a normal assignment operator (YAML, JSON, plist `>` after
-	// <string>, etc.) or XML attribute value="..." (e.g. <Parameter name="github_token" value="..."/>).
+	// <string>) or XML attribute value="..." (<Parameter name="github_token" value="..."/>).
 	operatorOrXmlValue = `(?:(?:\s*value\s*=\s*["'])|(?:` + operator + `))`
 
 	// boundaries for the secret
