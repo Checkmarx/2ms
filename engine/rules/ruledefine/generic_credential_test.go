@@ -85,6 +85,8 @@ func TestGenericCredential(t *testing.T) {
 				" utils.GetEnvOrDefault(\"api_token\", \"dafa7817-e246-48f3-91a7-e87653d587b8\")",
 				// xml cases
 				"<key>API_KEY</key>\n<string>AIzaSyATDL7Wz3Ze6BU31Yv3fVVth30Skyib29g</string>",
+				`<Parameter name="github_token" value="ghp_1234567890abcdefghijklmnopqrstuv"/>`,
+				`<Parameter name="jwt_secret" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"/>`,
 			},
 			falsePositives: []string{
 				"issuerKeyHash=npmXsmT2_C1iJZ-SD7RuL8exZ=6ucd",

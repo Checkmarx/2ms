@@ -19,9 +19,17 @@ const (
 	identifierSuffix                = `)(?:[ \t\w.-]{0,20})[\s'"]{0,3}`
 	identifierSuffixIncludingXml    = `)(?:[0-9a-z\-_\t .]{0,20})(?:<\/key>\s{0,10}<string)?(?:[\s|']|[\s|"]){0,3}`
 
+	// xmlAttributeValuePair bridges identifier (e.g. name="github_token") to the secret in
+	// <Parameter name="..." value="secret"/> and similar patterns.
+	xmlAttributeValuePair = `(?:\s*value\s*=\s*["'])?`
+
 	// commonly used assignment operators or function call
 	// operator = `(?:=|>|:{1,3}=|\|\|:|<=|=>|:|\?=)`
 	operator = `(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)`
+
+	// optionalOperator allows YAML/JSON (operator required or absorbed by secretPrefix) and XML
+	// Parameter lines where xmlAttributeValuePair consumed value=" and the secret follows immediately.
+	optionalOperator = `(?:` + operator + `)?`
 
 	// boundaries for the secret
 	// \x60 = `
@@ -80,7 +88,8 @@ func generateSemiGenericRegexIncludingXml(identifiers []string, secretRegex stri
 		writeIdentifiersIncludingXml(&sb, identifiers)
 		sb.WriteString(identifierCaseInsensitiveSuffix)
 	}
-	sb.WriteString(operator)
+	sb.WriteString(xmlAttributeValuePair)
+	sb.WriteString(optionalOperator)
 	sb.WriteString(secretPrefix)
 	sb.WriteString(secretRegex)
 	sb.WriteString(secretSuffixIncludingXml)
