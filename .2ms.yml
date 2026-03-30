@@ -1389,3 +1389,5 @@ ignore-result:
 - 1ab798f14ecce9ea8a9229803c33f06e0093306a # unit test from generic_credential_test.go (remove later)
 - 4154ccf54f5d43a54103495dcf0e228353dc02f4 # unit test from generic_credential_test.go (remove later)
 - 783d3aa8f0e14f6d1527879bbcb3ae6195134b33 # unit test from generic_credential_test.go (remove later)
+- 4b68fb6117b9245a27ff07671dbad3b7734ad9f3 # unit test from generic_credential_test.go
+- de0438bff48b729dad27525d63839271790dca00 # unit test from generic_credential_test.go

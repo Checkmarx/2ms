@@ -107,6 +107,8 @@ func GenericCredential() *Rule {
 					regexp.MustCompile(`--mount=type=secret,`).String(),
 					//  https://github.com/gitleaks/gitleaks/issues/1800
 					regexp.MustCompile(`import[ \t]+{[ \t\w,]+}[ \t]+from[ \t]+['"][^'"]+['"]`).String(),
+					// Rails CSRF: name="authenticity_token" value="..." (matched via value= bridge)
+					regexp.MustCompile(`(?i)name\s*=\s*["']authenticity_token["']`).String(),
 				},
 			},
 			{
