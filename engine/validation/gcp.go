@@ -75,9 +75,7 @@ func checkGCPErrorResponse(resp *http.Response) (secrets.ValidationResult, strin
 				extra = detail.Metadata.Consumer
 			}
 		}
-
 	}
-
 	// if resp.StatusCode is StatusForbidden, it indicates the secret is valid, but just not allowed for Youtube API
 	return secrets.ValidResult, extra, nil
 }
