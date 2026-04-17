@@ -35,17 +35,19 @@ const (
 	maxSecretSizeFlagName             = "max-secret-size"
 	validate                          = "validate"
 	customRulesFileFlagName           = "custom-rules-path"
+	disableConsoleReportFlagName      = "disable-console-report"
 )
 
 var (
-	logLevelVar        string
-	reportPathVar      []string
-	stdoutFormatVar    string
-	customRegexRuleVar []string
-	ignoreOnExitVar    = ignoreOnExitNone
-	engineConfigVar    engine.EngineConfig
-	validateVar        bool
-	customRulesPathVar string
+	logLevelVar             string
+	reportPathVar           []string
+	stdoutFormatVar         string
+	customRegexRuleVar      []string
+	ignoreOnExitVar         = ignoreOnExitNone
+	engineConfigVar         engine.EngineConfig
+	validateVar             bool
+	customRulesPathVar      string
+	disableConsoleReportVar bool
 )
 
 const envPrefix = "2MS"
@@ -174,7 +176,7 @@ func postRun(engineInstance engine.IEngine) error {
 	report := engineInstance.GetReport()
 
 	if report.GetTotalItemsScanned() > 0 {
-		if zerolog.GlobalLevel() != zerolog.Disabled {
+		if !disableConsoleReportVar && zerolog.GlobalLevel() != zerolog.Disabled {
 			if err := report.ShowReport(stdoutFormatVar, cfg); err != nil {
 				return err
 			}

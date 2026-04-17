@@ -68,12 +68,30 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 
 		fileExtension := filepath.Ext(path)
 		format := strings.TrimPrefix(fileExtension, ".")
+
+		// SARIF streams directly to the file to avoid holding the full
+		// serialized report in memory.
+		if format == sarifFormat {
+			err = writeSarifToWriter(file, r, cfg)
+			if closeErr := file.Close(); closeErr != nil && err == nil {
+				err = closeErr
+			}
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
 		output, err := r.GetOutput(format, cfg)
 		if err != nil {
+			file.Close()
 			return err
 		}
 
 		_, err = file.WriteString(output)
+		if closeErr := file.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
 		if err != nil {
 			return err
 		}

@@ -1,8 +1,10 @@
 package reporting
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/checkmarx/2ms/v5/lib/config"
@@ -22,6 +24,91 @@ func writeSarif(report *Report, cfg *config.Config) (string, error) {
 	}
 
 	return string(sarifReport), nil
+}
+
+// writeSarifToWriter streams the SARIF report directly to w, marshaling each
+// result individually so that only one result's JSON is in memory at a time.
+// This eliminates the intermediate Sarif struct, full []byte, and string copies
+// that writeSarif produces.
+func writeSarifToWriter(w io.Writer, report *Report, cfg *config.Config) error {
+	bw := bufio.NewWriter(w)
+
+	// Schema and version
+	bw.WriteString("{\n")
+	bw.WriteString(" \"$schema\": \"https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json\",\n")
+	bw.WriteString(" \"version\": \"2.1.0\",\n")
+	bw.WriteString(" \"runs\": [\n")
+	bw.WriteString("  {\n")
+
+	// Tool section (small — safe to marshal in one shot)
+	tool := getTool(report, cfg)
+	toolJSON, err := json.MarshalIndent(tool, "   ", " ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal tool: %w", err)
+	}
+	bw.WriteString("   \"tool\": ")
+	bw.Write(toolJSON)
+	bw.WriteString(",\n")
+
+	// Results — stream one at a time
+	bw.WriteString("   \"results\": [\n")
+
+	if hasNoResults(report) {
+		// empty array body — just close it
+	} else {
+		first := true
+		for _, secretsSlice := range report.Results {
+			for _, secret := range secretsSlice {
+				if !first {
+					bw.WriteString(",\n")
+				}
+				result := buildSarifResult(secret)
+				resultJSON, err := json.MarshalIndent(result, "    ", " ")
+				if err != nil {
+					return fmt.Errorf("failed to marshal result: %w", err)
+				}
+				bw.WriteString("    ")
+				bw.Write(resultJSON)
+				first = false
+			}
+		}
+		if !first {
+			bw.WriteString("\n")
+		}
+	}
+
+	bw.WriteString("   ]\n")
+	bw.WriteString("  }\n")
+	bw.WriteString(" ]\n")
+	bw.WriteString("}\n")
+
+	return bw.Flush()
+}
+
+// buildSarifResult converts a single Secret into a SARIF Results object.
+func buildSarifResult(secret *secrets.Secret) Results {
+	props := Properties{
+		"validationStatus": secret.ValidationStatus,
+		"cvssScore":        secret.CvssScore,
+		"resultId":         secret.ID,
+		"severity":         secret.Severity,
+		"ruleName":         secret.RuleName,
+	}
+
+	if secret.ExtraDetails != nil {
+		if pageID, ok := secret.ExtraDetails["confluence.pageId"]; ok {
+			props["confluence.pageId"] = pageID
+		}
+	}
+
+	return Results{
+		Message: Message{
+			Text: createMessageText(secret.RuleName, secret.Source),
+		},
+		RuleId:     secret.RuleID,
+		Locations:  getLocation(secret),
+		Properties: props,
+	}
 }
 
 func getRuns(report *Report, cfg *config.Config) []Runs {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 
@@ -13,6 +15,14 @@ import (
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Logger = utils.CreateLogger(zerolog.InfoLevel)
+
+	// Start pprof server for profiling
+	go func() {
+		log.Info().Msg("Starting pprof server on :6060")
+		if err := http.ListenAndServe(":6060", nil); err != nil {
+			log.Error().Err(err).Msg("pprof server failed")
+		}
+	}()
 
 	// this block sets up a go routine to listen for an interrupt signal
 	// which will immediately exit gitleaks
