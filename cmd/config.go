@@ -150,6 +150,10 @@ func setupFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().
 		StringVar(&customRulesPathVar, customRulesFileFlagName, "", "Path to a custom rules file (JSON or YAML)."+
 			" Rules should be a list of ruledefine.Rule objects. --rule, --ignore-rule still apply to custom rules")
+
+	rootCmd.PersistentFlags().
+		BoolVar(&disableConsoleReportVar, disableConsoleReportFlagName, false,
+			"disable printing the report to the console. Other log messages are not affected")
 }
 
 func loadRulesFile(path string) ([]*ruledefine.Rule, error) {
