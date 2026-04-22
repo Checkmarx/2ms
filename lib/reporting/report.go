@@ -71,6 +71,7 @@ func (r *Report) WriteFile(reportPath []string, cfg *config.Config) error {
 
 		// SARIF streams directly to the file to avoid holding the full
 		// serialized report in memory.
+		// TODO: apply streaming to all report types
 		if format == sarifFormat {
 			err = writeSarifToWriter(file, r, cfg)
 			if closeErr := file.Close(); closeErr != nil && err == nil {
