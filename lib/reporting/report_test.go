@@ -2,6 +2,7 @@ package reporting
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -550,6 +551,57 @@ func TestWriteFileSarifUsesStreaming(t *testing.T) {
 	assert.NoError(t, err, "written sarif file must be valid JSON")
 	assert.Len(t, gotReport.Runs, 1)
 	assert.Len(t, gotReport.Runs[0].Results, 2)
+}
+
+// errWriter is an io.Writer that always fails, used to test error propagation.
+type errWriter struct{}
+
+func (errWriter) Write(_ []byte) (int, error) {
+	return 0, fmt.Errorf("write error")
+}
+
+func TestWriteFileMultiplePaths(t *testing.T) {
+	report := &Report{
+		TotalItemsScanned: 1,
+		TotalSecretsFound: 1,
+		Results: map[string][]*secrets.Secret{
+			"secret1": {result1},
+		},
+	}
+	cfg := &config.Config{Name: "report", Version: "1"}
+
+	tempDir := t.TempDir()
+	sarifPath := filepath.Join(tempDir, "out.sarif")
+	jsonPath := filepath.Join(tempDir, "out.json")
+
+	err := report.WriteFile([]string{sarifPath, jsonPath}, cfg)
+	assert.NoError(t, err)
+
+	sarifData, err := os.ReadFile(sarifPath)
+	assert.NoError(t, err)
+	var gotSarif Sarif
+	assert.NoError(t, json.Unmarshal(sarifData, &gotSarif), "sarif file must be valid JSON")
+	assert.Len(t, gotSarif.Runs[0].Results, 1)
+
+	jsonData, err := os.ReadFile(jsonPath)
+	assert.NoError(t, err)
+	var gotReport Report
+	assert.NoError(t, json.Unmarshal(jsonData, &gotReport), "json file must be valid JSON")
+	assert.Equal(t, 1, gotReport.TotalSecretsFound)
+}
+
+func TestWriteSarifToWriterError(t *testing.T) {
+	report := &Report{
+		TotalItemsScanned: 1,
+		TotalSecretsFound: 1,
+		Results: map[string][]*secrets.Secret{
+			"secret1": {result1},
+		},
+	}
+	cfg := &config.Config{Name: "report", Version: "1"}
+
+	err := writeSarifToWriter(errWriter{}, report, cfg)
+	assert.Error(t, err)
 }
 
 // SortProject Sorts two sarif reports
