@@ -68,15 +68,14 @@ func checkGCPErrorResponse(resp *http.Response) (secrets.ValidationResult, strin
 		return secrets.UnknownResult, "", err
 	}
 
+	extra := ""
 	if strings.Contains(errorResponse.Error.Message, "YouTube Data API v3 has not been used in project") {
-		extra := ""
 		for _, detail := range errorResponse.Error.Details {
 			if detail.Type == "type.googleapis.com/google.rpc.ErrorInfo" {
 				extra = detail.Metadata.Consumer
 			}
 		}
-		return secrets.ValidResult, extra, nil
 	}
-
-	return secrets.UnknownResult, "", nil
+	// if resp.StatusCode is StatusForbidden, it indicates the secret is valid, but just not allowed for Youtube API
+	return secrets.ValidResult, extra, nil
 }
