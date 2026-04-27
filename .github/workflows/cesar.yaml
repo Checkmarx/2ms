@@ -37,22 +37,29 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
       - name: Create Metadata File
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          ACTOR: ${{ github.actor }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           COMMIT_TIMESTAMP=$(git -C "$GITHUB_WORKSPACE/2ms" log -1 --format=%ct)
           METADATA_PATH="$GITHUB_WORKSPACE/pr-metadata.json"
           CURR_TIMESTAMP=$(date +%s)
           echo '{
             "seq": "'"${CURR_TIMESTAMP}"'",
-            "tag": "'"${{ github.event.number }}"'",
-            "comment": "'"${{ github.event.pull_request.title }}"'",
-            "commit": "'"${{ github.event.pull_request.head.sha }}"'",
-            "owner": "'"${{ github.actor }}"'",
-            "branch": "'"${{ github.head_ref }}"'",
+            "tag": "'"${PR_NUMBER}"'",
+            "comment": "'"${PR_TITLE}"'",
+            "commit": "'"${PR_HEAD_SHA}"'",
+            "owner": "'"${ACTOR}"'",
+            "branch": "'"${HEAD_REF}"'",
             "engine": "'"${ENGINE}"'",
             "platform": "'"${PLATFORM}"'",
             "version": "'"${ENGINE_VERSION}"'",
             "forkSeq": "'"${CURR_TIMESTAMP}"'",
-            "forkBranch": "'"${{ github.base_ref }}"'",
+            "forkBranch": "'"${BASE_REF}"'",
             "removeHistory" : "'"${REMOVE_HISTORY}"'"
           }' > "$METADATA_PATH"
 

@@ -38,16 +38,22 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
       - name: Create Metadata File
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          GH_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           COMMIT_TIMESTAMP=$(git -C "$GITHUB_WORKSPACE/2ms" log -1 --format=%ct)
           METADATA_PATH="$GITHUB_WORKSPACE/pr-metadata.json"
           echo '{
             "seq": "'"${COMMIT_TIMESTAMP}"'",
-            "tag": "'"${{ github.event.number }}"'",
-            "comment": "'"${{ github.event.pull_request.title }}"'",
-            "commit": "'"${{ github.sha }}"'",
-            "owner": "'"${{ github.actor }}"'",
-            "branch": "'"${{ github.base_ref }}"'",
+            "tag": "'"${PR_NUMBER}"'",
+            "comment": "'"${PR_TITLE}"'",
+            "commit": "'"${GH_SHA}"'",
+            "owner": "'"${ACTOR}"'",
+            "branch": "'"${BASE_REF}"'",
             "engine": "'"${ENGINE}"'",
             "platform": "'"${PLATFORM}"'",
             "version": "'"${ENGINE_VERSION}"'"
