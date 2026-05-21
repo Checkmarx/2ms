@@ -7,6 +7,8 @@ FROM checkmarx/go:1.26.2-r0-9bc691851ef224@sha256:9bc691851ef2244d13b0b9ff48bd2d
 
 WORKDIR /app
 
+ARG VERSION=0.0.0
+
 #Copy go mod and sum files
 COPY go.mod .
 COPY go.sum .
@@ -17,7 +19,7 @@ RUN go mod download
 # COPY the source code as the last step
 COPY . .
 
-RUN GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w" -a -o /app/2ms .
+RUN GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w -X github.com/checkmarx/2ms/v5/cmd.Version=${VERSION}" -a -o /app/2ms .
 
 # Runtime image
 FROM checkmarx/git:2.54.0-r0-586cb59ae2f323@sha256:586cb59ae2f323b619760be099e9029828954aa6d5a230f0b0dc37a623894d6f

@@ -71,7 +71,7 @@ jobs:
           GOOS: linux
           GOARCH: amd64
         run: |
-          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/v5/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
           zip -j dist/linux-amd64.zip dist/2ms
           rm dist/2ms
       - name: Compile for Linux arm64
@@ -81,7 +81,7 @@ jobs:
           GOOS: linux
           GOARCH: arm64
         run: |
-          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/v5/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
           zip -j dist/linux-arm64.zip dist/2ms
           rm dist/2ms
 
@@ -92,7 +92,7 @@ jobs:
           GOOS: darwin
           GOARCH: amd64
         run: |
-          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/v5/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
           zip -j dist/macos-amd64.zip dist/2ms
           rm dist/2ms
 
@@ -103,7 +103,7 @@ jobs:
           GOOS: darwin
           GOARCH: arm64
         run: |
-          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/v5/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms main.go
           zip -j dist/macos-arm64.zip dist/2ms
           rm dist/2ms
 
@@ -114,7 +114,7 @@ jobs:
           GOOS: windows
           GOARCH: amd64
         run: |
-          go build -ldflags "-s -w -X github.com/checkmarx/2ms/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms.exe main.go
+          go build -ldflags "-s -w -X github.com/checkmarx/2ms/v5/cmd.Version=$VERSION" -a -installsuffix cgo -o dist/2ms.exe main.go
           zip -j dist/windows-amd64.zip dist/2ms.exe
           rm dist/2ms.exe
           
@@ -139,7 +139,7 @@ jobs:
           tag_name: ${{ needs.test.outputs.git_tag }}
           name: ${{ needs.test.outputs.git_tag }}
           body: ${{ needs.test.outputs.notes }}
-          target_commitish: ${{ steps.commit_and_push.outputs.latest_commit_hash }}
+          target_commitish: ${{ github.sha }}
           files: |
             dist/*.zip
 
@@ -152,6 +152,8 @@ jobs:
           tags: |
             checkmarx/2ms:latest
             checkmarx/2ms:${{ needs.test.outputs.version }}
+          build-args: |
+            VERSION=${{ needs.test.outputs.version }}
 
       - name: Update Docker repo description
         uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae # v4.0.0
