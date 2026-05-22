@@ -13,7 +13,7 @@ on:
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
 
     outputs:
       git_tag: ${{ steps.semantic_release_info.outputs.git_tag || steps.version_override.outputs.git_tag }}
@@ -50,7 +50,7 @@ jobs:
 
   build:
     name: Build and Release
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     needs: test
     if: ${{ needs.test.outputs.git_tag }}
     steps:
