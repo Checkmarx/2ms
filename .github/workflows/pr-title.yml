@@ -4,9 +4,12 @@ on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
 
+permissions:
+  contents: read
+
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: install commitlint
         run: npm install -g @commitlint/cli @commitlint/config-conventional

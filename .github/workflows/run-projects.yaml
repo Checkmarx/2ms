@@ -12,9 +12,12 @@ env:
   ENGINE: "2ms"
   CES_ENVIRONMENT: "prod"
 
+permissions:
+  contents: read
+
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     outputs:
       machines: ${{ steps.set-machines.outputs.machines }}
     steps:
@@ -26,7 +29,7 @@ jobs:
 
   run-projects:
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.CES_BUCKET_AWS_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.CES_BUCKET_AWS_SECRET_ACCESS_KEY }}
@@ -52,13 +55,13 @@ jobs:
           cache: false
 
       - name: Download 2ms
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: 2ms
           path: bin/
 
       - name: Download Json
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: Metadata
           path: .
