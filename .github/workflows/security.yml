@@ -35,7 +35,7 @@ jobs:
           sarif_file: results.sarif
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb #v3.3.0
+        uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
 
   secret-scanning:
     runs-on: cx-public-ubuntu-x64
