@@ -7,6 +7,17 @@ on:
         description: 'Total number of machines'
         required: true
         type: number
+    secrets:
+      CES_BUCKET_AWS_ACCESS_KEY:
+        required: true
+      CES_BUCKET_AWS_REGION:
+        required: true
+      CES_BUCKET_AWS_SECRET_ACCESS_KEY:
+        required: true
+      CES_EXECUTOR_REPO:
+        required: true
+      CX_CEBOT_GITHUB_TOKEN_CHECKMARX:
+        required: true
 
 env:
   ENGINE: "2ms"
