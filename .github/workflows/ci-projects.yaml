@@ -13,7 +13,7 @@ env:
 jobs:
   build:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -38,23 +38,29 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/2ms/dist/2ms
 
       - name: Create Metadata File
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          GH_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           COMMIT_TIMESTAMP=$(git -C "$GITHUB_WORKSPACE/2ms" log -1 --format=%ct)
           METADATA_PATH="$GITHUB_WORKSPACE/pr-metadata.json"
           echo '{
             "seq": "'"${COMMIT_TIMESTAMP}"'",
-            "tag": "'"${{ github.event.number }}"'",
-            "comment": "'"${{ github.event.pull_request.title }}"'",
-            "commit": "'"${{ github.sha }}"'",
-            "owner": "'"${{ github.actor }}"'",
-            "branch": "'"${{ github.base_ref }}"'",
+            "tag": "'"${PR_NUMBER}"'",
+            "comment": "'"${PR_TITLE}"'",
+            "commit": "'"${GH_SHA}"'",
+            "owner": "'"${ACTOR}"'",
+            "branch": "'"${BASE_REF}"'",
             "engine": "'"${ENGINE}"'",
             "platform": "'"${PLATFORM}"'",
             "version": "'"${ENGINE_VERSION}"'"
           }' > "$METADATA_PATH"
 
       - name: Save 2ms
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: 2ms
           path: |
@@ -62,7 +68,7 @@ jobs:
           retention-days: 1
 
       - name: Pr parameters
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: Metadata
           path: ${{ github.workspace }}/pr-metadata.json

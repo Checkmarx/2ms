@@ -9,7 +9,7 @@ on:
 
 jobs:
   update-trivy-db:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: Setup oras
         uses: oras-project/setup-oras@5c0b487ce3fe0ce3ab0d034e63669e426e294e4d #v1.2.2

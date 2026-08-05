@@ -4,9 +4,12 @@ on:
   pull_request_target:
     types: [opened]
     
+permissions:
+  contents: read
+
 jobs:
   mark_as_community:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     permissions:
       pull-requests: write
     steps:

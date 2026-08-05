@@ -8,9 +8,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
 
     steps:
     - name: Checkout code
@@ -34,7 +37,7 @@ jobs:
                   
          
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
+      uses: step-security/codecov-action@87e66f47a0f8ab4cae465a323eb9ec63d8b6b875 # v6.0.1
       with:
         token: ${{ secrets.CODECOV_TOKEN }} 
         files: ./cover.out  

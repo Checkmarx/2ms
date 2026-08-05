@@ -4,9 +4,12 @@ on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
 
+permissions:
+  contents: read
+
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     steps:
       - name: install commitlint
         run: npm install -g @commitlint/cli @commitlint/config-conventional
@@ -14,5 +17,7 @@ jobs:
         run: |
           echo "module.exports = {extends: ['@commitlint/config-conventional']}" > commitlint.config.js
       - name: validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo ${{ github.event.pull_request.title }} | commitlint
+          echo "$PR_TITLE" | commitlint
