@@ -34,11 +34,11 @@ func writeSarifToWriter(w io.Writer, report *Report, cfg *config.Config) error {
 	bw := bufio.NewWriter(w)
 
 	// Schema and version
-	bw.WriteString("{\n")
-	bw.WriteString(" \"$schema\": \"https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json\",\n")
-	bw.WriteString(" \"version\": \"2.1.0\",\n")
-	bw.WriteString(" \"runs\": [\n")
-	bw.WriteString("  {\n")
+	_, _ = bw.WriteString("{\n")
+	_, _ = bw.WriteString(" \"$schema\": \"https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json\",\n")
+	_, _ = bw.WriteString(" \"version\": \"2.1.0\",\n")
+	_, _ = bw.WriteString(" \"runs\": [\n")
+	_, _ = bw.WriteString("  {\n")
 
 	// Tool section (small — safe to marshal in one shot)
 	tool := getTool(report, cfg)
@@ -46,12 +46,12 @@ func writeSarifToWriter(w io.Writer, report *Report, cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal tool: %w", err)
 	}
-	bw.WriteString("   \"tool\": ")
-	bw.Write(toolJSON)
-	bw.WriteString(",\n")
+	_, _ = bw.WriteString("   \"tool\": ")
+	_, _ = bw.Write(toolJSON)
+	_, _ = bw.WriteString(",\n")
 
 	// Results — stream one at a time
-	bw.WriteString("   \"results\": [\n")
+	_, _ = bw.WriteString("   \"results\": [\n")
 
 	if hasNoResults(report) {
 		// empty array body — just close it
@@ -60,27 +60,27 @@ func writeSarifToWriter(w io.Writer, report *Report, cfg *config.Config) error {
 		for _, secretsSlice := range report.Results {
 			for _, secret := range secretsSlice {
 				if !first {
-					bw.WriteString(",\n")
+					_, _ = bw.WriteString(",\n")
 				}
 				result := buildSarifResult(secret)
 				resultJSON, err := json.MarshalIndent(result, "    ", " ")
 				if err != nil {
 					return fmt.Errorf("failed to marshal result: %w", err)
 				}
-				bw.WriteString("    ")
-				bw.Write(resultJSON)
+				_, _ = bw.WriteString("    ")
+				_, _ = bw.Write(resultJSON)
 				first = false
 			}
 		}
 		if !first {
-			bw.WriteString("\n")
+			_, _ = bw.WriteString("\n")
 		}
 	}
 
-	bw.WriteString("   ]\n")
-	bw.WriteString("  }\n")
-	bw.WriteString(" ]\n")
-	bw.WriteString("}\n")
+	_, _ = bw.WriteString("   ]\n")
+	_, _ = bw.WriteString("  }\n")
+	_, _ = bw.WriteString(" ]\n")
+	_, _ = bw.WriteString("}\n")
 
 	return bw.Flush()
 }
