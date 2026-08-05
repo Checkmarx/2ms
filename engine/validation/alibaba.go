@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v5/lib/secrets"
 	"github.com/rs/zerolog/log"
 )
@@ -20,8 +21,8 @@ import (
 // https://www.alibabacloud.com/help/en/sdk/product-overview/rpc-mechanism#sectiondiv-y9b-x9s-wvp
 
 func validateAlibaba(secretsPairs pairsByRuleId) {
-	accessKeys := secretsPairs["alibaba-access-key-id"]
-	secretKeys := secretsPairs["alibaba-secret-key"]
+	accessKeys := secretsPairs[ruledefine.AlibabaAccessKey().RuleID]
+	secretKeys := secretsPairs[ruledefine.AlibabaSecretKey().RuleID]
 
 	for _, accessKey := range accessKeys {
 		accessKey.ValidationStatus = secrets.UnknownResult

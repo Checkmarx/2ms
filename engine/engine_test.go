@@ -941,7 +941,10 @@ func TestProcessSecrets(t *testing.T) {
 			WithValidation: true,
 		})
 		assert.NoError(t, err)
-		secretsChan := instance.secretsChan
+		secretsChan := make(chan *secrets.Secret, 3)
+		instance.secretsChan = secretsChan
+		instance.secretsExtrasChan = make(chan *secrets.Secret, 3)
+		instance.validationChan = make(chan *secrets.Secret, 3)
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
 		secretsChan <- &secrets.Secret{ID: "mockId2"}
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
@@ -993,7 +996,10 @@ func TestProcessSecrets(t *testing.T) {
 			WithValidation: false,
 		})
 		assert.NoError(t, err)
-		secretsChan := instance.secretsChan
+		secretsChan := make(chan *secrets.Secret, 3)
+		instance.secretsChan = secretsChan
+		instance.secretsExtrasChan = make(chan *secrets.Secret, 3)
+		instance.cvssScoreWithoutValidationChan = make(chan *secrets.Secret, 3)
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 1}
 		secretsChan <- &secrets.Secret{ID: "mockId2"}
 		secretsChan <- &secrets.Secret{ID: "mockId", StartLine: 2}
@@ -1110,6 +1116,7 @@ func TestProcessSecretsExtras(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			instance, err := initEngine(&EngineConfig{})
 			assert.NoError(t, err)
+			instance.secretsExtrasChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			secretsExtrasChan := instance.GetSecretsExtrasCh()
 			for _, secret := range tt.inputSecrets {
 				secretsExtrasChan <- secret
@@ -1206,6 +1213,7 @@ func TestProcessEvaluationWithValidation(t *testing.T) {
 					CustomRules:    tt.customRules},
 			)
 			assert.NoError(t, err)
+			instance.validationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			validationChan := instance.GetValidationCh()
 			for _, secret := range tt.inputSecrets {
 				validationChan <- secret
@@ -1268,6 +1276,7 @@ func TestProcessEvaluationWithoutValidation(t *testing.T) {
 			assert.NoError(t, err)
 			defer instance.Shutdown()
 
+			instance.cvssScoreWithoutValidationChan = make(chan *secrets.Secret, len(tt.inputSecrets))
 			cvssScoreWithoutValidationChan := instance.GetCvssScoreWithoutValidationCh()
 			for _, secret := range tt.inputSecrets {
 				cvssScoreWithoutValidationChan <- secret
