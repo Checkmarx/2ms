@@ -53,28 +53,24 @@ func writeSarifToWriter(w io.Writer, report *Report, cfg *config.Config) error {
 	// Results — stream one at a time
 	_, _ = bw.WriteString("   \"results\": [\n")
 
-	if hasNoResults(report) {
-		// empty array body — just close it
-	} else {
-		first := true
-		for _, secretsSlice := range report.Results {
-			for _, secret := range secretsSlice {
-				if !first {
-					_, _ = bw.WriteString(",\n")
-				}
-				result := buildSarifResult(secret)
-				resultJSON, err := json.MarshalIndent(result, "    ", " ")
-				if err != nil {
-					return fmt.Errorf("failed to marshal result: %w", err)
-				}
-				_, _ = bw.WriteString("    ")
-				_, _ = bw.Write(resultJSON)
-				first = false
+	first := true
+	for _, secretsSlice := range report.Results {
+		for _, secret := range secretsSlice {
+			if !first {
+				_, _ = bw.WriteString(",\n")
 			}
+			result := buildSarifResult(secret)
+			resultJSON, err := json.MarshalIndent(result, "    ", " ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal result: %w", err)
+			}
+			_, _ = bw.WriteString("    ")
+			_, _ = bw.Write(resultJSON)
+			first = false
 		}
-		if !first {
-			_, _ = bw.WriteString("\n")
-		}
+	}
+	if !first {
+		_, _ = bw.WriteString("\n")
 	}
 
 	_, _ = bw.WriteString("   ]\n")
