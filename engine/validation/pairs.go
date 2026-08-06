@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"github.com/checkmarx/2ms/v5/engine/rules/ruledefine"
 	"github.com/checkmarx/2ms/v5/lib/secrets"
 )
 
@@ -47,7 +48,7 @@ var generalKeyToValidation = map[string]pairsValidationFunc{
 }
 
 var generalKeyToRules = map[string][]string{
-	"alibaba": {"a093db05-dd07-4cb5-a387-05749c098546", "29adbc13-0261-418a-b04d-02506551295d"},
+	"alibaba": {ruledefine.AlibabaAccessKey().RuleID, ruledefine.AlibabaSecretKey().RuleID},
 }
 
 func generateRuleToGeneralKey() map[string]string {

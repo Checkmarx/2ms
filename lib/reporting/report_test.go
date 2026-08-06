@@ -2,6 +2,7 @@ package reporting
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -436,6 +437,171 @@ func TestGetOutputSarif(t *testing.T) {
 			assert.Equal(t, tt.want, gotReport.Runs)
 		})
 	}
+}
+
+func TestWriteSarifToWriter(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  *Report
+		want []Runs
+	}{
+		{
+			name: "streaming_two_results_same_rule",
+			arg: &Report{
+				TotalItemsScanned: 2,
+				TotalSecretsFound: 2,
+				Results: map[string][]*secrets.Secret{
+					"secret1": {result1},
+					"secret3": {result3},
+				},
+			},
+			want: []Runs{
+				{
+					Tool: Tool{
+						Driver: Driver{
+							Name:            "report",
+							SemanticVersion: "1",
+							Rules:           []*SarifRule{rule1Sarif},
+						},
+					},
+					Results: []Results{result1Sarif, result3Sarif},
+				},
+			},
+		},
+		{
+			name: "streaming_empty_results",
+			arg: &Report{
+				TotalItemsScanned: 0,
+				TotalSecretsFound: 0,
+				Results:           map[string][]*secrets.Secret{},
+			},
+			want: []Runs{
+				{
+					Tool: Tool{
+						Driver: Driver{
+							Name:            "report",
+							SemanticVersion: "1",
+						},
+					},
+					Results: []Results{},
+				},
+			},
+		},
+		{
+			name: "streaming_includes_confluence_pageId",
+			arg: &Report{
+				TotalItemsScanned: 1,
+				TotalSecretsFound: 1,
+				Results: map[string][]*secrets.Secret{
+					"secret1": {result4},
+				},
+			},
+			want: []Runs{
+				{
+					Tool: Tool{
+						Driver: Driver{
+							Name:            "report",
+							SemanticVersion: "1",
+							Rules:           []*SarifRule{rule4Sarif},
+						},
+					},
+					Results: []Results{result4Sarif},
+				},
+			},
+		},
+	}
+
+	cfg := &config.Config{Name: "report", Version: "1"}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf strings.Builder
+			err := writeSarifToWriter(&buf, tt.arg, cfg)
+			assert.NoError(t, err)
+
+			var gotReport Sarif
+			err = json.Unmarshal([]byte(buf.String()), &gotReport)
+			assert.NoError(t, err, "streaming output must be valid JSON")
+			SortSarifReports(&gotReport, &Sarif{Runs: tt.want})
+			assert.Equal(t, tt.want, gotReport.Runs)
+		})
+	}
+}
+
+func TestWriteFileSarifUsesStreaming(t *testing.T) {
+	report := &Report{
+		TotalItemsScanned: 2,
+		TotalSecretsFound: 2,
+		Results: map[string][]*secrets.Secret{
+			"secret1": {result1},
+			"secret2": {result2},
+		},
+	}
+	cfg := &config.Config{Name: "report", Version: "1"}
+
+	tempDir := t.TempDir()
+	path := filepath.Join(tempDir, "report.sarif")
+	err := report.WriteFile([]string{path}, cfg)
+	assert.NoError(t, err)
+
+	data, err := os.ReadFile(path)
+	assert.NoError(t, err)
+
+	var gotReport Sarif
+	err = json.Unmarshal(data, &gotReport)
+	assert.NoError(t, err, "written sarif file must be valid JSON")
+	assert.Len(t, gotReport.Runs, 1)
+	assert.Len(t, gotReport.Runs[0].Results, 2)
+}
+
+// errWriter is an io.Writer that always fails, used to test error propagation.
+type errWriter struct{}
+
+func (errWriter) Write(_ []byte) (int, error) {
+	return 0, fmt.Errorf("write error")
+}
+
+func TestWriteFileMultiplePaths(t *testing.T) {
+	report := &Report{
+		TotalItemsScanned: 1,
+		TotalSecretsFound: 1,
+		Results: map[string][]*secrets.Secret{
+			"secret1": {result1},
+		},
+	}
+	cfg := &config.Config{Name: "report", Version: "1"}
+
+	tempDir := t.TempDir()
+	sarifPath := filepath.Join(tempDir, "out.sarif")
+	jsonPath := filepath.Join(tempDir, "out.json")
+
+	err := report.WriteFile([]string{sarifPath, jsonPath}, cfg)
+	assert.NoError(t, err)
+
+	sarifData, err := os.ReadFile(sarifPath)
+	assert.NoError(t, err)
+	var gotSarif Sarif
+	assert.NoError(t, json.Unmarshal(sarifData, &gotSarif), "sarif file must be valid JSON")
+	assert.Len(t, gotSarif.Runs[0].Results, 1)
+
+	jsonData, err := os.ReadFile(jsonPath)
+	assert.NoError(t, err)
+	var gotReport Report
+	assert.NoError(t, json.Unmarshal(jsonData, &gotReport), "json file must be valid JSON")
+	assert.Equal(t, 1, gotReport.TotalSecretsFound)
+}
+
+func TestWriteSarifToWriterError(t *testing.T) {
+	report := &Report{
+		TotalItemsScanned: 1,
+		TotalSecretsFound: 1,
+		Results: map[string][]*secrets.Secret{
+			"secret1": {result1},
+		},
+	}
+	cfg := &config.Config{Name: "report", Version: "1"}
+
+	err := writeSarifToWriter(errWriter{}, report, cfg)
+	assert.Error(t, err)
 }
 
 // SortProject Sorts two sarif reports

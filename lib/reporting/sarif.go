@@ -1,8 +1,10 @@
 package reporting
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/checkmarx/2ms/v5/lib/config"
@@ -22,6 +24,80 @@ func writeSarif(report *Report, cfg *config.Config) (string, error) {
 	}
 
 	return string(sarifReport), nil
+}
+
+// writeSarifToWriter streams the SARIF report directly to w, marshaling each
+// result individually so that only one result's JSON is in memory at a time.
+// This eliminates the intermediate Sarif struct, full []byte, and string copies
+// that writeSarif produces.
+func writeSarifToWriter(w io.Writer, report *Report, cfg *config.Config) error {
+	bw := bufio.NewWriter(w)
+
+	// Schema and version
+	_, _ = bw.WriteString("{\n")
+	_, _ = bw.WriteString(" \"$schema\": \"https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json\",\n")
+	_, _ = bw.WriteString(" \"version\": \"2.1.0\",\n")
+	_, _ = bw.WriteString(" \"runs\": [\n")
+	_, _ = bw.WriteString("  {\n")
+
+	// Tool section (small — safe to marshal in one shot)
+	tool := getTool(report, cfg)
+	toolJSON, err := json.MarshalIndent(tool, "   ", " ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal tool: %w", err)
+	}
+	_, _ = bw.WriteString("   \"tool\": ")
+	_, _ = bw.Write(toolJSON)
+	_, _ = bw.WriteString(",\n")
+
+	// Results — stream one at a time
+	_, _ = bw.WriteString("   \"results\": [\n")
+
+	for _, secretsSlice := range report.Results {
+		for _, secret := range secretsSlice {
+			_, _ = bw.WriteString(",\n")
+			result := buildSarifResult(secret)
+			resultJSON, err := json.MarshalIndent(result, "    ", " ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal result: %w", err)
+			}
+			_, _ = bw.WriteString("    ")
+			_, _ = bw.Write(resultJSON)
+		}
+	}
+	_, _ = bw.WriteString("\n")
+	_, _ = bw.WriteString("   ]\n")
+	_, _ = bw.WriteString("  }\n")
+	_, _ = bw.WriteString(" ]\n")
+	_, _ = bw.WriteString("}\n")
+
+	return bw.Flush()
+}
+
+// buildSarifResult converts a single Secret into a SARIF Results object.
+func buildSarifResult(secret *secrets.Secret) Results {
+	props := Properties{
+		"validationStatus": secret.ValidationStatus,
+		"cvssScore":        secret.CvssScore,
+		"resultId":         secret.ID,
+		"severity":         secret.Severity,
+		"ruleName":         secret.RuleName,
+	}
+
+	if secret.ExtraDetails != nil {
+		if pageID, ok := secret.ExtraDetails["confluence.pageId"]; ok {
+			props["confluence.pageId"] = pageID
+		}
+	}
+
+	return Results{
+		Message: Message{
+			Text: createMessageText(secret.RuleName, secret.Source),
+		},
+		RuleId:     secret.RuleID,
+		Locations:  getLocation(secret),
+		Properties: props,
+	}
 }
 
 func getRuns(report *Report, cfg *config.Config) []Runs {
@@ -95,29 +171,7 @@ func getResults(report *Report) []Results {
 
 	for _, secretsSlice := range report.Results {
 		for _, secret := range secretsSlice {
-			props := Properties{
-				"validationStatus": secret.ValidationStatus,
-				"cvssScore":        secret.CvssScore,
-				"resultId":         secret.ID,
-				"severity":         secret.Severity,
-				"ruleName":         secret.RuleName,
-			}
-
-			if secret.ExtraDetails != nil {
-				if pageID, ok := secret.ExtraDetails["confluence.pageId"]; ok {
-					props["confluence.pageId"] = pageID
-				}
-			}
-
-			r := Results{
-				Message: Message{
-					Text: createMessageText(secret.RuleName, secret.Source),
-				},
-				RuleId:     secret.RuleID,
-				Locations:  getLocation(secret),
-				Properties: props,
-			}
-			results = append(results, r)
+			results = append(results, buildSarifResult(secret))
 		}
 	}
 	return results
