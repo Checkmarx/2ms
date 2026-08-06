@@ -17,7 +17,11 @@ func newPairsCollector() *pairsCollector {
 	return &pairsCollector{pairs: make(pairsByGeneralKey)}
 }
 
-func (p *pairsCollector) addIfNeeded(secret *secrets.Secret) bool {
+func (p *pairsCollector) addIfNeeded(secret *secrets.Secret, disableValidation bool) bool {
+	if disableValidation {
+		return false
+	}
+
 	generalKey, ok := ruleToGeneralKey[secret.RuleID]
 	if !ok {
 		return false
