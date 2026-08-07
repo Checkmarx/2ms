@@ -28,7 +28,7 @@ func (v *Validator) RegisterForValidation(secret *secrets.Secret, disableValidat
 		status, extra := validate(secret)
 		secret.ValidationStatus = status
 		addExtraToSecret(secret, extra)
-	} else if !v.pairsCollector.addIfNeeded(secret) {
+	} else if !v.pairsCollector.addIfNeeded(secret, disableValidation) {
 		secret.ValidationStatus = secrets.UnknownResult
 	}
 }
