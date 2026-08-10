@@ -26,6 +26,7 @@ type errorResponse struct {
 func validateGCP(s *secrets.Secret) (secrets.ValidationResult, string) {
 	testURL := "https://youtube.googleapis.com/youtube/v3/search?part=snippet&key=" + s.Value
 
+	log.Info().Msg("Validating secret")
 	req, err := http.NewRequestWithContext(context.Background(), "GET", testURL, http.NoBody)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to validate secret")
