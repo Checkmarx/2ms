@@ -53,9 +53,12 @@ func writeSarifToWriter(w io.Writer, report *Report, cfg *config.Config) error {
 	// Results — stream one at a time
 	_, _ = bw.WriteString("   \"results\": [\n")
 
+	first := true
 	for _, secretsSlice := range report.Results {
 		for _, secret := range secretsSlice {
-			_, _ = bw.WriteString(",\n")
+			if !first {
+				_, _ = bw.WriteString(",\n")
+			}
 			result := buildSarifResult(secret)
 			resultJSON, err := json.MarshalIndent(result, "    ", " ")
 			if err != nil {
@@ -63,6 +66,7 @@ func writeSarifToWriter(w io.Writer, report *Report, cfg *config.Config) error {
 			}
 			_, _ = bw.WriteString("    ")
 			_, _ = bw.Write(resultJSON)
+			first = false
 		}
 	}
 	_, _ = bw.WriteString("\n")
