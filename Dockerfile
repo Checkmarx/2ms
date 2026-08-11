@@ -20,7 +20,7 @@ COPY . .
 RUN GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w" -a -o /app/2ms .
 
 # Runtime image
-FROM checkmarx/git:2.55.0-r4-25f9c40d0991ae@sha256:25f9c40d0991aeb3fab4f68bc8b96e9af819ebf3bcd2d882eb1f735a03485967
+FROM checkmarx/git:2.55.0-r4-17886d1320eb5b@sha256:17886d1320eb5b3370f1c4bc4e3f95b5005cd25058ae254d051a85dcde76c33c
 
 WORKDIR /app
 
