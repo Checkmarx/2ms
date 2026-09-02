@@ -14,6 +14,7 @@ func TestGetLineContent(t *testing.T) {
 		name         string
 		line         string
 		secret       string
+		startColumn  int
 		expected     string
 		error        bool
 		errorMessage string
@@ -59,11 +60,12 @@ func TestGetLineContent(t *testing.T) {
 			error:    false,
 		},
 		{
-			name:     "Secret at the beginning with line size smaller than the parse limit",
-			line:     "start:" + dummySecret + strings.Repeat("A", lineMaxParseSize/2),
-			secret:   dummySecret,
-			expected: "start:" + dummySecret + strings.Repeat("A", contextRightSizeLimit),
-			error:    false,
+			name:        "Secret at the beginning with line size smaller than the parse limit",
+			line:        "start:" + dummySecret + strings.Repeat("A", lineMaxParseSize/2),
+			secret:      dummySecret,
+			startColumn: len("start:") + 1,
+			expected:    "start:" + dummySecret + strings.Repeat("A", contextRightSizeLimit),
+			error:       false,
 		},
 		{
 			name: "Secret found in middle with line size smaller than the parse limit",
@@ -74,43 +76,67 @@ func TestGetLineContent(t *testing.T) {
 				"A",
 				contextRightSizeLimit,
 			) + "end",
-			secret:   dummySecret,
-			expected: strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", contextRightSizeLimit),
-			error:    false,
+			secret:      dummySecret,
+			startColumn: len("start") + contextLeftSizeLimit + 1,
+			expected:    strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", contextRightSizeLimit),
+			error:       false,
 		},
 		{
-			name:     "Secret at the end with line size smaller than the parse limit",
-			line:     strings.Repeat("A", lineMaxParseSize/2) + dummySecret + ":end",
-			secret:   dummySecret,
-			expected: strings.Repeat("A", contextLeftSizeLimit) + dummySecret + ":end",
-			error:    false,
+			name:        "Secret at the end with line size smaller than the parse limit",
+			line:        strings.Repeat("A", lineMaxParseSize/2) + dummySecret + ":end",
+			secret:      dummySecret,
+			startColumn: lineMaxParseSize/2 + 1,
+			expected:    strings.Repeat("A", contextLeftSizeLimit) + dummySecret + ":end",
+			error:       false,
 		},
 		{
-			name:     "Secret at the beginning with line size larger than the parse limit",
-			line:     "start:" + dummySecret + strings.Repeat("A", lineMaxParseSize),
-			secret:   dummySecret,
-			expected: "start:" + dummySecret + strings.Repeat("A", contextRightSizeLimit),
-			error:    false,
+			name:        "Secret at the beginning with line size larger than the parse limit",
+			line:        "start:" + dummySecret + strings.Repeat("A", lineMaxParseSize),
+			secret:      dummySecret,
+			startColumn: len("start:") + 1,
+			expected:    "start:" + dummySecret + strings.Repeat("A", contextRightSizeLimit),
+			error:       false,
 		},
 		{
-			name:     "Secret found in middle with line size larger than the parse limit",
-			line:     "start" + strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", lineMaxParseSize) + "end",
-			secret:   dummySecret,
-			expected: strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", contextRightSizeLimit),
-			error:    false,
+			name:        "Secret found in middle with line size larger than the parse limit",
+			line:        "start" + strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", lineMaxParseSize) + "end",
+			secret:      dummySecret,
+			startColumn: len("start") + contextLeftSizeLimit + 1,
+			expected:    strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", contextRightSizeLimit),
+			error:       false,
 		},
 		{
-			name:     "Secret at the end with line size larger than the parse limit",
-			line:     strings.Repeat("A", lineMaxParseSize-100) + dummySecret + strings.Repeat("A", lineMaxParseSize),
-			secret:   dummySecret,
-			expected: strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", 100-len(dummySecret)),
-			error:    false,
+			name:        "Secret at the end with line size larger than the parse limit",
+			line:        strings.Repeat("A", lineMaxParseSize-100) + dummySecret + strings.Repeat("A", lineMaxParseSize),
+			secret:      dummySecret,
+			startColumn: lineMaxParseSize - 100 + 1,
+			expected:    strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", 100-len(dummySecret)),
+			error:       false,
+		},
+		{
+			name:        "Secret repeated on the same line uses the occurrence at startColumn",
+			line:        strings.Repeat("a", contextLeftSizeLimit) + dummySecret + strings.Repeat("b", contextLeftSizeLimit+contextRightSizeLimit) + dummySecret + strings.Repeat("c", contextRightSizeLimit),
+			secret:      dummySecret,
+			startColumn: contextLeftSizeLimit + len(dummySecret) + contextLeftSizeLimit + contextRightSizeLimit + 1,
+			expected:    strings.Repeat("b", contextLeftSizeLimit) + dummySecret + strings.Repeat("c", contextRightSizeLimit),
+			error:       false,
+		},
+		{
+			name: "Secret repeated with startColumn pointing at the containing match, not the secret itself",
+			line: strings.Repeat("a", contextLeftSizeLimit) + "KEY=" + dummySecret + strings.Repeat(
+				"b",
+				contextLeftSizeLimit+contextRightSizeLimit,
+			) + "KEY=" + dummySecret + strings.Repeat("c", contextRightSizeLimit),
+			secret:      dummySecret,
+			startColumn: contextLeftSizeLimit + len("KEY=") + len(dummySecret) + contextLeftSizeLimit + contextRightSizeLimit + 1,
+			expected:    strings.Repeat("b", contextLeftSizeLimit-len("KEY=")) + "KEY=" + dummySecret + strings.Repeat("c", contextRightSizeLimit),
+			error:       false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetLineContent(tt.line, tt.secret)
+			got, err := GetLineContent(tt.line, tt.secret, tt.startColumn)
 			if (err != nil) != tt.error {
 				t.Fatalf("GetLineContent() error = %v, wantErr %v", err, tt.error)
 			}

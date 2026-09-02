@@ -11,7 +11,7 @@ const (
 	contextRightSizeLimit = 250
 )
 
-func GetLineContent(line, secret string) (string, error) {
+func GetLineContent(line, secret string, startColumn int) (string, error) {
 	lineSize := len(line)
 	if lineSize == 0 {
 		return "", fmt.Errorf("line empty")
@@ -27,8 +27,18 @@ func GetLineContent(line, secret string) (string, error) {
 		lineSize = lineMaxParseSize
 	}
 
-	// Find the secret's position in the line
-	secretStartIndex := strings.Index(line, secret)
+	// Find the secret's position in the line, searching from the match's start column
+	// onwards first so that repeated occurrences of secret in the line are disambiguated.
+	secretStartIndex := -1
+	hint := startColumn - 1
+	if hint >= 0 && hint < lineSize {
+		if idx := strings.Index(line[hint:], secret); idx != -1 {
+			secretStartIndex = hint + idx
+		}
+	}
+	if secretStartIndex == -1 {
+		secretStartIndex = strings.Index(line, secret)
+	}
 	if secretStartIndex == -1 {
 		// Secret not found, return truncated content based on context limits
 		maxSize := contextLeftSizeLimit + contextRightSizeLimit
