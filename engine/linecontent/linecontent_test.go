@@ -110,7 +110,7 @@ func TestGetLineContent(t *testing.T) {
 			line:        strings.Repeat("A", lineMaxParseSize-100) + dummySecret + strings.Repeat("A", lineMaxParseSize),
 			secret:      dummySecret,
 			startColumn: lineMaxParseSize - 100 + 1,
-			expected:    strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", 100-len(dummySecret)),
+			expected:    strings.Repeat("A", contextLeftSizeLimit) + dummySecret + strings.Repeat("A", contextRightSizeLimit),
 			error:       false,
 		},
 		{
@@ -131,6 +131,20 @@ func TestGetLineContent(t *testing.T) {
 			startColumn: contextLeftSizeLimit + len("KEY=") + len(dummySecret) + contextLeftSizeLimit + contextRightSizeLimit + 1,
 			expected:    strings.Repeat("b", contextLeftSizeLimit-len("KEY=")) + "KEY=" + dummySecret + strings.Repeat("c", contextRightSizeLimit),
 			error:       false,
+		},
+		{
+			name: "Secret far beyond the parse limit is not truncated away",
+			line: strings.Repeat("x", lineMaxParseSize*3) + "PRE" + dummySecret + "POST" + strings.Repeat(
+				"y",
+				lineMaxParseSize,
+			),
+			secret:      dummySecret,
+			startColumn: lineMaxParseSize*3 + len("PRE") + 1,
+			expected: strings.Repeat("x", contextLeftSizeLimit-len("PRE")) + "PRE" + dummySecret + "POST" + strings.Repeat(
+				"y",
+				contextRightSizeLimit-len("POST"),
+			),
+			error: false,
 		},
 	}
 

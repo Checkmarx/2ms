@@ -21,10 +21,17 @@ func GetLineContent(line, secret string, startColumn int) (string, error) {
 		return "", fmt.Errorf("secret empty")
 	}
 
-	// Truncate lineContent to max size
+	// Truncate lineContent to max size, centering the window on startColumn so a secret
+	// far into a very long line isn't truncated away before it can be found.
 	if lineSize > lineMaxParseSize {
-		line = line[:lineMaxParseSize]
+		windowStart := 0
+		if hint := startColumn - 1; hint >= 0 && hint < lineSize {
+			windowStart = max(hint-lineMaxParseSize/2, 0)
+			windowStart = min(windowStart, lineSize-lineMaxParseSize)
+		}
+		line = line[windowStart : windowStart+lineMaxParseSize]
 		lineSize = lineMaxParseSize
+		startColumn -= windowStart
 	}
 
 	// Find the secret's position in the line, searching from the match's start column
