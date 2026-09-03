@@ -21,12 +21,13 @@ func GetLineContent(line, secret string, startColumn int) (string, error) {
 		return "", fmt.Errorf("secret empty")
 	}
 
-	// Truncate lineContent to max size, centering the window on startColumn so a secret
-	// far into a very long line isn't truncated away before it can be found.
+	// For lines > lineMaxParseSize, get just the necessary context around the secret
 	if lineSize > lineMaxParseSize {
+		matchStartIndex := startColumn - 1
 		windowStart := 0
-		if hint := startColumn - 1; hint >= 0 && hint < lineSize {
-			windowStart = max(hint-lineMaxParseSize/2, 0)
+		if matchStartIndex >= 0 && matchStartIndex < lineSize {
+			windowStart = max(matchStartIndex-lineMaxParseSize/2, 0)
+			// adjust line context window if windowStart+lineMaxParseSize would be higher than lineSize
 			windowStart = min(windowStart, lineSize-lineMaxParseSize)
 		}
 		line = line[windowStart : windowStart+lineMaxParseSize]
@@ -34,17 +35,13 @@ func GetLineContent(line, secret string, startColumn int) (string, error) {
 		startColumn -= windowStart
 	}
 
-	// Find the secret's position in the line, searching from the match's start column
-	// onwards first so that repeated occurrences of secret in the line are disambiguated.
+	// The same secret value can appear more than once on a line. Search for it at the relevant index for this secret instance
 	secretStartIndex := -1
-	hint := startColumn - 1
-	if hint >= 0 && hint < lineSize {
-		if idx := strings.Index(line[hint:], secret); idx != -1 {
-			secretStartIndex = hint + idx
+	matchStartIndex := startColumn - 1
+	if matchStartIndex >= 0 && matchStartIndex < lineSize {
+		if idx := strings.Index(line[matchStartIndex:], secret); idx != -1 {
+			secretStartIndex = matchStartIndex + idx
 		}
-	}
-	if secretStartIndex == -1 {
-		secretStartIndex = strings.Index(line, secret)
 	}
 	if secretStartIndex == -1 {
 		// Secret not found, return truncated content based on context limits

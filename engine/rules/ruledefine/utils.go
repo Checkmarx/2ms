@@ -27,7 +27,7 @@ const (
 	// \x60 = `
 	secretPrefixUnique       = `\b(`
 	secretPrefix             = `[\x60'"\s=]{0,20}(`                                       //nolint:gosec // This is a regex pattern
-	secretSuffix             = `)(?:[\x60'"\s;]|\\[nr]|$)`                                //nolint:gosec // This is a regex pattern
+	SecretSuffix             = `)(?:[\x60'"\s;]|\\[nr]|$)`                                //nolint:gosec // This is a regex pattern
 	secretSuffixIncludingXml = `)(?:['|\"|\n|\r|\s|\x60|;]|\\n|\\r|$|\s{0,10}<\/string>)` //nolint:gosec // This is a regex pattern
 )
 
@@ -46,7 +46,7 @@ func generateSemiGenericRegex(identifiers []string, secretRegex string, isCaseIn
 	sb.WriteString(operator)
 	sb.WriteString(secretPrefix)
 	sb.WriteString(secretRegex)
-	sb.WriteString(secretSuffix)
+	sb.WriteString(SecretSuffix)
 	return regexp.MustCompile(sb.String())
 }
 
@@ -63,7 +63,7 @@ func generateUniqueTokenRegex(secretRegex string, isCaseInsensitive bool) *regex
 	}
 	sb.WriteString(secretPrefixUnique)
 	sb.WriteString(secretRegex)
-	sb.WriteString(secretSuffix)
+	sb.WriteString(SecretSuffix)
 	return regexp.MustCompile(sb.String())
 }
 
