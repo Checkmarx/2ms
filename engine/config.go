@@ -37,7 +37,6 @@ var baseConfig = config.Config{
 				regexp.MustCompile(`verification-metadata\.xml`),
 				regexp.MustCompile(`Database.refactorlog`),
 				regexp.MustCompile(`(?:^|/)\.git$`),
-				regexp.MustCompile(`(?:^|/)secret\.doc$`),
 			},
 		},
 	},
