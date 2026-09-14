@@ -8,7 +8,3 @@ import (
 func GetDefaultRules(includeDeprecated bool) []*ruledefine.Rule {
 	return rules.GetDefaultRules(includeDeprecated)
 }
-
-func GetRegexSuffix() string {
-	return ruledefine.SecretSuffix
-}
