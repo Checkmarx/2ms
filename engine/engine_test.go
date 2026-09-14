@@ -476,9 +476,30 @@ func TestDetectChunks(t *testing.T) {
 
 func TestSecretsColumnIndex(t *testing.T) {
 
+	const defaultSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+
+	// True positive from ruledefine's generic-api-key (Generic-Api-Key / GenericCredential)
+	// rule, which is built with generateSemiGenericRegexIncludingXml. Its secret-suffix,
+	// SecretSuffixIncludingXml, matches "</string>" right after the secret with no
+	// whitespace in between (see engine/rules/ruledefine/generic_credential_test.go).
+	xmlSuffixSecret := "AIzaSyATDL7Wz3Ze6BU31Yv3fVVth30Skyib29g"
+	xmlSuffixLine := "<string>" + xmlSuffixSecret + "</string>"
+	xmlSuffixSecretStart := len("<string>") + 1
+	xmlSuffixSecretEnd := xmlSuffixSecretStart + len(xmlSuffixSecret) - 1
+
+	// True positive from ruledefine's Adafruit API Key rule, which is built with the plain
+	// generateSemiGenericRegex/SecretSuffix. The secret sits inside a JSON string value, so
+	// it's followed by a literal (2-character) "\n" escape sequence, not an actual newline
+	// byte (see engine/rules/ruledefine/adafruit_test.go).
+	escapedNewlineSecret := "5qnwhukyv3wi7h9etbfrswi6l8yiwhjl"
+	escapedNewlineLine := `{"config.ini": "ADAFRUIT_TOKEN=` + escapedNewlineSecret + `\nBACKUP_ENABLED=true"}`
+	escapedNewlineSecretStart := strings.Index(escapedNewlineLine, escapedNewlineSecret) + 1
+	escapedNewlineSecretEnd := escapedNewlineSecretStart + len(escapedNewlineSecret) - 1
+
 	tests := []struct {
 		name                string
 		lineContent         string
+		secret              string
 		startColumn         int
 		endColumn           int
 		expectedLineContent string
@@ -488,6 +509,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "secret on first line without newline",
 			lineContent:         `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
+			secret:              defaultSecret,
 			startColumn:         14,
 			endColumn:           50,
 			expectedLineContent: `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
@@ -497,6 +519,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "secret with leading newline",
 			lineContent:         "\nlet apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			secret:              defaultSecret,
 			startColumn:         15,
 			endColumn:           51,
 			expectedLineContent: `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
@@ -506,6 +529,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "leading newline followed by tab indentation",
 			lineContent:         "\n	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			secret:              defaultSecret,
 			startColumn:         2,
 			endColumn:           7,
 			expectedLineContent: "	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
@@ -515,6 +539,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "leading newline followed by tab indentation with special character",
 			lineContent:         "\n\tlet apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			secret:              defaultSecret,
 			startColumn:         2,
 			endColumn:           7,
 			expectedLineContent: "	let apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
@@ -524,11 +549,37 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "newline with content larger than context limit",
 			lineContent:         "\n" + strings.Repeat("A", 500) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 500),
+			secret:              defaultSecret,
 			startColumn:         501,
 			endColumn:           536,
 			expectedLineContent: strings.Repeat("A", 250) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 250),
 			expectedStartColumn: 500,
 			expectedEndColumn:   535,
+		},
+		{
+			// EndColumn as reported by the detector includes the "</string>" that
+			// SecretSuffixIncludingXml matched after the secret; buildSecret must trim it
+			// back to the secret's actual last character.
+			name:                "generic-api-key xml suffix consumes closing tag",
+			lineContent:         xmlSuffixLine,
+			secret:              xmlSuffixSecret,
+			startColumn:         xmlSuffixSecretStart,
+			endColumn:           xmlSuffixSecretEnd + len("</string>"),
+			expectedLineContent: xmlSuffixLine,
+			expectedStartColumn: xmlSuffixSecretStart,
+			expectedEndColumn:   xmlSuffixSecretEnd,
+		},
+		{
+			// EndColumn as reported by the detector includes the literal two-character
+			// "\n" that SecretSuffix's `\\[nr]` alternative matched after the secret.
+			name:                "adafruit key followed by literal backslash-n",
+			lineContent:         escapedNewlineLine,
+			secret:              escapedNewlineSecret,
+			startColumn:         escapedNewlineSecretStart,
+			endColumn:           escapedNewlineSecretEnd + len(`\n`),
+			expectedLineContent: escapedNewlineLine,
+			expectedStartColumn: escapedNewlineSecretStart,
+			expectedEndColumn:   escapedNewlineSecretEnd,
 		},
 	}
 	for _, tt := range tests {
@@ -539,7 +590,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 			finding := report.Finding{
 				StartColumn: tt.startColumn,
 				EndColumn:   tt.endColumn,
-				Secret:      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+				Secret:      tt.secret,
 				RuleID:      "test-rule",
 				Description: "Test Description",
 				Line:        tt.lineContent,
