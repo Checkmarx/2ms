@@ -546,9 +546,6 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   535,
 		},
 		{
-			// EndColumn as reported by the detector includes the "</string>" that
-			// SecretSuffixIncludingXml matched after the secret; buildSecret must trim it
-			// back to the secret's actual last character.
 			name:                "generic-api-key xml suffix consumes closing tag",
 			lineContent:         xmlSuffixLine,
 			secret:              xmlSuffixSecret,
@@ -559,8 +556,6 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   xmlSuffixSecretEnd,
 		},
 		{
-			// EndColumn as reported by the detector includes the trailing real carriage
-			// return that SecretSuffix's `\s` alternative matched after the secret.
 			name:                "secret followed by carriage return",
 			lineContent:         generalSuffixSecret + "\r",
 			secret:              generalSuffixSecret,
@@ -571,8 +566,6 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   len(generalSuffixSecret),
 		},
 		{
-			// EndColumn as reported by the detector includes the trailing real newline
-			// that SecretSuffix's `\s` alternative matched after the secret.
 			name:                "secret followed by newline",
 			lineContent:         generalSuffixSecret + "\n",
 			secret:              generalSuffixSecret,
@@ -583,8 +576,6 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   len(generalSuffixSecret),
 		},
 		{
-			// EndColumn as reported by the detector includes the trailing ";" that
-			// SecretSuffix's character-class alternative matched after the secret.
 			name:                "secret followed by semicolon",
 			lineContent:         generalSuffixSecret + ";",
 			secret:              generalSuffixSecret,
@@ -595,8 +586,6 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   len(generalSuffixSecret),
 		},
 		{
-			// EndColumn as reported by the detector includes the trailing quote that
-			// SecretSuffix's character-class alternative matched after the secret.
 			name:                `secret followed by double quote`,
 			lineContent:         generalSuffixSecret + `"`,
 			secret:              generalSuffixSecret,
@@ -607,11 +596,6 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   len(generalSuffixSecret),
 		},
 		{
-			// EndColumn as reported by the detector includes only the last suffix unit
-			// matched: SecretSuffix's suffix group is matched once (not repeated), so of
-			// the two literal escapes here, only the trailing "\n" is ever consumed by the
-			// detector -- and so only it gets trimmed. The earlier literal "\r" escape is
-			// left counted in EndColumn; this is a known limitation, not the ideal result.
 			name:                `secret followed by literal backslash-r backslash-n`,
 			lineContent:         generalSuffixSecret + `\r\n`,
 			secret:              generalSuffixSecret,

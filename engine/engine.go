@@ -529,20 +529,14 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 
 // secretSuffixTailRegexes match, at the end of a string, whatever a rule's secret-suffix
 // regex would have matched right after the secret's capture group. They're derived directly
-// from ruledefine.SecretSuffix and ruledefine.SecretSuffixIncludingXml (stripping the capture
-// group's closing paren and anchoring to the end) rather than duplicating their character
-// classes, so they can't drift out of sync with the source patterns. Both are checked
-// independently -- rather than relying on SecretSuffixIncludingXml always being a superset of
-// SecretSuffix -- so a future divergence between the two can't hide a real overlap.
+// from ruledefine.SecretSuffix and ruledefine.SecretSuffixIncludingXml
 var secretSuffixTailRegexes = []*regexp.Regexp{
 	regexp.MustCompile(strings.TrimPrefix(ruledefine.SecretSuffix, ")") + "$"),
 	regexp.MustCompile(strings.TrimPrefix(ruledefine.SecretSuffixIncludingXml, ")") + "$"),
 }
 
 // trimSecretSuffixOverlap returns endColumn adjusted so it no longer includes the trailing
-// boundary characters matched by the rule's secret-suffix regex, which are not part of the
-// secret itself. line and endColumn must correspond to each other, i.e. endColumn must be a
-// valid 1-based, inclusive column within line.
+// boundary characters matched by the rule's secret-suffix regex.
 //
 // Both suffix regexes always have a zero-width `$` alternative, so they'll always "match" at
 // endColumn itself; what matters is the longest overlap found across both regexes, not merely
@@ -555,9 +549,11 @@ func trimSecretSuffixOverlap(line string, endColumn int) int {
 
 	overlap := 0
 	for _, re := range secretSuffixTailRegexes {
-		if loc := re.FindStringIndex(head); loc != nil {
-			if matched := loc[1] - loc[0]; matched > overlap {
-				overlap = matched
+		matches := re.FindStringIndex(head)
+		if matches != nil {
+			matchedSuffixLength := matches[1] - matches[0]
+			if matchedSuffixLength > overlap {
+				overlap = matchedSuffixLength
 			}
 		}
 	}
@@ -584,10 +580,6 @@ func buildSecret(
 
 	hasNewline := strings.HasPrefix(value.Line, "\n")
 
-	// Rule regexes (ruledefine.SecretSuffix / secretSuffixIncludingXml) include a
-	// trailing boundary match after the secret's capture group, so EndColumn as reported
-	// by the detector can extend past the secret's actual last character. Trim that
-	// overlap before it's used for anything else below.
 	adjustedEndColumn := trimSecretSuffixOverlap(value.Line, value.EndColumn)
 
 	if hasNewline {
