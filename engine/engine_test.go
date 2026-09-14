@@ -476,9 +476,19 @@ func TestDetectChunks(t *testing.T) {
 
 func TestSecretsColumnIndex(t *testing.T) {
 
+	const defaultSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+
+	xmlSuffixSecret := "AIzaSyATD"
+	xmlSuffixLine := "<string>" + xmlSuffixSecret + "</string>"
+	xmlSuffixSecretStart := len("<string>") + 1
+	xmlSuffixSecretEnd := xmlSuffixSecretStart + len(xmlSuffixSecret) - 1
+
+	generalSuffixSecret := "5qnwhuk"
+
 	tests := []struct {
 		name                string
 		lineContent         string
+		secret              string
 		startColumn         int
 		endColumn           int
 		expectedLineContent string
@@ -488,6 +498,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "secret on first line without newline",
 			lineContent:         `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
+			secret:              defaultSecret,
 			startColumn:         14,
 			endColumn:           50,
 			expectedLineContent: `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
@@ -497,6 +508,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "secret with leading newline",
 			lineContent:         "\nlet apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			secret:              defaultSecret,
 			startColumn:         15,
 			endColumn:           51,
 			expectedLineContent: `let apikey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`,
@@ -506,6 +518,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "leading newline followed by tab indentation",
 			lineContent:         "\n	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			secret:              defaultSecret,
 			startColumn:         2,
 			endColumn:           7,
 			expectedLineContent: "	let apikey = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
@@ -515,6 +528,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "leading newline followed by tab indentation with special character",
 			lineContent:         "\n\tlet apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+			secret:              defaultSecret,
 			startColumn:         2,
 			endColumn:           7,
 			expectedLineContent: "	let apikey€ = \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
@@ -524,11 +538,72 @@ func TestSecretsColumnIndex(t *testing.T) {
 		{
 			name:                "newline with content larger than context limit",
 			lineContent:         "\n" + strings.Repeat("A", 500) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 500),
+			secret:              defaultSecret,
 			startColumn:         501,
 			endColumn:           536,
 			expectedLineContent: strings.Repeat("A", 250) + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + strings.Repeat("B", 250),
 			expectedStartColumn: 500,
 			expectedEndColumn:   535,
+		},
+		{
+			name:                "generic-api-key xml suffix consumes closing tag",
+			lineContent:         xmlSuffixLine,
+			secret:              xmlSuffixSecret,
+			startColumn:         xmlSuffixSecretStart,
+			endColumn:           xmlSuffixSecretEnd + len("</string>"),
+			expectedLineContent: xmlSuffixLine,
+			expectedStartColumn: xmlSuffixSecretStart,
+			expectedEndColumn:   xmlSuffixSecretEnd,
+		},
+		{
+			name:                "secret followed by carriage return",
+			lineContent:         generalSuffixSecret + "\r",
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + "\r"),
+			expectedLineContent: generalSuffixSecret, // buildSecret strips all \r bytes from Line
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret),
+		},
+		{
+			name:                "secret followed by newline",
+			lineContent:         generalSuffixSecret + "\n",
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + "\n"),
+			expectedLineContent: generalSuffixSecret + "\n",
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret),
+		},
+		{
+			name:                "secret followed by semicolon",
+			lineContent:         generalSuffixSecret + ";",
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + ";"),
+			expectedLineContent: generalSuffixSecret + ";",
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret),
+		},
+		{
+			name:                `secret followed by double quote`,
+			lineContent:         generalSuffixSecret + `"`,
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + `"`),
+			expectedLineContent: generalSuffixSecret + `"`,
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret),
+		},
+		{
+			name:                `secret followed by literal backslash-r backslash-n`,
+			lineContent:         generalSuffixSecret + `\r\n`,
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + `\r\n`),
+			expectedLineContent: generalSuffixSecret + `\r\n`,
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret + `\r`),
 		},
 	}
 	for _, tt := range tests {
@@ -539,7 +614,7 @@ func TestSecretsColumnIndex(t *testing.T) {
 			finding := report.Finding{
 				StartColumn: tt.startColumn,
 				EndColumn:   tt.endColumn,
-				Secret:      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+				Secret:      tt.secret,
 				RuleID:      "test-rule",
 				Description: "Test Description",
 				Line:        tt.lineContent,

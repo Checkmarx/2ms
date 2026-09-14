@@ -527,6 +527,39 @@ func GetRulesCommand(engineConfig *EngineConfig) *cobra.Command {
 	}
 }
 
+// secretSuffixTailRegexes match, at the end of a string, whatever a rule's secret-suffix
+// regex would have matched right after the secret's capture group. They're derived directly
+// from ruledefine.SecretSuffix and ruledefine.SecretSuffixIncludingXml
+var secretSuffixTailRegexes = []*regexp.Regexp{
+	regexp.MustCompile(strings.TrimPrefix(ruledefine.SecretSuffix, ")") + "$"),
+	regexp.MustCompile(strings.TrimPrefix(ruledefine.SecretSuffixIncludingXml, ")") + "$"),
+}
+
+// trimSecretSuffixOverlap returns endColumn adjusted so it no longer includes the trailing
+// boundary characters matched by the rule's secret-suffix regex.
+//
+// Both suffix regexes always have a zero-width `$` alternative, so they'll always "match" at
+// endColumn itself; what matters is the longest overlap found across both regexes, not merely
+// whether one of them matched.
+func trimSecretSuffixOverlap(line string, endColumn int) int {
+	if endColumn <= 0 || endColumn > len(line) {
+		return endColumn
+	}
+	head := line[:endColumn]
+
+	overlap := 0
+	for _, re := range secretSuffixTailRegexes {
+		matches := re.FindStringIndex(head)
+		if matches != nil {
+			matchedSuffixLength := matches[1] - matches[0]
+			if matchedSuffixLength > overlap {
+				overlap = matchedSuffixLength
+			}
+		}
+	}
+	return endColumn - overlap
+}
+
 // buildSecret creates a secret object from the given source item and finding
 func buildSecret(
 	ctx context.Context,
@@ -547,13 +580,14 @@ func buildSecret(
 
 	hasNewline := strings.HasPrefix(value.Line, "\n")
 
+	adjustedEndColumn := trimSecretSuffixOverlap(value.Line, value.EndColumn)
+
 	if hasNewline {
 		value.Line = strings.TrimPrefix(value.Line, "\n")
 	}
 	value.Line = strings.ReplaceAll(value.Line, "\r", "")
 
 	adjustedStartColumn := value.StartColumn
-	adjustedEndColumn := value.EndColumn
 	if hasNewline {
 		adjustedStartColumn--
 		adjustedEndColumn--
