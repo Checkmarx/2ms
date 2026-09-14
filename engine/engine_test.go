@@ -478,23 +478,12 @@ func TestSecretsColumnIndex(t *testing.T) {
 
 	const defaultSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
 
-	// True positive from ruledefine's generic-api-key (Generic-Api-Key / GenericCredential)
-	// rule, which is built with generateSemiGenericRegexIncludingXml. Its secret-suffix,
-	// SecretSuffixIncludingXml, matches "</string>" right after the secret with no
-	// whitespace in between (see engine/rules/ruledefine/generic_credential_test.go).
-	xmlSuffixSecret := "AIzaSyATDL7Wz3Ze6BU31Yv3fVVth30Skyib29g"
+	xmlSuffixSecret := "AIzaSyATD"
 	xmlSuffixLine := "<string>" + xmlSuffixSecret + "</string>"
 	xmlSuffixSecretStart := len("<string>") + 1
 	xmlSuffixSecretEnd := xmlSuffixSecretStart + len(xmlSuffixSecret) - 1
 
-	// True positive from ruledefine's Adafruit API Key rule, which is built with the plain
-	// generateSemiGenericRegex/SecretSuffix. The secret sits inside a JSON string value, so
-	// it's followed by a literal (2-character) "\n" escape sequence, not an actual newline
-	// byte (see engine/rules/ruledefine/adafruit_test.go).
-	escapedNewlineSecret := "5qnwhukyv3wi7h9etbfrswi6l8yiwhjl"
-	escapedNewlineLine := `{"config.ini": "ADAFRUIT_TOKEN=` + escapedNewlineSecret + `\nBACKUP_ENABLED=true"}`
-	escapedNewlineSecretStart := strings.Index(escapedNewlineLine, escapedNewlineSecret) + 1
-	escapedNewlineSecretEnd := escapedNewlineSecretStart + len(escapedNewlineSecret) - 1
+	generalSuffixSecret := "5qnwhuk"
 
 	tests := []struct {
 		name                string
@@ -570,16 +559,67 @@ func TestSecretsColumnIndex(t *testing.T) {
 			expectedEndColumn:   xmlSuffixSecretEnd,
 		},
 		{
-			// EndColumn as reported by the detector includes the literal two-character
-			// "\n" that SecretSuffix's `\\[nr]` alternative matched after the secret.
-			name:                "adafruit key followed by literal backslash-n",
-			lineContent:         escapedNewlineLine,
-			secret:              escapedNewlineSecret,
-			startColumn:         escapedNewlineSecretStart,
-			endColumn:           escapedNewlineSecretEnd + len(`\n`),
-			expectedLineContent: escapedNewlineLine,
-			expectedStartColumn: escapedNewlineSecretStart,
-			expectedEndColumn:   escapedNewlineSecretEnd,
+			// EndColumn as reported by the detector includes the trailing real carriage
+			// return that SecretSuffix's `\s` alternative matched after the secret.
+			name:                "secret followed by carriage return",
+			lineContent:         generalSuffixSecret + "\r",
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + "\r"),
+			expectedLineContent: generalSuffixSecret, // buildSecret strips all \r bytes from Line
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret),
+		},
+		{
+			// EndColumn as reported by the detector includes the trailing real newline
+			// that SecretSuffix's `\s` alternative matched after the secret.
+			name:                "secret followed by newline",
+			lineContent:         generalSuffixSecret + "\n",
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + "\n"),
+			expectedLineContent: generalSuffixSecret + "\n",
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret),
+		},
+		{
+			// EndColumn as reported by the detector includes the trailing ";" that
+			// SecretSuffix's character-class alternative matched after the secret.
+			name:                "secret followed by semicolon",
+			lineContent:         generalSuffixSecret + ";",
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + ";"),
+			expectedLineContent: generalSuffixSecret + ";",
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret),
+		},
+		{
+			// EndColumn as reported by the detector includes the trailing quote that
+			// SecretSuffix's character-class alternative matched after the secret.
+			name:                `secret followed by double quote`,
+			lineContent:         generalSuffixSecret + `"`,
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + `"`),
+			expectedLineContent: generalSuffixSecret + `"`,
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret),
+		},
+		{
+			// EndColumn as reported by the detector includes only the last suffix unit
+			// matched: SecretSuffix's suffix group is matched once (not repeated), so of
+			// the two literal escapes here, only the trailing "\n" is ever consumed by the
+			// detector -- and so only it gets trimmed. The earlier literal "\r" escape is
+			// left counted in EndColumn; this is a known limitation, not the ideal result.
+			name:                `secret followed by literal backslash-r backslash-n`,
+			lineContent:         generalSuffixSecret + `\r\n`,
+			secret:              generalSuffixSecret,
+			startColumn:         1,
+			endColumn:           len(generalSuffixSecret + `\r\n`),
+			expectedLineContent: generalSuffixSecret + `\r\n`,
+			expectedStartColumn: 1,
+			expectedEndColumn:   len(generalSuffixSecret + `\r`),
 		},
 	}
 	for _, tt := range tests {
