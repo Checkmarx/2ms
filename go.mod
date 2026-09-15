@@ -1,6 +1,6 @@
 module github.com/checkmarx/2ms/v5
 
-go 1.26.4
+go 1.27.0
 
 replace (
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.30.0
@@ -29,9 +29,9 @@ require (
 	github.com/zricethezav/gitleaks/v8 v8.28.0
 	go.uber.org/mock v0.5.2
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
-	golang.org/x/net v0.56.0
+	golang.org/x/net v0.57.0
 	golang.org/x/sync v0.22.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	golang.org/x/time v0.5.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -88,6 +88,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 )
