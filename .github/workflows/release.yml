@@ -53,6 +53,10 @@ jobs:
     runs-on: cx-public-ubuntu-x64
     needs: test
     if: ${{ needs.test.outputs.git_tag }}
+    environment: release
+    permissions:
+      contents: write  # for creating the GitHub release
+      id-token: write  # for Docker Hub OIDC federation
     steps:
       - name: Checkout code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -128,10 +132,11 @@ jobs:
         uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
 
       - name: Login to DockerHub
-        uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        uses: step-security/docker-login-action@bd6978fd4ef9a5f78130095b298b8a721afcb0d8 # v4.5.1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+        env:
+          DOCKERHUB_OIDC_CONNECTIONID: ${{ secrets.DOCKERHUB_OIDC_CONNECTIONID }}
 
       - name: Creating Release
         uses: step-security/action-gh-release@277bfa82abcfdb73e5bbb19e213fd76532ee2be5 # v3.0.0
@@ -152,10 +157,3 @@ jobs:
           tags: |
             checkmarx/2ms:latest
             checkmarx/2ms:${{ needs.test.outputs.version }}
-
-      - name: Update Docker repo description
-        uses: peter-evans/dockerhub-description@e98e4d1628a5f3be2be7c231e50981aee98723ae # v4.0.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: checkmarx/2ms
