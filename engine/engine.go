@@ -552,16 +552,16 @@ func buildSecret(
 	}
 	value.Line = strings.ReplaceAll(value.Line, "\r", "")
 
-	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
-	}
-
 	adjustedStartColumn := value.StartColumn
 	adjustedEndColumn := value.EndColumn
 	if hasNewline {
 		adjustedStartColumn--
 		adjustedEndColumn--
+	}
+
+	lineContent, err := linecontent.GetLineContent(value.Line, value.Secret, adjustedStartColumn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get line content for source %s: %w", item.GetSource(), err)
 	}
 
 	secret := &secrets.Secret{

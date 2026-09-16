@@ -11,6 +11,12 @@ jobs:
   validate:
     runs-on: cx-public-ubuntu-x64
     steps:
+      - name: Authenticate with npm registry
+        env:
+          ECHO_LIBRARIES_ACCESS_KEY: ${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}
+        run: |
+          npm config set //npm.echohq.com/:_authToken "${ECHO_LIBRARIES_ACCESS_KEY}"
+          npm config set //packages.echohq.com/:_authToken "${ECHO_LIBRARIES_ACCESS_KEY}"
       - name: install commitlint
         run: npm install -g @commitlint/cli @commitlint/config-conventional
       - name: config commitlint
