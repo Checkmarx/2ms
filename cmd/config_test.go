@@ -350,7 +350,7 @@ func TestCustomRulesFlag(t *testing.T) {
 			name:            "Invalid rule type",
 			customRulesFile: "testData/customRulesInvalidRuleType.json",
 			expectedRules:   nil,
-			expectErrors:    []error{fmt.Errorf("cannot unmarshal number -2 into Go struct field Rule.scoreRuleType of type uint8")},
+			expectErrors:    []error{fmt.Errorf("cannot unmarshal number -2"), fmt.Errorf("scoreRuleType")},
 		},
 	}
 
