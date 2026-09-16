@@ -85,6 +85,7 @@ func TestGenericCredential(t *testing.T) {
 				" utils.GetEnvOrDefault(\"api_token\", \"dafa7817-e246-48f3-91a7-e87653d587b8\")",
 				// xml cases
 				"<key>API_KEY</key>\n<string>AIzaSyATDL7Wz3Ze6BU31Yv3fVVth30Skyib29g</string>",
+				"AWS_ACCESS_KEY_ID=AKIALALEMEL33243OLIB api_key=\nintegration_api_key_prod_abc123def456",
 			},
 			falsePositives: []string{
 				"issuerKeyHash=npmXsmT2_C1iJZ-SD7RuL8exZ=6ucd",
