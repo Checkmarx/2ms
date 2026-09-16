@@ -111,13 +111,13 @@ func convertAllowLists(allowLists []*AllowList) []*gitleaksrule.Allowlist {
 		return nil
 	}
 	out := make([]*gitleaksrule.Allowlist, 0, len(allowLists))
-	paths := make([]*regexp.Regexp, 0)
-	regexes := make([]*regexp.Regexp, 0)
 	for _, allowList := range allowLists {
+		paths := make([]*regexp.Regexp, 0, len(allowList.Paths))
 		// convert paths to regex
 		for _, path := range allowList.Paths {
 			paths = append(paths, regexp.MustCompile(path))
 		}
+		regexes := make([]*regexp.Regexp, 0, len(allowList.Regexes))
 		// convert regexes strings to regex
 		for _, regex := range allowList.Regexes {
 			regexes = append(regexes, regexp.MustCompile(regex))
