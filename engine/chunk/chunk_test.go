@@ -160,3 +160,47 @@ func TestGenerateChunk(t *testing.T) {
 		})
 	}
 }
+
+func TestReadChunkKeepsEveryByte(t *testing.T) {
+	// Arrange
+	testCases := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "boundary inside the peek window",
+			input: "abc\ndef\n\n\n\n\nghi\njkl",
+		},
+		{
+			name:  "boundary right after the chunk size",
+			input: "0123456789\n\nSECRET\n",
+		},
+		{
+			name:  "no boundary at all",
+			input: "abc\ndef\nghi\njkl\nmno\npqr\nstu\nvwx\nyz",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := New(WithSize(chunkSize), WithMaxPeekSize(maxPeekSize), WithSmallFileThreshold(smallFileThreshold))
+			reader := bufio.NewReaderSize(strings.NewReader(tc.input), chunkSize+maxPeekSize)
+
+			// Act
+			var scanned strings.Builder
+			totalLines := 0
+			for {
+				chunkStr, err := c.ReadChunk(reader, totalLines)
+				if err == io.EOF {
+					break
+				}
+				require.NoError(t, err)
+				totalLines += strings.Count(chunkStr, "\n")
+				scanned.WriteString(chunkStr)
+			}
+
+			// Assert
+			require.Equal(t, tc.input, scanned.String())
+		})
+	}
+}

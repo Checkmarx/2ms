@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"unicode"
 
@@ -134,26 +135,28 @@ func (c *Chunk) GetFileThreshold() int64 {
 
 // ReadChunk reads the next chunk of data from file
 func (c *Chunk) ReadChunk(reader *bufio.Reader, totalLines int) (string, error) {
-	// borrow a []bytes from the pool and seed it with raw data from file (up to chunk size + peek size)
-	rawData, ok := c.GetPeekedBuf()
-	if !ok {
-		return "", fmt.Errorf("expected *bytes.Buffer, got %T", rawData)
+	// look ahead without consuming (up to chunk size + peek size): whatever sits past the
+	// chunk boundary has to stay in the reader, otherwise the next call never sees it
+	rawData, err := reader.Peek(c.size + c.maxPeekSize)
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, bufio.ErrBufferFull) {
+		return "", err
 	}
-	defer c.PutPeekedBuf(rawData)
-	n, err := reader.Read(*rawData)
-
-	var chunkStr string
-	// "Callers should always process the n > 0 bytes returned before considering the error err."
-	// https://pkg.go.dev/io#Reader
-	if n > 0 {
-		// only check the filetype at the start of file
-		if totalLines == 0 && ShouldSkipFile((*rawData)[:n]) {
-			return "", fmt.Errorf("skipping file: %w", ErrUnsupportedFileType)
-		}
-
-		chunkStr, err = c.generateChunk((*rawData)[:n])
+	if len(rawData) == 0 {
+		return "", io.EOF
 	}
+
+	// only check the filetype at the start of file
+	if totalLines == 0 && ShouldSkipFile(rawData) {
+		return "", fmt.Errorf("skipping file: %w", ErrUnsupportedFileType)
+	}
+
+	chunkStr, err := c.generateChunk(rawData)
 	if err != nil {
+		return "", err
+	}
+
+	// consume exactly what the chunk covers
+	if _, err := reader.Discard(len(chunkStr)); err != nil {
 		return "", err
 	}
 	return chunkStr, nil
