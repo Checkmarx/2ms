@@ -12,6 +12,7 @@ var ruleIDToFunction = map[string]validationFunc{
 	ruledefine.GitHubFineGrainedPat().RuleID: validateGithub,
 	ruledefine.GitHubPat().RuleID:            validateGithub,
 	ruledefine.GitlabPat().RuleID:            validateGitlab,
+	ruledefine.GitlabPatRoutable().RuleID:    validateGitlab,
 	ruledefine.GCPAPIKey().RuleID:            validateGCP,
 }
 
