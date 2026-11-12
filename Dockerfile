@@ -17,7 +17,8 @@ RUN go mod download
 # COPY the source code as the last step
 COPY . .
 
-RUN GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w" -a -o /app/2ms .
+ARG VERSION=dev
+RUN GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w -X github.com/checkmarx/2ms/v5/cmd.Version=${VERSION}" -a -o /app/2ms .
 
 # Runtime image
 FROM checkmarx/git:2.56.0-r3-f9cad2bd619390@sha256:f9cad2bd61939058ef50a139cb2d8fbd3cf01b435a0992029e3584e9c6f10f61

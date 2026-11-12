@@ -39,7 +39,7 @@ build:
 	docker build -t $(image_name) .
 
 build-local:
-	GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w" -a -o ./2ms .
+	GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w -X github.com/checkmarx/2ms/v5/cmd.Version=$(shell git describe --tags --always 2>/dev/null || echo dev)" -a -o ./2ms .
 
 generate: check-mockgen-version
 	go generate ./...
