@@ -47,6 +47,26 @@ func TestGitlabPatRoutable(t *testing.T) {
 				"glpat-xxxxxxxx-xxxxxxxxxxxxxxxxxx.xxxxxxxxx",
 			},
 		},
+		{
+			name: "GitlabPatRoutable with version segment",
+			truePositives: []string{
+				"gitlabToken = glpat-0thvkg8tnsqpnek96k0pa3latn9.01.0t0thvkg8",
+				"gitlabToken = \"glpat-0thvkg8tnsqpnek96k0pa3latn9.01.0t0thvkg8\"",
+				"GITLAB_TOKEN=glpat-Ab3dE_fG-hIjK1mN2oPqR4sTuV5wXyZ.0a.1b2c3d4e5",
+				"{\n    \"gitlab_token\": \"glpat-0thvkg8tnsqpnek96k0pa3latn9.01.0t0thvkg8\"\n}",
+				"<gitlabToken>\n    glpat-0thvkg8tnsqpnek96k0pa3latn9.01.0t0thvkg8\n</gitlabToken>",
+			},
+			falsePositives: []string{
+				"glpat-xxxxxxxx-xxxxxxxxxxxxxxxxxx.xx.xxxxxxxxx",
+				// version segment must be exactly 2 chars
+				"glpat-0thvkg8tnsqpnek96k0pa3latn9.011.0t0thvkg8",
+				"glpat-0thvkg8tnsqpnek96k0pa3latn9.1.0t0thvkg8",
+				// version segment must be lowercase alphanumeric
+				"glpat-0thvkg8tnsqpnek96k0pa3latn9.0A.0t0thvkg8",
+				// trailing segment too short
+				"glpat-0thvkg8tnsqpnek96k0pa3latn9.01.0t0thvk",
+			},
+		},
 	}
 
 	for _, tt := range tests {
