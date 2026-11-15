@@ -1,5 +1,4 @@
-name: Security Scans
-
+name: security-checks
 on:
   push:
     branches:
@@ -12,38 +11,191 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  gosec:
-    permissions:
-      contents: read  # for actions/checkout to fetch code
-      security-events: write  # for github/codeql-action/upload-sarif to upload SARIF results
+  trivy-file-system:
+    name: Trivy fs scan
     runs-on: cx-public-ubuntu-x64
-    env:
-      GO111MODULE: on
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Run Gosec Security Scanner
-        uses: securego/gosec@26e57d6b340778c2983cd61775bc7e8bb41d002a # v2.19.0
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          args: "-no-fail -fmt sarif -out results.sarif -exclude-dir=.ci -exclude-dir=tests ./..."
-
-      - name: Upload Gosec Results
-        uses: github/codeql-action/upload-sarif@4355270be187e1b672a7a1c7c7bae5afdc1ab94a #v3.24.10
+          persist-credentials: false
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 #v0.35.0
         with:
-          sarif_file: results.sarif
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          output: './results.txt'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          skip-dirs: '.github'
+          exit-code: '1'
+        # trivy-config: trivy.yaml
+      - name: Inspect action report
+        if: always()
+        run: cat ./results.txt
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: trivy-fs-scan-results
+          path: ./results.txt
 
-      - name: Set up Docker Buildx
+  trivy-docker-image:
+    name: Trivy docker image scan
+    runs-on: cx-public-ubuntu-x64
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile: [ "Dockerfile" ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Setup Docker Buildx
         uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+      - name: Build
+        id: docker_build
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          load: true
+          context: ./
+          file: ./${{ matrix.dockerfile }}
+          builder: ${{ steps.buildx.outputs.name }}
+          push: false
+          tags: checkmarx/2ms:scanme
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 #v0.36.0
+        with:
+          image-ref: checkmarx/2ms:scanme
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          format: 'table'
+          output: './results.txt'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+          trivy-config: trivy.yaml
+          exit-code: '1'
+      - name: Inspect action report
+        if: always()
+        run: cat ./results.txt
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: trivy-docker-image-scan-results
+          path: ./results.txt
 
-  secret-scanning:
+  grype-file-system:
+    name: Grype fs scan
     runs-on: cx-public-ubuntu-x64
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          fetch-depth: 0
+          persist-credentials: false
+      - name: Run Grype vulnerability scanner in repo mode
+        id: grype-fs-scan
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # 7.4.0
+        with:
+          path: "."
+          only-fixed: true
+          output-format: table
+          severity-cutoff: low
+          fail-build: true
 
-      - name: Run 2ms Scan
-        run: docker run -v $(pwd):/repo checkmarx/2ms:latest git /repo --config /repo/.2ms.yml
+  grype-docker-image:
+    name: Grype docker image scan
+    runs-on: cx-public-ubuntu-x64
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile: [ "Dockerfile" ]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Setup Docker Buildx
+        uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+      - name: Build
+        id: docker_build
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          load: true
+          context: ./
+          file: ./${{ matrix.dockerfile }}
+          builder: ${{ steps.buildx.outputs.name }}
+          push: false
+          tags: 2ms:sec-tests-${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+      - name: Scan image
+        id: grype-image-scan
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # 7.4.0
+        with:
+          image: 2ms:sec-tests-${{ github.sha }}
+          only-fixed: true
+          severity-cutoff: low
+          output-format: table
+          fail-build: true
+
+  govulncheck-file-system:
+    runs-on: cx-public-ubuntu-x64
+    name: govulncheck fs scan
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 #v6.3.0
+        with:
+          go-version-file: go.mod
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@617f44b718537dccdea1915395650e0529e3b72e # master 08/19/26
+      - name: Run govulncheck scanner in fs mode
+        run: |
+          govulncheck -show verbose -C . ./... > ./results.txt || true
+          bash ./.github/scripts/sec-checks/govulncheck-ignore-unfixed.sh
+      - name: Inspect action report
+        if: always()
+        run: cat ./results.txt
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: govulncheck-fs-scan-results
+          path: ./results.txt
+
+  binary-dependencies:
+    runs-on: cx-public-ubuntu-x64
+    name: Binary dependencies
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 #v6.3.0
+        with:
+          go-version-file: go.mod
+      - name: Build 2ms
+        run: go build -buildvcs=false -ldflags="-s -w" -a -o ./2ms .
+      - name: Inspect final dependencies from binary
+        if: github.event_name == 'pull_request'
+        run: |
+          strings ./2ms | grep -P "dep\t" | sort -u > binary_dependencies.txt
+          cat binary_dependencies.txt
+      - name: Upload artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: binary-dependencies
+          path: ./binary_dependencies.txt
