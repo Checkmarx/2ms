@@ -4,11 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version_override:
-        description: 'Override semantic version (e.g., v4.3.0) - leave empty for automatic calculation'
-        required: false
+        description: 'Version to release (e.g., v4.3.0)'
+        required: true
         type: string
-  push:
-    branches: [master]
 
 permissions:
   contents: read
@@ -26,9 +24,9 @@ jobs:
       contents: read
 
     outputs:
-      git_tag: ${{ steps.semantic_release_info.outputs.git_tag || steps.version_override.outputs.git_tag }}
-      version: ${{ steps.semantic_release_info.outputs.version || steps.version_override.outputs.version }}
-      notes: ${{ steps.semantic_release_info.outputs.notes || steps.version_override.outputs.notes }}
+      git_tag: ${{ steps.version_override.outputs.git_tag }}
+      version: ${{ steps.version_override.outputs.version }}
+      notes: ${{ steps.version_override.outputs.notes }}
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -45,16 +43,8 @@ jobs:
       - name: Unit Tests
         run: go test ./...
 
-      - name: Gets release info
-        id: semantic_release_info
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_override == ''
-        uses: jossef/action-semantic-release-info@277fc891fc5ac40ed0e8d6bf59a0e24a25dfdeac #v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Override version if specified
         id: version_override
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_override != ''
         env:
           VERSION_OVERRIDE: ${{ github.event.inputs.version_override }}
         run: |
