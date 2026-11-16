@@ -1,24 +1,31 @@
 name: PR Labels
 
 on:
-  pull_request_target:
+  # pull_request_target is required so fork PRs get a token that can add labels.
+  # This is safe here: the job never checks out or runs code from the PR, it only calls the labels API.
+  pull_request_target: # zizmor: ignore[dangerous-triggers] label-only job, no PR code is checked out or executed
     types: [opened]
-    
+
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   mark_as_community:
+    name: Mark as Community
     runs-on: cx-public-ubuntu-x64
     permissions:
-      pull-requests: write
+      pull-requests: write # to add the Community label to the PR
     steps:
       - name: Mark as Community if PR is from a fork
         if: github.event.pull_request.head.repo.full_name != github.repository
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            github.rest.issues.addLabels({
+            await github.rest.issues.addLabels({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
