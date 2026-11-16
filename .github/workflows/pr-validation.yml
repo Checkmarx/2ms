@@ -4,8 +4,18 @@ on:
   pull_request:
   merge_group:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # default deny-write baseline; jobs below elevate as needed
+
 jobs:
   test:
+    name: test (${{ matrix.os }})
+    permissions:
+      contents: read # for actions/checkout to fetch code
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -17,8 +27,10 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0 # Required for 2ms to have visibility to all commit history
-        
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 #v6.3.0
         with:
           go-version-file: go.mod
 
@@ -40,10 +52,15 @@ jobs:
         run: go run . git . --config .2ms.yml
 
   build:
+    name: build
     runs-on: cx-public-ubuntu-x64
+    permissions:
+      contents: read # for actions/checkout to fetch code
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
         uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
@@ -54,10 +71,18 @@ jobs:
           docker run -v "$(pwd)":/repo -t checkmarx/2ms:latest git /repo --report-path output/results.json --ignore-on-exit results
 
   kics:
+    name: kics
     runs-on: cx-public-ubuntu-x64
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      pull-requests: write # for kics-github-action's enable_comments to post scan results on the PR
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - run: mkdir -p kics-results
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Create results directory
+        run: mkdir -p kics-results
 
       - name: Run KICS scan
         uses: checkmarx/kics-github-action@03c9abe351b01c3e4dbe60fa00ff79ee07d73f44 # master

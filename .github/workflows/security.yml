@@ -48,10 +48,6 @@ jobs:
   trivy-docker-image:
     name: Trivy docker image scan
     runs-on: cx-public-ubuntu-x64
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile: [ "Dockerfile" ]
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -65,7 +61,7 @@ jobs:
         with:
           load: true
           context: ./
-          file: ./${{ matrix.dockerfile }}
+          file: ./Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           push: false
           tags: checkmarx/2ms:scanme
@@ -113,10 +109,6 @@ jobs:
   grype-docker-image:
     name: Grype docker image scan
     runs-on: cx-public-ubuntu-x64
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile: [ "Dockerfile" ]
     steps:
       - name: Check out code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -130,7 +122,7 @@ jobs:
         with:
           load: true
           context: ./
-          file: ./${{ matrix.dockerfile }}
+          file: ./Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           push: false
           tags: 2ms:sec-tests-${{ github.sha }}

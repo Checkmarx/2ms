@@ -7,23 +7,31 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   validate:
+    name: Validate PR title
     runs-on: cx-public-ubuntu-x64
     steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts/commitlint
       - name: Authenticate with npm registry
         env:
           ECHO_LIBRARIES_ACCESS_KEY: ${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}
         run: |
           npm config set //npm.echohq.com/:_authToken "${ECHO_LIBRARIES_ACCESS_KEY}"
           npm config set //packages.echohq.com/:_authToken "${ECHO_LIBRARIES_ACCESS_KEY}"
-      - name: install commitlint
-        run: npm install -g @commitlint/cli @commitlint/config-conventional
-      - name: config commitlint
-        run: |
-          echo "module.exports = {extends: ['@commitlint/config-conventional']}" > commitlint.config.js
-      - name: validate PR title
+      - name: Install commitlint
+        working-directory: .github/scripts/commitlint
+        run: npm ci --ignore-scripts
+      - name: Validate PR title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "$PR_TITLE" | commitlint
+          echo "$PR_TITLE" | .github/scripts/commitlint/node_modules/.bin/commitlint --config .github/scripts/commitlint/commitlint.config.js
