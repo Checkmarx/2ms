@@ -21,6 +21,11 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: .github/scripts/commitlint
+      - name: Setup Node
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f #v6.3.0
+        with:
+          node-version: "20"
+          registry-url: https://npm.echohq.com/
       - name: Authenticate with npm registry
         env:
           ECHO_LIBRARIES_ACCESS_KEY: ${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}
