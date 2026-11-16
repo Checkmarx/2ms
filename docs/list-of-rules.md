@@ -91,7 +91,7 @@ Here is a complete list of all the rules that are currently implemented.
 | Gitlab-Kubernetes-Agent-Token | Identified a GitLab Kubernetes Agent token, risking access to repos and registry of projects connected via agent. | access-token |  |
 | Gitlab-Oauth-App-Secret | Identified a GitLab OIDC Application Secret, risking access to apps using GitLab as authentication provider. | secret-key |  |
 | Gitlab-Pat | Identified a GitLab Personal Access Token, risking unauthorized access to GitLab repositories and codebase exposure. | access-token | V |
-| Gitlab-Pat-Routable | Identified a GitLab Personal Access Token (routable), risking unauthorized access to GitLab repositories and codebase exposure. | access-token |  |
+| Gitlab-Pat-Routable | Identified a GitLab Personal Access Token (routable), risking unauthorized access to GitLab repositories and codebase exposure. | access-token | V |
 | Gitlab-Ptt | Found a GitLab Pipeline Trigger Token, potentially compromising continuous integration workflows and project security. | trigger-token |  |
 | Gitlab-Rrt | Discovered a GitLab Runner Registration Token, posing a risk to CI/CD pipeline integrity and unauthorized access. | registration-token |  |
 | Gitlab-Runner-Authentication-Token | Discovered a GitLab Runner Authentication Token, posing a risk to CI/CD pipeline integrity and unauthorized access. | access-token |  |
