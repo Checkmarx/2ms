@@ -13,14 +13,10 @@ permissions:
 
 jobs:
   test:
-    name: test (${{ matrix.os }})
+    name: test
+    runs-on: cx-public-ubuntu-x64
     permissions:
       contents: read # for actions/checkout to fetch code
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-
-    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
