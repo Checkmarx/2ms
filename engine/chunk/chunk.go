@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"unicode"
 
@@ -133,28 +134,37 @@ func (c *Chunk) GetFileThreshold() int64 {
 }
 
 // ReadChunk reads the next chunk of data from file
+// Only the bytes that are part of the returned chunk are consumed from the reader: the look-ahead bytes left out by
+// generateChunk (when a safe boundary is found before the end of the peek window) are read again by the next call,
+// so no part of the file is skipped and the caller's line count stays in sync with the scanned data
 func (c *Chunk) ReadChunk(reader *bufio.Reader, totalLines int) (string, error) {
-	// borrow a []bytes from the pool and seed it with raw data from file (up to chunk size + peek size)
-	rawData, ok := c.GetPeekedBuf()
-	if !ok {
-		return "", fmt.Errorf("expected *bytes.Buffer, got %T", rawData)
-	}
-	defer c.PutPeekedBuf(rawData)
-	n, err := reader.Read(*rawData)
+	// look at the raw data from file (up to chunk size + peek size) without consuming it
+	rawData, err := reader.Peek(c.size + c.maxPeekSize)
 
-	var chunkStr string
 	// "Callers should always process the n > 0 bytes returned before considering the error err."
 	// https://pkg.go.dev/io#Reader
-	if n > 0 {
-		// only check the filetype at the start of file
-		if totalLines == 0 && ShouldSkipFile((*rawData)[:n]) {
-			return "", fmt.Errorf("skipping file: %w", ErrUnsupportedFileType)
-		}
-
-		chunkStr, err = c.generateChunk((*rawData)[:n])
+	// Peek returns fewer bytes together with io.EOF when the file ends before the full window, that is not a failure
+	if len(rawData) == 0 {
+		return "", err
 	}
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", err
+	}
+
+	// only check the filetype at the start of file
+	if totalLines == 0 && ShouldSkipFile(rawData) {
+		return "", fmt.Errorf("skipping file: %w", ErrUnsupportedFileType)
+	}
+
+	// generateChunk copies the data, so rawData is not used after the Discard below
+	chunkStr, err := c.generateChunk(rawData)
 	if err != nil {
 		return "", err
+	}
+
+	// consume only the bytes that went into the chunk
+	if _, err = reader.Discard(len(chunkStr)); err != nil {
+		return "", fmt.Errorf("failed to discard chunk bytes: %w", err)
 	}
 	return chunkStr, nil
 }
