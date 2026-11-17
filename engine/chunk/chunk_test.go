@@ -3,10 +3,12 @@ package chunk
 import (
 	"bufio"
 	"bytes"
-	"github.com/stretchr/testify/require"
+	"errors"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -97,6 +99,60 @@ func TestReadChunk(t *testing.T) {
 
 			// Assert
 			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestReadChunkDoesNotDropBytes(t *testing.T) {
+	// Arrange
+	testCases := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "safe boundary found inside the peek window",
+			input: "abcdefghi\n\njklmnopqrstuvwxyz\n",
+		},
+		{
+			name:  "CRLF safe boundary inside the peek window",
+			input: "abcdefg\r\n\r\nhijklmnopqrstuvwxyz\r\n",
+		},
+		{
+			name:  "several safe boundaries",
+			input: "abcdefghi\n\njklmnopqr\n\nstuvwxyz\n\nabc",
+		},
+		{
+			name:  "no safe boundary",
+			input: "abcdefghijklmnopqrstuvwxyz0123456789",
+		},
+		{
+			name:  "file ends inside the peek window",
+			input: "abcdefghijkl",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := New(WithSize(chunkSize), WithMaxPeekSize(maxPeekSize), WithSmallFileThreshold(smallFileThreshold))
+			reader := bufio.NewReaderSize(strings.NewReader(tc.input), chunkSize+maxPeekSize)
+
+			// Act
+			var rebuilt strings.Builder
+			totalLines := 0
+			for {
+				chunkStr, err := c.ReadChunk(reader, totalLines)
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				require.NoError(t, err)
+				require.NotEmpty(t, chunkStr)
+				rebuilt.WriteString(chunkStr)
+				totalLines += strings.Count(chunkStr, "\n")
+			}
+
+			// Assert: every byte of the input is scanned exactly once and the line count matches the file
+			require.Equal(t, tc.input, rebuilt.String())
+			require.Equal(t, strings.Count(tc.input, "\n"), totalLines)
 		})
 	}
 }
