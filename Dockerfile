@@ -3,7 +3,7 @@
 # and "Missing User Instruction" since 2ms container is stopped after scan
 
 # Builder image
-FROM checkmarx/go:1.27.1-r0-424cf19b9e848d@sha256:424cf19b9e848d86bbf0ed45b216d782f064bfb6b1dd7eba7f5a8cc3f750088f AS builder
+FROM checkmarx/go:1.27.3-r0-94581adffb0633@sha256:94581adffb0633c4cdde4b15edc8834c192204e9af0a5247f85e91294ceb2e82 AS builder
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ COPY . .
 RUN GOOS=linux GOARCH=amd64 go build -buildvcs=false -ldflags="-s -w" -a -o /app/2ms .
 
 # Runtime image
-FROM checkmarx/git:2.55.0-r7-193d1e713216b7@sha256:193d1e713216b75b63eb05c3ebac0185620565b10a33d2ca1b3a89e8bd46c4fc
+FROM checkmarx/git:2.56.0-r3-f9cad2bd619390@sha256:f9cad2bd61939058ef50a139cb2d8fbd3cf01b435a0992029e3584e9c6f10f61
 
 WORKDIR /app
 
