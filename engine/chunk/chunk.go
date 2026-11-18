@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"unicode"
 
@@ -47,7 +48,6 @@ func WithSmallFileThreshold(smallFileThreshold int64) Option {
 // Chunk holds two pools and sizing parameters needed for reading chunks of data with look-ahead
 type Chunk struct {
 	bufPool            *sync.Pool // *bytes.Buffer with cap Size + MaxPeekSize
-	peekedBufPool      *sync.Pool // *[]byte slices of length Size + MaxPeekSize
 	size               int        // base chunk size
 	maxPeekSize        int        // max size of look-ahead bytes
 	smallFileThreshold int64      // files smaller than this skip chunking
@@ -77,13 +77,6 @@ func New(opts ...Option) *Chunk {
 			return bytes.NewBuffer(make([]byte, 0, c.size+c.maxPeekSize))
 		},
 	}
-	c.peekedBufPool = &sync.Pool{
-		New: func() interface{} {
-			// pre-allocate fixed-size block for loading chunks
-			b := make([]byte, c.size+c.maxPeekSize)
-			return &b
-		},
-	}
 	return c
 }
 
@@ -103,23 +96,6 @@ func (c *Chunk) PutBuf(window *bytes.Buffer) {
 	c.bufPool.Put(window)
 }
 
-// GetPeekedBuf returns a fixed-size []byte from the pool
-func (c *Chunk) GetPeekedBuf() (*[]byte, bool) {
-	b, ok := c.peekedBufPool.Get().(*[]byte)
-	if !ok {
-		return nil, false
-	}
-	// reslice to its full capacity so Read can fill it
-	*b = (*b)[:cap(*b)]
-	return b, ok
-}
-
-// PutPeekedBuf returns the fixed-size []byte to the pool
-func (c *Chunk) PutPeekedBuf(b *[]byte) {
-	*b = (*b)[:0] // reset the slice to zero length
-	c.peekedBufPool.Put(b)
-}
-
 func (c *Chunk) GetSize() int {
 	return c.size
 }
@@ -133,28 +109,35 @@ func (c *Chunk) GetFileThreshold() int64 {
 }
 
 // ReadChunk reads the next chunk of data from file
+// Only the bytes that are part of the returned chunk are consumed from the reader
 func (c *Chunk) ReadChunk(reader *bufio.Reader, totalLines int) (string, error) {
-	// borrow a []bytes from the pool and seed it with raw data from file (up to chunk size + peek size)
-	rawData, ok := c.GetPeekedBuf()
-	if !ok {
-		return "", fmt.Errorf("expected *bytes.Buffer, got %T", rawData)
-	}
-	defer c.PutPeekedBuf(rawData)
-	n, err := reader.Read(*rawData)
+	// look at the raw data from file (up to chunk size + peek size) without consuming it
+	rawData, err := reader.Peek(c.size + c.maxPeekSize)
 
-	var chunkStr string
 	// "Callers should always process the n > 0 bytes returned before considering the error err."
 	// https://pkg.go.dev/io#Reader
-	if n > 0 {
-		// only check the filetype at the start of file
-		if totalLines == 0 && ShouldSkipFile((*rawData)[:n]) {
-			return "", fmt.Errorf("skipping file: %w", ErrUnsupportedFileType)
-		}
-
-		chunkStr, err = c.generateChunk((*rawData)[:n])
+	// Peek returns fewer bytes together with io.EOF when the file ends before the full window, that is not a failure
+	if len(rawData) == 0 {
+		return "", err
 	}
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", err
+	}
+
+	// only check the filetype at the start of file
+	if totalLines == 0 && ShouldSkipFile(rawData) {
+		return "", fmt.Errorf("skipping file: %w", ErrUnsupportedFileType)
+	}
+
+	// generateChunk copies the data, so rawData is not used after the Discard below
+	chunkStr, err := c.generateChunk(rawData)
 	if err != nil {
 		return "", err
+	}
+
+	// consume only the bytes that went into the chunk
+	if _, err = reader.Discard(len(chunkStr)); err != nil {
+		return "", fmt.Errorf("failed to discard chunk bytes: %w", err)
 	}
 	return chunkStr, nil
 }
