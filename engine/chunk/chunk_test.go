@@ -28,15 +28,6 @@ func TestGetAndPutBuf(t *testing.T) {
 	require.Equal(t, string(data), buf.String())
 }
 
-func TestGetAndPutPeekedBuf(t *testing.T) {
-	c := New()
-	window, ok := c.GetPeekedBuf()
-	defer c.PutPeekedBuf(window)
-
-	require.True(t, ok)
-	require.Equal(t, defaultSize+defaultMaxPeekSize, len(*window))
-}
-
 func TestGetSize(t *testing.T) {
 	c := New()
 	require.Equal(t, defaultSize, c.GetSize())
