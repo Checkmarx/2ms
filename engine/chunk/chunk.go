@@ -134,9 +134,7 @@ func (c *Chunk) GetFileThreshold() int64 {
 }
 
 // ReadChunk reads the next chunk of data from file
-// Only the bytes that are part of the returned chunk are consumed from the reader: the look-ahead bytes left out by
-// generateChunk (when a safe boundary is found before the end of the peek window) are read again by the next call,
-// so no part of the file is skipped and the caller's line count stays in sync with the scanned data
+// Only the bytes that are part of the returned chunk are consumed from the reader
 func (c *Chunk) ReadChunk(reader *bufio.Reader, totalLines int) (string, error) {
 	// look at the raw data from file (up to chunk size + peek size) without consuming it
 	rawData, err := reader.Peek(c.size + c.maxPeekSize)
