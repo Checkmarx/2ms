@@ -48,7 +48,6 @@ func WithSmallFileThreshold(smallFileThreshold int64) Option {
 // Chunk holds two pools and sizing parameters needed for reading chunks of data with look-ahead
 type Chunk struct {
 	bufPool            *sync.Pool // *bytes.Buffer with cap Size + MaxPeekSize
-	peekedBufPool      *sync.Pool // *[]byte slices of length Size + MaxPeekSize
 	size               int        // base chunk size
 	maxPeekSize        int        // max size of look-ahead bytes
 	smallFileThreshold int64      // files smaller than this skip chunking
@@ -78,13 +77,6 @@ func New(opts ...Option) *Chunk {
 			return bytes.NewBuffer(make([]byte, 0, c.size+c.maxPeekSize))
 		},
 	}
-	c.peekedBufPool = &sync.Pool{
-		New: func() interface{} {
-			// pre-allocate fixed-size block for loading chunks
-			b := make([]byte, c.size+c.maxPeekSize)
-			return &b
-		},
-	}
 	return c
 }
 
@@ -104,23 +96,6 @@ func (c *Chunk) PutBuf(window *bytes.Buffer) {
 	c.bufPool.Put(window)
 }
 
-// GetPeekedBuf returns a fixed-size []byte from the pool
-func (c *Chunk) GetPeekedBuf() (*[]byte, bool) {
-	b, ok := c.peekedBufPool.Get().(*[]byte)
-	if !ok {
-		return nil, false
-	}
-	// reslice to its full capacity so Read can fill it
-	*b = (*b)[:cap(*b)]
-	return b, ok
-}
-
-// PutPeekedBuf returns the fixed-size []byte to the pool
-func (c *Chunk) PutPeekedBuf(b *[]byte) {
-	*b = (*b)[:0] // reset the slice to zero length
-	c.peekedBufPool.Put(b)
-}
-
 func (c *Chunk) GetSize() int {
 	return c.size
 }
@@ -134,9 +109,7 @@ func (c *Chunk) GetFileThreshold() int64 {
 }
 
 // ReadChunk reads the next chunk of data from file
-// Only the bytes that are part of the returned chunk are consumed from the reader: the look-ahead bytes left out by
-// generateChunk (when a safe boundary is found before the end of the peek window) are read again by the next call,
-// so no part of the file is skipped and the caller's line count stays in sync with the scanned data
+// Only the bytes that are part of the returned chunk are consumed from the reader
 func (c *Chunk) ReadChunk(reader *bufio.Reader, totalLines int) (string, error) {
 	// look at the raw data from file (up to chunk size + peek size) without consuming it
 	rawData, err := reader.Peek(c.size + c.maxPeekSize)
