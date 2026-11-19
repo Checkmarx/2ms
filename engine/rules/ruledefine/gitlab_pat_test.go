@@ -45,6 +45,10 @@ func TestGitlabPat(t *testing.T) {
 			},
 			falsePositives: []string{
 				"glpat-XXXXXXXXXXX-XXXXXXXX",
+				// longer than 20 chars after the prefix: not a legacy PAT (routable tokens are covered by Gitlab-Pat-Routable)
+				"glpat-0thvkg8tnsqpnek96k0pa3latn9.01.0t0thvkg8",
+				"glpat-D0agd3p5LcvzA5U_Udl-abcdefg.01.0t0thvkg8",
+				"glpat-D0agd3p5LcvzA5U_Udl-abcdefg",
 			},
 		},
 	}
