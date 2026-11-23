@@ -49,6 +49,15 @@ func TestGitlabPat(t *testing.T) {
 				"glpat-0thvkg8tnsqpnek96k0pa3latn9.01.0t0thvkg8",
 				"glpat-D0agd3p5LcvzA5U_Udl-abcdefg.01.0t0thvkg8",
 				"glpat-D0agd3p5LcvzA5U_Udl-abcdefg",
+				// a legacy-length token directly followed by more token characters is not a legacy PAT
+				"glpat-sKkgxjBs2KBpGA6Ad0TH_prod",
+				"glpat-sKkgxjBs2KBpGA6Ad0TH-prod",
+				"glpat-sKkgxjBs2KBpGA6Ad0THprod",
+				// malformed routable tokens (invalid version/suffix segments) are not reported as Gitlab-Pat
+				"glpat-fpThoJpoAEoVo28MA9C0sJ55appdMkF9h8glRQTV2Mf.011.ni134dx4u;",
+				"glpat-2qXmt4wRrfcZp9NoCKKmTJfXmYqIkwGzKAmmUOg8iuI.1.q6uhzx3g1;",
+				"glpat-CyAmXNMrlFRgNYu7qK0ZMBuviX6lisA2U9A83PxKRbZ.0A.mnm7r0490;",
+				"glpat-tqsZLIVhDA4lmFUYcOD4YfERaKKF2laboiJfavZ8WKO.01.xosbk5z7;",
 			},
 		},
 	}
