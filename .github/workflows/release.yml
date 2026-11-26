@@ -4,49 +4,60 @@ on:
   workflow_dispatch:
     inputs:
       version_override:
-        description: 'Override semantic version (e.g., v4.3.0) - leave empty for automatic calculation'
-        required: false
+        description: 'Version to release (e.g., v4.3.0)'
+        required: true
         type: string
-  push:
-    branches: [master]
+
+permissions:
+  contents: read
+
+# Never cancel a release that is already running, a half-published release is worse than a queued one
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   test:
     name: Test
     runs-on: cx-public-ubuntu-x64
+    permissions:
+      contents: read
 
     outputs:
-      git_tag: ${{ steps.semantic_release_info.outputs.git_tag || steps.version_override.outputs.git_tag }}
-      version: ${{ steps.semantic_release_info.outputs.version || steps.version_override.outputs.version }}
-      notes: ${{ steps.semantic_release_info.outputs.notes || steps.version_override.outputs.notes }}
+      git_tag: ${{ steps.version_override.outputs.git_tag }}
+      version: ${{ steps.version_override.outputs.version }}
+      notes: ${{ steps.version_override.outputs.notes }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0 # Required for 2ms to have visibility to all commit history
+          persist-credentials: false
 
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 #v6.3.0
         with:
           go-version-file: go.mod
+          cache: false # no build cache in the release path, avoids cache poisoning
 
       - name: Unit Tests
         run: go test ./...
 
-      - name: Gets release info
-        id: semantic_release_info
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_override == ''
-        uses: jossef/action-semantic-release-info@277fc891fc5ac40ed0e8d6bf59a0e24a25dfdeac #v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Override version if specified
         id: version_override
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_override != ''
+        env:
+          VERSION_OVERRIDE: ${{ github.event.inputs.version_override }}
         run: |
-          echo "Using manual version override: ${{ github.event.inputs.version_override }}"
-          echo "git_tag=${{ github.event.inputs.version_override }}" >> $GITHUB_OUTPUT
-          echo "version=$(echo '${{ github.event.inputs.version_override }}' | sed 's/^v//')" >> $GITHUB_OUTPUT
-          echo "notes=Manual release with version override to ${{ github.event.inputs.version_override }}" >> $GITHUB_OUTPUT
+          if ! [[ "${VERSION_OVERRIDE}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version_override must look like vX.Y.Z, got '${VERSION_OVERRIDE}'"
+            exit 1
+          fi
+          echo "Using manual version override: ${VERSION_OVERRIDE}"
+          {
+            echo "git_tag=${VERSION_OVERRIDE}"
+            echo "version=${VERSION_OVERRIDE#v}"
+            echo "notes=Manual release with version override to ${VERSION_OVERRIDE}"
+          } >> "$GITHUB_OUTPUT"
 
   build:
     name: Build and Release
@@ -59,11 +70,15 @@ jobs:
       id-token: write  # for Docker Hub OIDC federation
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 #v6.3.0
         with:
           go-version-file: go.mod
+          cache: false # no build cache in the release path, avoids cache poisoning
 
       - name: Go Mod Tidy
         run: go mod tidy

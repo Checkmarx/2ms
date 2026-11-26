@@ -1,0 +1,61 @@
+name: kics-github-action
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # for actions/checkout to fetch code
+
+jobs:
+  kics-scan:
+    name: Run Kics scan through github action
+    runs-on: cx-public-ubuntu-x64
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      pull-requests: write # for checkmarx/kics-github-action's enable_comments to post scan results on the PR
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Checkout kics-github-action
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: Checkmarx/kics-github-action
+          ref: 4a16c2130b02104dc2624c133d5224080e7cc49b # master (bump kics version to 2.2.1)
+          path: .kics-github-action
+          persist-credentials: false
+      # The runner cannot reach registry.npmjs.org, and a remote `uses:` docker action is built during job setup without secrets.
+      # Run the action from a local checkout instead and pre-build its npm layers through the echohq registry,
+      # so the build done by the action step reuses them from the local docker cache.
+      - name: Pre-build action npm layers through echohq registry
+        env:
+          ECHO_LIBRARIES_ACCESS_KEY: ${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}
+          DOCKER_BUILDKIT: "1"
+        run: |
+          NPMRC="${RUNNER_TEMP}/npmrc"
+          umask 077
+          printf 'registry=https://npm.echohq.com/\n//npm.echohq.com/:_authToken=%s\n' "${ECHO_LIBRARIES_ACCESS_KEY}" > "${NPMRC}"
+          docker build --target builder --secret "id=npmrc,src=${NPMRC}" .kics-github-action
+          rm -f "${NPMRC}"
+      - name: Run KICS Scan
+        uses: ./.kics-github-action # zizmor: ignore[self-repository] local checkout of the action, see the note above
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: "./Dockerfile"
+          ignore_on_exit: results
+          enable_comments: true
+          output_path: ./results
+          output_formats: json,html
+          type: dockerfile
+      - name: Upload Results File
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: results
+          path: ./results
